@@ -1,0 +1,8 @@
+.project
+.classpath
+target/
+.DS_Store
+.settings/
+.cache-main
+.worksheet/
+*.sc
