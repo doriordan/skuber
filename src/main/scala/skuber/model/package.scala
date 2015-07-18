@@ -10,16 +10,16 @@ import scala.collection.immutable.HashMap
  * @author David O'Riordan
  */
 package object Model {
-
+  
   sealed abstract class TypeMeta {
-    def kind: String
-    def apiVersion: String
+    def apiVersion: String = "v1"
+    def kind: String 
   }
   
   case class ObjectMeta(
     name: String,
-    namespace: Option[Namespace] = None,
-    uid:Option[String] = None,
+    namespace: Option[Namespace] = None, 
+    uid:Option[String] = None, 
     generateName: Option[String] = None, 
     selfLink: Option[String] = None,
     resourceVersion: Option[String] = None,
@@ -27,26 +27,36 @@ package object Model {
     deletionTimetsamp: Option[Date] = None,
     labels: Option[Map[String, String]] = None,
     annotations: Option[Map[String, String]] = None)
-        
+          
   abstract class ObjectResource extends TypeMeta {
     def metadata: ObjectMeta
+    
+    // convenience accessors to common metadata with sensible defaults where applicable
+    def name = metadata.name
+    def ns = metadata.namespace.getOrElse(Namespace.default)
+    def uid = metadata.uid.getOrElse("")
   }
 
   case class ListMeta( 
       selfLink: Option[URL] = None,
       resourceVersion: Option[String] = None)
       
-      
-  // marker trait for any types that have a List resource type counterpart e.g. Pod, Node
-  trait KListable 
+  // marker trait for any Kubernetes object type that are also items of some Kubernetes list type 
+  // e.g. a Pod can be an item in a PodList
+  trait KListItem 
   
-  abstract class ListResource[T <: KListable] extends TypeMeta {
-    def metadata: ListMeta
-    def items: List[T]
-  }    
+  trait KList[I <: KListItem] extends TypeMeta {
+    def metadata : ListMeta
+    def items : List[I]
+  }
  
-  implicit def toList[T <: KListable](resource: ListResource[T]) : List[T] = resource.items
-
+  implicit def toList[I <: KListItem](resource: KList[I]) : List[I] = resource.items  
+   
+  case class Pods(metadata: ListMeta = ListMeta(), items: List[Pod] = List()) extends KList[Pod] { def kind = "PodList" }
+  case class Nodes(metadata: ListMeta=ListMeta(), items: List[Node] = List()) extends KList[Node] { def kind = "NodeList" }
+  case class ReplicationControllers(metadata: ListMeta=ListMeta(), items: List[ReplicationController] = List()) 
+    extends KList[ReplicationController] { def kind = "ReplicationControllerList" }
+  
   type Finalizer=String
   type Phase=String
   

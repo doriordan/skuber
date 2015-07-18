@@ -9,15 +9,15 @@ import java.util.Date
  */
 case class Pod(
   	val kind: String ="Pod",
-  	val apiVersion: String = "v1",
+  	override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
-    spec: Option[Pod.Status] = None,
+    spec: Option[Pod.Spec] = None,
     status: Option[Pod.Status] = None) 
-      extends ObjectResource with KListable
+      extends ObjectResource with KListItem
 
 object Pod {
    case class Spec(
-      containers: List[Container],
+      containers: List[Container] = List(),
       volumes: Option[List[Volume]] = None,
       restartPolicy: Option[String] = None,
       terminationGracePeriodSeconds: Option[Int] = None,
@@ -27,7 +27,27 @@ object Pod {
       serviceAccountName: Option[String]= None,
       nodeName: Option[String] = None,
       hostNetwork: Option[Boolean] = None,
-      imagePullSecrets: Option[List[LocalObjectReference]])
+      imagePullSecrets: Option[List[LocalObjectReference]] = None) {
+     
+     // fluent pod spec builder API methods
+     def addContainer(c: Container) = { this.copy(containers = c :: containers) }
+     def addVolume(v: Volume) = { this.copy(volumes = Some(v :: volumes.getOrElse(List[Volume]()))) }
+     def withRestartPolicy(r: String) = { this.copy(restartPolicy=Some(r)) }
+     def withTermGP(t: Int) = { this.copy(terminationGracePeriodSeconds = Some(t))}
+     def withActiveDL(t: Int) = { this.copy(activeDeadlineSeconds=Some(t))}
+     def withDNSPolicy(p: String) = {this.copy(dnsPolicy=Some(p))}
+     def addNodeSelector(kv: Tuple2[String,String]) = {
+       this.copy(nodeSelector = Some(nodeSelector.getOrElse(Map[String,String]()) + kv))
+     }
+     def withServiceAccountName(n: String) = { this.copy(serviceAccountName = Some(n))}
+     def withNodeName(n: String) = { this.copy(nodeName = Some(n))}
+     def requestHostNetworking(b: Boolean) = { this.copy(hostNetwork = Some(b))}
+     def addImagePullSecretRef(ref: String) = {
+       val loref = LocalObjectReference(ref)
+       this.copy(imagePullSecrets = 
+         Some(loref :: imagePullSecrets.getOrElse(List[LocalObjectReference]()))) 
+     }
+   }
       
       
   case class Status(
@@ -44,7 +64,7 @@ object Pod {
  
   case class Template(
     val kind: String ="PodTemplate",
-    val apiVersion: String = "v1",
+    override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
     template: Option[Template.Spec] = None)
     extends ObjectResource

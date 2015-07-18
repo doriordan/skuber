@@ -9,7 +9,7 @@ import java.util.Date
  */
 case class Event(
   	val kind: String ="Event",
-  	val apiVersion: String = "v1",
+  	override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
     involvedObject: ObjectReference,
     reason: Option[String] = None,
@@ -18,7 +18,7 @@ case class Event(
     firstTimestamp: Option[Date] = None,
     lastTimestamp: Option[Date] = None,
     count: Option[Int] = None) 
-  extends ObjectResource with KListable
+  extends ObjectResource with KListItem
 
 object Event {
   case class Source(component: Option[String] = None, host: Option[String] = None)

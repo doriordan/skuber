@@ -1,9 +1,11 @@
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
 
-val playws = "com.typesafe.play" % "play-ws_2.11" % "2.4.2"
-val scalaCheck = "org.scalacheck" % "scalacheck_2.11" % "1.12.4"
-val specs2 = "org.specs2" % "specs2_2.11" % "3.3.1"
+val playws = "com.typesafe.play" %% "play-ws" % "2.4.2"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4"
+val specs2 = "org.specs2" %% "specs2-core" % "3.6.2"
+
+scalacOptions in Test ++= Seq("-Yrangepos")
 
 lazy val commonSettings = Seq(
   organization := "io.doriordan",

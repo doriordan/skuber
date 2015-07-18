@@ -13,6 +13,11 @@ object Resource {
   
   case class Requirements(limits: Option[ResourceList], requests: Option[ResourceList])
   
+  // standard resource names
+  val cpu = "cpu"
+  val memory="memory"
+  val storage="storage"
+  
   // K8 has a specific format for Resource Quantity type - see
   // https://godoc.org/github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource#Quantity
   
@@ -81,7 +86,13 @@ object Resource {
     
     def parseDecimalSI(number: String, suffix: String) = {
       val (base, exponent) = decSuffix2Be(suffix)
-      BigDecimal(new java.math.BigDecimal(new java.math.BigInteger(number), exponent))
+      val num = BigDecimal(new java.math.BigDecimal(number))
+      exponent match {
+        case 0 => num
+        case _ =>
+          val mult = BigDecimal(new java.math.BigDecimal(base)).pow(exponent)
+          num * mult
+      }
     }
      
     def parseDecimalExponent(number: String, suffix: String) = {
