@@ -7,7 +7,7 @@ import scala.math.BigInt
 
 import skuber.model._
 import skuber.model.Model._
-import KubernetesJson._
+import JsonReadWrite._
 
 import play.api.libs.json._
 
@@ -23,12 +23,12 @@ class JsonReadsWritesSpec extends Specification {
   // Namespace reader and writer
   "A Namespace can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for the default namespace" >> {
-      val ns = Json.fromJson[Namespace](Json.toJson(Namespace.default)).get 
+      val ns = Json.fromJson[Namespace](Json.toJson(Namespace.default)).get
       ns.name mustEqual "default"
       ns mustEqual Namespace.default
     }
     "this can be done for a simple non-default namespace" >> {
-      val myNs = Namespace.use("myNamespace")
+      val myNs = Namespace.forName("myNamespace")
       val readNs = Json.fromJson[Namespace](Json.toJson(myNs)).get 
       myNs mustEqual readNs     
     }
@@ -36,9 +36,10 @@ class JsonReadsWritesSpec extends Specification {
       val f=List("myFinalizer", "Kubernetes")
       val phase="Running"
       
-      val myOtherNs = Namespace.use("myOtherNamespace").withFinalizers(f).withStatusOfPhase(phase)
+      val myOtherNs = Namespace.forName("myOtherNamespace").withFinalizers(f).withStatusOfPhase(phase)
       val readNs = Json.fromJson[Namespace](Json.toJson(myOtherNs)).get
       readNs mustEqual myOtherNs
     }
-  }    
+  }  
+  
 }

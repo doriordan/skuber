@@ -8,7 +8,7 @@ import java.util.Date
  */
 case class Container(
     name: String,
-    image: Option[String] = None,
+    image: String,
     command: Option[List[String]] = None,
     args: Option[List[String]] = None,
     workingDir: Option[String] = None,

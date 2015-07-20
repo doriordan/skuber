@@ -12,7 +12,7 @@ import play.api.libs.functional.syntax._
 /**
  * @author David O'Riordan
  */
-object KubernetesJson {
+object JsonReadWrite {
 
 	val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
 	implicit val rfc3339DateReads : Reads[Date] = Reads.of[String] map { sdf.parse(_) }
@@ -79,5 +79,4 @@ object KubernetesJson {
       (JsPath \ "phase").write[String].contramap(_.phase)
       
       
-    
 }

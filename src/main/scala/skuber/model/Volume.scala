@@ -9,10 +9,10 @@ import Model._
  */
 case class Volume(
     name: String,
-    source: Option[Volume.Source] = None) 
+    source: Volume.Source) 
 
 object Volume {
-  sealed trait Source
+  sealed trait Source 
   case class HostPath(path: String) extends Source
   case class EmptyDir(medium: String) extends Source
   case class GCEPersistentDisk(
@@ -44,9 +44,6 @@ object Volume {
       lun: Int, 
       fsType: String, 
       readOnly: Option[Boolean] = None) extends Source
-  case class PersistentVolumeClaim(claimName: String,readOnly: Option[Boolean] = None) extends Source
-  
+  case class PersistentVolumeClaim(claimName: String,readOnly: Option[Boolean] = None) extends Source  
   case class Mount(name: String, mountPath: String, readOnly: Option[Boolean] = None)
-  
-  
 }

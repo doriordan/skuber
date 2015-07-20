@@ -13,7 +13,7 @@ case class Namespace(
     status: Option[Namespace.Status]= None) 
   extends ObjectResource {
   def meta(name: String): ObjectMeta = ObjectMeta(name, Some(this))
-  def pod(name: String, spec: Option[Pod.Spec] = None) = Pod(metadata=meta(name), spec=spec)
+  def pod(name: String, spec: Pod.Spec) = Pod(metadata=meta(name), spec=spec)
   def node(name: String, spec: Option[Node.Spec] = None) = Node(metadata=meta(name), spec=spec)
   def replicationController(name: String, spec: Option[ReplicationController.Spec] = None) = 
     ReplicationController(metadata=meta(name), spec=spec)
@@ -25,7 +25,7 @@ object Namespace {
   case class Spec(finalizers: List[String])
   case class Status(phase: String)
  
-  val default = Namespace.use("default")
-  def use(label: String) : Namespace = Namespace(metadata=ObjectMeta(name=label))
+  val default = Namespace.forName("default")
+  def forName(label: String) : Namespace = Namespace(metadata=ObjectMeta(name=label))
   def from(meta:ObjectMeta) : Namespace = Namespace(metadata=meta)
 }
