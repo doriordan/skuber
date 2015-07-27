@@ -15,8 +15,8 @@ case class Event(
     reason: Option[String] = None,
     message: Option[String] = None,
     source: Option[Event.Source] = None,
-    firstTimestamp: Option[Date] = None,
-    lastTimestamp: Option[Date] = None,
+    firstTimestamp: Option[Timestamp] = None,
+    lastTimestamp: Option[Timestamp] = None,
     count: Option[Int] = None) 
   extends ObjectResource with KListItem
 

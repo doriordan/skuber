@@ -20,8 +20,8 @@ object Pod {
    def forNameAndSpec(name: String, spec: Pod.Spec) = Pod(metadata=ObjectMeta(name=name), spec = spec)
    
    case class Spec(
+      volumes: List[Volume] = List(),
       containers: List[Container] = List(),
-      volumes: Option[List[Volume]] = None,
       restartPolicy: Option[String] = None,
       terminationGracePeriodSeconds: Option[Int] = None,
       activeDeadlineSeconds: Option[Int] = None,
@@ -34,7 +34,7 @@ object Pod {
      
      // a few convenience methods for fluently building out a pod spec
      def addContainer(c: Container) = { this.copy(containers = c :: containers) }
-     def addVolume(v: Volume) = { this.copy(volumes = Some(v :: volumes.getOrElse(List[Volume]()))) }
+     def addVolume(v: Volume) = { this.copy(volumes = v :: volumes) }
      def addNodeSelector(kv: Tuple2[String,String]) = {
        this.copy(nodeSelector = Some(nodeSelector.getOrElse(Map[String,String]()) + kv))
      }

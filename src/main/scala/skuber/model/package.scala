@@ -11,35 +11,38 @@ import scala.collection.immutable.HashMap
  */
 package object Model {
   
+  // define standard empty values - defaults and json formatting use them
+  val emptyS=""
+  val emptyB=false
+  def emptyL[T]=List[T]()
+  
   sealed abstract class TypeMeta {
     def apiVersion: String = "v1"
     def kind: String 
   }
   
+  type Timestamp=java.time.ZonedDateTime
+  
   case class ObjectMeta(
-    name: String,
-    namespace: Option[Namespace] = None, 
-    uid:Option[String] = None, 
-    generateName: Option[String] = None, 
-    selfLink: Option[String] = None,
-    resourceVersion: Option[String] = None,
-    creationTimestamp: Option[Date] = None,
-    deletionTimetsamp: Option[Date] = None,
+    name: String = emptyS,
+    generateName: String = emptyS,
+    namespace: String = "default",
+    uid: String = emptyS,
+    selfLink: String = emptyS,
+    resourceVersion: String = emptyS,
+    creationTimestamp: Option[Timestamp] = None,
+    deletionTimetsamp: Option[Timestamp] = None,
     labels: Option[Map[String, String]] = None,
     annotations: Option[Map[String, String]] = None)
           
   abstract class ObjectResource extends TypeMeta {
     def metadata: ObjectMeta
-    
-    // convenience accessors to common metadata with sensible defaults where applicable
     def name = metadata.name
-    def ns = metadata.namespace.getOrElse(Namespace.default)
-    def uid = metadata.uid.getOrElse("")
   }
 
   case class ListMeta( 
-      selfLink: Option[URL] = None,
-      resourceVersion: Option[String] = None)
+      selfLink: String = "",
+      resourceVersion: String = "")
       
   // marker trait for any Kubernetes object type that are also items of some Kubernetes list type 
   // e.g. a Pod can be an item in a PodList
@@ -66,7 +69,7 @@ package object Model {
       kind: Option[String] = None,
       apiVersion: Option[String] = None,
       namespace: Option[String] = None,
-      name: Option[String] = None,
+      name: String = "",
       uid: Option[String] = None,
       resourceVersion: Option[String] = None,
       fieldPath: Option[String] = None)

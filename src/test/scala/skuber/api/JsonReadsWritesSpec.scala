@@ -2,8 +2,11 @@ package skuber.api
 
 import org.specs2.mutable.Specification // for unit-style testing
 import org.specs2.execute.Result
+import org.specs2.execute.Failure
+import org.specs2.execute.Success
 
 import scala.math.BigInt
+import java.util.Calendar
 
 import skuber.model._
 import skuber.model.Model._
@@ -24,7 +27,7 @@ class JsonReadsWritesSpec extends Specification {
   "A Namespace can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for the default namespace" >> {
       val ns = Json.fromJson[Namespace](Json.toJson(Namespace.default)).get
-      ns.name mustEqual "default"
+      ns.metadata.name mustEqual "default"
       ns mustEqual Namespace.default
     }
     "this can be done for a simple non-default namespace" >> {
@@ -40,6 +43,47 @@ class JsonReadsWritesSpec extends Specification {
       val readNs = Json.fromJson[Namespace](Json.toJson(myOtherNs)).get
       readNs mustEqual myOtherNs
     }
-  }  
-  
+    "we can read a namespace from a direct JSON string" >> {
+      val nsJson = Json.parse("""
+        {
+          "kind": "Namespace",
+          "apiVersion": "v1",
+          "metadata": {
+            "name": "mynamespace",
+            "selfLink": "/api/v1/namespaces/mynamespace",
+            "uid": "2a08e586-2d2d-11e5-99f8-0800279dd272",
+            "resourceVersion": "26101",
+            "creationTimestamp": "2015-07-18T09:12:50Z"
+          },
+          "spec": {
+            "finalizers": [
+              "kubernetes"
+            ]
+          },
+          "status": {
+            "phase": "Active"
+          }
+        }
+        """)
+        val res = Json.fromJson[Namespace](nsJson)
+       val ret: Result = res match {
+          case JsSuccess(ns,path) =>
+            ns.name mustEqual "mynamespace"
+            ns.apiVersion mustEqual "v1"
+            ns.kind mustEqual "Namespace"
+            ns.metadata.uid mustEqual "2a08e586-2d2d-11e5-99f8-0800279dd272"
+            ns.status mustEqual Some(skuber.model.Namespace.Status("Active"))
+            val date = ns.metadata.creationTimestamp.get
+            date.getYear mustEqual 2015
+            date.getMonth mustEqual java.time.Month.JULY
+            date.getDayOfMonth mustEqual 18
+            date.getHour mustEqual 9
+            date.getMinute mustEqual 12
+            date.getSecond mustEqual 50
+            date.getOffset mustEqual java.time.ZoneOffset.UTC
+          case JsError(e) => Failure(e.toString)
+        }
+        ret
+    }    
+  }    
 }
