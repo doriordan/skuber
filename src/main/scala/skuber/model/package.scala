@@ -1,6 +1,5 @@
 package skuber.model
 
-
 import java.net.URL
 import java.util.Date
 import scala.collection.immutable.HashMap
@@ -31,7 +30,7 @@ package object Model {
     selfLink: String = emptyS,
     resourceVersion: String = emptyS,
     creationTimestamp: Option[Timestamp] = None,
-    deletionTimetsamp: Option[Timestamp] = None,
+    deletionTimestamp: Option[Timestamp] = None,
     labels: Option[Map[String, String]] = None,
     annotations: Option[Map[String, String]] = None)
           

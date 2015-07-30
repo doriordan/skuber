@@ -22,37 +22,37 @@ object Volume {
   case class GCEPersistentDisk(
       pdName: String, 
       fsType: String, 
-      partition: Option[Int] = None, 
+      partition: Int = 0, 
       readOnly: Boolean = false) 
     extends PersistentSource
   case class AWSElasticBlockStore(
       volumeID: String, 
       fsType: String, 
-      partition: Option[Int] = None, 
+      partition: Int = 0, 
       readOnly: Boolean = false) 
     extends PersistentSource
-  case class NFS(server: String, path: String, readOnly: Option[Boolean] = None) 
+  case class NFS(server: String, path: String, readOnly: Boolean = false) 
     extends PersistentSource
-  case class Glusterfs(endpoints: String, path: String, readOnly: Option[Boolean] = None) 
+  case class Glusterfs(endpoints: String, path: String, readOnly: Boolean = false) 
     extends PersistentSource
   case class RDB(
       monitors: List[String], 
       image: String, 
       fsType: String, 
-      pool: Option[String] = None, 
-      user: Option[String] = None,
-      keyring: Option[String] = None,
+      pool: String = "", 
+      user: String = "",
+      keyring: String = "",
       secretRef: Option[LocalObjectReference] = None,
-      readOnly: Option[Boolean] = None) 
+      readOnly: Boolean = false) 
     extends PersistentSource
   case class ISCSI(
       targetPortal: String, 
       iqn: String, 
       lun: Int, 
       fsType: String, 
-      readOnly: Option[Boolean] = None) 
+      readOnly: Boolean = false) 
     extends PersistentSource
-  case class PersistentVolumeClaim(claimName: String,readOnly: Option[Boolean] = None) 
+  case class PersistentVolumeClaim(claimName: String,readOnly: Boolean = false) 
     extends Source
-  case class Mount(name: String, mountPath: String, readOnly: Option[Boolean] = None)
+  case class Mount(name: String, mountPath: String, readOnly: Boolean = false)
 }

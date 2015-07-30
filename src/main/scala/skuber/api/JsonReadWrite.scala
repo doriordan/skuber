@@ -10,32 +10,25 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.data.validation.ValidationError
 
-
 /**
  * @author David O'Riordan
+ * Implicit Play json formatters for serializing Kubernetes objects to JSON
+ * and vice versa 
  */
 object JsonReadWrite {
   
-  // Kubernetes time fields are formatted using RFC3329, a profile of ISO 8601 
-  // Skuber uses Java 8 time package objects to represent times, here we use the default Play zoned 
-  // time Json writes/reads formatters for them
-  implicit val timewWites = Writes.DefaultZonedDateTimeWrites // not sure a writer is needed for clients
+  // Formatters for the Java 8 ZonedDateTime objects that represent
+  // (ISO 8601 / RFC 3329 compatible) Kubernetes timestamp fields 
+  implicit val timewWrites = Writes.temporalWrites[ZonedDateTime, DateTimeFormatter](
+      DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   implicit val timeReads = Reads.DefaultZonedDateTimeReads    
       
-  // MaybeEmpty provides custom methods for formatting fields that may have "empty" values and
-  // therefore be omitted by the sender in the json representation, per Kubernetes API spec.
-  // Note this applies to Strings, Ints, Lists and Boolean types, whose empty values are legal and
-  // non-null members of that type...fields that reference possibly "empty" object types - including Dates 
-  // - on the other hand will be mapped using familiar formatNullable and Option types where None represents 
-  // empty objects that can be omitted in the json.
-  // The rationale for not using Option types for "emptyable" strings, lists and booleans is twofold,
-  // (1) It would be confusing to be able to represent the empty value both by using None and Some(e)
-  // where 'e' is the empty value
-  // (2) Not using Option makes a lot of caller code more concise by not having to explicitly wrap values
-  // using Some(x), unwrap using map etc. 
-  
+  // Some fields can be omitted in the json if the value is "empty" e.g. empty lists or strings.
+  // For these we use custom formatters to handle the empty/omitted cases.
+  // Note: other types that may be empty/omitted are referenced using Option types with
+  // None representing empty, as they don't have a specific empty value in the Scala representaion 
+  // e.g. Timestamp, Spec and Status types.
   class MaybeEmpty(val path: JsPath) {
-
     def formatMaybeEmptyString(omitEmpty: Boolean=true): OFormat[String] =
       path.formatNullable[String].inmap[String](_.getOrElse(emptyS), s => if (omitEmpty && s.isEmpty) None else Some(s) )
       
@@ -43,22 +36,21 @@ object JsonReadWrite {
       path.formatNullable[List[T]].inmap[List[T]](_.getOrElse(emptyL[T]), l => if (omitEmpty && l.isEmpty) None else Some(l))
       
     // Boolean: the empty value is 'false'  
-    def formatMayBeEmptyBoolean(omitEmpty: Boolean) : OFormat[Boolean] =
+    def formatMaybeEmptyBoolean(omitEmpty: Boolean=true) : OFormat[Boolean] =
       path.formatNullable[Boolean].inmap[Boolean](_.getOrElse(false), b => if (omitEmpty && !b) None else Some(b))
       
     // Int: the empty value is 0
-    def formatMayBeEmptyInt(omitEmpty: Boolean) : OFormat[Int] =
+    def formatMaybeEmptyInt(omitEmpty: Boolean=true) : OFormat[Int] =
       path.formatNullable[Int].inmap[Int](_.getOrElse(0), i => if (omitEmpty && i==0) None else Some(i))
-        
   }
-  
+  // we make the above formatters available on JsPath objects via this implicit conversion
   implicit def jsPath2MaybeEmpty(path: JsPath) = new MaybeEmpty(path)
    
   implicit lazy val objFormat =
     (JsPath \ "kind").format[String] and
     (JsPath \ "apiVersion").format[String] and
     (JsPath \ "metadata").lazyFormat[ObjectMeta](objectMetaFormat) 
-   // matadata format must be lazy as it can be used in indirectly recursive namespace structure (namespace has metadata has namespace)
+   // matadata format must be lazy as it can be used in indirectly recursive namespace structure (Namespace has a metadata.namespace field)
     
   implicit lazy val objectMetaFormat: Format[ObjectMeta] = (
     (JsPath \ "name").formatMaybeEmptyString() and
@@ -91,5 +83,6 @@ object JsonReadWrite {
     implicit lazy val nsStatusWrites : Writes[Namespace.Status] =
       (JsPath \ "phase").write[String].contramap(_.phase)
       
-      
+    
+    implicit lazy val localObjRefFormat = Json.format[LocalObjectReference]
 }

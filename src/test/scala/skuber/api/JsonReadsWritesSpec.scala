@@ -53,7 +53,16 @@ class JsonReadsWritesSpec extends Specification {
             "selfLink": "/api/v1/namespaces/mynamespace",
             "uid": "2a08e586-2d2d-11e5-99f8-0800279dd272",
             "resourceVersion": "26101",
-            "creationTimestamp": "2015-07-18T09:12:50Z"
+            "creationTimestamp": "2015-07-18T09:12:50Z",
+            "deletionTimestamp": "2015-07-18T09:12:50+01:00",
+            "labels": {
+                "one" : "two",
+                "three" : "four"
+            },
+            "annotations": {
+                "abc": "def",
+                "ghj": "brd"
+            }
           },
           "spec": {
             "finalizers": [
@@ -65,7 +74,7 @@ class JsonReadsWritesSpec extends Specification {
           }
         }
         """)
-        val res = Json.fromJson[Namespace](nsJson)
+       val res = Json.fromJson[Namespace](nsJson)
        val ret: Result = res match {
           case JsSuccess(ns,path) =>
             ns.name mustEqual "mynamespace"
@@ -81,6 +90,17 @@ class JsonReadsWritesSpec extends Specification {
             date.getMinute mustEqual 12
             date.getSecond mustEqual 50
             date.getOffset mustEqual java.time.ZoneOffset.UTC
+            val date2 = ns.metadata.deletionTimestamp.get
+            date2.getOffset mustEqual java.time.ZoneOffset.ofHours(1) 
+            val labels=ns.metadata.labels.get
+            labels("three") mustEqual "four"
+            val annots=ns.metadata.annotations.get
+            annots("abc") mustEqual "def"
+            val res2 = Json.fromJson[Namespace](Json.toJson(ns))
+            res2 match {
+              case JsSuccess(ns2, path) => ns2.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
+              case JsError(e) => Failure(e.toString)
+            }
           case JsError(e) => Failure(e.toString)
         }
         ret
