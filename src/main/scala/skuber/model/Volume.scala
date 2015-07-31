@@ -27,7 +27,7 @@ object Volume {
     extends PersistentSource
   case class AWSElasticBlockStore(
       volumeID: String, 
-      fsType: String, 
+      fsType: String = "ext4", 
       partition: Int = 0, 
       readOnly: Boolean = false) 
     extends PersistentSource
@@ -35,21 +35,21 @@ object Volume {
     extends PersistentSource
   case class Glusterfs(endpoints: String, path: String, readOnly: Boolean = false) 
     extends PersistentSource
-  case class RDB(
+  case class RBD(
       monitors: List[String], 
       image: String, 
-      fsType: String, 
-      pool: String = "", 
-      user: String = "",
-      keyring: String = "",
+      fsType: String = "ext4", 
+      pool: String = "rbd", 
+      user: String = "admin",
+      keyring: String = "/etc/cepth/keyring",
       secretRef: Option[LocalObjectReference] = None,
       readOnly: Boolean = false) 
     extends PersistentSource
   case class ISCSI(
       targetPortal: String, 
       iqn: String, 
-      lun: Int, 
-      fsType: String, 
+      lun: Int = 0, 
+      fsType: String = "ext4", 
       readOnly: Boolean = false) 
     extends PersistentSource
   case class PersistentVolumeClaim(claimName: String,readOnly: Boolean = false) 

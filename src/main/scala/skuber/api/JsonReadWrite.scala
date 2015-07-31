@@ -71,18 +71,7 @@ object JsonReadWrite {
     	(JsPath \ "status").formatNullable[Namespace.Status]
     ) (Namespace.apply _, unlift(Namespace.unapply))	    
   
-    implicit lazy val nsSpecReads : Reads[Namespace.Spec] =
-      (JsPath \ "finalizers").read[List[String]].map(Namespace.Spec(_))
-
-    implicit lazy val nsStatusReads : Reads[Namespace.Status] =
-      (JsPath \ "phase").read[String].map(Namespace.Status(_))
-    
-    implicit lazy val nsSpecWrites : Writes[Namespace.Spec] =
-      (JsPath \ "finalizers").write[List[String]].contramap(_.finalizers)
-
-    implicit lazy val nsStatusWrites : Writes[Namespace.Status] =
-      (JsPath \ "phase").write[String].contramap(_.phase)
-      
-    
-    implicit lazy val localObjRefFormat = Json.format[LocalObjectReference]
+  implicit lazy val nsSpecFormat: Format[Namespace.Spec] = Json.format[Namespace.Spec]
+  implicit lazy val nsStatusFormat: Format[Namespace.Status] = Json.format[Namespace.Status]
+  implicit lazy val localObjRefFormat = Json.format[LocalObjectReference]
 }

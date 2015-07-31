@@ -45,7 +45,7 @@ object VolumeReadWrite {
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Glusterfs.apply _, unlift(Glusterfs.unapply))
    
-   implicit lazy val rdbFormat: Format[RDB] = (
+   implicit lazy val rbdFormat: Format[RBD] = (
      (JsPath \ "monitors").format[List[String]] and
      (JsPath \ "image").format[String] and 
      (JsPath \ "fsType").format[String] and 
@@ -54,7 +54,7 @@ object VolumeReadWrite {
      (JsPath \ "keyring").formatMaybeEmptyString() and
      (JsPath \ "secretRef").formatNullable[LocalObjectReference] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(RDB.apply _, unlift(RDB.unapply))
+   )(RBD.apply _, unlift(RBD.unapply))
    
     implicit lazy val iscsiFormat: Format[ISCSI] = (
      (JsPath \ "targetPortal").format[String] and 
@@ -79,7 +79,7 @@ object VolumeReadWrite {
      (JsPath \ "awsElasticBlockStore").read[AWSElasticBlockStore].map(x => x: Source) |
      (JsPath \ "nfs").read[NFS].map(x => x: Source) |
      (JsPath \ "glusterfs").read[Glusterfs].map(x => x: Source) |
-     (JsPath \ "rdb").read[RDB].map(x => x: Source) |
+     (JsPath \ "rbd").read[RBD].map(x => x: Source) |
      (JsPath \ "iscsi").read[ISCSI].map(x => x: Source) |
      (JsPath \ "persistentVolumeClaim").read[PersistentVolumeClaim].map(x => x: Source)
    )
@@ -94,7 +94,7 @@ object VolumeReadWrite {
        case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
        case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
        case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
-       case rdb: RDB => (JsPath \ "rdb").write[RDB](rdbFormat).writes(rdb) 
+       case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd) 
        case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi) 
        case pvc: PersistentVolumeClaim => (JsPath \ "persistentVolumeClaim").write[PersistentVolumeClaim](persistentVolumeClaimFormat).writes(pvc) 
      }
