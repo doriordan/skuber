@@ -11,7 +11,7 @@ object Resource {
   
   type ResourceList=Map[String, Quantity]
   
-  case class Requirements(limits: Option[ResourceList], requests: Option[ResourceList])
+  case class Requirements(limits: ResourceList = Map(), requests: ResourceList = Map())
   
   // standard resource names
   val cpu = "cpu"

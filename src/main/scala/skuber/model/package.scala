@@ -14,6 +14,7 @@ package object Model {
   val emptyS=""
   val emptyB=false
   def emptyL[T]=List[T]()
+  def emptyM[V]=Map[String,V]()
   
   sealed abstract class TypeMeta {
     def apiVersion: String = "v1"
@@ -73,18 +74,22 @@ package object Model {
       resourceVersion: Option[String] = None,
       fieldPath: Option[String] = None)
       
-  type NameablePort = Either[Int, String] // is either an int or an IANA name       
+  type ServicePort = Either[Int, String] // is either an int or an IANA name       
 
   sealed trait Handler
   case class ExecAction(command: List[String]) extends Handler
   case class HTTPGetAction(
-      port: NameablePort, 
-      host: Option[String] = None, 
-      path: Option[String] = None, 
-      schema: Option[String] = None) extends Handler
-  case class TCPSocketAction(port: NameablePort) extends Handler
+      port: ServicePort, 
+      host: String = "", 
+      path: String = "", 
+      schema: String = "HTTP") extends Handler
+  case class TCPSocketAction(port: ServicePort) extends Handler
   
-  case class Probe(action: Handler, initialDelaySeconds: Option[Int], timeoutSeconds: Option[Int])
+  case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
   case class Lifecycle(postStart: Option[Handler], preStop: Option[Handler]) 
-
+  
+  object DNSPolicy extends Enumeration {
+     type DNSPolicy = Value
+     val Default,ClusterFirst = Value
+  }
 }

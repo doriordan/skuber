@@ -13,7 +13,7 @@ case class Namespace(
     status: Option[Namespace.Status]= None) 
   extends ObjectResource {
     def meta(name: String): ObjectMeta = ObjectMeta(name=name, namespace=this.name)
-    def pod(name: String, spec: Pod.Spec) = Pod(metadata=meta(name), spec=spec)
+    def pod(name: String, spec: Option[Pod.Spec] = None) = Pod(metadata=meta(name), spec=spec)
     def node(name: String, spec: Option[Node.Spec] = None) = Node(metadata=meta(name), spec=spec)
     def replicationController(name: String, spec: Option[ReplicationController.Spec] = None) = 
       ReplicationController(metadata=meta(name), spec=spec)

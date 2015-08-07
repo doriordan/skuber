@@ -28,7 +28,7 @@ case class ReplicationController(
 
 object ReplicationController {
     case class Spec(
-      replicas: Int,
+      replicas: Int=1,
       selector: Option[Map[String, String]] = None,
       template: Option[Pod.Template.Spec] = None) 
       

@@ -24,7 +24,7 @@ class ModelSpec extends Specification {
     "where a list with a single pod can be used" >> {
       val container1=Container(name="Container1","image1")
       val container2=Container(name="Container2","image2")
-      val podspec=Pod.Spec(containers=List(container1, container2))
+      val podspec=Pod.Spec(volumes=Nil, containers=List(container1, container2), serviceAccountName="")
       val pod=Pod.forNameAndSpec("MyPod", podspec)
       val podList = List[Pod](pod)
       val pods=Pods(metadata=ListMeta(), items = podList)
@@ -43,7 +43,7 @@ class ModelSpec extends Specification {
     "where a list with a single RC can be used" >> {
       val container1=Container("Container1","image1")
       val container2=Container(name="Container2", "image2")
-      val podspec=Pod.Spec(containers=List(container1, container2))
+      val podspec=Pod.Spec(volumes=Nil,containers=List(container1, container2), serviceAccountName="")
       val rc = ReplicationController().withName("MyRepCon").withReplicas(2).withPodSpec(podspec)
       val rcList = List[ReplicationController](rc)
       val rcs=ReplicationControllers(items = rcList)

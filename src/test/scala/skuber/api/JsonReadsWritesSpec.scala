@@ -65,12 +65,12 @@ class JsonReadsWritesSpec extends Specification {
             }
           },
           "spec": {
-            "finalizers": [
-              "kubernetes"
-            ]
+              "finalizers": [
+                "kubernetes"
+              ]
           },
           "status": {
-            "phase": "Active"
+             "phase": "Active"
           }
         }
         """)

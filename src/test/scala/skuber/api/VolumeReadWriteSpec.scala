@@ -12,7 +12,8 @@ import skuber.model.Volume._
 
 import play.api.libs.json._
 
-import VolumeReadWrite._
+import JsonReadWrite._
+
 
 /**
  * @author David O'Riordan

@@ -5,10 +5,10 @@ package skuber.model
  */
 case class EnvVar(
     name: String,
-    value: Option[String] = None,
-    valueFrom: Option[EnvVar.Source] = None)
+    value: EnvVar.Value = Left(""))
 
 object EnvVar {
+  type Value = Either[String, Source]
   case class Source(fieldRef: FieldSelector)
   case class FieldSelector(fieldRef: String, apiVersion: Option[String] = None )
     

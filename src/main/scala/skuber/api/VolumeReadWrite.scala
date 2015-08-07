@@ -14,38 +14,38 @@ import skuber.model.Volume._
 import JsonReadWrite._
 
 object VolumeReadWrite {
-   implicit lazy val emptyDirFormat = Json.format[EmptyDir]
-   implicit lazy val hostPathFormat = Json.format[HostPath]  
-   implicit lazy val secretFormat = Json.format[Secret]
-   implicit lazy val gitFormat = Json.format[GitRepo]
+   implicit val emptyDirFormat = Json.format[EmptyDir]
+   implicit val hostPathFormat = Json.format[HostPath]  
+   implicit val secretFormat = Json.format[Secret]
+   implicit val gitFormat = Json.format[GitRepo]
    
-   implicit lazy val gceFormat: Format[GCEPersistentDisk] = (
+   implicit  val gceFormat: Format[GCEPersistentDisk] = (
      (JsPath \ "pdName").format[String] and
      (JsPath \ "fsType").format[String] and 
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(GCEPersistentDisk.apply _, unlift(GCEPersistentDisk.unapply))
    
-   implicit lazy val awsFormat: Format[AWSElasticBlockStore] = (
+   implicit val awsFormat: Format[AWSElasticBlockStore] = (
      (JsPath \ "volumeID").format[String] and
      (JsPath \ "fsType").format[String] and 
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(AWSElasticBlockStore.apply _, unlift(AWSElasticBlockStore.unapply))
    
-    implicit lazy val nfsFormat: Format[NFS] = (
+    implicit val nfsFormat: Format[NFS] = (
      (JsPath \ "server").format[String] and
      (JsPath \ "path").format[String] and 
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(NFS.apply _, unlift(NFS.unapply))
    
-   implicit lazy val glusterfsFormat: Format[Glusterfs] = (
+   implicit val glusterfsFormat: Format[Glusterfs] = (
      (JsPath \ "server").format[String] and
      (JsPath \ "path").format[String] and 
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Glusterfs.apply _, unlift(Glusterfs.unapply))
    
-   implicit lazy val rbdFormat: Format[RBD] = (
+   implicit val rbdFormat: Format[RBD] = (
      (JsPath \ "monitors").format[List[String]] and
      (JsPath \ "image").format[String] and 
      (JsPath \ "fsType").format[String] and 
@@ -56,7 +56,7 @@ object VolumeReadWrite {
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(RBD.apply _, unlift(RBD.unapply))
    
-    implicit lazy val iscsiFormat: Format[ISCSI] = (
+    implicit val iscsiFormat: Format[ISCSI] = (
      (JsPath \ "targetPortal").format[String] and 
      (JsPath \ "iqn").format[String] and 
      (JsPath \ "lun").format[Int] and 
@@ -65,12 +65,12 @@ object VolumeReadWrite {
    )(ISCSI.apply _, unlift(ISCSI.unapply))
    
      
-   implicit lazy val persistentVolumeClaimFormat: Format[PersistentVolumeClaim] = (
+   implicit val persistentVolumeClaimFormat: Format[PersistentVolumeClaim] = (
      (JsPath \ "claimName").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
    
-   implicit lazy val volumeSourceReads: Reads[Source] = (
+   implicit val volumeSourceReads: Reads[Source] = (
      (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
      (JsPath \ "hostPath").read[HostPath].map(x => x: Source) |
      (JsPath \ "secret").read[Secret].map(x => x:Source) |
@@ -84,7 +84,7 @@ object VolumeReadWrite {
      (JsPath \ "persistentVolumeClaim").read[PersistentVolumeClaim].map(x => x: Source)
    )
    
-   implicit lazy val volumeSourceWrites: Writes[Source] = Writes[Source] { 
+   implicit val volumeSourceWrites: Writes[Source] = Writes[Source] { 
      source => source match {
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
        case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
@@ -100,15 +100,20 @@ object VolumeReadWrite {
      }
    }
   
-   implicit lazy val volumeReads: Reads[Volume] = (
+   implicit val volumeReads: Reads[Volume] = (
      (JsPath \ "name").read[String] and
      volumeSourceReads
    )(Volume.apply _)
         
-   implicit lazy val volumeWrites: Writes[Volume] = (
+   implicit val volumeWrites: Writes[Volume] = (
      (JsPath \ "name").write[String] and 
      JsPath.write[Source]
    )(unlift(Volume.unapply))
    
+   implicit val volMountFormat: Format[Volume.Mount] = (
+     (JsPath \ "name").format[String] and
+     (JsPath \ "mountPath").format[String] and
+     (JsPath \ "readOnly").formatMaybeEmptyBoolean()
+   )(Volume.Mount.apply _, unlift(Volume.Mount.unapply))
 } 
   

@@ -13,14 +13,14 @@ object Security {
     
   type Capability=String    
   case class Capabilities(
-      add:  Option[List[Capability]] = None, 
-      drop: Option[List[Capability]] = None)
+      add:  List[Capability] = Nil, 
+      drop: List[Capability] = Nil)
   
   case class SELinuxOptions(
-      user: Option[String] = None,
-      role: Option[String] = None,
-      _type: Option[String] = None,
-      level: Option[String] = None)    
+      user: String = "",
+      role: String = "",
+      _type: String = "",
+      level: String = "")    
       
       
 }    
