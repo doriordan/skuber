@@ -190,6 +190,7 @@ class VolumeReadWriteSpec extends Specification {
                 rbd.fsType mustEqual "ext4"
                 rbd.readOnly mustEqual false
                 rbd.secretRef mustEqual Some(LocalObjectReference("ceph-secret"))
+              case _ => Failure("Unexpected source type for volume source: " + vol.source) 
              }
           case JsError(e) => Failure(e.toString)
       }   

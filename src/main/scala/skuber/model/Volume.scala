@@ -21,7 +21,7 @@ object Volume {
   case class HostPath(path: String) extends PersistentSource
   case class GCEPersistentDisk(
       pdName: String, 
-      fsType: String, 
+      fsType: String="ext4", 
       partition: Int = 0, 
       readOnly: Boolean = false) 
     extends PersistentSource

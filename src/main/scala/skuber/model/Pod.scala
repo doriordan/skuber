@@ -17,18 +17,19 @@ case class Pod(
 
 object Pod {
   
+   def forName(name: String) = Pod(metadata=ObjectMeta(name=name))
    def forNameAndSpec(name: String, spec: Pod.Spec) = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
   
    import DNSPolicy._
-   case class Spec(
-      volumes: List[Volume], 
+   case class Spec( 
       containers: List[Container], // should have at least one member
+      volumes: List[Volume] = Nil, 
       restartPolicy: String = "",
       terminationGracePeriodSeconds: Option[Int] = None,
       activeDeadlineSeconds: Option[Int] = None,
       dnsPolicy: DNSPolicy = Default,
       nodeSelector: Map[String, String] = Map(),
-      serviceAccountName: String,
+      serviceAccountName: String ="",
       nodeName: String = "",
       hostNetwork: Boolean = false,
       imagePullSecrets: List[LocalObjectReference] = List()) {

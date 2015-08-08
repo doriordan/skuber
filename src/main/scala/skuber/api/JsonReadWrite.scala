@@ -127,6 +127,7 @@ object JsonReadWrite {
  
   implicit val envVarFldSel = Json.format[EnvVar.FieldSelector]
   implicit val envVarSourceFmt = Json.format[EnvVar.Source]
+  
   implicit val envVarValueWrite = Writes[EnvVar.Value] { 
      value => value match {
        case Left(str) => (JsPath \ "value").write[String].writes(str)
@@ -394,14 +395,14 @@ object JsonReadWrite {
     ) (Pod.apply _, unlift(Pod.unapply))  
   
   implicit val podSpecFormat: Format[Pod.Spec] = (
-      (JsPath \ "volumes").format[List[Volume]] and
       (JsPath \ "containers").format[List[Container]] and
+      (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
       (JsPath \ "restartPolicy").formatMaybeEmptyString() and
       (JsPath \ "terminationGracePeriodSeconds").formatNullable[Int] and
       (JsPath \ "activeDeadlineSeconds").formatNullable[Int] and
       (JsPath \ "dnsPolicy").format[DNSPolicy.Value] and
       (JsPath \ "nodeSelector").formatMaybeEmptyMap[String] and
-      (JsPath \ "serviceAccountName").format[String] and
+      (JsPath \ "serviceAccountName").formatMaybeEmptyString() and
       (JsPath \ "nodeName").formatMaybeEmptyString() and
       (JsPath \ "hostNetwork").formatMaybeEmptyBoolean() and
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference]
