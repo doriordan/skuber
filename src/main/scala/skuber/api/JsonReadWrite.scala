@@ -232,9 +232,9 @@ object JsonReadWrite {
   
   implicit val handlerWrites: Writes[Handler] = Writes[Handler] {
     handler => handler match {
-      case ea: ExecAction => (JsPath \ "execAction").write[ExecAction](execActionFormat).writes(ea)
+      case ea: ExecAction => (JsPath \ "exec").write[ExecAction](execActionFormat).writes(ea)
       case hga: HTTPGetAction => (JsPath \ "httpGet").write[HTTPGetAction](httpGetActionFormat).writes(hga)
-      case tsa: TCPSocketAction => (JsPath \ "tcpSocketAction").write[TCPSocketAction](tcpSocketActionFormat).writes(tsa)
+      case tsa: TCPSocketAction => (JsPath \ "tcpSocket").write[TCPSocketAction](tcpSocketActionFormat).writes(tsa)
     }  
   }
   implicit val handlerFormat: Format[Handler] = Format(handlerReads, handlerWrites)

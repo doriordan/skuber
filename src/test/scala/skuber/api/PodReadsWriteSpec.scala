@@ -74,6 +74,7 @@ class PodReadsWritesSpec extends Specification {
       val strs=Json.stringify(writtenPod)
       System.err.println(strs)    
       val readPodJsResult = Json.fromJson[Pod](writtenPod)
+     
       val ret: Result = readPodJsResult match {
         case JsError(e) => Failure(e.toString)    
         case JsSuccess(readPod,_) => 

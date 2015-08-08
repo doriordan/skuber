@@ -43,6 +43,13 @@ object Resource {
     }
     
     override def toString = value
+    override def equals(o: Any) : Boolean = {
+      o match {
+        case that: Quantity => that.amount.equals(this.amount)
+        case _ => false
+      }
+    }
+    override def hashCode = this.amount.hashCode
    
   }
   
