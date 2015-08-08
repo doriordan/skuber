@@ -48,6 +48,9 @@ object Resource {
   
   
   object Quantity {
+    
+    implicit def strToQuantity(value: String) : Quantity = Quantity(value)
+    
     sealed trait Format
     case object BinarySI extends Format
     case object DecimalSI extends Format

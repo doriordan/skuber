@@ -5,11 +5,14 @@ package skuber.model
  */
 case class EnvVar(
     name: String,
-    value: EnvVar.Value = Left(""))
+    value: EnvVar.Value = "")
 
 object EnvVar {
-  type Value = Either[String, Source]
-  case class Source(fieldRef: FieldSelector)
+  sealed trait Value
+  case class StringValue(s:String) extends Value
+  case class Source(fieldRef: FieldSelector) extends Value
   case class FieldSelector(fieldRef: String, apiVersion: Option[String] = None )
+  
+  implicit def strToValue(s:String) : Value = StringValue(s)
     
 }    

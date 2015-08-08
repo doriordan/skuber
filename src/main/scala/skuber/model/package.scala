@@ -76,17 +76,31 @@ package object Model {
       
   type ServicePort = Either[Int, String] // is either an int or an IANA name       
 
+  implicit def portNumToServicePort(p:Int): ServicePort = Left(p)
+  implicit def ianaNameToServicePort(n: String): ServicePort = Right(n)
+    
   sealed trait Handler
   case class ExecAction(command: List[String]) extends Handler
   case class HTTPGetAction(
       port: ServicePort, 
       host: String = "", 
       path: String = "", 
-      schema: String = "HTTP") extends Handler
+      schema: String = "HTTP") extends Handler {
+    def url = {
+      this.port match {
+        case Left(p) => new URL(schema, host, p, path)
+        case Right(p) => throw new Exception("Don't know how to create URL with a named port")   
+      }
+    }
+  }
+  object HTTPGetAction {
+    def apply(i:Int) = new HTTPGetAction(Left(i))
+    def apply(url: URL) = new HTTPGetAction(Left(url.getPort), url.getHost, url.getPath, url.getProtocol)
+  }
   case class TCPSocketAction(port: ServicePort) extends Handler
   
   case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
-  case class Lifecycle(postStart: Option[Handler], preStop: Option[Handler]) 
+  case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None) 
   
   object DNSPolicy extends Enumeration {
      type DNSPolicy = Value

@@ -35,7 +35,7 @@ class JsonReadsWritesSpec extends Specification {
       val readNs = Json.fromJson[Namespace](Json.toJson(myNs)).get 
       myNs mustEqual readNs     
     }
-    "this can be done for a more complex non-default namespace witha Spec and Status" >> {
+    "this can be done for a more complex non-default namespace with a Spec and Status" >> {
       val f=List("myFinalizer", "Kubernetes")
       val phase="Running"
       

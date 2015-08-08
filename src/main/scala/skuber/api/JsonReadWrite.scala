@@ -13,8 +13,7 @@ import play.api.data.validation.ValidationError
 
 /**
  * @author David O'Riordan
- * Implicit Play json formatters for serializing Kubernetes objects to JSON
- * and vice versa 
+ * Play json formatters for Kubernetes types
  */
 object JsonReadWrite {
   
@@ -24,16 +23,18 @@ object JsonReadWrite {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   implicit val timeReads = Reads.DefaultZonedDateTimeReads    
       
-  // Many fields are optional in the Kubernetes data formats. Per Kubernetes rules in
-  // many cases when fields are omitted they have effectively an "empty" value - e.g.
-  // an empty string, list or map; or boolean false. This gives us the choice to represent them directly 
-  // ie.. without Option wrapping, because the "empty/none" value can be represented uniquely within the type itself. 
-  // Mostly where we have such a choice we represent optional fields that clients may write (e.g. Pod.Spec fields) 
-  // without wrapping them in Options, whereas fields clients only read (e.g. Pod.Status fields) we wrap in Option types.
-  // This enables setting values with minimal developer overhead but to apply monadic Option methods when reading.
-  // On the downside, this does mean we need custom formatting for the non-Option cases, to omit empty values when writing and
-  // to set the empty value when reading if omitted.
-  // The utility formatters defined below can be applied to such fields.
+  // Per Kubernetes rules there are many fields which can have an "empty" value (e.g. an empty string, 
+  // list or map; int value 0 or boolean value false). These can be omitted (and we expect Kubernetes to omit them) 
+  // from the Json. 
+  // In some of these cases in this Scala API, mainly to simplify client code the type of the field is the 
+  // direct type (i.e. no Option wrapping or unwrapping required) - for these we use the customer formatters below 
+  // to handle the omitted/empty case properly.
+  // (Note - for other of these cases this API uses Option types - mainly fields likely to be read-only for
+  // most clients e.g Status fields. In these cases the ability to use Option monadic methods for safe processing 
+  // of the (possibly omitted) data received from Kubernetes is deemed to outweigh the overhead of wrapping/unwrapping
+  // Option types. For these cases the standard formatNullable method is used for json formatting.
+  // Other "optional/nillable" fields are of object types that are represented as case classes in this API - these
+  // fields are always Option types).
   
   class MaybeEmpty(val path: JsPath) {
     def formatMaybeEmptyString(omitEmpty: Boolean=true): OFormat[String] =
@@ -55,7 +56,7 @@ object JsonReadWrite {
     def formatMaybeEmptyInt(omitEmpty: Boolean=true) : OFormat[Int] =
       path.formatNullable[Int].inmap[Int](_.getOrElse(0), i => if (omitEmpty && i==0) None else Some(i))
   }
-  // we make the above formatters available on JsPath objects via this implicit conversion
+  // we make the above formatter methods available on JsPath objects via this implicit conversion
   implicit def jsPath2MaybeEmpty(path: JsPath) = new MaybeEmpty(path)
    
   // general formatting for Enumerations - from https://gist.github.com/mikesname/5237809
@@ -126,18 +127,17 @@ object JsonReadWrite {
   implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
  
   implicit val envVarFldSel = Json.format[EnvVar.FieldSelector]
-  implicit val envVarSourceFmt = Json.format[EnvVar.Source]
   
   implicit val envVarValueWrite = Writes[EnvVar.Value] { 
      value => value match {
-       case Left(str) => (JsPath \ "value").write[String].writes(str)
-       case Right(src) => (JsPath \ "valueFrom").write[EnvVar.Source](envVarSourceFmt).writes(src)
+       case EnvVar.StringValue(str) => (JsPath \ "value").write[String].writes(str)
+       case EnvVar.Source(fs) => (JsPath \ "valueFrom").write[EnvVar.FieldSelector](envVarFldSel).writes(fs)
      }
   }
   
   implicit val envVarValueReads: Reads[EnvVar.Value] = (
-    (JsPath \ "value").read[String].map(value => Left(value)) |
-    (JsPath \ "valueFrom").read[EnvVar.Source].map(value => Right(value) )
+    (JsPath \ "value").read[String].map(value => EnvVar.StringValue(value)) |
+    (JsPath \ "valueFrom").read[EnvVar.FieldSelector].map(value => EnvVar.Source(value) )
   )
   
    implicit val envVarWrites : Writes[EnvVar] = (
@@ -147,7 +147,7 @@ object JsonReadWrite {
    
   implicit val envVarReads: Reads[EnvVar] = (
     (JsPath \ "name").read[String] and 
-    (JsPath \ "value").read[EnvVar.Value]
+    JsPath.read[EnvVar.Value]
   )(EnvVar.apply _)
   
   implicit val envVarFormat = Format(envVarReads, envVarWrites)
@@ -210,8 +210,10 @@ object JsonReadWrite {
      }
   }
   
+  implicit val servicePortFormat: Format[ServicePort] = Format(servicePortReads, servicePortWrite)
+  
   implicit val httpGetActionFormat: Format[HTTPGetAction] = (
-      (JsPath \ "port").format[ServicePort] and
+      JsPath.format[ServicePort] and
       (JsPath \ "host").formatMaybeEmptyString() and
       (JsPath \ "path").formatMaybeEmptyString() and 
       (JsPath \ "scheme").formatMaybeEmptyString() 
@@ -231,7 +233,7 @@ object JsonReadWrite {
   implicit val handlerWrites: Writes[Handler] = Writes[Handler] {
     handler => handler match {
       case ea: ExecAction => (JsPath \ "execAction").write[ExecAction](execActionFormat).writes(ea)
-      case hga: HTTPGetAction => (JsPath \ "httpGetAction").write[HTTPGetAction](httpGetActionFormat).writes(hga)
+      case hga: HTTPGetAction => (JsPath \ "httpGet").write[HTTPGetAction](httpGetActionFormat).writes(hga)
       case tsa: TCPSocketAction => (JsPath \ "tcpSocketAction").write[TCPSocketAction](tcpSocketActionFormat).writes(tsa)
     }  
   }
