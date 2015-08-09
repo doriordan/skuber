@@ -33,7 +33,7 @@ object Volume {
     extends PersistentSource
   case class NFS(server: String, path: String, readOnly: Boolean = false) 
     extends PersistentSource
-  case class Glusterfs(endpoints: String, path: String, readOnly: Boolean = false) 
+  case class Glusterfs(endpointsName: String, path: String, readOnly: Boolean = false) 
     extends PersistentSource
   case class RBD(
       monitors: List[String], 

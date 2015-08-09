@@ -23,18 +23,20 @@ object JsonReadWrite {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   implicit val timeReads = Reads.DefaultZonedDateTimeReads    
       
-  // Per Kubernetes rules there are many fields which can have an "empty" value (e.g. an empty string, 
-  // list or map; int value 0 or boolean value false). These can be omitted (and we expect Kubernetes to omit them) 
-  // from the Json. 
-  // In some of these cases in this Scala API, mainly to simplify client code the type of the field is the 
-  // direct type (i.e. no Option wrapping or unwrapping required) - for these we use the customer formatters below 
-  // to handle the omitted/empty case properly.
-  // (Note - for other of these cases this API uses Option types - mainly fields likely to be read-only for
-  // most clients e.g Status fields. In these cases the ability to use Option monadic methods for safe processing 
-  // of the (possibly omitted) data received from Kubernetes is deemed to outweigh the overhead of wrapping/unwrapping
-  // Option types. For these cases the standard formatNullable method is used for json formatting.
-  // Other "optional/nillable" fields are of object types that are represented as case classes in this API - these
-  // fields are always Option types).
+  // Many Kubernetes fields can be omitted if "empty" in the Json format. In some cases on this API
+  // we use Option types to wrap the values, with None representing the empty case, and use the built-in 
+  // formatNullable method to format them and handle the omitted case.
+  // In other cases of certain types, the fact that Kubernetes interprets a specific value of that type 
+  // as equivalent to empty leads us to dispense with Option wrapping (declutters client code in many cases) 
+  // and rely on those same specific values to signify the empty case. These values are:
+  // Maps, Lists: no members i.e. an empty list or map
+  // Strings: zero length
+  // Integers : 0 
+  // Boolean: false
+  // For these fields the custom Json formatters below are used to handle properly the omitted / empty case i.e.
+  // - on writing, if the value in the Scala object is 'empty' per above, then it is omitted (by default)
+  // - on reading, if the field is omitted in the Json then it is set to the 'empty' value in the resulting Scala object.
+  // Under the covers they leverage formatNullable with intermediate Option representations of the values.
   
   class MaybeEmpty(val path: JsPath) {
     def formatMaybeEmptyString(omitEmpty: Boolean=true): OFormat[String] =
@@ -55,18 +57,22 @@ object JsonReadWrite {
     // Int: the empty value is 0
     def formatMaybeEmptyInt(omitEmpty: Boolean=true) : OFormat[Int] =
       path.formatNullable[Int].inmap[Int](_.getOrElse(0), i => if (omitEmpty && i==0) None else Some(i))
+      
   }
   // we make the above formatter methods available on JsPath objects via this implicit conversion
   implicit def jsPath2MaybeEmpty(path: JsPath) = new MaybeEmpty(path)
    
-  // general formatting for Enumerations - from https://gist.github.com/mikesname/5237809
-  def enumReads[E <: Enumeration](enum: E): Reads[E#Value] = new Reads[E#Value] {
+  // general formatting for Enumerations - derived from https://gist.github.com/mikesname/5237809
+  def enumReads[E <: Enumeration](enum: E, default: Option[E#Value]=None): Reads[E#Value] = new Reads[E#Value] {
     def reads(json: JsValue): JsResult[E#Value] = json match {
       case JsString(s) => {
         try {
           JsSuccess(enum.withName(s))
         } catch {
-          case _: NoSuchElementException => JsError(s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'")
+          case _: NoSuchElementException => default match {
+            case None => JsError(s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'")
+            case Some(e) => JsSuccess(e)
+          }
         }
       }
       case _ => JsError("String value expected")
@@ -197,23 +203,23 @@ object JsonReadWrite {
   )
   
   
-  implicit val servicePortReads: Reads[ServicePort] = (
+  implicit val nameablePortReads: Reads[NameablePort] = (
     (JsPath \ "port").read[Int].map(value => Left(value)) |
     (JsPath \ "port").read[String].map(value => Right(value) )
   )
   
      
-  implicit val servicePortWrite = Writes[ServicePort] { 
+  implicit val nameablePortWrite = Writes[NameablePort] { 
      value => value match {
        case Left(i) => (JsPath \ "port").write[Int].writes(i)
        case Right(s) => (JsPath \ "port").write[String].writes(s)
      }
   }
   
-  implicit val servicePortFormat: Format[ServicePort] = Format(servicePortReads, servicePortWrite)
+  implicit val nameablePortFormat: Format[NameablePort] = Format(nameablePortReads, nameablePortWrite)
   
   implicit val httpGetActionFormat: Format[HTTPGetAction] = (
-      JsPath.format[ServicePort] and
+      JsPath.format[NameablePort] and
       (JsPath \ "host").formatMaybeEmptyString() and
       (JsPath \ "path").formatMaybeEmptyString() and 
       (JsPath \ "scheme").formatMaybeEmptyString() 
@@ -221,7 +227,7 @@ object JsonReadWrite {
    
    
   implicit val tcpSocketActionFormat: Format[TCPSocketAction] = (
-      (JsPath \ "port").format[ServicePort].inmap(port => TCPSocketAction(port), (tsa: TCPSocketAction) => tsa.port)
+      (JsPath \ "port").format[NameablePort].inmap(port => TCPSocketAction(port), (tsa: TCPSocketAction) => tsa.port)
   )
       
    implicit val handlerReads: Reads[Handler] = (
@@ -276,7 +282,7 @@ object JsonReadWrite {
    )(NFS.apply _, unlift(NFS.unapply))
    
    implicit val glusterfsFormat: Format[Glusterfs] = (
-     (JsPath \ "server").format[String] and
+     (JsPath \ "endpoints").format[String] and
      (JsPath \ "path").format[String] and 
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Glusterfs.apply _, unlift(Glusterfs.unapply))
@@ -410,11 +416,14 @@ object JsonReadWrite {
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference]
     )(Pod.Spec.apply _, unlift(Pod.Spec.unapply))
     
-  implicit lazy val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
+  implicit val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
   implicit lazy val podTemplFormat : Format[Pod.Template] = (
       objFormat and
       (JsPath \ "spec").formatNullable[Pod.Template.Spec]
-    ) (Pod.Template.apply _, unlift(Pod.Template.unapply))  
+    ) (Pod.Template.apply _, unlift(Pod.Template.unapply))      
+  
+  implicit val repCtrlrSpecFormat = Json.format[ReplicationController.Spec]
+  implicit val repCtrlrStatusFormat = Json.format[ReplicationController.Status]
   
    implicit lazy val repCtrlrFormat: Format[ReplicationController] = (
     objFormat and
@@ -422,7 +431,40 @@ object JsonReadWrite {
     (JsPath \ "status").formatNullable[ReplicationController.Status]
   ) (ReplicationController.apply _, unlift(ReplicationController.unapply))
   
-  implicit lazy val repCtrlrSpecFormat = Json.format[ReplicationController.Spec]
-  implicit lazy val repCtrlrStatusFormat = Json.format[ReplicationController.Status]
+   
+  implicit val loadBalIngressFmt: Format[Service.LoadBalancer.Ingress] = Json.format[Service.LoadBalancer.Ingress]
+  implicit val loadBalStatusFmt: Format[Service.LoadBalancer.Status] =
+    (JsPath \ "ingress").formatMaybeEmptyList[Service.LoadBalancer.Ingress].
+        inmap(ingress => Service.LoadBalancer.Status(ingress), (lbs:Service.LoadBalancer.Status) => lbs.ingress)
+        
+  implicit val serviceStatusFmt: Format[Service.Status] = 
+    (JsPath \ "loadBalancer").formatNullable[Service.LoadBalancer.Status].
+        inmap(lbs=> Service.Status(lbs), (ss:Service.Status) => ss.loadBalancer)  
+        
+  implicit val formatServiceSpecType: Format[Service.Type.Type] = 
+    Format(enumReads(Service.Type,Some(Service.Type.ClusterIP)), enumWrites)
+  implicit val formatServiceAffinity: Format[Service.Affinity.Affinity] = 
+    Format(enumReads(Service.Affinity, Some(Service.Affinity.None)), enumWrites)
+   
+  implicit val servicePortFmt: Format[Service.Port] = (
+    (JsPath \ "name").format[String] and
+    (JsPath \ "protocol").format[String] and
+    (JsPath \ "port").format[Int] and
+    (JsPath \ "targetPort").formatNullable[NameablePort] and
+    (JsPath \ "nodePort").formatMaybeEmptyInt()
+  ) (Service.Port.apply _, unlift(Service.Port.unapply))
   
+  implicit val serviceSpecFmt: Format[Service.Spec] = (
+      (JsPath \ "ports").format[List[Service.Port]] and
+      (JsPath \ "selector").formatMaybeEmptyMap[String] and
+      (JsPath \ "clusterIP").formatMaybeEmptyString() and
+      (JsPath \ "type").format[Service.Type.Type] and
+      (JsPath \ "sessionAffinity").format[Service.Affinity.Affinity]
+   )(Service.Spec.apply _, unlift(Service.Spec.unapply))  
+   
+  implicit val serviceFmt: Format[Service] = (
+     objFormat and
+     (JsPath \ "spec").formatNullable[Service.Spec] and
+     (JsPath \ "status").formatNullable[Service.Status]
+  )(Service.apply _, unlift(Service.unapply))
 }

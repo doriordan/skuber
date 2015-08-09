@@ -17,6 +17,8 @@ case class Namespace(
     def node(name: String, spec: Option[Node.Spec] = None) = Node(metadata=meta(name), spec=spec)
     def replicationController(name: String, spec: Option[ReplicationController.Spec] = None) = 
       ReplicationController(metadata=meta(name), spec=spec)
+    def service(name: String, spec: Option[Service.Spec] = None) =
+      Service(metadata=meta(name), spec=spec)
     def withFinalizers(f: List[String]) = { this.copy(spec = Some(Namespace.Spec(f))) } 
     def withStatusOfPhase(p: String) =  { this.copy(status = Some(Namespace.Status(p))) } 
   }

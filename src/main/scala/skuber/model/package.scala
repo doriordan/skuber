@@ -74,15 +74,15 @@ package object Model {
       resourceVersion: Option[String] = None,
       fieldPath: Option[String] = None)
       
-  type ServicePort = Either[Int, String] // is either an int or an IANA name       
+  type NameablePort = Either[Int, String] // is either an int or an IANA name       
 
-  implicit def portNumToServicePort(p:Int): ServicePort = Left(p)
-  implicit def ianaNameToServicePort(n: String): ServicePort = Right(n)
+  implicit def portNumToNameablePort(p:Int): NameablePort = Left(p)
+  implicit def ianaNameToNameablePort(n: String): NameablePort = Right(n)
     
   sealed trait Handler
   case class ExecAction(command: List[String]) extends Handler
   case class HTTPGetAction(
-      port: ServicePort, 
+      port: NameablePort, 
       host: String = "", 
       path: String = "", 
       schema: String = "HTTP") extends Handler {
@@ -97,7 +97,7 @@ package object Model {
     def apply(i:Int) = new HTTPGetAction(Left(i))
     def apply(url: URL) = new HTTPGetAction(Left(url.getPort), url.getHost, url.getPath, url.getProtocol)
   }
-  case class TCPSocketAction(port: ServicePort) extends Handler
+  case class TCPSocketAction(port: NameablePort) extends Handler
   
   case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
   case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None) 
@@ -105,5 +105,9 @@ package object Model {
   object DNSPolicy extends Enumeration {
      type DNSPolicy = Value
      val Default,ClusterFirst = Value
+  }
+  object ServiceType extends Enumeration {
+    type ServiceType = Value
+    val ClusterIP,NodePort,LoadBalancer = Value
   }
 }
