@@ -108,6 +108,15 @@ object JsonReadWrite {
     
   implicit val localObjRefFormat = Json.format[LocalObjectReference]
   
+  implicit val objRefFormat: Format[ObjectReference] = (
+    (JsPath \ "kind").formatMaybeEmptyString() and
+    (JsPath \ "apiVersion").formatMaybeEmptyString() and
+    (JsPath \ "namespace").formatMaybeEmptyString() and
+    (JsPath \ "name").formatMaybeEmptyString() and  
+    (JsPath \ "uid").formatMaybeEmptyString() and
+    (JsPath \ "resourceVersion").formatMaybeEmptyString() and
+    (JsPath \ "fieldPath").formatMaybeEmptyString()
+  )(ObjectReference.apply _, unlift(ObjectReference.unapply))
   
   implicit val nsSpecFormat: Format[Namespace.Spec] = Json.format[Namespace.Spec]
   implicit val nsStatusFormat: Format[Namespace.Status] = Json.format[Namespace.Status]
@@ -170,9 +179,11 @@ object JsonReadWrite {
     (JsPath \ "requests").formatMaybeEmptyMap[Resource.Quantity]
   )(Resource.Requirements.apply _, unlift(Resource.Requirements.unapply))
    
+  implicit val protocolFmt = Format(enumReads(Protocol, Some(Protocol.TCP)), enumWrites)
+  
   implicit val formatCntrProt: Format[Container.Port] = (
     (JsPath \ "containerPort").format[Int] and
-    (JsPath \ "protocol").formatMaybeEmptyString() and
+    (JsPath \ "protocol").format[Protocol.Protocol] and
     (JsPath \ "name").formatMaybeEmptyString() and
     (JsPath \ "hostIP").formatMaybeEmptyString() and
     (JsPath \ "hostPort").formatNullable[Int]
@@ -448,7 +459,7 @@ object JsonReadWrite {
    
   implicit val servicePortFmt: Format[Service.Port] = (
     (JsPath \ "name").format[String] and
-    (JsPath \ "protocol").format[String] and
+    (JsPath \ "protocol").format[Protocol.Value] and
     (JsPath \ "port").format[Int] and
     (JsPath \ "targetPort").formatNullable[NameablePort] and
     (JsPath \ "nodePort").formatMaybeEmptyInt()
@@ -467,4 +478,49 @@ object JsonReadWrite {
      (JsPath \ "spec").formatNullable[Service.Spec] and
      (JsPath \ "status").formatNullable[Service.Status]
   )(Service.apply _, unlift(Service.unapply))
+  
+  implicit val endpointAddressFmt: Format[Endpoint.Address] = Json.format[Endpoint.Address]
+  implicit val endpointPortFmt: Format[Endpoint.Port] = Json.format[Endpoint.Port]
+  implicit val endpointSubsetFmt: Format[Endpoint.Subset] = Json.format[Endpoint.Subset]
+  
+  implicit val endpointFmt: Format[Endpoint] = (
+    objFormat and
+    (JsPath \ "subsets").format[List[Endpoint.Subset]]
+  )(Endpoint.apply _, unlift(Endpoint.unapply))
+  
+  implicit val nodeSysInfoFmt: Format[Node.SystemInfo] = Json.format[Node.SystemInfo]
+   
+  implicit val nodeAddrFmt: Format[Node.Address] = (
+    (JsPath \ "_type").format[String] and
+    (JsPath \ "address").format[String]
+  )(Node.Address.apply _, unlift(Node.Address.unapply))
+  
+  implicit val nodePhaseFmt = enumFormat(Node.Phase)
+ 
+  implicit val nodeCondFmt: Format[Node.Condition] = (
+    (JsPath \ "_type").format[String] and
+    (JsPath \ "status").format[String] and
+    (JsPath \ "lastHeartbeatTime").formatNullable[Timestamp] and
+    (JsPath \ "lastTransitionTime").formatNullable[Timestamp] and
+    (JsPath \ "reason").formatNullable[String] and
+    (JsPath \ "message").formatNullable[String]
+  )(Node.Condition.apply _, unlift(Node.Condition.unapply))
+  
+  implicit val nodeStatusFmt: Format[Node.Status] = Json.format[Node.Status]
+   
+  implicit val nodeSpecFmt: Format[Node.Spec] =(
+    (JsPath \ "podCIDR").formatMaybeEmptyString() and
+    (JsPath \ "providerID").formatMaybeEmptyString() and
+    (JsPath \ "unschedulable").formatMaybeEmptyBoolean() and
+    (JsPath \ "externalID").formatMaybeEmptyString()
+  )(Node.Spec.apply _, unlift(Node.Spec.unapply))
+ 
+  implicit val nodeFmt: Format[Node] = (
+    objFormat and
+    (JsPath \ "spec").formatNullable[Node.Spec] and
+    (JsPath \ "status").formatNullable[Node.Status]
+  )(Node.apply _, unlift(Node.unapply))
+  
+  implicit val eventSrcFmt: Format[Event.Source] = Json.format[Event.Source]
+  implicit val eventFmt: Format[Event] = Json.format[Event]
 }

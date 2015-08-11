@@ -45,8 +45,7 @@ object Pod {
        this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
      }
    }
-      
-      
+           
   case class Status(
       phase: String,
       conditions: List[Condition],
@@ -64,7 +63,7 @@ object Pod {
     override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
     template: Option[Template.Spec] = None)
-    extends ObjectResource
+    extends ObjectResource with KListItem
     
   object Template {
      case class Spec(

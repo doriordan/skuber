@@ -66,13 +66,13 @@ package object Model {
   case class LocalObjectReference(name: String)
   
   case class ObjectReference(
-      kind: Option[String] = None,
-      apiVersion: Option[String] = None,
-      namespace: Option[String] = None,
+      kind: String = "",
+      apiVersion: String = "",
+      namespace: String = "",
       name: String = "",
-      uid: Option[String] = None,
-      resourceVersion: Option[String] = None,
-      fieldPath: Option[String] = None)
+      uid: String = "",
+      resourceVersion: String = "",
+      fieldPath: String = "")
       
   type NameablePort = Either[Int, String] // is either an int or an IANA name       
 
@@ -109,5 +109,9 @@ package object Model {
   object ServiceType extends Enumeration {
     type ServiceType = Value
     val ClusterIP,NodePort,LoadBalancer = Value
+  }
+  object Protocol extends Enumeration {
+    type Protocol = Value
+    val TCP, UDP = Value
   }
 }

@@ -45,7 +45,7 @@ class ServiceReadsWritesSpec extends Specification {
     }
     "this can be done for a Service with a more complex spec" >> {
       val ports=List(Port(port=9081,targetPort=Some(8080)),
-                     Port(name="xmit",protocol="UDP", port=9563, nodePort=4561))
+                     Port(name="xmit",protocol=Protocol.UDP, port=9563, nodePort=4561))
       val selector=Map("env" -> "production", "svc" -> "authorise")
       val mySvc=Namespace.default.service("mySvc", Some(Spec(ports, selector, clusterIP="None", sessionAffinity=Affinity.ClientIP)))
       

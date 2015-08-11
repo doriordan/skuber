@@ -32,7 +32,7 @@ object Service {
    
    case class Port(
        name: String = "",
-       protocol: String = "TCP",
+       protocol: Protocol.Value = Protocol.TCP,
        port: Int,
        targetPort: Option[NameablePort]=None,
        nodePort: Int = 0)

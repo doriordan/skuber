@@ -27,7 +27,7 @@ case class Container(
 object Container {
   case class Port(
       containerPort: Int,
-      protocol: String = "TCP",
+      protocol: Protocol.Value=Protocol.TCP,
       name: String = "",
       hostIP: String = "",
       hostPort:Option[Int] = None)

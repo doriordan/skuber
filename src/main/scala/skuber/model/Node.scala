@@ -8,19 +8,19 @@ import java.util.Date
  * @author David O'Riordan
  */
 case class Node(
-  	val kind: String ="Pod",
+  	val kind: String ="Node",
   	override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
     spec: Option[Node.Spec] = None,
-    status: Option[Node.Spec] = None) 
+    status: Option[Node.Status] = None) 
       extends ObjectResource with KListItem
 
 object Node {
    case class Spec(
-      podCIDR: Option[String] = None,
-      providerID: Option[String] = None,
+      podCIDR: String = "",
+      providerID: String = "",
       unschedulable: Boolean = false,
-      externalID: Option[String] = None)
+      externalID: String = "")
       
   case class Status(
       capacity: Option[Resource.ResourceList]=None,
@@ -29,16 +29,16 @@ object Node {
       addresses: Option[List[Node.Address]] = None,
       nodeInfo: Option[Node.SystemInfo] = None)
       
-  sealed trait Phase
-  case object Pending extends Phase
-  case object Running extends Phase
-  case object Teminated extends Phase
+  object Phase extends Enumeration {
+     type Phase = Value
+     val Pending, Running,Terminated = Value
+   }
   
   case class Condition(
       _type : String, 
       status: String, 
-      lastHeartbeatTime: Option[Date]=None,
-      lastTransitionTime: Option[Date] = None,
+      lastHeartbeatTime: Option[Timestamp]=None,
+      lastTransitionTime: Option[Timestamp] = None,
       reason: Option[String] = None,
       message: Option[String] = None)
  
