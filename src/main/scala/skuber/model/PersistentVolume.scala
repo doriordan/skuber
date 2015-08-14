@@ -14,17 +14,33 @@ case class PersistentVolume(
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[PersistentVolume.Spec] = None,
     status: Option[PersistentVolume.Status] = None)
-      extends ObjectResource 
+      extends ObjectResource with KListItem
    
 object PersistentVolume {
+  
+  object AccessMode extends Enumeration {
+    type AccessMode = Value
+    val ReadWriteOnce,ReadOnlyMany,ReadWriteMany = Value
+  }
+  
+  object Phase extends Enumeration {
+    type Phase = Value
+    val Pending, Available, Bound, Released, Failed = Value
+  }
+  
+  object ReclaimPolicy extends Enumeration {
+    type ReclaimPolicy = Value
+    val Recycle, Retain = Value
+  }
+  
   case class Spec(
       capacity: Resource.ResourceList,
       source: Volume.PersistentSource,
-      accessModes: List[String] = List(),
-      claimRef: ObjectReference,
-      persistentVolumeReclaimPolicy: String)
+      accessModes: List[AccessMode.AccessMode] = List(),
+      claimRef: Option[ObjectReference] = None,
+      persistentVolumeReclaimPolicy: Option[ReclaimPolicy.ReclaimPolicy] = None)
       
   case class Status(
-      phase: String = "",
-      accessModes: List[String] = List())
+      phase: Option[Phase.Phase] = None,
+      accessModes: List[AccessMode.AccessMode] = List())
 }

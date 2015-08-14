@@ -239,12 +239,12 @@ class VolumeReadWriteSpec extends Specification {
       ret
     }
     "a persistent claim spec can be written and read back in" >> {
-      val pcVol = Volume("myVol", Volume.PersistentVolumeClaim("claim"))
+      val pcVol = Volume("myVol", Volume.PersistentVolumeClaimRef("claim"))
       val myVolJson = Json.toJson(pcVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       val ret: Result =readVol.source match { 
-        case Volume.PersistentVolumeClaim(claimName,readOnly) => 
+        case Volume.PersistentVolumeClaimRef(claimName,readOnly) => 
           claimName mustEqual "claim"
           readOnly mustEqual false
         case _ => Failure("not a gfs volume")

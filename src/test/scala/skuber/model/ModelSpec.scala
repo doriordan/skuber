@@ -17,7 +17,7 @@ class ModelSpec extends Specification {
   "A Pods type can be constructed from lists of Pods\n" >> {
     "where an empty list of pods can be used" >> {
       val podList = List[Pod]()
-      val pods=Pods(metadata=ListMeta(), items = podList)
+      val pods=PodList(items = podList)
       pods.items.size mustEqual 0
     }
     
@@ -27,7 +27,7 @@ class ModelSpec extends Specification {
       val podspec=Pod.Spec(volumes=Nil, containers=List(container1, container2), serviceAccountName="")
       val pod=Pod.forNameAndSpec("MyPod", podspec)
       val podList = List[Pod](pod)
-      val pods=Pods(metadata=ListMeta(), items = podList)
+      val pods=PodList(items = podList)
       pods.items.size mustEqual 1
       pods.items(0).metadata.name mustEqual "MyPod"
     }    
@@ -36,7 +36,7 @@ class ModelSpec extends Specification {
   "A ReplicationControllers type can be constructed from a list of ReplicationController (a.k.a. RC)\n" >> {
     "where an empty list of RCs can be used" >> {
       val rcList = List[ReplicationController]()
-      val rcs=ReplicationControllers(items = rcList)
+      val rcs=ReplicationControllerList(items = rcList)
       rcs.items.size mustEqual 0
     }
     
@@ -46,7 +46,7 @@ class ModelSpec extends Specification {
       val podspec=Pod.Spec(volumes=Nil,containers=List(container1, container2), serviceAccountName="")
       val rc = ReplicationController().withName("MyRepCon").withReplicas(2).withPodSpec(podspec)
       val rcList = List[ReplicationController](rc)
-      val rcs=ReplicationControllers(items = rcList)
+      val rcs=ReplicationControllerList(items = rcList)
       rcs.items.size mustEqual 1
       rcs.items(0).metadata.name mustEqual "MyRepCon"
       rcs(0).name mustEqual "MyRepCon"

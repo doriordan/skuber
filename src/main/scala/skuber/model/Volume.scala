@@ -52,7 +52,7 @@ object Volume {
       fsType: String = "ext4", 
       readOnly: Boolean = false) 
     extends PersistentSource
-  case class PersistentVolumeClaim(claimName: String,readOnly: Boolean = false) 
+  case class PersistentVolumeClaimRef(claimName: String,readOnly: Boolean = false) 
     extends Source
   case class Mount(name: String, mountPath: String, readOnly: Boolean = false)
 }

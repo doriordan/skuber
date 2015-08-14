@@ -5,12 +5,12 @@ import java.util.Date
 import scala.collection.immutable.HashMap
 
 /*
- * Core representation of the Kubernetes V1 API model
+ * Represents core types of the Kubernetes V1 public model
  * @author David O'Riordan
  */
 package object Model {
   
-  // define standard empty values - defaults and json formatting use them
+  // define standard empty values - some Json formatters use them
   val emptyS=""
   val emptyB=false
   def emptyL[T]=List[T]()
@@ -45,20 +45,63 @@ package object Model {
       resourceVersion: String = "")
       
   // marker trait for any Kubernetes object type that are also items of some Kubernetes list type 
-  // e.g. a Pod can be an item in a PodList
+  // e.g. a Pod can be an item in a PodList, Node can be in a NodeList etc.
   trait KListItem 
-  
-  trait KList[I <: KListItem] extends TypeMeta {
-    def metadata : ListMeta
-    def items : List[I]
+   
+  trait KList[K <: KListItem] extends TypeMeta {
+    def metadata: Option[ListMeta]
+    def items: List[K]
   }
- 
+  
   implicit def toList[I <: KListItem](resource: KList[I]) : List[I] = resource.items  
    
-  case class Pods(metadata: ListMeta = ListMeta(), items: List[Pod] = List()) extends KList[Pod] { def kind = "PodList" }
-  case class Nodes(metadata: ListMeta=ListMeta(), items: List[Node] = List()) extends KList[Node] { def kind = "NodeList" }
-  case class ReplicationControllers(metadata: ListMeta=ListMeta(), items: List[ReplicationController] = List()) 
-    extends KList[ReplicationController] { def kind = "ReplicationControllerList" }
+  case class PodList(
+    val kind: String ="PodList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[Pod] = Nil) extends KList[Pod]
+  
+  case class NodeList(
+    val kind: String ="NodeList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[Node] = Nil) extends KList[Node]
+  
+  case class ServiceList(
+    val kind: String ="ServiceList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[Service] = Nil) extends KList[Service]
+  
+  case class EndpointList(
+    val kind: String ="EndpointList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[Endpoint] = Nil) extends KList[Endpoint]
+  
+  case class EventList(
+    val kind: String ="EventList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[Event] = Nil) extends KList[Event]
+  
+  case class ReplicationControllerList(  
+    val kind: String ="ReplicationControllerList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[ReplicationController] = Nil) extends KList[ReplicationController]
+  
+  case class PersistentVolumeList(
+    val kind: String ="PersistentVolumeList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[PersistentVolume] = Nil) extends KList[PersistentVolume]
+  
+   case class PersistentVolumeClaimList(
+    val kind: String ="PersistentVolumeClaimList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta]= None,
+    items: List[PersistentVolumeClaim] = Nil) extends KList[PersistentVolumeClaim]
   
   type Finalizer=String
   type Phase=String
@@ -74,13 +117,17 @@ package object Model {
       resourceVersion: String = "",
       fieldPath: String = "")
       
-  type NameablePort = Either[Int, String] // is either an int or an IANA name       
+  type NameablePort = Either[Int, String] // is either an integer or an IANA name       
 
   implicit def portNumToNameablePort(p:Int): NameablePort = Left(p)
   implicit def ianaNameToNameablePort(n: String): NameablePort = Right(n)
     
-  sealed trait Handler
-  case class ExecAction(command: List[String]) extends Handler
+  sealed trait Handler // handlers are used by probes to get health check status from containers 
+  
+   // execute a command inside a container to check its health
+  case class ExecAction(command: List[String]) extends Handler 
+  
+  // get health check status from a HTTP endpoint, returns non-OK HTTP status if health check fails
   case class HTTPGetAction(
       port: NameablePort, 
       host: String = "", 
@@ -93,10 +140,13 @@ package object Model {
       }
     }
   }
+  
   object HTTPGetAction {
     def apply(i:Int) = new HTTPGetAction(Left(i))
     def apply(url: URL) = new HTTPGetAction(Left(url.getPort), url.getHost, url.getPath, url.getProtocol)
   }
+  
+  // TCP endpoint - health check succeeds if can connect to it
   case class TCPSocketAction(port: NameablePort) extends Handler
   
   case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
