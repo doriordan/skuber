@@ -13,12 +13,15 @@ case class Namespace(
     status: Option[Namespace.Status]= None) 
   extends ObjectResource {
     def meta(name: String): ObjectMeta = ObjectMeta(name=name, namespace=this.name)
-    def pod(name: String, spec: Option[Pod.Spec] = None) = Pod(metadata=meta(name), spec=spec)
-    def node(name: String, spec: Option[Node.Spec] = None) = Node(metadata=meta(name), spec=spec)
-    def replicationController(name: String, spec: Option[ReplicationController.Spec] = None) = 
-      ReplicationController(metadata=meta(name), spec=spec)
-    def service(name: String, spec: Option[Service.Spec] = None) =
-      Service(metadata=meta(name), spec=spec)
+    def pod(name: String) = Pod(metadata=meta(name))
+    def pod(name: String, spec: Pod.Spec) = Pod(metadata=meta(name), spec=Some(spec))
+    def node(name: String) = Node(metadata=meta(name))
+    def node(name: String, spec: Node.Spec) = Node(metadata=meta(name), spec=Some(spec))
+    def replicationController(name: String) = ReplicationController(metadata=meta(name))
+    def replicationController(name:String, spec: ReplicationController.Spec)= 
+      ReplicationController(metadata=meta(name), spec=Some(spec))
+    def service(name: String) = Service(metadata=meta(name))
+    def service(name:String, spec: Service.Spec) = Service(metadata=meta(name), spec=Some(spec))
     def withFinalizers(f: List[String]) = { this.copy(spec = Some(Namespace.Spec(f))) } 
     def withStatusOfPhase(p: String) =  { this.copy(status = Some(Namespace.Status(p))) } 
   }
@@ -33,4 +36,5 @@ object Namespace {
   lazy val none = all
   def forName(label: String) : Namespace = Namespace(metadata=ObjectMeta(name=label))
   def from(meta:ObjectMeta) : Namespace = Namespace(metadata=meta)
+  def apply(label: String) : Namespace = Namespace(metadata=ObjectMeta(name=label))
 }

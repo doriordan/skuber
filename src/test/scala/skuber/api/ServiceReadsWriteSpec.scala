@@ -33,13 +33,13 @@ class ServiceReadsWritesSpec extends Specification {
       mySvc mustEqual readSvc    
     }
     "this can be done for a simple Service with just a name and namespace set" >> {
-      val mySvc = Namespace.forName("myNamespace").service("mySvc")
+      val mySvc = Namespace("myNamespace").service("mySvc")
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
       mySvc mustEqual readSvc  
     } 
     "this can be done for a Service with a simple, single port spec" >> {
-      val mySvc = Namespace.forName("myNamespace").
-                    service("mySvc",Some(Spec(ports=List(Port(name="myPort",port=5654)))))
+      val mySvc = Namespace("myNamespace").
+                    service("mySvc",Spec(ports=List(Port(name="myPort",port=5654))))
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
       mySvc mustEqual readSvc
     }
@@ -47,12 +47,12 @@ class ServiceReadsWritesSpec extends Specification {
       val ports=List(Port(port=9081,targetPort=Some(8080)),
                      Port(name="xmit",protocol=Protocol.UDP, port=9563, nodePort=4561))
       val selector=Map("env" -> "production", "svc" -> "authorise")
-      val mySvc=Namespace.default.service("mySvc", Some(Spec(ports, selector, clusterIP="None", sessionAffinity=Affinity.ClientIP)))
+      val mySvc=Namespace.default.service("mySvc", Spec(ports, selector, clusterIP="None", sessionAffinity=Affinity.ClientIP))
       
      
       val writtenSvc = Json.toJson(mySvc)
       val strs=Json.stringify(writtenSvc)
-      System.err.println(strs)    
+      // System.err.println(strs)    
       val readSvcJsResult = Json.fromJson[Service](writtenSvc)
      
       val ret: Result = readSvcJsResult match {

@@ -371,12 +371,15 @@ object JsonReadWrite {
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Volume.Mount.apply _, unlift(Volume.Mount.unapply))
   
+   implicit val pullPolicyFormat: Format[Container.PullPolicy.Value] = 
+       Format(enumReads(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)), enumWrites)
+       
   implicit val containerFormat: Format[Container] = (
     (JsPath \ "name").format[String] and
     (JsPath \ "image").format[String] and
     (JsPath \ "command").formatMaybeEmptyList[String] and
     (JsPath \ "args").formatMaybeEmptyList[String] and
-    (JsPath \ "workingDir").formatMaybeEmptyString() and
+    (JsPath \ "workingDir").formatNullable[String] and
     (JsPath \ "ports").formatMaybeEmptyList[Container.Port] and
     (JsPath \ "env").formatMaybeEmptyList[EnvVar] and
     (JsPath \ "resources").formatNullable[Resource.Requirements] and
@@ -385,7 +388,7 @@ object JsonReadWrite {
     (JsPath \ "readinessProbe").formatNullable[Probe] and
     (JsPath \ "lifeCycle").formatNullable[Lifecycle] and
     (JsPath \ "terminationMessagePath").formatMaybeEmptyString() and
-    (JsPath \ "imagePullPolicy").formatMaybeEmptyString() and
+    (JsPath \ "imagePullPolicy").format[Container.PullPolicy.Value] and
     (JsPath \ "securityContext").formatNullable[Security.Context]
   )(Container.apply _, unlift(Container.unapply))
    
@@ -491,14 +494,14 @@ object JsonReadWrite {
   implicit val nodeSysInfoFmt: Format[Node.SystemInfo] = Json.format[Node.SystemInfo]
    
   implicit val nodeAddrFmt: Format[Node.Address] = (
-    (JsPath \ "_type").format[String] and
+    (JsPath \ "type").format[String] and
     (JsPath \ "address").format[String]
   )(Node.Address.apply _, unlift(Node.Address.unapply))
   
   implicit val nodePhaseFmt = enumFormat(Node.Phase)
  
   implicit val nodeCondFmt: Format[Node.Condition] = (
-    (JsPath \ "_type").format[String] and
+    (JsPath \ "type").format[String] and
     (JsPath \ "status").format[String] and
     (JsPath \ "lastHeartbeatTime").formatNullable[Timestamp] and
     (JsPath \ "lastTransitionTime").formatNullable[Timestamp] and
@@ -506,7 +509,14 @@ object JsonReadWrite {
     (JsPath \ "message").formatNullable[String]
   )(Node.Condition.apply _, unlift(Node.Condition.unapply))
   
-  implicit val nodeStatusFmt: Format[Node.Status] = Json.format[Node.Status]
+  implicit val nodeStatusFmt: Format[Node.Status] = (
+    (JsPath \ "capacity").formatMaybeEmptyMap[Resource.Quantity] and
+    (JsPath \ "phase").formatNullable[Node.Phase.Phase] and
+    (JsPath \ "conditions").formatMaybeEmptyList[Node.Condition] and
+    (JsPath \ "addresses").formatMaybeEmptyList[Node.Address] and
+    (JsPath \ "nodeInfo").formatNullable[Node.SystemInfo]
+  )(Node.Status.apply _, unlift(Node.Status.unapply))
+  
    
   implicit val nodeSpecFmt: Format[Node.Spec] =(
     (JsPath \ "podCIDR").formatMaybeEmptyString() and

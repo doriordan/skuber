@@ -16,6 +16,9 @@ case class Node(
       extends ObjectResource with KListItem
 
 object Node {
+   def forName(name: String) = Node(metadata=ObjectMeta(name=name))
+   def forNameAndSpec(name: String, spec: Node.Spec) = Node(metadata=ObjectMeta(name=name), spec = Some(spec))
+  
    case class Spec(
       podCIDR: String = "",
       providerID: String = "",
@@ -23,10 +26,10 @@ object Node {
       externalID: String = "")
       
   case class Status(
-      capacity: Option[Resource.ResourceList]=None,
-      phase: Option[Phase] = None,
-      conditions: Option[List[Node.Condition]] = None,
-      addresses: Option[List[Node.Address]] = None,
+      capacity: Resource.ResourceList=Map(),
+      phase: Option[Phase.Phase] = None,
+      conditions: List[Node.Condition] = List(),
+      addresses: List[Node.Address] = List(),
       nodeInfo: Option[Node.SystemInfo] = None)
       
   object Phase extends Enumeration {

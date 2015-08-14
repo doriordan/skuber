@@ -6,12 +6,13 @@ import java.util.Date
 /**
  * @author David O'Riordan
  */
+
 case class Container(
     name: String,
     image: String,
     command: List[String] = List(),
     args: List[String] = List(),
-    workingDir: String = "",
+    workingDir: Option[String] = None,
     ports : List[Container.Port] = List(),
     env: List[EnvVar] = List(),
     resources: Option[Resource.Requirements] = None,
@@ -20,11 +21,16 @@ case class Container(
     readinessProbe: Option[Probe] = None,
     lifeCycle: Option[Lifecycle] = None,
     terminationMessagePath: String = "/var/log/termination",
-    imagePullPolicy: String = "IfNotPresent",
+    imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
     securityContext: Option[Security.Context] = None)
     
-
 object Container {
+  
+  object PullPolicy extends Enumeration {
+    type PullPolicy = Value
+    val Always, Never, IfNotPresent = Value
+  }
+  
   case class Port(
       containerPort: Int,
       protocol: Protocol.Value=Protocol.TCP,
