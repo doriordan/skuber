@@ -24,7 +24,7 @@ object Pod {
    case class Spec( 
       containers: List[Container], // should have at least one member
       volumes: List[Volume] = Nil, 
-      restartPolicy: String = "",
+      restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
       terminationGracePeriodSeconds: Option[Int] = None,
       activeDeadlineSeconds: Option[Int] = None,
       dnsPolicy: DNSPolicy = Default,
@@ -45,16 +45,21 @@ object Pod {
        this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
      }
    }
+   
+  object Phase extends Enumeration {
+    type Phase = Value
+    val Pending, Running, Succeeded, Failed, Unknown = Value
+  }
            
   case class Status(
-      phase: String,
-      conditions: List[Condition],
-      message: Option[String],
-      reason: Option[String],
-      hostIP: Option[String],
-      podIP: Option[String],
+      phase: Option[Phase.Phase] = None,
+      conditions: List[Condition] = Nil,
+      message: Option[String] = None,
+      reason: Option[String] = None,
+      hostIP: Option[String] = None,
+      podIP: Option[String] = None,
       startTime: Option[Timestamp] = None,
-      containerStatuses: List[Container.Status])
+      containerStatuses: List[Container.Status] = Nil)
       
   case class Condition(_type : String="Ready", status: String)
  

@@ -32,8 +32,8 @@ package object Model {
     resourceVersion: String = emptyS,
     creationTimestamp: Option[Timestamp] = None,
     deletionTimestamp: Option[Timestamp] = None,
-    labels: Option[Map[String, String]] = None,
-    annotations: Option[Map[String, String]] = None)
+    labels: Map[String, String] = Map(),
+    annotations: Map[String, String] = Map())
           
   abstract class ObjectResource extends TypeMeta {
     def metadata: ObjectMeta
@@ -155,6 +155,10 @@ package object Model {
   object DNSPolicy extends Enumeration {
      type DNSPolicy = Value
      val Default,ClusterFirst = Value
+  }
+   object RestartPolicy extends Enumeration {
+     type RestartPolicy = Value
+     val Always,OnFailure,Never = Value
   }
   object ServiceType extends Enumeration {
     type ServiceType = Value

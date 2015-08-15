@@ -92,9 +92,9 @@ class JsonReadsWritesSpec extends Specification {
             date.getOffset mustEqual java.time.ZoneOffset.UTC
             val date2 = ns.metadata.deletionTimestamp.get
             date2.getOffset mustEqual java.time.ZoneOffset.ofHours(1) 
-            val labels=ns.metadata.labels.get
+            val labels=ns.metadata.labels
             labels("three") mustEqual "four"
-            val annots=ns.metadata.annotations.get
+            val annots=ns.metadata.annotations
             annots("abc") mustEqual "def"
             val res2 = Json.fromJson[Namespace](Json.toJson(ns))
             res2 match {

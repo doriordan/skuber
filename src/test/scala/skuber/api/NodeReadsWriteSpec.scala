@@ -274,16 +274,16 @@ class NodeReadsWritesSpec extends Specification {
                 ]
               }
           """
-          val myNodes = Json.parse(nodesJsonStr).as[NodeList]
+          val myNodes= Json.parse(nodesJsonStr).as[NodeList]
           myNodes.kind mustEqual "NodeList"
           myNodes.items.length mustEqual 3 // 3 minion nodes
-          // myNodes(0).kind mustEqual "Pod"
+          
           myNodes(0).name mustEqual "10.245.1.3"
           myNodes(0).status.get.capacity("memory") mustEqual Resource.Quantity("1017552Ki")
-          // myNodes(1).kind mustEqual "Pod"
+       
           myNodes(1).name mustEqual "10.245.1.4"
           myNodes(1).status.get.capacity("cpu") mustEqual Resource.Quantity("2")
-          // write and read back in again, compare
+         
           val readNodes = Json.fromJson[NodeList](Json.toJson(myNodes)).get 
           myNodes mustEqual readNodes
      }

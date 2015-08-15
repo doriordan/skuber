@@ -40,7 +40,7 @@ object Container {
        
   sealed trait State { def id: String }
   case class Waiting(reason: Option[String] = None) extends State { def id="waiting" }
-  case class Running(startingAt: Option[Timestamp]) extends State { def id="running" }
+  case class Running(startedAt: Option[Timestamp]) extends State { def id="running" }
   case class Terminated(
       exitCode: Int,
       signal: Option[Int] = None,
@@ -58,7 +58,7 @@ object Container {
       image: String,
       imageID: String,
       state: Option[State] = None,
-      lastTerminationState: Option[State] = None,
+      lastState: Option[State] = None,
       containerID: Option[String] = None) 
       
 }    

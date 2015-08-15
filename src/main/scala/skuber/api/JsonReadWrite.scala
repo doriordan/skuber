@@ -99,8 +99,8 @@ object JsonReadWrite {
     (JsPath \ "resourceVersion").formatMaybeEmptyString() and
     (JsPath \ "creationTimestamp").formatNullable[Timestamp] and
     (JsPath \ "deletionTimestamp").formatNullable[Timestamp] and
-    (JsPath \ "labels").formatNullable[Map[String, String]] and
-    (JsPath \ "annotations").formatNullable[Map[String, String]]
+    (JsPath \ "labels").formatMaybeEmptyMap[String] and
+    (JsPath \ "annotations").formatMaybeEmptyMap[String]
   )(ObjectMeta.apply _, unlift(ObjectMeta.unapply))
     
   implicit val listMetaFormat: Format[ListMeta] = (
@@ -198,7 +198,8 @@ object JsonReadWrite {
   implicit val cntrStateReads: Reads[Container.State] = (
     (JsPath \ "waiting").read[Container.Waiting].map(x => x: Container.State) |
     (JsPath \ "running").read[Container.Running].map(x => x: Container.State) |
-    (JsPath \ "terminated").read[Container.Terminated].map(x => x: Container.State)
+    (JsPath \ "terminated").read[Container.Terminated].map(x => x: Container.State) |
+    Reads.pure(Container.Waiting())
   )
   
   implicit val cntrStateWrites: Writes[Container.State] = Writes[Container.State] {
@@ -408,8 +409,10 @@ object JsonReadWrite {
       (JsPath \ "status").format[String]
     )(Pod.Condition.apply _, unlift(Pod.Condition.unapply))
     
+  implicit val podPhaseFormat = enumFormat(Pod.Phase)
+  
   implicit val podStatusFormat: Format[Pod.Status] = (
-      (JsPath \ "phase").format[String] and
+      (JsPath \ "phase").formatNullable[Pod.Phase.Phase] and
       (JsPath \ "conditions").formatMaybeEmptyList[Pod.Condition] and
       (JsPath \ "message").formatNullable[String] and
       (JsPath \ "reason").formatNullable[String] and
@@ -426,11 +429,14 @@ object JsonReadWrite {
       (JsPath \ "spec").formatNullable[Pod.Spec] and
       (JsPath \ "status").formatNullable[Pod.Status]
     ) (Pod.apply _, unlift(Pod.unapply))  
+    
+  implicit val restartPolicyFmt: Format[RestartPolicy.RestartPolicy] = 
+        Format(enumReads(RestartPolicy, Some(RestartPolicy.Always)), enumWrites)  
   
   implicit val podSpecFormat: Format[Pod.Spec] = (
       (JsPath \ "containers").format[List[Container]] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
-      (JsPath \ "restartPolicy").formatMaybeEmptyString() and
+      (JsPath \ "restartPolicy").format[RestartPolicy.RestartPolicy] and
       (JsPath \ "terminationGracePeriodSeconds").formatNullable[Int] and
       (JsPath \ "activeDeadlineSeconds").formatNullable[Int] and
       (JsPath \ "dnsPolicy").format[DNSPolicy.Value] and
