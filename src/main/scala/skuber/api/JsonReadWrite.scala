@@ -199,7 +199,7 @@ object JsonReadWrite {
     (JsPath \ "waiting").read[Container.Waiting].map(x => x: Container.State) |
     (JsPath \ "running").read[Container.Running].map(x => x: Container.State) |
     (JsPath \ "terminated").read[Container.Terminated].map(x => x: Container.State) |
-    Reads.pure(Container.Waiting())
+    Reads.pure(Container.Waiting()) // default
   )
   
   implicit val cntrStateWrites: Writes[Container.State] = Writes[Container.State] {
@@ -217,21 +217,21 @@ object JsonReadWrite {
   )
   
   implicit val nameablePortReads: Reads[NameablePort] = (
-    (JsPath \ "port").read[Int].map(value => Left(value)) |
-    (JsPath \ "port").read[String].map(value => Right(value) )
+    JsPath.read[Int].map(value => Left(value)) |
+    JsPath.read[String].map(value => Right(value) )
   )
       
   implicit val nameablePortWrite = Writes[NameablePort] { 
      value => value match {
-       case Left(i) => (JsPath \ "port").write[Int].writes(i)
-       case Right(s) => (JsPath \ "port").write[String].writes(s)
+       case Left(i) => Writes.IntWrites.writes(i)
+       case Right(s) => Writes.StringWrites.writes(s)
      }
   }
   
   implicit val nameablePortFormat: Format[NameablePort] = Format(nameablePortReads, nameablePortWrite)
   
   implicit val httpGetActionFormat: Format[HTTPGetAction] = (
-      JsPath.format[NameablePort] and
+      (JsPath \ "port").format[NameablePort] and
       (JsPath \ "host").formatMaybeEmptyString() and
       (JsPath \ "path").formatMaybeEmptyString() and 
       (JsPath \ "scheme").formatMaybeEmptyString() 
@@ -317,7 +317,6 @@ object JsonReadWrite {
      (JsPath \ "fsType").format[String] and 
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(ISCSI.apply _, unlift(ISCSI.unapply))
-   
      
    implicit val persistentVolumeClaimRefFormat: Format[Volume.PersistentVolumeClaimRef] = (
      (JsPath \ "claimName").format[String] and

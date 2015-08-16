@@ -62,5 +62,72 @@ class ServiceReadsWritesSpec extends Specification {
       }   
       ret
     }
+    "a service can be read from Json" >> {
+      val svcJsonStr="""
+          {
+              "kind": "Service",
+              "apiVersion": "v1",
+              "metadata": {
+                "name": "kube-dns",
+                "namespace": "default",
+                "selfLink": "/api/v1/namespaces/default/services/kube-dns",
+                "uid": "8261aa82-4239-11e5-9586-0800279dd272",
+                "resourceVersion": "21",
+                "creationTimestamp": "2015-08-14T04:04:07Z",
+                "labels": {
+                  "k8s-app": "kube-dns",
+                  "kubernetes.io/cluster-service": "true",
+                  "kubernetes.io/name": "KubeDNS"
+                }
+              },
+              "spec": {
+                "ports": [
+                  {
+                    "name": "dns",
+                    "protocol": "UDP",
+                    "port": 53,
+                    "targetPort": 53,
+                    "nodePort": 0
+                  },
+                  {
+                    "name": "dns-tcp",
+                    "protocol": "TCP",
+                    "port": 53,
+                    "targetPort": 53,
+                    "nodePort": 0
+                  }
+                ],
+                "selector": {
+                  "k8s-app": "kube-dns"
+                },
+                "clusterIP": "10.247.0.10",
+                "type": "ClusterIP",
+                "sessionAffinity": "None"
+              },
+              "status": {
+                "loadBalancer": {}
+              }
+            }                   
+        """
+      val mySvc = Json.parse(svcJsonStr).as[Service]
+      mySvc.kind mustEqual "Service"
+      mySvc.name mustEqual "kube-dns"
+      val spec = mySvc.spec.get
+      val ports = spec.ports
+      ports.length mustEqual 2
+      val udpDnsPort = ports(0)
+      udpDnsPort.port mustEqual 53
+      udpDnsPort.targetPort.get.left.get mustEqual 53
+      udpDnsPort.nodePort mustEqual 0
+      udpDnsPort.protocol mustEqual Protocol.UDP
+      udpDnsPort.name mustEqual "dns"
+      
+      val tcpDnsPort = ports(1)
+      tcpDnsPort.port mustEqual 53
+      tcpDnsPort.targetPort.get.left.get mustEqual 53
+      tcpDnsPort.nodePort mustEqual 0
+      tcpDnsPort.protocol mustEqual Protocol.TCP
+      tcpDnsPort.name mustEqual "dns-tcp"     
+    }
   }    
 }

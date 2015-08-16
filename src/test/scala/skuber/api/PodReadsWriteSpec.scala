@@ -80,7 +80,7 @@ class PodReadsWritesSpec extends Specification {
       }   
       ret
     }
-    "a pod can be read from json" >> {
+    "a quite complex pod can be read from json" >> {
       val podJsonStr="""
         {
           "kind": "Pod",
@@ -319,6 +319,18 @@ class PodReadsWritesSpec extends Specification {
       probe.initialDelaySeconds mustEqual 30
       probe.timeoutSeconds mustEqual 5
       
+      val ports = cntrs(2).ports // skyDNS ports
+      ports.length mustEqual 2
+      val udpDnsPort = ports(0)
+      udpDnsPort.containerPort mustEqual 53
+      udpDnsPort.protocol mustEqual Protocol.UDP
+      udpDnsPort.name mustEqual "dns"
+      
+      val tcpDnsPort = ports(1)
+      tcpDnsPort.containerPort mustEqual 53
+      tcpDnsPort.protocol mustEqual Protocol.TCP
+      tcpDnsPort.name mustEqual "dns-tcp"
+      
       cntrs(2).image equals "gcr.io/google_containers/skydns:2015-03-11-001"
       
       val status = myPod.status.get
@@ -327,6 +339,11 @@ class PodReadsWritesSpec extends Specification {
       val cntrStatuses = status.containerStatuses
       cntrStatuses.length mustEqual 3
       cntrStatuses(0).restartCount mustEqual 3
+      cntrStatuses(0).lastState.get match {
+        case c: Container.Terminated => 
+          c.exitCode mustEqual 2 
+          c.containerID.get mustEqual "docker://ec96c0a87e374d1b2f309c102b13e88a2605a6df0017472a6d7f808b559324aa"                                
+      }
       cntrStatuses(2).state.get match {
         case Container.Running(startTime) if (startTime.nonEmpty) => 
           startTime.get.getHour mustEqual 16 // just a spot check
