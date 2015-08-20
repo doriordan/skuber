@@ -498,14 +498,14 @@ object JsonReadWrite {
      (JsPath \ "status").formatNullable[Service.Status]
   )(Service.apply _, unlift(Service.unapply))
   
-  implicit val endpointAddressFmt: Format[Endpoint.Address] = Json.format[Endpoint.Address]
-  implicit val endpointPortFmt: Format[Endpoint.Port] = Json.format[Endpoint.Port]
-  implicit val endpointSubsetFmt: Format[Endpoint.Subset] = Json.format[Endpoint.Subset]
+  implicit val endpointsAddressFmt: Format[Endpoints.Address] = Json.format[Endpoints.Address]
+  implicit val endpointPortFmt: Format[Endpoints.Port] = Json.format[Endpoints.Port]
+  implicit val endpointSubsetFmt: Format[Endpoints.Subset] = Json.format[Endpoints.Subset]
   
-  implicit val endpointFmt: Format[Endpoint] = (
+  implicit val endpointFmt: Format[Endpoints] = (
     objFormat and
-    (JsPath \ "subsets").format[List[Endpoint.Subset]]
-  )(Endpoint.apply _, unlift(Endpoint.unapply))
+    (JsPath \ "subsets").format[List[Endpoints.Subset]]
+  )(Endpoints.apply _, unlift(Endpoints.unapply))
   
   implicit val nodeSysInfoFmt: Format[Node.SystemInfo] = Json.format[Node.SystemInfo]
    
@@ -592,7 +592,7 @@ object JsonReadWrite {
   implicit val podListFmt: Format[PodList] = KListFormat[Pod].apply(PodList.apply _,unlift(PodList.unapply))
   implicit val nodeListFmt: Format[NodeList] = KListFormat[Node].apply(NodeList.apply _,unlift(NodeList.unapply))
   implicit val serviceListFmt: Format[ServiceList] = KListFormat[Service].apply(ServiceList.apply _,unlift(ServiceList.unapply))
-  implicit val endpointListFmt: Format[EndpointList] = KListFormat[Endpoint].apply(EndpointList.apply _,unlift(EndpointList.unapply))
+  implicit val endpointListFmt: Format[EndpointList] = KListFormat[Endpoints].apply(EndpointList.apply _,unlift(EndpointList.unapply))
   implicit val eventListFmt: Format[EventList] = KListFormat[Event].apply(EventList.apply _,unlift(EventList.unapply))
   implicit val replCtrlListFmt: Format[ReplicationControllerList] = KListFormat[ReplicationController].
                     apply(ReplicationControllerList.apply _,unlift(ReplicationControllerList.unapply))

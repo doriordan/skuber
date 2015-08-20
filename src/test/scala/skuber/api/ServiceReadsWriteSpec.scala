@@ -28,7 +28,7 @@ class ServiceReadsWritesSpec extends Specification {
   // Service reader and writer
   "A Service can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for a simple Service with just a name" >> {
-      val mySvc = Service.forName("mySvc")
+      val mySvc = Service("mySvc")
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
       mySvc mustEqual readSvc    
     }

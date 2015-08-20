@@ -16,9 +16,8 @@ case class Pod(
       extends ObjectResource with KListItem
 
 object Pod {
-  
-   def forName(name: String) = Pod(metadata=ObjectMeta(name=name))
-   def forNameAndSpec(name: String, spec: Pod.Spec) = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
+   def named(name: String) = Pod(metadata=ObjectMeta(name=name))
+   def apply(name: String, spec: Pod.Spec) : Pod = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
   
    import DNSPolicy._
    case class Spec( 

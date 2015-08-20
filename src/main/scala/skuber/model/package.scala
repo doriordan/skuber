@@ -38,6 +38,7 @@ package object Model {
   abstract class ObjectResource extends TypeMeta {
     def metadata: ObjectMeta
     def name = metadata.name
+    def ns = if (metadata.namespace==emptyS) "default" else metadata.namespace
   }
 
   case class ListMeta( 
@@ -77,7 +78,7 @@ package object Model {
     val kind: String ="EndpointList",
     override val apiVersion: String = "v1",
     val metadata: Option[ListMeta]= None,
-    items: List[Endpoint] = Nil) extends KList[Endpoint]
+    items: List[Endpoints] = Nil) extends KList[Endpoints]
   
   case class EventList(
     val kind: String ="EventList",
@@ -115,7 +116,17 @@ package object Model {
       name: String = "",
       uid: String = "",
       resourceVersion: String = "",
-      fieldPath: String = "")
+      fieldPath: String = "") {
+    def \(addPath: String) = this.copy(fieldPath=fieldPath + "/" + addPath)
+  }
+      
+  implicit def objResourceToRef(obj: ObjectResource) = 
+        ObjectReference(kind=obj.kind,
+                        apiVersion=obj.apiVersion,
+                        namespace=obj.ns,
+                        name=obj.name,
+                        uid = obj.metadata.uid,
+                        resourceVersion = obj.metadata.resourceVersion)
       
   type NameablePort = Either[Int, String] // is either an integer or an IANA name       
 

@@ -28,7 +28,7 @@ class NodeReadsWritesSpec extends Specification {
   // Node reader and writer
   "A Node can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for a simple Service with just a name" >> {
-      val myNode = Node.forName("myNode")
+      val myNode = Node.named("myNode")
       val readNode = Json.fromJson[Node](Json.toJson(myNode)).get 
       myNode mustEqual readNode   
     }

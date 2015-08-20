@@ -28,7 +28,7 @@ class PodReadsWritesSpec extends Specification {
   // Pod reader and writer
   "A Pod can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for a simple Pod with just a name" >> {
-      val myPod = Pod.forName("myPod")
+      val myPod = Pod.named("myPod")
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
       myPod mustEqual readPod    
     }

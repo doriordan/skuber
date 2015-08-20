@@ -16,8 +16,8 @@ case class Node(
       extends ObjectResource with KListItem
 
 object Node {
-   def forName(name: String) = Node(metadata=ObjectMeta(name=name))
-   def forNameAndSpec(name: String, spec: Node.Spec) = Node(metadata=ObjectMeta(name=name), spec = Some(spec))
+   def named(name: String) = Node(metadata=ObjectMeta(name=name))
+   def apply(name: String, spec: Node.Spec) : Node = Node(metadata=ObjectMeta(name=name), spec = Some(spec))
   
    case class Spec(
       podCIDR: String = "",

@@ -25,7 +25,7 @@ class ModelSpec extends Specification {
       val container1=Container(name="Container1","image1")
       val container2=Container(name="Container2","image2")
       val podspec=Pod.Spec(volumes=Nil, containers=List(container1, container2), serviceAccountName="")
-      val pod=Pod.forNameAndSpec("MyPod", podspec)
+      val pod=Pod("MyPod", podspec)
       val podList = List[Pod](pod)
       val pods=PodList(items = podList)
       pods.items.size mustEqual 1
@@ -44,7 +44,7 @@ class ModelSpec extends Specification {
       val container1=Container("Container1","image1")
       val container2=Container(name="Container2", "image2")
       val podspec=Pod.Spec(volumes=Nil,containers=List(container1, container2), serviceAccountName="")
-      val rc = ReplicationController().withName("MyRepCon").withReplicas(2).withPodSpec(podspec)
+      val rc = ReplicationController.named("MyRepCon").withReplicas(2).withPodSpec(podspec)
       val rcList = List[ReplicationController](rc)
       val rcs=ReplicationControllerList(items = rcList)
       rcs.items.size mustEqual 1

@@ -13,12 +13,20 @@ case class Service(
     val metadata: ObjectMeta,
     spec: Option[Service.Spec] = None,
     status: Option[Service.Status] = None) 
-      extends ObjectResource with KListItem
+      extends ObjectResource with KListItem {
+
+  import Endpoints._
+  def mapsToEndpoint(ip: String, port: Int, protocol : Protocol.Value = Protocol.TCP): Endpoints =
+      Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets=Subset(Address(ip)::Nil, Port(port,protocol)::Nil)::Nil)
+  def mapsToEndpoints(subset: Subset): Endpoints =
+      Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets=subset::Nil)
+  def mapsToEndpoints(subsets: List[Subset]): Endpoints = Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets = subsets)
+}
 
 object Service {
   
-   def forName(name: String) = Service(metadata=ObjectMeta(name=name))
-   def forNameAndSpec(name: String, spec: Service.Spec) = Service(metadata=ObjectMeta(name=name), spec = Some(spec))
+   def apply(name: String): Service = Service(metadata=ObjectMeta(name=name))
+   def apply(name: String, spec: Service.Spec) : Service = Service(metadata=ObjectMeta(name=name), spec = Some(spec))
   
    object Affinity extends Enumeration {
      type Affinity=Value

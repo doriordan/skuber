@@ -14,9 +14,6 @@ case class ReplicationController(
     spec: Option[ReplicationController.Spec] = None,
     status: Option[ReplicationController.Status] = None) 
       extends ObjectResource with KListItem {
-
-    // fluent API methods for building a spec for a replication controller
-    def withName(name: String) = {  this.copy(metadata = metadata.copy(name=name))}
     def withReplicas(n: Int) = {  this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(replicas = n))))}
     def withSelector(s: Map[String, String]) = { this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(1)).copy(selector = Some(s)))) }    
     def withPodTemplate(t: Pod.Template.Spec) = { this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(1)).copy(template = Some(t)))) }  
@@ -27,6 +24,10 @@ case class ReplicationController(
 }
 
 object ReplicationController {
+  
+    def named(name: String) = ReplicationController(metadata=ObjectMeta(name=name))
+    def apply(name: String, spec: ReplicationController.Spec) : ReplicationController = 
+                          ReplicationController(metadata=ObjectMeta(name=name), spec = Some(spec))
     case class Spec(
       replicas: Int=1,
       selector: Option[Map[String, String]] = None,
