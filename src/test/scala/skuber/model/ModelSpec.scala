@@ -4,7 +4,7 @@ import org.specs2.mutable.Specification // for unit-style testing
 
 import scala.math.BigInt
 
-import Model._
+import coretypes._
 
 /**
  * @author David O'Riordan

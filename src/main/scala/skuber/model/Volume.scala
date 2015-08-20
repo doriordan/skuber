@@ -2,7 +2,7 @@ package skuber.model
 
 import java.util.Date
 
-import Model._
+import coretypes._
 
 /**
  * @author David O'Riordan

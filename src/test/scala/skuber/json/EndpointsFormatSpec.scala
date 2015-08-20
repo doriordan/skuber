@@ -1,4 +1,4 @@
-package skuber.api
+package skuber.json
 
 import org.specs2.mutable.Specification // for unit-style testing
 import org.specs2.execute.Result
@@ -6,13 +6,13 @@ import org.specs2.execute.Failure
 import org.specs2.execute.Success
 
 import scala.math.BigInt
+
 import java.util.Calendar
 import java.net.URL
 
+import skuber.model.coretypes._
 import skuber.model._
-import skuber.model.Model._
-import JsonReadWrite._
-
+import skuber.json.format._
 import play.api.libs.json._
 
 
@@ -20,10 +20,10 @@ import play.api.libs.json._
 /**
  * @author David O'Riordan
  */
-class EndpointReadsWritesSpec extends Specification {
+class EndpointsFormatSpec extends Specification {
   "This is a unit specification for the skuber Endpoint related json formatter.\n ".txt
   
-  import  Endpoints._
+import  Endpoints._
   
   // Endpoint reader and writer
   "An Endpoints can be symmetrically written to json and the same value read back in\n" >> {

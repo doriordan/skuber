@@ -8,7 +8,7 @@ import scala.collection.immutable.HashMap
  * Represents core types of the Kubernetes V1 public model
  * @author David O'Riordan
  */
-package object Model {
+package object coretypes {
   
   // define standard empty values - some Json formatters use them
   val emptyS=""
@@ -163,6 +163,11 @@ package object Model {
   case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
   case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None) 
   
+  case class Watch(_type: WatchedEventType.Value, _object: ObjectResource)
+  object WatchedEventType extends Enumeration {
+    type WatchedEventType = Value
+    val ADDED,MODIFIED,DELETED,ERROR = Value
+  }
   object DNSPolicy extends Enumeration {
      type DNSPolicy = Value
      val Default,ClusterFirst = Value

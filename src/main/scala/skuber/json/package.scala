@@ -1,10 +1,11 @@
-package skuber.api
+package skuber.json
 
 import java.time._
 import java.time.format._
 
+import skuber.model.coretypes._
 import skuber.model._
-import skuber.model.Model._
+
 import play.api.libs.ws._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -13,9 +14,9 @@ import play.api.data.validation.ValidationError
 
 /**
  * @author David O'Riordan
- * Play json formatters for Kubernetes types
+ * Play/json formatters for the Skuber k8s model types
  */
-object JsonReadWrite {
+package object format {
   
   // Formatters for the Java 8 ZonedDateTime objects that represent
   // (ISO 8601 / RFC 3329 compatible) Kubernetes timestamp fields 

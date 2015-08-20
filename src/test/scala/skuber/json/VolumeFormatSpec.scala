@@ -1,4 +1,4 @@
-package skuber.api
+package skuber.json
 
 import org.specs2.mutable.Specification // for unit-style testing
 import org.specs2.execute.Result
@@ -6,13 +6,11 @@ import org.specs2.execute.Failure
 
 import scala.math.BigInt
 
+import skuber.model.coretypes._
 import skuber.model._
-import skuber.model.Model._
-import skuber.model.Volume._
+import skuber.json.format._
 
 import play.api.libs.json._
-
-import JsonReadWrite._
 
 
 /**

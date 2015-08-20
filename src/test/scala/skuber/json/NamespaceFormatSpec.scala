@@ -1,4 +1,4 @@
-package skuber.api
+package skuber.json
 
 import org.specs2.mutable.Specification // for unit-style testing
 import org.specs2.execute.Result
@@ -6,21 +6,21 @@ import org.specs2.execute.Failure
 import org.specs2.execute.Success
 
 import scala.math.BigInt
+
 import java.util.Calendar
 
+import skuber.model.coretypes._
 import skuber.model._
-import skuber.model.Model._
-import JsonReadWrite._
+import skuber.json.format._
 
 import play.api.libs.json._
-
 
 
 /**
  * @author David O'Riordan
  */
-class JsonReadsWritesSpec extends Specification {
-  "This is a unit specification for the skuber json readers and writers.\n ".txt
+class NamespaceFormatSpec extends Specification {
+  "This is a unit specification for the skuber formatter for k8s namespaces.\n ".txt
   
   
   // Namespace reader and writer

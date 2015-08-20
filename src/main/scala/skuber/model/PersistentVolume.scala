@@ -2,7 +2,7 @@ package skuber.model
 
 import java.util.Date
 
-import Model._
+import coretypes._
 import Volume._
 
 /**
