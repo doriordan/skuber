@@ -6,6 +6,7 @@ import org.specs2.execute.Failure
 import org.specs2.execute.Success
 
 import scala.math.BigInt
+import scala.io.Source
 
 import java.util.Calendar
 import java.net.URL
@@ -30,18 +31,18 @@ import Pod._
   "A Pod can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for a simple Pod with just a name" >> {
       val myPod = Pod.named("myPod")
-      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
+      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
       myPod mustEqual readPod    
     }
     "this can be done for a simple Pod with just a name and namespace set" >> {
       val myPod = Namespace("myNamespace").pod("myPod")
-      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
+      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
       myPod mustEqual readPod    
     } 
     "this can be done for a Pod with a simple, single container spec" >> {
       val myPod = Namespace("myNamespace").
                     pod("myPod",Spec(Container("myContainer", "myImage")::Nil))
-      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
+      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
       myPod mustEqual readPod
     }
     "this can be done for a Pod with a more complex spec" >> {
@@ -352,6 +353,17 @@ import Pod._
       // write and read back in again, compare
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
       myPod mustEqual readPod
+    }
+    
+    "a complex podlist can be read and written as json" >> {
+      val podListJsonSource = Source.fromURL(getClass.getResource("/examplePodList.json"))
+      val podListJsonStr = podListJsonSource.mkString
+ 
+      val myPods = Json.parse(podListJsonStr).as[PodList]
+      myPods.kind mustEqual "PodList"
+      myPods.metadata.get.resourceVersion mustEqual "977"
+      myPods.items.length mustEqual 22
+      myPods.items(21).status.get.containerStatuses.exists( cs => cs.name.equals("grafana")) mustEqual true
     }
   }    
 }

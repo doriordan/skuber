@@ -1,0 +1,2413 @@
+       {
+          "kind": "PodList",
+          "apiVersion": "v1",
+          "metadata": {
+            "selfLink": "/api/v1/pods",
+            "resourceVersion": "977"
+          },
+          "items": [
+            {
+              "metadata": {
+                "name": "etcd-server-kubernetes-master",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/etcd-server-kubernetes-master",
+                "uid": "5cc1fb77-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "361",
+                "creationTimestamp": "2015-08-22T11:10:14Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:03.099745385Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "varetcd",
+                    "hostPath": {
+                      "path": "/mnt/master-pd/var/etcd"
+                    }
+                  },
+                  {
+                    "name": "varlogetcd",
+                    "hostPath": {
+                      "path": "/var/log/etcd.log"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "etcd-container",
+                    "image": "gcr.io/google_containers/etcd:2.0.12",
+                    "command": [
+                      "/bin/sh",
+                      "-c",
+                      "/usr/local/bin/etcd --addr 127.0.0.1:4001 --bind-addr 127.0.0.1:4001 --data-dir /var/etcd/data 1\u003e\u003e/var/log/etcd.log 2\u003e\u00261"
+                    ],
+                    "ports": [
+                      {
+                        "name": "serverport",
+                        "hostPort": 2380,
+                        "containerPort": 2380,
+                        "protocol": "TCP"
+                      },
+                      {
+                        "name": "clientport",
+                        "hostPort": 4001,
+                        "containerPort": 4001,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "200m"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "varetcd",
+                        "mountPath": "/var/etcd"
+                      },
+                      {
+                        "name": "varlogetcd",
+                        "mountPath": "/var/log/etcd.log"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-master",
+                "hostNetwork": true
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.235.7",
+                "podIP": "10.240.235.7",
+                "startTime": "2015-08-22T11:10:47Z",
+                "containerStatuses": [
+                  {
+                    "name": "etcd-container",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:37Z"
+                      }
+                    },
+                    "lastState": {
+                      "terminated": {
+                        "exitCode": 0,
+                        "startedAt": "2015-08-22T11:10:04Z",
+                        "finishedAt": "2015-08-22T11:10:33Z",
+                        "containerID": "docker://b74a594e7dc54499a7173f2ec5e5c0f73b8b9977f78aa2b0e78ade3a8f3dd78a"
+                      }
+                    },
+                    "ready": true,
+                    "restartCount": 1,
+                    "image": "gcr.io/google_containers/etcd:2.0.12",
+                    "imageID": "docker://fafe4735269937ef7ba1fa0badb66d7fd70736619862e3982144c59289fddb11",
+                    "containerID": "docker://f76ec79bf5221ccc99be3dff6bf7cf8c75fedca5e18210c6150fff95d518620d"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "fluentd-cloud-logging-kubernetes-master",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/fluentd-cloud-logging-kubernetes-master",
+                "uid": "645ed913-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "350",
+                "creationTimestamp": "2015-08-22T11:10:26Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:03.099754471Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "varlog",
+                    "hostPath": {
+                      "path": "/var/log"
+                    }
+                  },
+                  {
+                    "name": "containers",
+                    "hostPath": {
+                      "path": "/var/lib/docker/containers"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "env": [
+                      {
+                        "name": "FLUENTD_ARGS",
+                        "value": "-qq"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "200Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "varlog",
+                        "mountPath": "/varlog"
+                      },
+                      {
+                        "name": "containers",
+                        "mountPath": "/var/lib/docker/containers"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.235.7",
+                "podIP": "10.244.1.2",
+                "startTime": "2015-08-22T11:10:47Z",
+                "containerStatuses": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:37Z"
+                      }
+                    },
+                    "lastState": {
+                      "terminated": {
+                        "exitCode": 0,
+                        "startedAt": "2015-08-22T11:10:26Z",
+                        "finishedAt": "2015-08-22T11:10:33Z",
+                        "containerID": "docker://5b423a071d080bd62c5f69c360646b3e1728990c548e14dc68c88164cf629cc1"
+                      }
+                    },
+                    "ready": true,
+                    "restartCount": 1,
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "imageID": "docker://b6e57ec0903bf894c2703e1ea70434b86f2503258b60ed4ad0dbf52388afdef1",
+                    "containerID": "docker://1f37cd0be800ca24ddf58011cdabada51ba89da491f05a627cdb4e3fc7670afc"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "fluentd-cloud-logging-kubernetes-minion-1uil",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/fluentd-cloud-logging-kubernetes-minion-1uil",
+                "uid": "8d870fe4-48be-11e5-86eb-42010af0eb07",
+                "resourceVersion": "480",
+                "creationTimestamp": "2015-08-22T11:11:36Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:46.392712496Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "varlog",
+                    "hostPath": {
+                      "path": "/var/log"
+                    }
+                  },
+                  {
+                    "name": "containers",
+                    "hostPath": {
+                      "path": "/var/lib/docker/containers"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "env": [
+                      {
+                        "name": "FLUENTD_ARGS",
+                        "value": "-qq"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "200Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "varlog",
+                        "mountPath": "/varlog"
+                      },
+                      {
+                        "name": "containers",
+                        "mountPath": "/var/lib/docker/containers"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-minion-1uil"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.249.221",
+                "podIP": "10.244.2.2",
+                "startTime": "2015-08-22T11:11:35Z",
+                "containerStatuses": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:35Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "imageID": "docker://b6e57ec0903bf894c2703e1ea70434b86f2503258b60ed4ad0dbf52388afdef1",
+                    "containerID": "docker://9f00b76b266794e7eb55741fa3d968cb09479ab934ee35fbd48d230825f7db55"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "fluentd-cloud-logging-kubernetes-minion-iw7g",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/fluentd-cloud-logging-kubernetes-minion-iw7g",
+                "uid": "700189ff-48be-11e5-86eb-42010af0eb07",
+                "resourceVersion": "342",
+                "creationTimestamp": "2015-08-22T11:10:46Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:09:49.101135833Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "varlog",
+                    "hostPath": {
+                      "path": "/var/log"
+                    }
+                  },
+                  {
+                    "name": "containers",
+                    "hostPath": {
+                      "path": "/var/lib/docker/containers"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "env": [
+                      {
+                        "name": "FLUENTD_ARGS",
+                        "value": "-qq"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "200Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "varlog",
+                        "mountPath": "/varlog"
+                      },
+                      {
+                        "name": "containers",
+                        "mountPath": "/var/lib/docker/containers"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-minion-iw7g"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.156.90",
+                "podIP": "10.244.0.2",
+                "startTime": "2015-08-22T11:10:47Z",
+                "containerStatuses": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:46Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "imageID": "docker://b6e57ec0903bf894c2703e1ea70434b86f2503258b60ed4ad0dbf52388afdef1",
+                    "containerID": "docker://b669d2280059a37138cad7ee088b31cc9cfeac2c6c5c60991dc5d5d8dff72dc6"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "fluentd-cloud-logging-kubernetes-minion-u20a",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/fluentd-cloud-logging-kubernetes-minion-u20a",
+                "uid": "847dd4f5-48be-11e5-86eb-42010af0eb07",
+                "resourceVersion": "456",
+                "creationTimestamp": "2015-08-22T11:11:20Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:32.323438476Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "varlog",
+                    "hostPath": {
+                      "path": "/var/log"
+                    }
+                  },
+                  {
+                    "name": "containers",
+                    "hostPath": {
+                      "path": "/var/lib/docker/containers"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "env": [
+                      {
+                        "name": "FLUENTD_ARGS",
+                        "value": "-qq"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "200Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "varlog",
+                        "mountPath": "/varlog"
+                      },
+                      {
+                        "name": "containers",
+                        "mountPath": "/var/lib/docker/containers"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-minion-u20a"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.10.176",
+                "podIP": "10.244.4.2",
+                "startTime": "2015-08-22T11:11:20Z",
+                "containerStatuses": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:20Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "imageID": "docker://b6e57ec0903bf894c2703e1ea70434b86f2503258b60ed4ad0dbf52388afdef1",
+                    "containerID": "docker://ed4d4bb9b9807ebcf65dde1e7efc3e5befaff753be7c6c6025da2c848c5b4825"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "fluentd-cloud-logging-kubernetes-minion-y8dq",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/fluentd-cloud-logging-kubernetes-minion-y8dq",
+                "uid": "8b21d7a3-48be-11e5-86eb-42010af0eb07",
+                "resourceVersion": "472",
+                "creationTimestamp": "2015-08-22T11:11:31Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:44.034069586Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "varlog",
+                    "hostPath": {
+                      "path": "/var/log"
+                    }
+                  },
+                  {
+                    "name": "containers",
+                    "hostPath": {
+                      "path": "/var/lib/docker/containers"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "env": [
+                      {
+                        "name": "FLUENTD_ARGS",
+                        "value": "-qq"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "200Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "varlog",
+                        "mountPath": "/varlog"
+                      },
+                      {
+                        "name": "containers",
+                        "mountPath": "/var/lib/docker/containers"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-minion-y8dq"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.142.201",
+                "podIP": "10.244.3.2",
+                "startTime": "2015-08-22T11:11:32Z",
+                "containerStatuses": [
+                  {
+                    "name": "fluentd-cloud-logging",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:31Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/fluentd-gcp:1.11",
+                    "imageID": "docker://b6e57ec0903bf894c2703e1ea70434b86f2503258b60ed4ad0dbf52388afdef1",
+                    "containerID": "docker://dba99f581cf8b466eb6c87e180b6c9fce093279a7d68e7c0c2d57b939ff6b711"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "kube-apiserver-kubernetes-master",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/kube-apiserver-kubernetes-master",
+                "uid": "5cf9a898-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "353",
+                "creationTimestamp": "2015-08-22T11:10:14Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:03.099757554Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "srvkube",
+                    "hostPath": {
+                      "path": "/srv/kubernetes"
+                    }
+                  },
+                  {
+                    "name": "logfile",
+                    "hostPath": {
+                      "path": "/var/log/kube-apiserver.log"
+                    }
+                  },
+                  {
+                    "name": "etcssl",
+                    "hostPath": {
+                      "path": "/etc/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrsharessl",
+                    "hostPath": {
+                      "path": "/usr/share/ssl"
+                    }
+                  },
+                  {
+                    "name": "varssl",
+                    "hostPath": {
+                      "path": "/var/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrssl",
+                    "hostPath": {
+                      "path": "/usr/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrlibssl",
+                    "hostPath": {
+                      "path": "/usr/lib/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrlocalopenssl",
+                    "hostPath": {
+                      "path": "/usr/local/openssl"
+                    }
+                  },
+                  {
+                    "name": "etcopenssl",
+                    "hostPath": {
+                      "path": "/etc/openssl"
+                    }
+                  },
+                  {
+                    "name": "etcpkitls",
+                    "hostPath": {
+                      "path": "/etc/pki/tls"
+                    }
+                  },
+                  {
+                    "name": "srvsshproxy",
+                    "hostPath": {
+                      "path": "/srv/sshproxy"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "kube-apiserver",
+                    "image": "gcr.io/google_containers/kube-apiserver:d701e2919c33fe39b33b52fb5796ed79",
+                    "command": [
+                      "/bin/sh",
+                      "-c",
+                      "/usr/local/bin/kube-apiserver --address=127.0.0.1 --etcd_servers=http://127.0.0.1:4001 --cloud_provider=gce   --admission_control=NamespaceLifecycle,NamespaceExists,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota --service-cluster-ip-range=10.0.0.0/16 --client_ca_file=/srv/kubernetes/ca.crt --basic_auth_file=/srv/kubernetes/basic_auth.csv  --cluster_name=kubernetes --tls_cert_file=/srv/kubernetes/server.cert --tls_private_key_file=/srv/kubernetes/server.key --secure_port=443 --token_auth_file=/srv/kubernetes/known_tokens.csv  --v=2   --allow_privileged=False 1\u003e\u003e/var/log/kube-apiserver.log 2\u003e\u00261"
+                    ],
+                    "ports": [
+                      {
+                        "name": "https",
+                        "hostPort": 443,
+                        "containerPort": 443,
+                        "protocol": "TCP"
+                      },
+                      {
+                        "name": "local",
+                        "hostPort": 8080,
+                        "containerPort": 8080,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "200m"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "srvkube",
+                        "readOnly": true,
+                        "mountPath": "/srv/kubernetes"
+                      },
+                      {
+                        "name": "logfile",
+                        "mountPath": "/var/log/kube-apiserver.log"
+                      },
+                      {
+                        "name": "etcssl",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl"
+                      },
+                      {
+                        "name": "usrsharessl",
+                        "readOnly": true,
+                        "mountPath": "/usr/share/ssl"
+                      },
+                      {
+                        "name": "varssl",
+                        "readOnly": true,
+                        "mountPath": "/var/ssl"
+                      },
+                      {
+                        "name": "usrssl",
+                        "readOnly": true,
+                        "mountPath": "/usr/ssl"
+                      },
+                      {
+                        "name": "usrlibssl",
+                        "readOnly": true,
+                        "mountPath": "/usr/lib/ssl"
+                      },
+                      {
+                        "name": "usrlocalopenssl",
+                        "readOnly": true,
+                        "mountPath": "/usr/local/openssl"
+                      },
+                      {
+                        "name": "etcopenssl",
+                        "readOnly": true,
+                        "mountPath": "/etc/openssl"
+                      },
+                      {
+                        "name": "etcpkitls",
+                        "readOnly": true,
+                        "mountPath": "/etc/pki/tls"
+                      },
+                      {
+                        "name": "srvsshproxy",
+                        "mountPath": "/srv/sshproxy"
+                      }
+                    ],
+                    "livenessProbe": {
+                      "httpGet": {
+                        "path": "/healthz",
+                        "port": 8080,
+                        "host": "127.0.0.1",
+                        "scheme": "HTTP"
+                      },
+                      "initialDelaySeconds": 15,
+                      "timeoutSeconds": 15
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-master",
+                "hostNetwork": true
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.235.7",
+                "podIP": "10.240.235.7",
+                "startTime": "2015-08-22T11:10:47Z",
+                "containerStatuses": [
+                  {
+                    "name": "kube-apiserver",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:37Z"
+                      }
+                    },
+                    "lastState": {
+                      "terminated": {
+                        "exitCode": 0,
+                        "startedAt": "2015-08-22T11:10:03Z",
+                        "finishedAt": "2015-08-22T11:10:33Z",
+                        "containerID": "docker://92b93758b9d94172117dbde79d93031200fe38b41c49f142cdda38a2577b3761"
+                      }
+                    },
+                    "ready": true,
+                    "restartCount": 1,
+                    "image": "gcr.io/google_containers/kube-apiserver:d701e2919c33fe39b33b52fb5796ed79",
+                    "imageID": "docker://a64633c31b9162050e1dd60ed496ad496acd49d2fd2c48c309b46360927669fd",
+                    "containerID": "docker://1f3537c3c53b2cd2ba4fb542629e77185b3152885aaf9ab0ffd7bb93ed6e20ec"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "kube-controller-manager-kubernetes-master",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/kube-controller-manager-kubernetes-master",
+                "uid": "5c7f32bd-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "365",
+                "creationTimestamp": "2015-08-22T11:10:13Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:03.099760472Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "srvkube",
+                    "hostPath": {
+                      "path": "/srv/kubernetes"
+                    }
+                  },
+                  {
+                    "name": "logfile",
+                    "hostPath": {
+                      "path": "/var/log/kube-controller-manager.log"
+                    }
+                  },
+                  {
+                    "name": "etcssl",
+                    "hostPath": {
+                      "path": "/etc/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrsharessl",
+                    "hostPath": {
+                      "path": "/usr/share/ssl"
+                    }
+                  },
+                  {
+                    "name": "varssl",
+                    "hostPath": {
+                      "path": "/var/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrssl",
+                    "hostPath": {
+                      "path": "/usr/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrlibssl",
+                    "hostPath": {
+                      "path": "/usr/lib/ssl"
+                    }
+                  },
+                  {
+                    "name": "usrlocalopenssl",
+                    "hostPath": {
+                      "path": "/usr/local/openssl"
+                    }
+                  },
+                  {
+                    "name": "etcopenssl",
+                    "hostPath": {
+                      "path": "/etc/openssl"
+                    }
+                  },
+                  {
+                    "name": "etcpkitls",
+                    "hostPath": {
+                      "path": "/etc/pki/tls"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "kube-controller-manager",
+                    "image": "gcr.io/google_containers/kube-controller-manager:1cb70d2fbd0639943228776462a3b8d6",
+                    "command": [
+                      "/bin/sh",
+                      "-c",
+                      "/usr/local/bin/kube-controller-manager --master=127.0.0.1:8080 --cluster_name=kubernetes --cluster-cidr=10.244.0.0/16 --allocate-node-cidrs=true --cloud_provider=gce  --service_account_private_key_file=/srv/kubernetes/server.key --v=2 --root_ca_file=/srv/kubernetes/ca.crt 1\u003e\u003e/var/log/kube-controller-manager.log 2\u003e\u00261"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "200m"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "srvkube",
+                        "readOnly": true,
+                        "mountPath": "/srv/kubernetes"
+                      },
+                      {
+                        "name": "logfile",
+                        "mountPath": "/var/log/kube-controller-manager.log"
+                      },
+                      {
+                        "name": "etcssl",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl"
+                      },
+                      {
+                        "name": "usrsharessl",
+                        "readOnly": true,
+                        "mountPath": "/usr/share/ssl"
+                      },
+                      {
+                        "name": "varssl",
+                        "readOnly": true,
+                        "mountPath": "/var/ssl"
+                      },
+                      {
+                        "name": "usrssl",
+                        "readOnly": true,
+                        "mountPath": "/usr/ssl"
+                      },
+                      {
+                        "name": "usrlibssl",
+                        "readOnly": true,
+                        "mountPath": "/usr/lib/ssl"
+                      },
+                      {
+                        "name": "usrlocalopenssl",
+                        "readOnly": true,
+                        "mountPath": "/usr/local/openssl"
+                      },
+                      {
+                        "name": "etcopenssl",
+                        "readOnly": true,
+                        "mountPath": "/etc/openssl"
+                      },
+                      {
+                        "name": "etcpkitls",
+                        "readOnly": true,
+                        "mountPath": "/etc/pki/tls"
+                      }
+                    ],
+                    "livenessProbe": {
+                      "httpGet": {
+                        "path": "/healthz",
+                        "port": 10252,
+                        "host": "127.0.0.1",
+                        "scheme": "HTTP"
+                      },
+                      "initialDelaySeconds": 15,
+                      "timeoutSeconds": 15
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-master",
+                "hostNetwork": true
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.235.7",
+                "podIP": "10.240.235.7",
+                "startTime": "2015-08-22T11:10:47Z",
+                "containerStatuses": [
+                  {
+                    "name": "kube-controller-manager",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:37Z"
+                      }
+                    },
+                    "lastState": {
+                      "terminated": {
+                        "exitCode": 0,
+                        "startedAt": "2015-08-22T11:10:04Z",
+                        "finishedAt": "2015-08-22T11:10:33Z",
+                        "containerID": "docker://3381c9b366237c5a1c601241fe91c684985adc3363323a3912924df3a38753c9"
+                      }
+                    },
+                    "ready": true,
+                    "restartCount": 1,
+                    "image": "gcr.io/google_containers/kube-controller-manager:1cb70d2fbd0639943228776462a3b8d6",
+                    "imageID": "docker://54f2927f79b1c261a361000d30ecd1b6a202214dce2a88664d3ae26431e6a91b",
+                    "containerID": "docker://56c6fced4a5047818a50347cac192cba577ea455b8c0094e71f61c79807436dd"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "kube-dns-v8-2621b",
+                "generateName": "kube-dns-v8-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/kube-dns-v8-2621b",
+                "uid": "5e321d5a-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "421",
+                "creationTimestamp": "2015-08-22T11:10:16Z",
+                "labels": {
+                  "k8s-app": "kube-dns",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v8"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"kube-dns-v8\",\"uid\":\"5e0952e1-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"109\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "etcd-storage",
+                    "emptyDir": {}
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "etcd",
+                    "image": "gcr.io/google_containers/etcd:2.0.9",
+                    "command": [
+                      "/usr/local/bin/etcd",
+                      "-data-dir",
+                      "/var/etcd/data",
+                      "-listen-client-urls",
+                      "http://127.0.0.1:2379,http://127.0.0.1:4001",
+                      "-advertise-client-urls",
+                      "http://127.0.0.1:2379,http://127.0.0.1:4001",
+                      "-initial-cluster-token",
+                      "skydns-etcd"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "50Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "etcd-storage",
+                        "mountPath": "/var/etcd/data"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  },
+                  {
+                    "name": "kube2sky",
+                    "image": "gcr.io/google_containers/kube2sky:1.11",
+                    "args": [
+                      "-domain=cluster.local"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "50Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  },
+                  {
+                    "name": "skydns",
+                    "image": "gcr.io/google_containers/skydns:2015-03-11-001",
+                    "args": [
+                      "-machines=http://localhost:4001",
+                      "-addr=0.0.0.0:53",
+                      "-domain=cluster.local."
+                    ],
+                    "ports": [
+                      {
+                        "name": "dns",
+                        "containerPort": 53,
+                        "protocol": "UDP"
+                      },
+                      {
+                        "name": "dns-tcp",
+                        "containerPort": 53,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "50Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "livenessProbe": {
+                      "httpGet": {
+                        "path": "/healthz",
+                        "port": 8080,
+                        "scheme": "HTTP"
+                      },
+                      "initialDelaySeconds": 30,
+                      "timeoutSeconds": 5
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  },
+                  {
+                    "name": "healthz",
+                    "image": "gcr.io/google_containers/exechealthz:1.0",
+                    "args": [
+                      "-cmd=nslookup kubernetes.default.svc.cluster.local localhost \u003e/dev/null",
+                      "-port=8080"
+                    ],
+                    "ports": [
+                      {
+                        "containerPort": 8080,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "10m",
+                        "memory": "20Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "Default",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-minion-iw7g"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.156.90",
+                "podIP": "10.244.0.5",
+                "startTime": "2015-08-22T11:10:31Z",
+                "containerStatuses": [
+                  {
+                    "name": "etcd",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:01Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/etcd:2.0.9",
+                    "imageID": "docker://b6b9a86dc06aa1361357ca1b105feba961f6a4145adca6c54e142c0be0fe87b0",
+                    "containerID": "docker://585bae4c8fb64e5fc14dfb63cf741e6d920f2910b9eed3f35b580acf82ebdc75"
+                  },
+                  {
+                    "name": "healthz",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:49Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/exechealthz:1.0",
+                    "imageID": "docker://4f3d04b1d47b64834d494f9416d1f17a5f93a3e2035ad604fee47cfbba62be60",
+                    "containerID": "docker://43a8c0ce27a01204846d45ab1cdec8b665fcfb094f6701668ce6d79ebd3fe41b"
+                  },
+                  {
+                    "name": "kube2sky",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:07Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/kube2sky:1.11",
+                    "imageID": "docker://e52a547dca17cd83e8b6022e8ae1c1883d0855bce2d1c30071ffa0dcb8a8caf6",
+                    "containerID": "docker://26538f8867c6d77794035f07ca2ff829fcebf1eaa892af556e4efb55474d2a39"
+                  },
+                  {
+                    "name": "skydns",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:10Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/skydns:2015-03-11-001",
+                    "imageID": "docker://791ddf327076e0fd35a1125568a56c05ee1f1dfd7a165c74f4d489d8a5e65ac5",
+                    "containerID": "docker://4cdd5a96c012881311d4fdf868378f88cdd5025105f8097d3984cda50010d0f8"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "kube-scheduler-kubernetes-master",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/kube-scheduler-kubernetes-master",
+                "uid": "5c9daf49-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "357",
+                "creationTimestamp": "2015-08-22T11:10:13Z",
+                "annotations": {
+                  "kubernetes.io/config.mirror": "mirror",
+                  "kubernetes.io/config.seen": "2015-08-22T11:10:03.099763022Z",
+                  "kubernetes.io/config.source": "file"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "logfile",
+                    "hostPath": {
+                      "path": "/var/log/kube-scheduler.log"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "kube-scheduler",
+                    "image": "gcr.io/google_containers/kube-scheduler:ef914b9ba028414e9e12edc42566987f",
+                    "command": [
+                      "/bin/sh",
+                      "-c",
+                      "/usr/local/bin/kube-scheduler --master=127.0.0.1:8080 --v=2 1\u003e\u003e/var/log/kube-scheduler.log 2\u003e\u00261"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "200m"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "logfile",
+                        "mountPath": "/var/log/kube-scheduler.log"
+                      }
+                    ],
+                    "livenessProbe": {
+                      "httpGet": {
+                        "path": "/healthz",
+                        "port": 10251,
+                        "host": "127.0.0.1",
+                        "scheme": "HTTP"
+                      },
+                      "initialDelaySeconds": 15,
+                      "timeoutSeconds": 15
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "nodeName": "kubernetes-master",
+                "hostNetwork": true
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.235.7",
+                "podIP": "10.240.235.7",
+                "startTime": "2015-08-22T11:10:47Z",
+                "containerStatuses": [
+                  {
+                    "name": "kube-scheduler",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:37Z"
+                      }
+                    },
+                    "lastState": {
+                      "terminated": {
+                        "exitCode": 0,
+                        "startedAt": "2015-08-22T11:10:03Z",
+                        "finishedAt": "2015-08-22T11:10:33Z",
+                        "containerID": "docker://904dd597e33f4871a71032974cdc4f380206cfb19d510cb897dce0b4e2ab2f8a"
+                      }
+                    },
+                    "ready": true,
+                    "restartCount": 1,
+                    "image": "gcr.io/google_containers/kube-scheduler:ef914b9ba028414e9e12edc42566987f",
+                    "imageID": "docker://7a522b0d5a7fe0672a760532193bd6a5fbbdc8ba2829c2df1e30f82451f7cb5b",
+                    "containerID": "docker://73c57eb09eb35ef4881f9d9a6966873570e393408592b7b30086a6f3fc94d1c9"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "kube-ui-v1-qd4gk",
+                "generateName": "kube-ui-v1-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/kube-ui-v1-qd4gk",
+                "uid": "5dec9d29-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "373",
+                "creationTimestamp": "2015-08-22T11:10:16Z",
+                "labels": {
+                  "k8s-app": "kube-ui",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v1"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"kube-ui-v1\",\"uid\":\"5ddf7714-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"91\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "kube-ui",
+                    "image": "gcr.io/google_containers/kube-ui:v1.1",
+                    "ports": [
+                      {
+                        "containerPort": 8080,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "50Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.235.7",
+                "podIP": "10.244.1.3",
+                "startTime": "2015-08-22T11:10:16Z",
+                "containerStatuses": [
+                  {
+                    "name": "kube-ui",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:41Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/kube-ui:v1.1",
+                    "imageID": "docker://c144d89158dc68fe09f4fb2e2dc66c4d8a6b67fd70e4570ffa0ef0df905c4f29",
+                    "containerID": "docker://299946277ba804ab9dec6fc7b35ded0161e1a8f8c2dc75086303ee76e7e013a0"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-1wg6m",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-1wg6m",
+                "uid": "613bccac-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "182",
+                "creationTimestamp": "2015-08-22T11:10:21Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"153\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:22Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-30zas",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-30zas",
+                "uid": "62d547b7-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "217",
+                "creationTimestamp": "2015-08-22T11:10:24Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"205\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:24Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-5hc7u",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-5hc7u",
+                "uid": "5f9f76b1-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "171",
+                "creationTimestamp": "2015-08-22T11:10:18Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"137\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:19Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-5mif8",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-5mif8",
+                "uid": "61de41eb-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "195",
+                "creationTimestamp": "2015-08-22T11:10:22Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"181\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:23Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-bho7j",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-bho7j",
+                "uid": "64f83580-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "532",
+                "creationTimestamp": "2015-08-22T11:10:27Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"244\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-minion-iw7g"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.156.90",
+                "podIP": "10.244.0.3",
+                "startTime": "2015-08-22T11:10:30Z",
+                "containerStatuses": [
+                  {
+                    "name": "heapster",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:56Z"
+                      }
+                    },
+                    "lastState": {
+                      "terminated": {
+                        "exitCode": 2,
+                        "startedAt": "2015-08-22T11:11:16Z",
+                        "finishedAt": "2015-08-22T11:11:50Z",
+                        "containerID": "docker://d9a45e0cd6bf9efca61e2e73eae762349b81eb99614b66b9b340196a72384635"
+                      }
+                    },
+                    "ready": true,
+                    "restartCount": 2,
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "imageID": "docker://8d72402c0bef7f2c13a67875948d107a76d27937ce4c72a86f7a985b3b19bc48",
+                    "containerID": "docker://500caabd7d4c6f0de6919d3b915928fe291358d1740bc44bce581aa77be91793"
+                  }
+                ]
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-cjh85",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-cjh85",
+                "uid": "63c6e39c-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "237",
+                "creationTimestamp": "2015-08-22T11:10:25Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"223\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:25Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-kqfbu",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-kqfbu",
+                "uid": "625f9382-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "207",
+                "creationTimestamp": "2015-08-22T11:10:23Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"194\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:23Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-op3kk",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-op3kk",
+                "uid": "5e00869b-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "148",
+                "creationTimestamp": "2015-08-22T11:10:16Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"95\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:16Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-p6dv8",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-p6dv8",
+                "uid": "634d1989-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "226",
+                "creationTimestamp": "2015-08-22T11:10:25Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"214\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:25Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-heapster-v6-sjmwy",
+                "generateName": "monitoring-heapster-v6-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-heapster-v6-sjmwy",
+                "uid": "644391e3-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "250",
+                "creationTimestamp": "2015-08-22T11:10:26Z",
+                "labels": {
+                  "k8s-app": "heapster",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v6"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-heapster-v6\",\"uid\":\"5deb0176-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"233\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "ssl-certs",
+                    "hostPath": {
+                      "path": "/etc/ssl/certs"
+                    }
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "heapster",
+                    "image": "gcr.io/google_containers/heapster:v0.16.1",
+                    "command": [
+                      "/heapster",
+                      "--source=kubernetes:''",
+                      "--sink=gcl",
+                      "--sink=influxdb:http://monitoring-influxdb:8086",
+                      "--poll_duration=2m",
+                      "--stats_resolution=1m"
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "300Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "ssl-certs",
+                        "readOnly": true,
+                        "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-master"
+              },
+              "status": {
+                "phase": "Failed",
+                "message": "Pod cannot be started due to exceeded capacity",
+                "reason": "CapacityExceeded",
+                "startTime": "2015-08-22T11:10:26Z"
+              }
+            },
+            {
+              "metadata": {
+                "name": "monitoring-influx-grafana-v1-y0asb",
+                "generateName": "monitoring-influx-grafana-v1-",
+                "namespace": "kube-system",
+                "selfLink": "/api/v1/namespaces/kube-system/pods/monitoring-influx-grafana-v1-y0asb",
+                "uid": "5df9f090-48be-11e5-8b41-42010af0eb07",
+                "resourceVersion": "435",
+                "creationTimestamp": "2015-08-22T11:10:16Z",
+                "labels": {
+                  "k8s-app": "influxGrafana",
+                  "kubernetes.io/cluster-service": "true",
+                  "version": "v1"
+                },
+                "annotations": {
+                  "kubernetes.io/created-by": "{\"kind\":\"SerializedReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"ReplicationController\",\"namespace\":\"kube-system\",\"name\":\"monitoring-influx-grafana-v1\",\"uid\":\"5defcd88-48be-11e5-8b41-42010af0eb07\",\"apiVersion\":\"v1\",\"resourceVersion\":\"98\"}}"
+                }
+              },
+              "spec": {
+                "volumes": [
+                  {
+                    "name": "influxdb-persistent-storage",
+                    "emptyDir": {}
+                  },
+                  {
+                    "name": "default-token-y8c7y",
+                    "secret": {
+                      "secretName": "default-token-y8c7y"
+                    }
+                  }
+                ],
+                "containers": [
+                  {
+                    "name": "influxdb",
+                    "image": "gcr.io/google_containers/heapster_influxdb:v0.3",
+                    "ports": [
+                      {
+                        "hostPort": 8083,
+                        "containerPort": 8083,
+                        "protocol": "TCP"
+                      },
+                      {
+                        "hostPort": 8086,
+                        "containerPort": 8086,
+                        "protocol": "TCP"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "200Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "influxdb-persistent-storage",
+                        "mountPath": "/data"
+                      },
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  },
+                  {
+                    "name": "grafana",
+                    "image": "gcr.io/google_containers/heapster_grafana:v0.7",
+                    "env": [
+                      {
+                        "name": "INFLUXDB_EXTERNAL_URL",
+                        "value": "/api/v1/proxy/namespaces/kube-system/services/monitoring-influxdb:api/db/"
+                      },
+                      {
+                        "name": "INFLUXDB_HOST",
+                        "value": "monitoring-influxdb"
+                      },
+                      {
+                        "name": "INFLUXDB_PORT",
+                        "value": "8086"
+                      }
+                    ],
+                    "resources": {
+                      "limits": {
+                        "cpu": "100m",
+                        "memory": "100Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "default-token-y8c7y",
+                        "readOnly": true,
+                        "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+                      }
+                    ],
+                    "terminationMessagePath": "/dev/termination-log",
+                    "imagePullPolicy": "IfNotPresent"
+                  }
+                ],
+                "restartPolicy": "Always",
+                "dnsPolicy": "ClusterFirst",
+                "serviceAccountName": "default",
+                "serviceAccount": "default",
+                "nodeName": "kubernetes-minion-iw7g"
+              },
+              "status": {
+                "phase": "Running",
+                "conditions": [
+                  {
+                    "type": "Ready",
+                    "status": "True"
+                  }
+                ],
+                "hostIP": "10.240.156.90",
+                "podIP": "10.244.0.4",
+                "startTime": "2015-08-22T11:10:31Z",
+                "containerStatuses": [
+                  {
+                    "name": "grafana",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:11:16Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/heapster_grafana:v0.7",
+                    "imageID": "docker://22182f122d461ef2e96af4c2ac1ebfbccf127894da9e9ceb56f7d74496583b30",
+                    "containerID": "docker://04b6266ccbeab5e6276658c5e32f528dba2b87b24fb13b34b5a93fd149909c73"
+                  },
+                  {
+                    "name": "influxdb",
+                    "state": {
+                      "running": {
+                        "startedAt": "2015-08-22T11:10:59Z"
+                      }
+                    },
+                    "lastState": {},
+                    "ready": true,
+                    "restartCount": 0,
+                    "image": "gcr.io/google_containers/heapster_influxdb:v0.3",
+                    "imageID": "docker://514b330600afe3ed9f948f65fab7593b374075d194c65263fe3bafc43820fdad",
+                    "containerID": "docker://e93b956850d77a0026e5e25d3b7a3e8b12fae52a976fb91b6522137f6858bd77"
+                  }
+                ]
+              }
+            }
+          ]
+      }

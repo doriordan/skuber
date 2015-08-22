@@ -12,10 +12,15 @@ case class Volume(
     source: Volume.Source) 
 
 object Volume {
+  
   sealed trait Source 
   case class GitRepo(repository: String, revision: Option[String] = None)  extends Source
   case class Secret(secretName: String)  extends Source 
-  case class EmptyDir(medium: String) extends Source
+  
+  sealed trait StorageMedium
+  case object DefaultStorageMedium extends StorageMedium
+  case object MemoryStorageMedium extends StorageMedium
+  case class EmptyDir(medium: StorageMedium = DefaultStorageMedium) extends Source 
     
   sealed trait PersistentSource extends Source
   case class HostPath(path: String) extends PersistentSource

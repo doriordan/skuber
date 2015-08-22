@@ -106,7 +106,7 @@ package object format {
     
   implicit val listMetaFormat: Format[ListMeta] = (
     (JsPath \ "selfLink").formatMaybeEmptyString() and
-    (JsPath \ "resourceVerison").formatMaybeEmptyString()
+    (JsPath \ "resourceVersion").formatMaybeEmptyString()
   )(ListMeta.apply _, unlift(ListMeta.unapply))
   
   implicit val localObjRefFormat = Json.format[LocalObjectReference]
@@ -269,10 +269,24 @@ package object format {
   
   import skuber.model.Volume._
   
-  implicit val emptyDirFormat = Json.format[EmptyDir]
-   implicit val hostPathFormat = Json.format[HostPath]  
-   implicit val secretFormat = Json.format[Secret]
-   implicit val gitFormat = Json.format[GitRepo]
+  implicit val emptyDirReads: Reads[EmptyDir] = {
+      (JsPath \ "medium").readNullable[String].map(
+          medium => medium match {
+            case Some(med) if (med=="Memory") => EmptyDir(MemoryStorageMedium)
+            case _ => EmptyDir(DefaultStorageMedium)
+          })      
+  }  
+  implicit val emptyDirWrites: Writes[EmptyDir] = Writes[EmptyDir] {
+    ed => ed.medium match {
+      case DefaultStorageMedium => (JsPath \ "medium").write[String].writes("")
+      case MemoryStorageMedium => (JsPath \ "medium").write[String].writes("Memory")
+    }
+  }  
+  implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
+  
+  implicit val hostPathFormat = Json.format[HostPath]  
+  implicit val secretFormat = Json.format[Secret]
+  implicit val gitFormat = Json.format[GitRepo]
    
   implicit  val gceFormat: Format[GCEPersistentDisk] = (
      (JsPath \ "pdName").format[String] and
