@@ -13,7 +13,7 @@ case class Pod(
     val metadata: ObjectMeta,
     spec: Option[Pod.Spec] = None,
     status: Option[Pod.Status] = None) 
-      extends ObjectResource with KListItem
+      extends ObjectResource with KListItem with Limitable
 
 object Pod {
    def named(name: String) = Pod(metadata=ObjectMeta(name=name))
@@ -66,12 +66,33 @@ object Pod {
     val kind: String ="PodTemplate",
     override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
-    template: Option[Template.Spec] = None)
-    extends ObjectResource with KListItem
+    spec: Option[Template.Spec] = None) 
+    extends ObjectResource with KListItem 
+  {  
+    def addLabel(label: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
+    def addLabel(label: String) : Template = addLabel(label -> "") 
+    def addAnnotation(anno: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
+    def addAnnotation(anno: String) : Template = addAnnotation(anno -> "") 
+    def withTemplateSpec(spec: Template.Spec) = this.copy(spec=Some(spec))
+    def withPodSpec(podSpec: Pod.Spec) = this.copy(spec=Some(Pod.Template.Spec(spec=Some(podSpec))))
+  }
     
   object Template {
+     def named(name: String) : Pod.Template =Pod.Template(metadata=ObjectMeta(name=name))
      case class Spec(
-         metadata: Option[ObjectMeta] = None,
-         spec: Option[Pod.Spec] = None)
-   }  
+         metadata: ObjectMeta = ObjectMeta(),
+         spec: Option[Pod.Spec] = None) {
+       
+       def addLabel(label: Tuple2[String, String]) : Spec = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
+       def addAnnotation(anno: Tuple2[String, String]) : Spec = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
+       def addContainer(container: Container) : Spec = {
+         val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addContainer(container)
+         this.copy(spec=Some(newPodSpec))
+       }
+     }       
+     object Spec {
+       def withName(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
+     }
+         
+   } 
 }

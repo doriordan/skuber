@@ -364,6 +364,9 @@ import Pod._
       myPods.metadata.get.resourceVersion mustEqual "977"
       myPods.items.length mustEqual 22
       myPods.items(21).status.get.containerStatuses.exists( cs => cs.name.equals("grafana")) mustEqual true
+       // write and read back in again, compare
+      val readPods = Json.fromJson[PodList](Json.toJson(myPods)).get 
+      myPods mustEqual readPods
     }
   }    
 }

@@ -34,13 +34,13 @@ package object coretypes {
     deletionTimestamp: Option[Timestamp] = None,
     labels: Map[String, String] = Map(),
     annotations: Map[String, String] = Map())
-          
+
   abstract class ObjectResource extends TypeMeta {
     def metadata: ObjectMeta
     def name = metadata.name
     def ns = if (metadata.namespace==emptyS) "default" else metadata.namespace
   }
-
+ 
   case class ListMeta( 
       selfLink: String = "",
       resourceVersion: String = "")
@@ -104,8 +104,28 @@ package object coretypes {
     val metadata: Option[ListMeta]= None,
     items: List[PersistentVolumeClaim] = Nil) extends KList[PersistentVolumeClaim]
   
+   case class ServiceAccountList(
+    val kind: String = "ServiceAccountList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta] = None,
+    items: List[ServiceAccount] = Nil) extends KList[ServiceAccount]
+  
+   case class LimitRangeList(
+    val kind: String = "LimitRangeList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta] = None,
+    items: List[LimitRange] = Nil) extends KList[LimitRange]
+  
+   case class SecretList(
+    val kind: String = "SecretList",
+    override val apiVersion: String = "v1",
+    val metadata: Option[ListMeta] = None,
+    items: List[Secret] = Nil) extends KList[Secret]
+  
   type Finalizer=String
   type Phase=String
+  
+  trait Limitable // marker trait for types that can be subject to resource limits (i.e. Container, Pod)
   
   case class LocalObjectReference(name: String)
   

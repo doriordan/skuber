@@ -14,18 +14,24 @@ case class ReplicationController(
     spec: Option[ReplicationController.Spec] = None,
     status: Option[ReplicationController.Status] = None) 
       extends ObjectResource with KListItem {
+    def addLabel(label: Tuple2[String, String]) : ReplicationController = { this.copy(metadata = metadata.copy(labels = metadata.labels + label)) }  
+    def addAnnotation(anno: Tuple2[String, String]) : ReplicationController = { this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno)) }
+   
+    
     def withReplicas(n: Int) = {  this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(replicas = n))))}
-    def withSelector(s: Map[String, String]) = { this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(1)).copy(selector = Some(s)))) }    
-    def withPodTemplate(t: Pod.Template.Spec) = { this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(1)).copy(template = Some(t)))) }  
+    def withSelector(s: Map[String, String]) : ReplicationController = { this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec()).copy(selector = Some(s)))) }   
+    def withSelector(s: Tuple2[String,String]) : ReplicationController = withSelector(Map(s))
+   
+    def withTemplate(t: Pod.Template.Spec) = this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec()).copy(template = Some(t)))) 
     def withPodSpec(t: Pod.Spec) = {
-      val template = new Pod.Template.Spec(metadata=Some(ObjectMeta(this.metadata.name)),spec=Some(t))
-      withPodTemplate(template)
+      val template = new Pod.Template.Spec(metadata=ObjectMeta(this.metadata.name),spec=Some(t))
+      withTemplate(template)
     }
 }
 
 object ReplicationController {
   
-    def named(name: String) = ReplicationController(metadata=ObjectMeta(name=name))
+    def apply(name: String) : ReplicationController = ReplicationController(metadata=ObjectMeta(name=name))
     def apply(name: String, spec: ReplicationController.Spec) : ReplicationController = 
                           ReplicationController(metadata=ObjectMeta(name=name), spec = Some(spec))
     case class Spec(

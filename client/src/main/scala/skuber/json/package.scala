@@ -11,6 +11,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.data.validation.ValidationError
 
+import org.apache.commons.codec.binary.Base64
 
 /**
  * @author David O'Riordan
@@ -41,7 +42,7 @@ package object format {
          implicit  vReads: Reads[V],  vWrites: Writes[V],
          omitEmpty: Boolean=true) : OFormat[Map[String,V]] =
       path.formatNullable[Map[String,V]].inmap[Map[String,V]](_.getOrElse(emptyM[V]), m => if (omitEmpty && m.isEmpty) None else Some(m))
-        
+         
     // Boolean: the empty value is 'false'  
     def formatMaybeEmptyBoolean(omitEmpty: Boolean=true) : OFormat[Boolean] =
       path.formatNullable[Boolean].inmap[Boolean](_.getOrElse(false), b => if (omitEmpty && !b) None else Some(b))
@@ -49,8 +50,8 @@ package object format {
     // Int: the empty value is 0
     def formatMaybeEmptyInt(omitEmpty: Boolean=true) : OFormat[Int] =
       path.formatNullable[Int].inmap[Int](_.getOrElse(0), i => if (omitEmpty && i==0) None else Some(i))
-      
   }
+  
   // we make the above formatter methods available on JsPath objects via this implicit conversion
   implicit def jsPath2MaybeEmpty(path: JsPath) = new MaybeEmpty(path)
    
@@ -486,8 +487,9 @@ package object format {
     (JsPath \ "loadBalancer").formatNullable[Service.LoadBalancer.Status].
         inmap(lbs=> Service.Status(lbs), (ss:Service.Status) => ss.loadBalancer)  
         
-  implicit val formatServiceSpecType: Format[Service.Type.Type] = 
+  implicit val formatServiceSpecType: Format[Service.Type.ServiceType] = 
     Format(enumReads(Service.Type,Some(Service.Type.ClusterIP)), enumWrites)
+    
   implicit val formatServiceAffinity: Format[Service.Affinity.Affinity] = 
     Format(enumReads(Service.Affinity, Some(Service.Affinity.None)), enumWrites)
    
@@ -503,7 +505,8 @@ package object format {
       (JsPath \ "ports").format[List[Service.Port]] and
       (JsPath \ "selector").formatMaybeEmptyMap[String] and
       (JsPath \ "clusterIP").formatMaybeEmptyString() and
-      (JsPath \ "type").format[Service.Type.Type] and
+      (JsPath \ "type").format[Service.Type.ServiceType] and
+      (JsPath \ "externalIPs").formatMaybeEmptyList[String] and
       (JsPath \ "sessionAffinity").format[Service.Affinity.Affinity]
    )(Service.Spec.apply _, unlift(Service.Spec.unapply))  
    
@@ -604,6 +607,43 @@ package object format {
     (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
   )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
   
+  implicit val svcAccountFmt: Format[ServiceAccount] = (
+    objFormat and
+    (JsPath \ "secrets").formatMaybeEmptyList[ObjectReference] and
+    (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference]
+  )(ServiceAccount.apply _, unlift(ServiceAccount.unapply))
+  
+  implicit val base64Format: Format[Array[Byte]] = (
+      JsPath.format[String].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes))
+  )
+  
+  import skuber.model.Secret 
+  implicit val secretFmt: Format[Secret] = (
+    objFormat and
+    (JsPath \ "data").formatMaybeEmptyMap[Array[Byte]]
+  )(Secret.apply _, unlift(Secret.unapply))
+  
+  implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = 
+        Format(enumReads(LimitRange.ItemType, Some(LimitRange.ItemType.Pod)), enumWrites) 
+        
+  implicit val limitRangeItemFmt: Format[LimitRange.Item] = (
+     (JsPath \ "type").format[LimitRange.ItemType.Type] and
+     (JsPath \ "max").formatMaybeEmptyMap[Resource.Quantity] and
+     (JsPath \ "min").formatMaybeEmptyMap[Resource.Quantity] and
+     (JsPath \ "default").formatMaybeEmptyMap[Resource.Quantity] and
+     (JsPath \ "defaultRequirements").formatMaybeEmptyMap[Resource.Quantity] and
+     (JsPath \ "maxLimitRequestRatio").formatMaybeEmptyMap[Resource.Quantity]
+  )(LimitRange.Item.apply _, unlift(LimitRange.Item.unapply))
+   
+  implicit val limitRangeSpecFmt: Format[LimitRange.Spec] = 
+     (JsPath \ "items").formatMaybeEmptyList[LimitRange.Item].inmap(
+         items => LimitRange.Spec(items), (spec: LimitRange.Spec) => spec.items)
+   
+  implicit val limitRangeFmt: Format[LimitRange] = (
+     objFormat and
+     (JsPath \ "spec").formatNullable[LimitRange.Spec]
+  )(LimitRange.apply _, unlift(LimitRange.unapply))
+  
   implicit val podListFmt: Format[PodList] = KListFormat[Pod].apply(PodList.apply _,unlift(PodList.unapply))
   implicit val nodeListFmt: Format[NodeList] = KListFormat[Node].apply(NodeList.apply _,unlift(NodeList.unapply))
   implicit val serviceListFmt: Format[ServiceList] = KListFormat[Service].apply(ServiceList.apply _,unlift(ServiceList.unapply))
@@ -615,5 +655,16 @@ package object format {
                     apply(PersistentVolumeList.apply _,unlift(PersistentVolumeList.unapply))
   implicit val persVolClaimListFmt: Format[PersistentVolumeClaimList] = KListFormat[PersistentVolumeClaim].  
                     apply(PersistentVolumeClaimList.apply _,unlift(PersistentVolumeClaimList.unapply))
+  implicit val svcAcctListFmt: Format[ServiceAccountList] = KListFormat[ServiceAccount].  
+                    apply(ServiceAccountList.apply _,unlift(ServiceAccountList.unapply))
+  implicit val secretListFmt: Format[SecretList] = KListFormat[Secret].  
+                    apply(SecretList.apply _,unlift(SecretList.unapply))
+  implicit val limitRangeListFmt: Format[LimitRangeList] = KListFormat[LimitRange].  
+                    apply(LimitRangeList.apply _,unlift(LimitRangeList.unapply))
+  
+  
+  
+                    
+  
        
 }

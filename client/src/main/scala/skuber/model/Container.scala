@@ -23,6 +23,7 @@ case class Container(
     terminationMessagePath: String = "/var/log/termination",
     imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
     securityContext: Option[Security.Context] = None)
+      extends Limitable
     
 object Container {
   

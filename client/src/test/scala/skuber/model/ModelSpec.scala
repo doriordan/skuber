@@ -43,8 +43,8 @@ class ModelSpec extends Specification {
     "where a list with a single RC can be used" >> {
       val container1=Container("Container1","image1")
       val container2=Container(name="Container2", "image2")
-      val podspec=Pod.Spec(volumes=Nil,containers=List(container1, container2), serviceAccountName="")
-      val rc = ReplicationController.named("MyRepCon").withReplicas(2).withPodSpec(podspec)
+      val podspec=Pod.Spec(containers=List(container1, container2))
+      val rc = ReplicationController("MyRepCon").withReplicas(2).withPodSpec(podspec)
       val rcList = List[ReplicationController](rc)
       val rcs=ReplicationControllerList(items = rcList)
       rcs.items.size mustEqual 1

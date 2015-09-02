@@ -42,7 +42,7 @@ import  Endpoints._
       mySvcEndpoints mustEqual readSvcEndpoints 
     } 
     "this can be done for a more complex endppoints mapping" >> {
-     val mySvc = Namespace("myNamespace").service("mySvc")
+      val mySvc = Namespace("myNamespace").service("mySvc")
       val endptsSubs1 = Subset(Address("10.247.0.10")::Address("10.247.0.11")::Nil,Port(6777)::Nil)
       val endptsSubs2 = Subset(Address("10.213.0.1")::Nil, Port(6444, Protocol.TCP, "portTCP")::Port(6445, Protocol.UDP, "portUDP")::Nil)
       val endptsSubsets=endptsSubs1::endptsSubs2::Nil
