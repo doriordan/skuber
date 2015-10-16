@@ -2,29 +2,34 @@ package skuber.api
 
 import play.api.libs.ws._
 import play.api.libs.ws.ning._
+import play.api.libs.json.{JsValue, JsSuccess, JsError, JsResult, Reads, Format}
 
 import java.net.URL
 
-import scala.concurrent.{Future,ExecutionContext}
+import scala.concurrent.{Future,ExecutionContext, Promise}
+import scala.util.{Try}
+
 import skuber.model.coretypes._
 import skuber.model._
-
-// import all the implicit formatters for the skuber model
 import skuber.json.format._
-import play.api.libs.json.{Format, JsResult, JsSuccess, JsError}
-import play.api.http.Writeable._
+import skuber.json.format.apiobj._
 
+
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * @author David O'Riordan
  */
 package object client {
 
+  val log = LoggerFactory.getLogger("skuber.api")
+  
    // K8S client API classes
-   
+   val defaultProxyURL = "http://localhost:8001"
    case class K8SCluster(
      apiVersion: String = "v1",  
-     server: String = "http://localhost:8001",
+     server: String = defaultProxyURL,
      insecureSkipTLSVerify: Boolean = false
    )
    
@@ -40,79 +45,161 @@ package object client {
      password: Option[String] = None
    ) 
    
-   class K8SRequestContext(implicit val k8sContext: K8SContext, val executorContext: ExecutionContext) { 
+   // for use with the Watch command
+   case class WatchEvent[T <: ObjectResource](_type: EventType.Value, _object: T)
+   object EventType extends Enumeration {
+      type EventType = Value
+      val ADDED,MODIFIED,DELETED,ERROR = Value
+   }
+     
+   
+   class K8SRequestContext(k8sContext: K8SContext)(implicit executorContext: ExecutionContext) { 
       val sslCtxt = Auth.establishSSLContext(k8sContext)
       val auth = Auth.establishClientAuth(k8sContext)
       val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
       val ningClient = new NingWSClient(wsConfig)
    
-      val nsPathComponent = k8sContext.namespace match {
-            case Namespace.default => None // default namespace - just omit from URL
-            case ns => Some("namespaces/" + ns.name)
+      val namespaceName = k8sContext.namespace.name match {
+        case "" => "default"
+        case name => name
       }
+      val nsPathComponent =  Some("namespaces/" + namespaceName)
       
-      private def buildRequest(kindComponent: Option[String],
-                               nameComponent: Option[String])
+      def buildRequest(kindComponent: Option[String],
+                               nameComponent: Option[String],
+                               watch: Boolean = false)
        : WSRequest = 
       {  
         // helper to compose a full URL from a sequence of path components
         def mkUrlString(pathComponents: Option[String]*) : String = {
           pathComponents.foldLeft("")((acc,next) => next match {
             case None => acc
-            case Some(pathComponent) => acc + "/" + pathComponent
+            case Some(pathComponent) => {
+              acc match {
+                case "" => pathComponent
+                case _ => acc + "/" + pathComponent
+              }
+            }
           })
         }
+        
+        val watchPathComponent=if (watch) Some("watch") else None
         
         val k8sUrlStr = mkUrlString(
           Some(k8sContext.cluster.server), 
           Some("api"), 
           Some("v1"), 
+          watchPathComponent,
           nsPathComponent, 
           kindComponent,
-          nameComponent)
-                             
+          nameComponent)     
         val url = ningClient.url(k8sUrlStr)
         Auth.addAuth(url, auth)
       }
       
-      def create[T <: TypeMeta](obj: T)(implicit fmt: Format[T], kind: Kind[T]) : Future[Status] = 
-      {
+      def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
+        if (log.isInfoEnabled()) 
+        {
+           val info = "method=" + request.method + ",resource=" + objName
+           val debugInfo = if (log.isDebugEnabled())
+                             Some(",namespace=" + namespaceName + ",url=" + request.url + 
+                                       request.queryString.headOption.map {
+                                         case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"                                    
+                                       }.getOrElse("")
+                                    + json.fold("")(js => ",body=" + js.toString())) 
+                           else
+                             None
+           log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
+        }
+        
+
+      /**
+       * Modify the specified K8S resource using a given HTTP method. The modified resource is returned.
+       * The create, update and partiallyUpdate methods all call this, just passing different HTTP methods
+       */
+      def modify[O <: ObjectResource](method: String)(obj: O)(implicit fmt: Format[O], kind: Kind[O]): Future[O] = {
         val js = fmt.writes(obj)
-        val wsReq = buildRequest(Some(kind.urlPathComponent), None).
-                      withHeaders("contentType" -> "application/json")
-        val wsResponse = wsReq.post(js)
-        wsResponse map { res => Status(res.status) }
-     }
+        // if this is a POST we don't include the resource name in the URL
+        val nameComponent=method match {
+          case "POST" => None
+          case _ => Some(obj.name)
+        }
+        val wsReq = buildRequest(Some(kind.urlPathComponent), nameComponent).
+                      withHeaders("Content-Type" -> "application/json").
+                      withMethod(method).
+                      withBody(js)
+        logRequest(wsReq, obj.name, Some(js))              
+       
+        val wsResponse = wsReq.execute()
+        wsResponse map toKubernetesResponse[O]
+      }
+      
+      def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], kind: ObjKind[O]) = modify("POST")(obj)
+      def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PUT")(obj)
+      def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
    
-     def get[L <: KList[_]](implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
+     def list[L <: KList[_]](implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
      {
        val wsReq = buildRequest(Some(kind.urlPathComponent),None)
+       logRequest(wsReq, kind.urlPathComponent, None)
        val wsResponse = wsReq.get
-       wsResponse map {
-         response => 
-           val result = fmt.reads(response.json)
-           result match {
-             case JsSuccess(klist, _) => klist
-             case err@JsError(_) => throw new Exception("Error parsing Kubernetes object: " + err.toString)
-           }
-       }
+       wsResponse map toKubernetesResponse[L]
      }
-     def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[Result[O]] = ???
      
+     def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
+       val wsReq = buildRequest(Some(kind.urlPathComponent), Some(name))
+       logRequest(wsReq, name, None)
+       val wsResponse = wsReq.get
+       wsResponse map toKubernetesResponse[O]
+     }
+     
+     def delete[O <: ObjectResource](name:String, gracePeriodSeconds: Int = 0)(implicit kind: ObjKind[O]): Future[Unit] = {
+       val options=DeleteOptions(gracePeriodSeconds=gracePeriodSeconds)
+       val js = deleteOptionsWrite.writes(options)
+       val wsReq = buildRequest(Some(kind.urlPathComponent), Some(name)).
+                      withHeaders("Content-Type" -> "application/json").
+                      withBody(js).withMethod("DELETE")
+       logRequest(wsReq, name, None)
+       val wsResponse = wsReq.delete             
+       wsResponse map checkResponseStatus 
+     }
+     
+     
+     // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
+     // The methods return Play Framework enumerators that will reactively emit a stream of updated 
+     // values of the watched resources.
+    
+     import play.api.libs.iteratee.Enumerator
+     
+     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Enumerator[WatchEvent[O]] = Watch.events(this, obj)       
+     def watch[O <: ObjectResource](name: String,
+                                    sinceResourceVersion: Option[String] = None)
+                                   (implicit objfmt: Format[O], kind: ObjKind[O]) : Enumerator[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)                                           
+     def close = {
+       ningClient.close()
+     }
    }
    
    // basic resource kinds supported by the K8S API server
    abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { def urlPathComponent: String }
    
-   case class ObjKind[O <: ObjectResource](val urlPathComponent: String)(implicit fmt: Format[O]) 
+   case class ObjKind[O <: ObjectResource](val urlPathComponent: String, kind: String)(implicit fmt: Format[O]) 
        extends Kind[O]
      
-   implicit val podKind = ObjKind[Pod]("pods")
-   implicit val nodeKind = ObjKind[Node]("nodes")
-   implicit val serviceKind = ObjKind[Service]("services")
-   implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers")
-   implicit val endpointsKind = ObjKind[Endpoints]("endpoints")
-
+   implicit val podKind = ObjKind[Pod]("pods", "Pod")
+   implicit val nodeKind = ObjKind[Node]("nodes", "Node")
+   implicit val serviceKind = ObjKind[Service]("services", "Service")
+   implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers", "ReplicationController")
+   implicit val endpointsKind = ObjKind[Endpoints]("endpoints", "Endpoints")
+   implicit val namespaceKind = ObjKind[Namespace]("namespace", "Namepspace")
+   implicit val persistentVolumeKind = ObjKind[PersistentVolume]("persistentvolumes", "PersistentVolume")
+   implicit val persistentVolumeClaimsKind = ObjKind[PersistentVolumeClaim]("persistentvolumeclaims", "PersistentVolumeClaim")
+   implicit val serviceAccountKind = ObjKind[ServiceAccount]("serviceaccounts","ServiceAccount")
+   implicit val secretKind = ObjKind[Secret]("secrets","Secret")
+   implicit val podTemplateKind = ObjKind[Pod.Template]("podtemplates", "PodTemplate")
+   implicit val limitRangeKind = ObjKind[LimitRange]("limitranges","LimitRange")
+   implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequoats", "ResourceQuota")
+   
    case class ListKind[L <: KList[_]](val urlPathComponent: String)(implicit fmt: Format[L]) 
      extends Kind[L]
    implicit val podListKind = ListKind[PodList]("pods")
@@ -121,8 +208,89 @@ package object client {
    implicit val replCtrlListKind = ListKind[ReplicationControllerList]("replicationcontrollers")
    implicit val eventListKind = ListKind[EventList]("events")
    
-   case class Status(httpStatusCode: Int)
-   class Result[T](response: WSResponse) {
-     
-   }
+  // Status will usually be returned by Kubernetes when an error occurs with a request
+  case class Status(
+    apiVersion: String = "v1",   
+    kind: String = "Status",
+    metadata: ListMeta = ListMeta(),   
+    status: Option[String] =None,
+    message: Option[String]=None,
+    reason: Option[String]=None,
+    details: Option[Any] = None,
+    code: Option[Int] = None  // HTTP status code
+  ) 
+  
+  class K8SException(val status: Status) extends RuntimeException // we throw this when we receive a non-OK response
+   
+  def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
+    checkResponseStatus(response) 
+    val result=response.json.validate[T].get
+    if (log.isDebugEnabled)
+      log.debug("[Skuber Response: successfully parsed " + result)
+    result  
+  }
+  
+  // check for non-OK status, throwing a K8SException if appropriate
+  def checkResponseStatus(response: WSResponse) : Unit ={
+    response.status match {
+      case code if code < 300 => // ok
+      case code => {
+        // a non-success or unexpected status returned - we should normally have a Status in the response body
+        if (log.isErrorEnabled())
+          log.error("[Skuber Response: ERROR : status code = " + code + "]")
+        val status=response.json.validate[Status]
+        status match {
+          case JsSuccess(status, path) => throw new K8SException(status)
+          case JsError(e) => // unexpected response, so generate a Status
+            val status=Status(message=Some("Unexpected response body for non-OK status "),
+                              reason=Some(response.statusText),
+                              details=Some(response.body),
+                              code=Some(response.status))
+            throw new K8SException(status)    
+        }
+      }
+    }
+  }  
+  
+  // Delete options are passed with a Delete request
+  case class DeleteOptions(
+    apiVersion: String = "v1",
+    kind: String = "DeleteOptions",
+    gracePeriodSeconds: Int = 0)
+    
+  def buildConfigForProxyURL(url: Option[String]) = {
+    val cluster = K8SCluster(server=url.getOrElse(defaultProxyURL))
+    val context = K8SContext(cluster=cluster)
+    Configuration().useContext(context)
+  }
+  
+  def k8sInit(implicit executionContext : ExecutionContext): K8SRequestContext = {
+    // Initialising without explicit Configuration.
+    // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
+    // If SKUBERCONFIG value matches:
+    // - Empty / Not Set / "proxy" : Configure to connect via kubectl proxy 
+    // - "file" : Configure from kubeconfig file at default location (~/.kube/config)
+    // - "file://<path>: Configure from the kubeconfig file at the specified location
+    // Further the base server URL if kubectl proxy is determined by SKUBERPROXY - or just 
+    // 'http://localhost:8001' if not set.
+    // Note that the configurations that use the kubectl proxy assumes default namespace context, and delegates auth etc. 
+    // to the proxy.
+    // If configured to use  a kubeconfig file note that any certificate/key data in the file will be ignored - any 
+    // required key/cert data for TLS connections must be installed in the applicable Java keystore/truststore.
+    //
+    val skuberConfigEnv = sys.env.get("SKUBERCONFIG")
+    val skuberProxyURLEnv = sys.env.get("SKUBERPROXYURL")
+    val config : Configuration = skuberConfigEnv match {
+      case Some(conf) if (conf == "proxy") => buildConfigForProxyURL(skuberProxyURLEnv)
+      case Some(conf) if (conf == "file") =>  Configuration.parseKubeconfigFile().get
+      case Some(fileUrl) => {
+        val path = java.nio.file.Paths.get(new URL(fileUrl).toURI)
+        Configuration.parseKubeconfigFile(path).get
+      }
+      case None => buildConfigForProxyURL(skuberProxyURLEnv)
+    }
+    k8sInit(config)
+  }
+  
+  def k8sInit(config: Configuration)(implicit executionContext : ExecutionContext) = new K8SRequestContext(config.currentContext)
 }

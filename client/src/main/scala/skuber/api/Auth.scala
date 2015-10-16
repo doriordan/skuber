@@ -19,13 +19,13 @@ package object Auth {
   val skipTLSTrustManagers = Array[TrustManager](new InsecureSkipTLSVerifyTrustManager)
   val defaultTrustManagers = Array[TrustManager]()
     
-  val HttpsPattern = "^https:".r
-  val HttpPattern = "^http:".r
+  val HttpsPattern = "https:.*".r
+  val HttpPattern = "http:.*".r
   
   def establishSSLContext(k8sContext: K8SContext): Option[SSLContext] = {
     k8sContext.cluster.server match {
-      case HttpPattern(_) => None // not using SSL so return no context
-      case HttpsPattern(_) => Some(buildSSLContext(k8sContext))
+      case HttpPattern(_*) => None // not using SSL so return no context
+      case HttpsPattern(_*) => Some(buildSSLContext(k8sContext))
       case _ => throw new Exception("Kubernetes cluster API server URL does not begin with either http or https : "
                                     + k8sContext.cluster.server)
     }

@@ -71,8 +71,10 @@ object Pod {
   {  
     def addLabel(label: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
     def addLabel(label: String) : Template = addLabel(label -> "") 
+    def addLabels(newLabels: Map[String, String]) = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))
     def addAnnotation(anno: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
     def addAnnotation(anno: String) : Template = addAnnotation(anno -> "") 
+    def addAnnotations(newAnnos: Map[String, String]) = this.copy(metadata=metadata.copy(annotations = metadata.annotations ++ newAnnos))
     def withTemplateSpec(spec: Template.Spec) = this.copy(spec=Some(spec))
     def withPodSpec(podSpec: Pod.Spec) = this.copy(spec=Some(Pod.Template.Spec(spec=Some(podSpec))))
   }
@@ -84,7 +86,9 @@ object Pod {
          spec: Option[Pod.Spec] = None) {
        
        def addLabel(label: Tuple2[String, String]) : Spec = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
+       def addLabels(newLabels: Map[String, String]) = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))
        def addAnnotation(anno: Tuple2[String, String]) : Spec = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
+       def addAnnotations(newAnnos: Map[String, String]) = this.copy(metadata=metadata.copy(annotations = metadata.annotations ++ newAnnos))
        def addContainer(container: Container) : Spec = {
          val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addContainer(container)
          this.copy(spec=Some(newPodSpec))

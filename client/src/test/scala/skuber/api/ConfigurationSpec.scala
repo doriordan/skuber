@@ -1,9 +1,12 @@
 package skuber.api
 
-import org.specs2.mutable.Specification // for unit-style testing
+import client._
+import skuber.model.Namespace._
+import org.specs2.mutable.Specification
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
 import org.specs2.execute.Success
+import skuber.model.Namespace
 
 /**
  * @author David O'Riordan
@@ -34,14 +37,14 @@ contexts:
 - context:
     cluster: pig-cluster
     namespace: saw-ns
-    user: black-user
+    user: blue-user
   name: queen-anne-context
 current-context: federal-context
 kind: Config
 preferences:
   colors: true
 users:
-- name: black-user
+- name: blue-user
   user:
     token: blue-token
 - name: green-user
@@ -51,10 +54,27 @@ users:
 """
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
     val k8sConfig = Configuration.parseKubeconfigStream(is)
-    val config = k8sConfig.get
-    config.clusters.size mustEqual 3
-    config.contexts.size mustEqual 2
-    config.users.size mustEqual 2
+    val parsedFromStringConfig = k8sConfig.get
+    
+    // construct equivalent config directly for comparison
+    val cowCluster=K8SCluster("v1", "http://cow.org:8080",false)
+    val horseCluster=K8SCluster("v1","https://horse.org:4443", false)
+    val pigCluster=K8SCluster("v1", "https://pig.org:443", true)
+    val clusters=Map("cow-cluster" -> cowCluster,"horse-cluster"->horseCluster,"pig-cluster"->pigCluster)
+    val blueUser=K8SAuthInfo(token=Some("blue-token"))
+    val greenUser=K8SAuthInfo()
+    val users=Map("blue-user"->blueUser,"green-user"->greenUser)
+    val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
+    val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))
+    val contexts=Map("federal-context"->federalContext,"queen-anne-context"->queenAnneContext)
+    
+    val directlyConstructedConfig=Configuration(clusters,contexts,federalContext,users)
+    directlyConstructedConfig.clusters mustEqual parsedFromStringConfig.clusters
+    directlyConstructedConfig.contexts mustEqual parsedFromStringConfig.contexts
+    directlyConstructedConfig.users mustEqual parsedFromStringConfig.users
+    directlyConstructedConfig.currentContext mustEqual parsedFromStringConfig.currentContext
+    
+    directlyConstructedConfig mustEqual parsedFromStringConfig
   }
   
 }

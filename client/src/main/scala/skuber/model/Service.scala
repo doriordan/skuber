@@ -27,6 +27,7 @@ object Service {
   
    def apply(name: String): Service = Service(metadata=ObjectMeta(name=name))
    def apply(name: String, spec: Service.Spec) : Service = Service(metadata=ObjectMeta(name=name), spec = Some(spec))
+   
   
    object Affinity extends Enumeration {
      type Affinity=Value

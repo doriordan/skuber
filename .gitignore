@@ -6,3 +6,5 @@ target/
 .cache-main
 .worksheet/
 *.sc
+*.launch
+bin/

@@ -13,6 +13,8 @@ import play.api.data.validation.ValidationError
 
 import org.apache.commons.codec.binary.Base64
 
+import scala.language.implicitConversions
+
 /**
  * @author David O'Riordan
  * Play/json formatters for the Skuber k8s model types
@@ -81,8 +83,8 @@ package object format {
   // formatting of the Kubernetes types
   
   implicit lazy val objFormat =
-    (JsPath \ "kind").formatMaybeEmptyString() and // TODO on read, set kind if empty based on expected type?
-    (JsPath \ "apiVersion").formatMaybeEmptyString() and // TODO on read, infer version if empty?
+    (JsPath \ "kind").formatMaybeEmptyString() and 
+    (JsPath \ "apiVersion").formatMaybeEmptyString() and 
     (JsPath \ "metadata").lazyFormat[ObjectMeta](objectMetaFormat) 
    // metadata format must be lazy as it can be used in indirectly recursive namespace structure (Namespace has a metadata.namespace field)
     
@@ -494,7 +496,7 @@ package object format {
     Format(enumReads(Service.Affinity, Some(Service.Affinity.None)), enumWrites)
    
   implicit val servicePortFmt: Format[Service.Port] = (
-    (JsPath \ "name").format[String] and
+    (JsPath \ "name").formatMaybeEmptyString() and
     (JsPath \ "protocol").format[Protocol.Value] and
     (JsPath \ "port").format[Int] and
     (JsPath \ "targetPort").formatNullable[NameablePort] and
@@ -644,6 +646,21 @@ package object format {
      (JsPath \ "spec").formatNullable[LimitRange.Spec]
   )(LimitRange.apply _, unlift(LimitRange.unapply))
   
+  implicit val resourceQuotaSpecFmt: Format[Resource.Quota.Spec] =
+    (JsPath \ "hard").formatMaybeEmptyMap[Resource.Quantity].inmap(
+        hard => Resource.Quota.Spec(hard),(spec: Resource.Quota.Spec) => spec.hard)
+  
+  implicit val resouceQuotaStatusFmt: Format[Resource.Quota.Status] = (
+    (JsPath \ "hard").formatMaybeEmptyMap[Resource.Quantity] and
+    (JsPath \ "used").formatMaybeEmptyMap[Resource.Quantity]
+  )(Resource.Quota.Status.apply _,unlift(Resource.Quota.Status.unapply))
+  
+  implicit val resourceQuotaFmt: Format[Resource.Quota] = (
+    objFormat and  
+    (JsPath \ "spec").formatNullable[Resource.Quota.Spec] and
+    (JsPath \ "status").formatNullable[Resource.Quota.Status]
+  )(Resource.Quota.apply _,unlift(Resource.Quota.unapply))
+      
   implicit val podListFmt: Format[PodList] = KListFormat[Pod].apply(PodList.apply _,unlift(PodList.unapply))
   implicit val nodeListFmt: Format[NodeList] = KListFormat[Node].apply(NodeList.apply _,unlift(NodeList.unapply))
   implicit val serviceListFmt: Format[ServiceList] = KListFormat[Service].apply(ServiceList.apply _,unlift(ServiceList.unapply))
@@ -662,9 +679,34 @@ package object format {
   implicit val limitRangeListFmt: Format[LimitRangeList] = KListFormat[LimitRange].  
                     apply(LimitRangeList.apply _,unlift(LimitRangeList.unapply))
   
+  // formatters for API 'supporting' types i.e. non resource types such as status and watch events 
+  object apiobj {
+     
+    import skuber.api.client._
   
-  
-                    
-  
-       
+    // this handler reads a generic Status response from the server                                    
+    implicit val statusReads: Reads[Status] = (
+      (JsPath \ "apiVersion").read[String] and
+      (JsPath \ "kind").read[String] and
+      (JsPath \ "metadata").read[ListMeta] and
+      (JsPath \ "status").readNullable[String] and
+      (JsPath \ "message").readNullable[String] and
+      (JsPath \ "reason").readNullable[String] and
+      (JsPath \ "details").readNullable[JsValue].map(ov => ov.map( x => x:Any)) and
+      (JsPath \ "code").readNullable[Int]
+    )(Status.apply _)      
+   
+    implicit val deleteOptionsWrite: Writes[DeleteOptions] = (
+      (JsPath \ "apiVersion").formatMaybeEmptyString() and 
+      (JsPath \ "kind").formatMaybeEmptyString() and 
+      (JsPath \ "gracePeriodSeconds").formatMaybeEmptyInt()
+    )(DeleteOptions.apply _, unlift(DeleteOptions.unapply))     
+    
+    implicit val watchEvTypFmt = enumFormat(EventType)
+    def watchEventFormat[T <: ObjectResource](implicit objfmt: Format[T]) : Format[WatchEvent[T]] = (
+      (JsPath \ "type").format[EventType.Value] and
+      (JsPath \ "object").format[T]
+    )(WatchEvent.apply[T] _, unlift(WatchEvent.unapply[T]))
+    
+  }  
 }

@@ -13,6 +13,7 @@ object EnvVar {
   case class Source(fieldRef: FieldSelector) extends Value
   case class FieldSelector(fieldRef: String, apiVersion: Option[String] = None )
   
+  import scala.language.implicitConversions
   implicit def strToValue(s:String) : Value = StringValue(s)
     
 }    

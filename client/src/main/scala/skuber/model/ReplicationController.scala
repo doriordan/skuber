@@ -14,15 +14,20 @@ case class ReplicationController(
     spec: Option[ReplicationController.Spec] = None,
     status: Option[ReplicationController.Status] = None) 
       extends ObjectResource with KListItem {
-    def addLabel(label: Tuple2[String, String]) : ReplicationController = { this.copy(metadata = metadata.copy(labels = metadata.labels + label)) }  
-    def addAnnotation(anno: Tuple2[String, String]) : ReplicationController = { this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno)) }
-   
+
+    lazy val copySpec = this.spec.getOrElse(new ReplicationController.Spec)
     
-    def withReplicas(n: Int) = {  this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec(replicas = n))))}
-    def withSelector(s: Map[String, String]) : ReplicationController = { this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec()).copy(selector = Some(s)))) }   
+    def addLabel(label: Tuple2[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(labels = metadata.labels + label)) 
+    def addLabels(newLabels: Map[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(labels = metadata.labels ++ newLabels))
+    def addAnnotation(anno: Tuple2[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
+    def addAnnotations(annos: Map[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(annotations = metadata.annotations ++ annos)) 
+    
+    
+    def withReplicas(n: Int) = this.copy(spec=Some(copySpec.copy(replicas=n)))
+    def withSelector(s: Map[String, String]) : ReplicationController = this.copy(spec=Some(copySpec.copy(selector = Some(s))))   
     def withSelector(s: Tuple2[String,String]) : ReplicationController = withSelector(Map(s))
-   
-    def withTemplate(t: Pod.Template.Spec) = this.copy(spec = Some(spec.getOrElse(new ReplicationController.Spec()).copy(template = Some(t)))) 
+    
+    def withTemplate(t: Pod.Template.Spec) = this.copy(spec = Some(copySpec.copy(template = Some(t))))
     def withPodSpec(t: Pod.Spec) = {
       val template = new Pod.Template.Spec(metadata=ObjectMeta(this.metadata.name),spec=Some(t))
       withTemplate(template)
@@ -37,9 +42,9 @@ object ReplicationController {
     case class Spec(
       replicas: Int=1,
       selector: Option[Map[String, String]] = None,
-      template: Option[Pod.Template.Spec] = None) 
+      template: Option[Pod.Template.Spec] = None)
       
-  case class Status(
+    case class Status(
       replicas: Int,
       observerdGeneration: Option[Int])
 }

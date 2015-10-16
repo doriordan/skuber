@@ -8,17 +8,19 @@ import java.io.{File, FileInputStream}
 import scala.collection.JavaConverters._
 import org.yaml.snakeyaml.Yaml
 
+
 /**
  * @author David O'Riordan
  */
 case class Configuration(
-      clusters: Map[String, K8SCluster],
-      contexts: Map[String, K8SContext],  
-      currentContext: K8SContext,
+      clusters: Map[String, K8SCluster] = Map(),
+      contexts: Map[String, K8SContext] = Map(),  
+      currentContext: K8SContext = K8SContext(),
       users: Map[String, K8SAuthInfo] = Map()) {
       
       def withCluster(name:String, cluster: K8SCluster) = this.copy(clusters = this.clusters + (name -> cluster))
       def withContext(name: String, context: K8SContext) = this.copy(contexts = this.contexts + (name -> context))
+      def useContext(context: K8SContext) = this.copy(currentContext=context) 
 }
 
 object Configuration {
@@ -34,15 +36,16 @@ object Configuration {
      *
      * See https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md
      * for format of the kubeconfig file.   
-     * Enables sharing of config with kubectl when skuber client is not directed via a kubectl proxy
+     * Enables sharing of config with kubectl when skuber client is not simply directed via a kubectl proxy
      * However note that the merging funcionality described at the link above is not implemented
      * in the Skuber library.    
      * Also note that any certificate data in the config file is ignored - if a TLS connection is configured for 
      * a cluster, this will require the relevant certificate/key data to be installed into the Skuber client 
      * applications keystore / truststore (using keytool) per standard Java methods.
      */   
-    def parseKubeconfigFile(path: String = "~/kube/.kubeconfig") : Try[Configuration] = {
-       parseKubeconfigStream(new FileInputStream(new File(path)))
+    import java.nio.file.{Path,Paths,Files}
+    def parseKubeconfigFile(path: Path = Paths.get(System.getProperty("user.home"),".kube", "config")) : Try[Configuration] = {
+       parseKubeconfigStream(Files.newInputStream(path))
     }
     
     def parseKubeconfigStream(is: java.io.InputStream) : Try[Configuration]= {
@@ -64,7 +67,7 @@ object Configuration {
           topLevelList(kind + "s").asScala.map(item => name(item) -> toK8SConfig(child(item, kind))).toMap
           
         def toK8SCluster(clusterConfig: YamlMap) =
-           K8SCluster(apiVersion=valueAt(clusterConfig, "apiVersion", Some("v1")),
+           K8SCluster(apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
                       server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
                       insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)))   
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster _)

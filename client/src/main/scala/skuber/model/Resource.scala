@@ -5,13 +5,25 @@ package skuber.model
  */
 
 import scala.math.BigDecimal
-
+import coretypes._
 
 object Resource {
   
   type ResourceList=Map[String, Quantity]
   
   case class Requirements(limits: ResourceList = Map(), requests: ResourceList = Map())
+  case class Quota(
+      val kind: String = "ResourceQuota",
+      override val apiVersion: String = "v1",
+      val metadata: ObjectMeta = ObjectMeta(),
+      spec: Option[Quota.Spec] = None,
+      status: Option[Quota.Status] = None)
+    extends ObjectResource with KListItem
+ 
+  object Quota {
+    case class Spec(hard: ResourceList = Map())
+    case class Status(hard: ResourceList = Map(), used: ResourceList = Map())
+  }  
   
   // standard resource names
   val cpu = "cpu"
@@ -56,6 +68,7 @@ object Resource {
   
   object Quantity {
     
+    import scala.language.implicitConversions
     implicit def strToQuantity(value: String) : Quantity = Quantity(value)
     
     sealed trait Format

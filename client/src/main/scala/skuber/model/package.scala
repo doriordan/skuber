@@ -4,6 +4,8 @@ import java.net.URL
 import java.util.Date
 import scala.collection.immutable.HashMap
 
+import scala.language.implicitConversions
+
 /*
  * Represents core types of the Kubernetes V1 public model
  * @author David O'Riordan
@@ -16,7 +18,7 @@ package object coretypes {
   def emptyL[T]=List[T]()
   def emptyM[V]=Map[String,V]()
   
-  sealed abstract class TypeMeta {
+  abstract class TypeMeta {
     def apiVersion: String = "v1"
     def kind: String 
   }
@@ -183,7 +185,7 @@ package object coretypes {
   case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
   case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None) 
   
-  case class Watch(_type: WatchedEventType.Value, _object: ObjectResource)
+  case class WatchedEvent(eventType: WatchedEventType.Value, eventObject: ObjectResource)
   object WatchedEventType extends Enumeration {
     type WatchedEventType = Value
     val ADDED,MODIFIED,DELETED,ERROR = Value
@@ -196,12 +198,10 @@ package object coretypes {
      type RestartPolicy = Value
      val Always,OnFailure,Never = Value
   }
-  object ServiceType extends Enumeration {
-    type ServiceType = Value
-    val ClusterIP,NodePort,LoadBalancer = Value
-  }
+  
   object Protocol extends Enumeration {
     type Protocol = Value
     val TCP, UDP = Value
   }
+     
 }
