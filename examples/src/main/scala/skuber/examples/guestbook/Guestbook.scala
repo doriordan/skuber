@@ -1,23 +1,30 @@
 package skuber.examples.guestbook
 
-import skuber.api.client._
-import skuber.model._
-import skuber.model.coretypes._
-import skuber.json.format._
-
-import scala.concurrent._
+import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
 import scala.concurrent.duration._
-
-import scala.util.Try
-import scala.annotation.tailrec
-
-import java.util.UUID
-
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+  
 /**
  * @author David O'Riordan
  */
 object Guestbook extends App {
+  val sys = ActorSystem("Guestbook")
+  val guestbook = sys.actorOf(Props[GuestbookActor])
+  
+  implicit val timeout = Timeout(60 seconds)
+  
+  val deploymentResult = ask(guestbook, GuestbookActor.Deploy)
+  val result = Await.result(deploymentResult, timeout.duration)
+  result match {
+    case GuestbookActor.DeployedSuccessfully => System.out.println("Deployment successfully completed!")
+    case GuestbookActor.DeploymentFailed(ex) => System.err.println("Deployment failed: " + ex) 
+  }
+}
  
+/*  
   import Service.Type._ 
   
   type ControllerEvent=WatchEvent[ReplicationController]
@@ -274,3 +281,4 @@ object Guestbook extends App {
       service: Service
   )
 }
+*/

@@ -12,9 +12,14 @@ import play.api.libs.ws.WSRequest
 import play.api.libs.json.{JsSuccess, JsError, JsObject, JsValue, JsResult, Format}
 import play.api.libs.iteratee.{Concurrent, Iteratee, Enumerator, Enumeratee, Input, Done, Cont}
 import play.extras.iteratees.{CharString, JsonEnumeratees, JsonIteratees, JsonParser, Encoding}
+import play.api.libs.concurrent.Promise
+
+import scala.concurrent.duration._
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import scala.language.postfixOps
 
 /**
  * @author David O'Riordan
@@ -24,7 +29,9 @@ import org.slf4j.LoggerFactory
 object Watch {
   
     val log = LoggerFactory.getLogger("skuber.api")
-                        
+    
+    def pulseEvent = """{pulseEvent : ""}""".getBytes
+    
     def events[O <: ObjectResource](
         k8sContext: K8SRequestContext, 
         name: String,
@@ -32,22 +39,12 @@ object Watch {
         (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Enumerator[WatchEvent[O]] = 
     {
        if (log.isDebugEnabled) 
-         log.debug("[Skuber Watch (" + name + "): building request")
-       val wsReq = k8sContext.buildRequest(Some(kind.urlPathComponent), Some(name), watch=true).withRequestTimeout(300000)
-       if (log.isDebugEnabled) 
-         log.debug("[Skuber Watch (" + name + "): ")
+         log.debug("[Skuber Watch (" + name + "): creating...")
+       val wsReq = k8sContext.buildRequest(Some(kind.urlPathComponent), Some(name), watch=true).withRequestTimeout(2147483647)
        val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
        val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
- 
-       if (log.isDebugEnabled) 
-         log.debug("[Skuber Watch (" + name + "): creating joined iterate/enumerator pair for response stream")
        val (responseBytesIteratee, responseBytesEnumerator) = Concurrent.joined[Array[Byte]]
        
-       // Execute the watch request and pipe the response through transformations that turn it 
-       // from a stream of bytes into a stream of Json values into a stream of parsed object 
-       // updates of the expected type
-      if (log.isDebugEnabled) 
-         log.debug("[Skuber Watch (" + name + "): making request to server")
        watchRequest.get(_ => responseBytesIteratee).flatMap(_.run)
        
        fromBytesEnumerator(name, responseBytesEnumerator)  
@@ -58,18 +55,32 @@ object Watch {
         bytes : Enumerator[Array[Byte]])
         (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Enumerator[WatchEvent[O]] = 
     {
-       if (log.isDebugEnabled)         
-         log.debug("[Skuber Watch (" + watchId + "): building event enumerator from bytes enumerator")  
-       bytes &>
-         Encoding.decode() &> 
+      // interleaving a pulse is a workaround for apparent issue whereby last event is not emitted by grouped enumeratee until another event 
+      // is received (note we never get an EOF with this stream). The pulse is filtered out of the returned enumerator. TBD confirm / resolve 
+      // underlying issue
+      val bytesWithPulse = pulse 
+      pulse &>
          Enumeratee.map { x =>  
            // purely for debugging
            if (log.isDebugEnabled) 
-             log.debug("[Skuber Watch (" + watchId + "): handling chunk :'" + x.mkString + "'")
+             log.debug("[Skuber Watch (" + watchId + "): handling chunk HEX = " + toHex(x) + "]")
            x  
          } &>
-         Enumeratee.grouped(WatchResponseJsonParser.jsonObject) &>
-         Enumeratee.map { watchEventFormat[O].reads } &>
+         Encoding.decode() ><>
+         Enumeratee.map { x =>  
+           // purely for debugging
+           if (log.isDebugEnabled) 
+             log.debug("[Skuber Watch (" + watchId + "): handling chunk :'" + x.mkString + "']")
+           x
+         } ><>
+//         Enumeratee.grouped(JsonIteratees.jsSimpleObject) ><>
+         Enumeratee.grouped(WatchResponseJsonParser.jsonObject) ><>
+         Enumeratee.filter { x =>
+           if (log.isDebugEnabled) 
+             log.debug("[Skuber Watch (" + watchId + "): handling jsObject ='" + x.toString + "'")
+           x.keys.contains("pulseEvent")  
+         } ><>
+         Enumeratee.map { watchEventFormat[O].reads } ><>
          Enumeratee.collect[JsResult[WatchEvent[O]]] {
            case JsSuccess(value, _) => {
              if (log.isDebugEnabled)
@@ -79,8 +90,30 @@ object Watch {
            case JsError(e) => {
              log.error("[Skuber Watch (" + watchId + "): Json parsing error - " + e + "]")
              throw new K8SException(Status(message=Some("Error parsing watched object"), details=Some(e.toString)))
-           }          
-         }             
+           }                      
+         }
+    }
+    
+    private def toHex(bytes: Array[Byte]): String =
+    {
+      val buffer = new StringBuilder(bytes.length * 2)
+      for(i <- 0 until bytes.length)
+      {
+        val b = bytes(i)
+        val bi: Int = if(b < 0) b + 256 else b
+        buffer append toHex((bi >>> 4).asInstanceOf[Byte])
+        buffer append toHex((bi & 0x0F).asInstanceOf[Byte])
+      }
+      buffer.toString
+    }
+    
+    private def toHex(b: Byte): Char =
+    {
+      require(b >= 0 && b <= 15, "Byte " + b + " was not between 0 and 15")
+      if(b < 10)
+        ('0'.asInstanceOf[Int] + b).asInstanceOf[Char]
+      else
+        ('a'.asInstanceOf[Int] + (b-10)).asInstanceOf[Char]
     }
     
     def events[O <: ObjectResource](
@@ -91,6 +124,7 @@ object Watch {
       events(k8sContext, obj.name, Option(obj.metadata.resourceVersion).filter(_.trim.nonEmpty))  
     }
     
+    private def pulse: Enumerator[Array[Byte]] = Enumerator.generateM(Promise.timeout(Some(pulseEvent), 100 milliseconds))
 }
 
 object WatchResponseJsonEnumeratees {
@@ -101,12 +135,12 @@ object WatchResponseJsonEnumeratees {
       def step[A](inner: Iteratee[JsObject, A])(in: Input[JsObject]): Iteratee[JsObject, Iteratee[JsObject, A]] = in match {
         case Input.EOF => {
           if (Watch.log.isDebugEnabled) 
-              Watch.log.debug("[Skuber Watch (" + watchId + ") : json objects iteratee reached EOF")
+              Watch.log.debug("[Skuber Watch (" + watchId + ") : handling EOF")
            Done(inner, in)
         }
         case _ => {
           if (Watch.log.isDebugEnabled) 
-              Watch.log.debug("[Skuber Watch (" + watchId + ") : iteratee - received input " + in)
+              Watch.log.debug("[Skuber Watch (" + watchId + ") : handling input " + in)
           Cont(step(Iteratee.flatten(inner.feed(in))))
         }
       }
@@ -130,10 +164,10 @@ object WatchResponseJsonParser {
     for {
       _ <- skipWhitespace
       log1 = if (Watch.log.isDebugEnabled) 
-                Watch.log.debug("[Skuber Watch (" + watchId + ") : iteratee - about to parse next object")
+                Watch.log.debug("[Skuber Watch (" + watchId + ") : jsonObjects: about to parse next object")
       fed <- jsonObjectParser.map(jsObj => Iteratee.flatten(jsonObjectHandler.feed(Input.El(jsObj))))
       log2 = if (Watch.log.isDebugEnabled)
-                Watch.log.debug("[Skuber Watch (" + watchId + ") : iteratee - fed object : " + fed)
+                Watch.log.debug("[Skuber Watch (" + watchId + ") : jsonObjects: object fed")
       values <- jsonObjects(watchId, fed, jsonObjectParser)
     } yield values
     
@@ -154,7 +188,7 @@ object WatchResponseJsonParser {
        case Some('}') => drop(1).flatMap(_ => Iteratee.flatten(keyValuesHandler.run.map((a: A) => done(a))))
        case _ => {
          if (Watch.log.isDebugEnabled) 
-                Watch.log.debug("[Skuber Watch: iteratee - in json object parser: parsing key beginning with '" + ch.getOrElse("") + "'")
+                Watch.log.debug("[Skuber Watch: iteratee - in json object parser: parsing key/values...")
          JsonParser.jsonKeyValues(keyValuesHandler, valueHandler)
        }
      }
