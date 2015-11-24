@@ -1,6 +1,5 @@
-package skuber.model
+package skuber
 
-import coretypes._
 
 /**
  * @author David O'Riordan

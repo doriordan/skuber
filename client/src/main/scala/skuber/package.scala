@@ -1,4 +1,3 @@
-package skuber.model
 
 import java.net.URL
 import java.util.Date
@@ -6,11 +5,13 @@ import scala.collection.immutable.HashMap
 
 import scala.language.implicitConversions
 
+import scala.concurrent.ExecutionContext
+
 /*
- * Represents core types of the Kubernetes V1 public model
+ * Represents core types and aliases 
  * @author David O'Riordan
  */
-package object coretypes {
+package object skuber {
   
   // define standard empty values - some Json formatters use them
   val emptyS=""
@@ -203,5 +204,19 @@ package object coretypes {
     type Protocol = Value
     val TCP, UDP = Value
   }
-     
+  
+  // aliases, references and delegates that enable using the API for many use cases without 
+  // having to import anything from the skuber.api package
+  val K8SCluster = skuber.api.client.Cluster
+  val K8SContext = skuber.api.client.Context
+  val K8SAuthInfo = skuber.api.client.AuthInfo
+  type K8SRequestContext = skuber.api.client.RequestContext
+  type K8SException = skuber.api.client.K8SException
+  val K8SConfiguration = skuber.api.Configuration
+  type K8SWatch[O] = skuber.api.Watch[O] 
+  type K8SWatchEvent[I <: ObjectResource] = skuber.api.client.WatchEvent[I]
+  
+  def k8sInit(implicit executionContext: ExecutionContext)  = skuber.api.client.init
+  def k8sInit(config: skuber.api.Configuration)(implicit executionContext : ExecutionContext) = skuber.api.client.init(config)
+      
 }

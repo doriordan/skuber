@@ -3,8 +3,7 @@ package skuber.json
 import java.time._
 import java.time.format._
 
-import skuber.model.coretypes._
-import skuber.model._
+import skuber._
 
 import play.api.libs.ws._
 import play.api.libs.json._
@@ -270,7 +269,7 @@ package object format {
   
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]
   
-  import skuber.model.Volume._
+  import Volume._
   
   implicit val emptyDirReads: Reads[EmptyDir] = {
       (JsPath \ "medium").readNullable[String].map(
@@ -619,7 +618,7 @@ package object format {
       JsPath.format[String].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes))
   )
   
-  import skuber.model.Secret 
+  import skuber.Secret 
   implicit val secretFmt: Format[Secret] = (
     objFormat and
     (JsPath \ "data").formatMaybeEmptyMap[Array[Byte]]

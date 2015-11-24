@@ -3,11 +3,11 @@ package skuber.examples.guestbook
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.util.Try
-import scala.annotation.tailrec
-import akka.actor.{Actor, ActorRef, ActorSystem}
+import scala.util.{Try, Success,Failure}
+
+import akka.actor.{Actor, ActorRef, ActorLogging}
 import akka.actor.Props
-import akka.event.Logging
+import akka.event.{LoggingReceive}
 import akka.pattern.ask
 import akka.util.Timeout
 
@@ -42,7 +42,7 @@ object GuestbookActor {
         image="kubernetes/example-guestbook-php-redis:v2", 
         containerPort=80, 
         replicas=3, 
-        serviceType=skuber.model.Service.Type.NodePort, 
+        serviceType=skuber.Service.Type.NodePort, 
         nodePort=30291)   
 }
 
@@ -50,29 +50,44 @@ object GuestbookActor {
  * @author David O'Riordan
  * This actor is responsible for overall orchestration of the deployment of the Guestbook application to Kubernetes
  */
-class GuestbookActor extends Actor {
+class GuestbookActor extends Actor with ActorLogging {
    
   import GuestbookActor._
   import ServiceActor._
   import KubernetesProxyActor.ResourceNotFound
   
   // Create the other actors supporting the deployment
-  val kubernetesProxy = context.actorOf(Props[KubernetesProxyActor]) 
-  val redisMasterService = context.actorOf(ServiceActor.props(kubernetesProxy, redisMasterSpec))
-  val redisSlaveService = context.actorOf(ServiceActor.props(kubernetesProxy, redisSlaveSpec))
-  val frontEndService = context.actorOf(ServiceActor.props(kubernetesProxy, frontEndSpec))
+  val kubernetesProxy = context.actorOf(Props[KubernetesProxyActor], "kubernetes") 
+  val redisMasterService = context.actorOf(ServiceActor.props(kubernetesProxy, redisMasterSpec), "redisMaster")
+  val redisSlaveService = context.actorOf(ServiceActor.props(kubernetesProxy, redisSlaveSpec), "redisSlave")
+  val frontEndService = context.actorOf(ServiceActor.props(kubernetesProxy, frontEndSpec), "frontEnd")
  
   // set up defaults for actor messaging
-  implicit val timeout = Timeout(60 seconds) 
+  implicit val timeout = Timeout(20 seconds) 
   
-  // simple helper for wrapping requests to the guestbook service actors, ensuring the returned future
-  // fails with an appropriate exception if error / unexpected reply is received
-  private def askService(service: ActorRef, msg: Any, okIfNotFound: Boolean=false) = {
+  var redisMasterRunning=false
+  var redisSlaveRunning=false
+  var frontEndRunning=false
+  
+  var requester = sender
+  
+  // A simple wrapper of requests to the Guestbook service actors, ensuring the returned future
+  // fails with an appropriate exception if error / unexpected reply is received. This makes
+  // chaining the the requests together in an overall deployment process simpler as we only need to check 
+  // for failure once at the end of the chain.
+  private def askService(service: ActorRef, msg: Any, successInfo: String) = {
     val reply = ask(service, msg)
-    reply foreach { r => System.out.println("Service reply: " + r) }
+    
+    reply onComplete { 
+      case Success(msg) => log.debug("successfully received reply from service: " + msg) 
+      case Failure(ex) => log.error("Asking service actor " + service.path + " failed with: " + ex)
+    }
     reply collect { 
       case UnexpectedServiceError(name, ex) => throw ex
-      case other => other
+      case success => {
+        System.out.println(successInfo)
+        success
+      }
     }
   }
   
@@ -80,67 +95,65 @@ class GuestbookActor extends Actor {
   // each step returns a Future that completes when the step is finished
   
   // STEP 1    
-  // Housekeep each service on Kubernetes
-  // We do this by first stopping it and then removing the service resources (if they exist)
-    
-  def housekeep(service: ActorRef) = for {
-    _    <- askService(service, Stop)
-    done <- askService(service, Remove)
-  } yield done
-   
-  // overall housekeeping step that orchestrates the above, executing them in order
-  // starting with front end
-  def housekeepResources = for {
-    _    <- housekeep(frontEndService)
-    _    <- housekeep(redisSlaveService)
-    done <- housekeep(redisMasterService)
+  // In case the services exist already we first stop them running - this prepares them to be
+  // removed in the housekeeping step
+  def stop = for {
+     _ <-    askService(frontEndService, Stop, "Front-end service stopped")
+     _ <-    askService(redisSlaveService, Stop, "Redis slave service stopped")
+     done <- askService(redisMasterService, Stop, "Redis master service stopped")
   } yield done
   
-  // STEP 2
-  // (re)create resources for each service on the cluster
-  def createRedisMaster = askService(redisMasterService, Create)
-  def createRedisSlave = askService(redisSlaveService, Create)
-  def createFrontEnd = askService(frontEndService, Create)
   
-  // overall create step that orchestrates the above, creating the resources in the appropriate order
-  def createResources = for {
-    _ <- createRedisMaster
-    _ <- createRedisSlave
-    done <- createFrontEnd
+  
+  // STEP 2 overall housekeeping step that removes each Guestbook service from Kubernetes, if it exists
+  // If one or more services do not exist at this stage, it simply ignores the NotFound error(s) 
+  // and continues.
+  def housekeep = for {
+     _ <-    askService(frontEndService, Remove, "Front-end service & replication controller from previous deployment(s) have been removed (if they existed)")
+     _ <-    askService(redisSlaveService, Remove, "Redis slave service & replication controller from previous deployment(s) have been removed (if they existed)")
+     done <- askService(redisMasterService, Remove, "Redis master service & replication controller from previous deployment(s) removed (if they existed)")
+  } yield done
+  
+  // STEP 3 (re)create the service resources on Kubernetes in the appropriate order
+  def create = for {
+    _ <-    askService(redisMasterService, Create, "Front-end service & replication controller (re)created")
+    _ <-    askService(redisSlaveService, Create, "Redis slave service & replication controller (re)created")
+    done <- askService(frontEndService, Create, "Redis master service & replication controller (re)created")
   } yield done
     
-  // STEP 3 Completes when all replicas are running. To know when all replicas are running
-  // we ask the service to scale to the expected count and expect to receive ScalingDone
-  // when that is complete
-  
-  def redisMasterRunning = askService(redisMasterService, Scale(redisMasterSpec.replicas))
-  def redisSlaveRunning = askService(redisSlaveService, Scale(redisSlaveSpec.replicas))
-  def frontEndRunning = askService(frontEndService, Scale(frontEndSpec.replicas))
-  def allRunning = for {
-     _ <- redisMasterRunning 
-     _ <- redisSlaveRunning
-     done <- frontEndRunning
+  // STEP 4 This step completes when all replicas are running
+  // To get notified if/when they are all running we ask each service to scale to the
+  // required count - each service then eventually replies when that count has been 
+  // reached
+  def ensureAllRunning = for {
+     _ <- askService(redisMasterService, Scale(redisMasterSpec.replicas), "All Redis master replicas are now running")
+     _ <- askService(redisSlaveService, Scale(redisSlaveSpec.replicas), "All Redis slave replicas are now running")
+     done <- askService(frontEndService, Scale(frontEndSpec.replicas), "All front-end replicas are now running")
   } yield done
 
-  def receive = {
-    // perform a requested deployment by calling the main three steps above in turn
+  def receive = LoggingReceive {
+    // perform a requested deployment by calling the high level steps above in turn
     case Deploy => {
-      val requester = context.sender
-      val doDeployment = for {
-        _ <- housekeepResources
-        _ <- createResources
-        done <- allRunning
+      System.out.println("Deploying Guestbook application to Kubernetes.\nThis involves four steps:\n=> stopping the Guestbook services if they are running (by specifying replica counts of 0)\n=> housekeeping the Guestbook application (i.e. removing the resources from Kubernetes if they exist)\n=> (re)creating the Guestbook application on Kubernetes\n=> validating that all replicas are running\n")
+      requester = sender
+      log.debug("Received Deploy instruction")
+      System.out.println("*** Now stopping services (if they already exist and are running)\n")
+      val deploy = for {
+        _    <- stop
+        i1 = System.out.println("\n*** Now removing previous deployment (if necessary)\n")
+        _    <- housekeep
+        i2 = System.out.println("\n*** Now (re)creating the services and replication controllers on Kubernetes\n")
+        _    <- create
+        i3 = System.out.println("\n*** Now validating that all replicas are running - if required reactively watch status until done\n")
+        done <- ensureAllRunning
       } yield done
-      doDeployment map { 
-        d => requester ! DeployedSuccessfully 
-        kubernetesProxy ! KubernetesProxyActor.Close
-      }
-      doDeployment recover {
-        case ex => {
-          requester ! DeploymentFailed(ex)
-          kubernetesProxy ! KubernetesProxyActor.Close
+      
+      deploy andThen  {
+        case result => ask(kubernetesProxy, KubernetesProxyActor.Close) andThen { 
+          case Success(_) => requester ! DeployedSuccessfully
+          case Failure(ex) => requester ! DeploymentFailed(ex)
         }
       }
     }
-  }
+  }  
 }

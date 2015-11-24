@@ -11,16 +11,27 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * @author David O'Riordan
  */
 object Guestbook extends App {
-  val sys = ActorSystem("Guestbook")
-  val guestbook = sys.actorOf(Props[GuestbookActor])
+  val sys = ActorSystem("SkuberExamples")
+  val guestbook = sys.actorOf(Props[GuestbookActor], "guestbook")
   
-  implicit val timeout = Timeout(60 seconds)
+  implicit val timeout = Timeout(40 seconds)
   
   val deploymentResult = ask(guestbook, GuestbookActor.Deploy)
-  val result = Await.result(deploymentResult, timeout.duration)
-  result match {
-    case GuestbookActor.DeployedSuccessfully => System.out.println("Deployment successfully completed!")
-    case GuestbookActor.DeploymentFailed(ex) => System.err.println("Deployment failed: " + ex) 
+  deploymentResult map { result =>
+    result match {
+      case GuestbookActor.DeployedSuccessfully => {
+        System.out.println("\n*** Deployment of Guestbook application to Kubernetes completed successfully!")
+        System.exit(0)
+      }
+      case GuestbookActor.DeploymentFailed(ex) => {
+        System.err.println("\n!!! Deployment of Guestbook application failed: " + ex)
+        System.exit(1)
+      }
+    }  
+  }
+  deploymentResult onFailure { 
+    case ex => System.err.println("Unexpected error deploying Guestbook: " + ex)
+    System.exit(-1)
   }
 }
  

@@ -1,12 +1,11 @@
 package skuber.api
 
-import client._
-import skuber.model.Namespace._
+import skuber._
+
 import org.specs2.mutable.Specification
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
 import org.specs2.execute.Success
-import skuber.model.Namespace
 
 /**
  * @author David O'Riordan
@@ -53,7 +52,7 @@ users:
     client-key: path/to/my/client/key
 """
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
-    val k8sConfig = Configuration.parseKubeconfigStream(is)
+    val k8sConfig = K8SConfiguration.parseKubeconfigStream(is)
     val parsedFromStringConfig = k8sConfig.get
     
     // construct equivalent config directly for comparison

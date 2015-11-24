@@ -22,7 +22,7 @@ package object Auth {
   val HttpsPattern = "https:.*".r
   val HttpPattern = "http:.*".r
   
-  def establishSSLContext(k8sContext: K8SContext): Option[SSLContext] = {
+  def establishSSLContext(k8sContext: Context): Option[SSLContext] = {
     k8sContext.cluster.server match {
       case HttpPattern(_*) => None // not using SSL so return no context
       case HttpsPattern(_*) => Some(buildSSLContext(k8sContext))
@@ -31,7 +31,7 @@ package object Auth {
     }
   }
   
-  private def buildSSLContext(k8sContext: K8SContext): SSLContext = {
+  private def buildSSLContext(k8sContext: Context): SSLContext = {
     val sslContext = SSLContext.getInstance("TLS");
     sslContext.init(null, 
                     if (k8sContext.cluster.insecureSkipTLSVerify)
@@ -44,7 +44,7 @@ package object Auth {
     sslContext 
   }
   
-  def establishClientAuth(k8sContext: K8SContext) : ClientAuth = {
+  def establishClientAuth(k8sContext: Context) : ClientAuth = {
     // supports bearer token, basic auth or no auth options at the moment -
     // any client certificate info in the context is ignored
     val maybeToken=k8sContext.authInfo.token

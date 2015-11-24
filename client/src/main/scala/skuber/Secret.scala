@@ -1,6 +1,5 @@
-package skuber.model
+package skuber
 
-import coretypes._
 import java.io._
 import org.apache.commons.io.IOUtils
 

@@ -6,9 +6,8 @@ import org.specs2.execute.Failure
 
 import scala.math.BigInt
 
-import skuber.model.coretypes._
-import skuber.model._
-import skuber.json.format._
+import skuber._
+import format._
 
 import play.api.libs.json._
 

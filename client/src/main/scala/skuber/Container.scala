@@ -1,6 +1,5 @@
-package skuber.model
+package skuber
 
-import coretypes._
 import java.util.Date
 
 /**

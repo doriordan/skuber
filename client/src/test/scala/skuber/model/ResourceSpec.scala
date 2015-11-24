@@ -1,4 +1,4 @@
-package skuber.model
+package skuber
 
 import org.specs2.mutable.Specification // for unit-style testing
 

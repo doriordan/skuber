@@ -3,14 +3,14 @@ package skuber.api
 import play.api.libs.ws._
 import play.api.libs.ws.ning._
 import play.api.libs.json.{JsValue, JsSuccess, JsError, JsResult, Reads, Format}
+import com.ning.http.client.AsyncHttpClient
 
 import java.net.URL
 
 import scala.concurrent.{Future,ExecutionContext, Promise}
 import scala.util.{Try}
 
-import skuber.model.coretypes._
-import skuber.model._
+import skuber._
 import skuber.json.format._
 import skuber.json.format.apiobj._
 
@@ -27,19 +27,19 @@ package object client {
   
    // K8S client API classes
    val defaultProxyURL = "http://localhost:8001"
-   case class K8SCluster(
+   case class Cluster(
      apiVersion: String = "v1",  
      server: String = defaultProxyURL,
      insecureSkipTLSVerify: Boolean = false
    )
    
-   case class K8SContext(
-     cluster: K8SCluster = K8SCluster(), 
-     authInfo: K8SAuthInfo = K8SAuthInfo(),
+   case class Context(
+     cluster: Cluster = Cluster(), 
+     authInfo: AuthInfo = AuthInfo(),
      namespace: Namespace = Namespace.default 
    )
      
-   case class K8SAuthInfo(
+   case class AuthInfo(
      token: Option[String] = None,
      userName: Option[String] = None,
      password: Option[String] = None
@@ -53,12 +53,12 @@ package object client {
    }
      
    
-   class K8SRequestContext(k8sContext: K8SContext)(implicit executorContext: ExecutionContext) { 
+   class RequestContext(k8sContext: Context)(implicit executorContext: ExecutionContext) { 
       val sslCtxt = Auth.establishSSLContext(k8sContext)
       val auth = Auth.establishClientAuth(k8sContext)
       val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
-      val ningClient = new NingWSClient(wsConfig)
-   
+      val commonClient = new NingWSClient(wsConfig)
+      
       val namespaceName = k8sContext.namespace.name match {
         case "" => "default"
         case name => name
@@ -66,8 +66,8 @@ package object client {
       val nsPathComponent =  Some("namespaces/" + namespaceName)
       
       def buildRequest(kindComponent: Option[String],
-                               nameComponent: Option[String],
-                               watch: Boolean = false)
+                       nameComponent: Option[String],
+                       watch: Boolean = false)
        : WSRequest = 
       {  
         // helper to compose a full URL from a sequence of path components
@@ -93,7 +93,7 @@ package object client {
           nsPathComponent, 
           kindComponent,
           nameComponent)     
-        val url = ningClient.url(k8sUrlStr)
+        val url = commonClient.url(k8sUrlStr)
         Auth.addAuth(url, auth)
       }
       
@@ -171,12 +171,12 @@ package object client {
     
      import play.api.libs.iteratee.Enumerator
      
-     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Enumerator[WatchEvent[O]] = Watch.events(this, obj)       
+     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)       
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
-                                   (implicit objfmt: Format[O], kind: ObjKind[O]) : Enumerator[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)                                           
+                                   (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)                                           
      def close = {
-       ningClient.close()
+       commonClient.underlying[AsyncHttpClient].close()
      }
    }
    
@@ -259,12 +259,12 @@ package object client {
     gracePeriodSeconds: Int = 0)
     
   def buildConfigForProxyURL(url: Option[String]) = {
-    val cluster = K8SCluster(server=url.getOrElse(defaultProxyURL))
-    val context = K8SContext(cluster=cluster)
+    val cluster = Cluster(server=url.getOrElse(defaultProxyURL))
+    val context = Context(cluster=cluster)
     Configuration().useContext(context)
   }
   
-  def k8sInit(implicit executionContext : ExecutionContext): K8SRequestContext = {
+  def init(implicit executionContext : ExecutionContext): RequestContext = {
     // Initialising without explicit Configuration.
     // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
     // If SKUBERCONFIG value matches:
@@ -289,8 +289,8 @@ package object client {
       }
       case None => buildConfigForProxyURL(skuberProxyURLEnv)
     }
-    k8sInit(config)
+    init(config)
   }
   
-  def k8sInit(config: Configuration)(implicit executionContext : ExecutionContext) = new K8SRequestContext(config.currentContext)
+  def init(config: Configuration)(implicit executionContext : ExecutionContext) = new RequestContext(config.currentContext)
 }

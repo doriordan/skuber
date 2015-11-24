@@ -1,11 +1,10 @@
-package skuber.model
+package skuber
 
 /**
  * @author David O'Riordan
  */
 
 import scala.math.BigDecimal
-import coretypes._
 
 object Resource {
   

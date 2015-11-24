@@ -1,11 +1,10 @@
 package skuber.examples.guestbook
 
-import skuber.model.ReplicationController
-import skuber.api.client.WatchEvent
+import skuber.ReplicationController
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorLogging}
 import akka.actor.Props
-import akka.event.Logging
+import akka.event.{LoggingReceive}
 import akka.util.Timeout
 import akka.pattern.ask
 import akka.actor.Status.Failure
@@ -22,7 +21,7 @@ import akka.actor.Status.Failure
 
 object ScalerActor {
   
-  case object InitiateScaling  
+  case class InitiateScaling(resultHandler: ActorRef) 
   case class ScalingDone(controllerName: String, toReplicaCount: Int) // sent to the parent when finished
   case class ScalingError(ex: Failure)
   
@@ -32,7 +31,7 @@ object ScalerActor {
 
 import ScalerActor._
 
-class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCount: Int) extends Actor {
+class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCount: Int) extends Actor with ActorLogging {
   
   import ScalerActor._
   import KubernetesProxyActor._
@@ -40,90 +39,104 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
   private def isScalingComplete(rc: ReplicationController) = rc.status.get.replicas == targetReplicaCount
   private def specNeedsChanging(rc: ReplicationController) = rc.spec.get.replicas != targetReplicaCount
 
-  private def report(s: String) = System.err.println("Scale(" + controllerName + "," + targetReplicaCount + "): " + s)
+  private def report(s: String) = System.out.println("  '" + controllerName + "' => " + s)
   private def reportStatus(rc: ReplicationController) = 
-    report(rc.status.get.replicas + " of " + rc.spec.get.replicas + " running")
+    report(rc.status.get.replicas + " replicas currently running (target: " + rc.spec.get.replicas + ")")
     
   implicit val timeout = Timeout(60 seconds) 
+  
+  var watching: Option[ReplicationController]= None
    
   // Scaling will proceed through initial, updating, (possibly) watching, and completed behaviours
   //
-  // initial: receives initiate scaling request: asks Kubernetes for latest RC data and moves to  watching
-  // specify: receives initial RC data from Kubernetes, posting an update to the number of 
+  // initial: receives initiate scaling request: asks Kubernetes for latest RC data and moves to updateSpecification
+  // updateSpecification: receives initial RC data from Kubernetes, posting an update to the number of 
   // replicas in its specification if necessary. If/when the spec is as required, it then either completes (if all replicas 
-  // status indicates correct replica count already running) or moves to watching 
-  // watch: specification update is now complete, so passively watch RC updates from Kubernetes until status 
-  // indicates count of replicas running matches the specification
+  // already running) or moves to watching 
+  // waitForCompletion: specification update is now complete, so passively watch RC updates from Kubernetes until status 
+  // indicates number of replicas running matches the specification
   // completed: scaling is done or a failure has happened - parent has been notified so there is no more 
   // to do.
   
   def receive = initial 
-  var requester = context.sender
+  var resultHandler = context.sender
   
-  def initial : Receive = {
-     case InitiateScaling => {
-       requester = sender
-       // ask Kubernetes for current RC and switch to specify behaviour to handle the response
-       report("Initiating...")
-       kubernetes ! GetReplicationController(controllerName) 
-       context.become(specify) 
+  def initial : Receive = LoggingReceive {
+     case InitiateScaling(resultHandler: ActorRef) => {
+       this.resultHandler = resultHandler
+       // ask Kubernetes for current RC, handling the result via the updateSpecification behavior
+       kubernetes ! GetReplicationController(controllerName, self) 
+       context.become(updateSpecification) 
      }
   } 
   
   // each behavior chains together component receive handlers in order of precedence - once one matches
   // the remaining ones won't be called
-  def specify : Receive = maybeNotFound orElse changeSpecIfNecessary orElse completeIfScalingDone orElse gotoWatching orElse handleFailureStatus
-  def watch: Receive = completeIfScalingDone orElse keepWatching orElse handleFailureStatus  
+  def updateSpecification : Receive = maybeNotFound orElse specNeedsUpdating orElse isCompleted orElse startWaiting orElse handleFailureStatus
+  def waitForCompletion: Receive = isCompleted orElse isNotYetCompleted orElse handleFailureStatus  
   def completed: Receive = { case _ => } // just discard all messages if completed scaling
  
-  def maybeNotFound : Receive = {
+  def maybeNotFound : Receive = LoggingReceive {
     // the first request on the RC may return a ResourceNotFound exception, propagate to the parent
     // to handle and end the scaling attempt
     case KubernetesProxyActor.ResourceNotFound => {
-      report("replication controller does not exist - nothing to scale")
-      requester ! KubernetesProxyActor.ResourceNotFound
+      report("replication controller does not exist on Kubernetes - nothing to scale")
+      resultHandler ! KubernetesProxyActor.ResourceNotFound
       context.become(completed)
     }
   }
   
-  def changeSpecIfNecessary: Receive = {
+  def specNeedsUpdating: Receive = LoggingReceive {
       case rc: ReplicationController if (specNeedsChanging(rc)) => {
-        report("Asking Kubernetes to change specified replica count to " + targetReplicaCount)
-        kubernetes ! UpdateReplicationController(rc.withReplicas(targetReplicaCount))
+        report("updating specified replica count on Kubernetes to " + targetReplicaCount) 
+        val update = rc.withReplicas(targetReplicaCount)
+        kubernetes ! UpdateReplicationController(update, self)
       }
   }
-  def completeIfScalingDone: Receive = {  
+  
+  def isCompleted : Receive = LoggingReceive {
     case rc: ReplicationController if (isScalingComplete(rc)) => {
       reportStatus(rc)
-      report("Scaling successfully completed")
       done
     }
   }
-  def gotoWatching: Receive = {
+  
+  def startWaiting: Receive = LoggingReceive {
     case rc: ReplicationController => {
       reportStatus(rc)
-      report("Placing a watch on the RC to receive updates to the running replica count")
-      kubernetes ! WatchReplicationController(rc) 
-      context.become(watch)
+      report("scaling in progress on Kubernetes - creating a reactive watch to monitor progress")
+      kubernetes ! WatchReplicationController(rc, self) 
+      watching = Some(rc)
+      context.become(waitForCompletion)
     }
   }
-  def keepWatching: Receive = {
-    case rc: ReplicationController => reportStatus(rc)
+  def isNotYetCompleted : Receive = LoggingReceive {
+    case rc: ReplicationController => reportStatus(rc) // just continue to watch
   }
   
-  def handleFailureStatus: Receive = {
+  def handleFailureStatus: Receive = LoggingReceive {
     case fail: Failure => error(fail) // probably an error response from Kubernetes
-    case msg => report("Received unexpected message: " + msg)
+    case msg => report("received unexpected message: " + msg)
   }
   
-  // handle successful or failed completion of scaling, notifying parent
+  // handle successful or failed completion of scaling
   def done = {
-    requester ! ScalingDone(controllerName, targetReplicaCount)
+    if (targetReplicaCount==0)
+      report("successfully stopped all replica(s)")
+    else
+      report("successfully scaled to " + targetReplicaCount + " replica(s)")
+          
+    resultHandler ! ScalingDone(controllerName, targetReplicaCount)
+    watching foreach { kubernetes ! UnwatchReplicationController(_, self) }
+    watching = None
     context.become(completed)
   }  
+  
   def error(ex: Failure) = {
-    report("Scaling ended with error")
-    requester  ! ScalingError(ex)
+    report("scaling ended with error: " + ex.cause.getMessage)
+    resultHandler ! ScalingError(ex)
+    watching foreach { kubernetes ! UnwatchReplicationController(_, self) }
+    watching = None
     context.become(completed)
   }
 }

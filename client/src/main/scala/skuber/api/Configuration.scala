@@ -1,7 +1,7 @@
 package skuber.api
 
 import client._
-import skuber.model.Namespace
+import skuber.Namespace
 import scala.util.{Try,Success,Failure}
 import java.io.{File, FileInputStream}
 
@@ -13,23 +13,23 @@ import org.yaml.snakeyaml.Yaml
  * @author David O'Riordan
  */
 case class Configuration(
-      clusters: Map[String, K8SCluster] = Map(),
-      contexts: Map[String, K8SContext] = Map(),  
-      currentContext: K8SContext = K8SContext(),
-      users: Map[String, K8SAuthInfo] = Map()) {
+      clusters: Map[String, Cluster] = Map(),
+      contexts: Map[String, Context] = Map(),  
+      currentContext: Context = Context(),
+      users: Map[String, AuthInfo] = Map()) {
       
-      def withCluster(name:String, cluster: K8SCluster) = this.copy(clusters = this.clusters + (name -> cluster))
-      def withContext(name: String, context: K8SContext) = this.copy(contexts = this.contexts + (name -> context))
-      def useContext(context: K8SContext) = this.copy(currentContext=context) 
+      def withCluster(name:String, cluster: Cluster) = this.copy(clusters = this.clusters + (name -> cluster))
+      def withContext(name: String, context: Context) = this.copy(contexts = this.contexts + (name -> context))
+      def useContext(context: Context) = this.copy(currentContext=context) 
 }
 
 object Configuration {
 
     // default config is suitable for use with kubectl proxy running on localhost:8001
     lazy val default = Configuration(
-        clusters = Map("default" -> K8SCluster()), 
-        contexts= Map("default" -> K8SContext()),
-        currentContext = K8SContext())
+        clusters = Map("default" -> Cluster()), 
+        contexts= Map("default" -> Context()),
+        currentContext = Context())
         
     /**
      * Parse a kubeconfig file to get a K8S Configuration object for the API. 
@@ -67,13 +67,13 @@ object Configuration {
           topLevelList(kind + "s").asScala.map(item => name(item) -> toK8SConfig(child(item, kind))).toMap
           
         def toK8SCluster(clusterConfig: YamlMap) =
-           K8SCluster(apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
-                      server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
-                      insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)))   
+           Cluster(apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
+                   server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
+                   insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)))   
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster _)
               
         def toK8SAuthInfo(userConfig:YamlMap) =      
-          K8SAuthInfo(token=optionalValueAt(userConfig, "token"),
+            AuthInfo(token=optionalValueAt(userConfig, "token"),
                       userName=optionalValueAt(userConfig, "username"),
                       password=optionalValueAt(userConfig, "password"))
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo _)                            
@@ -82,12 +82,12 @@ object Configuration {
           val cluster=contextConfig.asScala.get("cluster").flatMap(clusterName => k8sClusterMap.get(clusterName.asInstanceOf[String])).get
           val authInfo =contextConfig.asScala.get("user").flatMap(userKey => k8sAuthInfoMap.get(userKey.asInstanceOf[String])).get
           val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
-          K8SContext(cluster,authInfo,namespace)    
+          Context(cluster,authInfo,namespace)    
         }       
         val k8sContextMap = topLevelYamlToK8SConfigMap("context", toK8SContext _)
         
         val currentContextStr: Option[String] = optionalValueAt(mainConfig, "current-context")
-        val currentContext = currentContextStr.flatMap(k8sContextMap.get(_)).getOrElse(K8SContext())
+        val currentContext = currentContextStr.flatMap(k8sContextMap.get(_)).getOrElse(Context())
         Configuration(k8sClusterMap, k8sContextMap, currentContext, k8sAuthInfoMap)
       }
     }    

@@ -9,9 +9,8 @@ import scala.math.BigInt
 
 import java.util.Calendar
 
-import skuber.model.coretypes._
-import skuber.model._
-import skuber.json.format._
+import skuber._
+import format._
 
 import play.api.libs.json._
 
@@ -81,7 +80,7 @@ class NamespaceFormatSpec extends Specification {
             ns.apiVersion mustEqual "v1"
             ns.kind mustEqual "Namespace"
             ns.metadata.uid mustEqual "2a08e586-2d2d-11e5-99f8-0800279dd272"
-            ns.status mustEqual Some(skuber.model.Namespace.Status("Active"))
+            ns.status mustEqual Some(skuber.Namespace.Status("Active"))
             val date = ns.metadata.creationTimestamp.get
             date.getYear mustEqual 2015
             date.getMonth mustEqual java.time.Month.JULY

@@ -2,9 +2,8 @@ package skuber.examples.guestbook
 
 package object model {
 
-  import skuber.model.{ReplicationController,Container,Pod,Service}
-  import skuber.model.Service.Type.{ServiceType,ClusterIP}
-  import skuber.model.coretypes.{ObjectMeta,portNumToNameablePort}
+  import skuber.{ObjectMeta, portNumToNameablePort, ReplicationController,Container,Pod,Service}
+  import skuber.Service.Type.{ServiceType,ClusterIP}
 
   case class GuestbookServiceSpecification(
       serviceName: String, 

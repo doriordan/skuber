@@ -1,10 +1,9 @@
-package skuber.model
+package skuber
 
 import org.specs2.mutable.Specification // for unit-style testing
 
 import scala.math.BigInt
 
-import coretypes._
 
 /**
  * @author David O'Riordan

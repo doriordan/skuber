@@ -1,14 +1,9 @@
 package skuber.examples.guestbook
 
-import skuber.model.ReplicationController
-import skuber.model.Service
-import skuber.model.Service.Type._
-import skuber.api.client.K8SException
-
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorLogging}
 import akka.actor.Props
 import akka.util.Timeout
-import akka.pattern.{ask,pipe}
+import akka.event.LoggingReceive
 
 import scala.util.{Success,Failure}
 import scala.concurrent.Future
@@ -16,14 +11,13 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 
 import model.GuestbookServiceSpecification
-import ServiceActor._
 
 /*
  * A service actor manages a single Guestbook service, encapsulating access to both the service
  * and its replication controller on Kubernetes
  * It supports creation and removal of service resources on Kubernetes, as well as
  * - scaling a service to a specified number of replicas
- * - stopping a service, which scales its replicas down to zero
+ * - stopping a service, which scales its replicas down to zero if the service exists
  */
 object ServiceActor {
   
@@ -35,105 +29,165 @@ object ServiceActor {
   
   sealed abstract trait ServiceReply
   case object ServiceRemoved extends ServiceReply
-  case class ServiceScaledTo(n: Int) extends ServiceReply
+  case class ServiceScaledTo(name: String, n: Int) extends ServiceReply
   case object ServiceStopped extends ServiceReply
   case object ServiceCreated extends ServiceReply
   case object ServiceNotExists extends ServiceReply
-  case object ResourceNotFound extends ServiceReply
   case class UnexpectedServiceError(name: String, ex: Throwable) extends ServiceReply
   
   def props(kubernetes: ActorRef, spec: GuestbookServiceSpecification) = Props(new ServiceActor(kubernetes, spec))
 }
 
-class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecification) extends Actor {
+import ServiceActor._
+
+class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecification) extends Actor with ActorLogging {
   
-  import ScalerActor._
-  import KubernetesProxyActor._
-  
-  implicit val timeout = Timeout(30 seconds)
-  
+  implicit val timeout = Timeout(60 seconds)
+   
   /*
-   * Remove a service
-   * Delete first the service then controller
+   * Create the service on Kubernetes
+   * Creates both a service and associated replication controller based on the 
+   * specification passed to the actors constructor
+   * Replies with ServiceCreated (via a result handler) if all goes well
    */
-  private def remove: Future[Any] =
-    for {
-      svc <- ask(kubernetes, DeleteService(specification.serviceName))
-      rc  <- ask(kubernetes, DeleteReplicationController(specification.serviceName))
-    } yield (svc,rc)
-  
+  private def create = {
+    import KubernetesProxyActor.{CreateReplicationController, CreateService}
+    val k8sResources = specification.buildKubernetesResources
+    val resultHandler = context.actorOf(
+        CreateResultHandler.props(sender, specification.serviceName)) 
+    kubernetes ! CreateReplicationController(k8sResources.rc, resultHandler)
+    kubernetes ! CreateService(k8sResources.service, resultHandler)
+  }
   /*
-   * Stop a service - this is done by scaling the number of replicas down to zero
+   * Remove the service
+   * Deletes both the service its replication controller on Kubernetes
+   * Replies with ServiceRemoved (via a result handler) if all goes well
    */
-  private def stop: Future[Any] = scale(0)
+  private def remove = {
+    import KubernetesProxyActor.{DeleteReplicationController, DeleteService}
+    val name = specification.serviceName
+    val resultHandler = context.actorOf(RemoveResultHandler.props(sender, name)) 
+    kubernetes ! DeleteReplicationController(name, resultHandler)
+    kubernetes ! DeleteService(name, resultHandler)
+  }
     
-  private def scale(to: Int): Future[Any] = {
-      
-    import ScalerActor._
-    val scaler = context.actorOf(props(kubernetes, specification.serviceName, to))
-    ask(scaler, InitiateScaling) 
+  /*
+   * Scale the number of replicas for the service to the specified count
+   * Replies with ScalingDone (via a result handler) when target replica count reached
+   */
+  private def scale(to: Int) = {
+    import ScalerActor.InitiateScaling
+    val name = specification.serviceName
+    val scaler = context.actorOf(ScalerActor.props(kubernetes, name, to),"scale-to-" + to)
+    val resultHandler = context.actorOf(
+        ScaleResultHandler.props(sender, specification.serviceName))
+    scaler ! InitiateScaling(resultHandler) 
+  }   
+ 
+  /*
+   * Stop the service - accomplished by scaling replicas down to zero
+   * Replies with ServiceStopped (via a result handler) when all replicas stopped
+   */
+  private def stop = {
+    import ScalerActor.InitiateScaling
+    val name = specification.serviceName
+    val scaler = context.actorOf(ScalerActor.props(kubernetes, name, 0),"stop")
+    val resultHandler = context.actorOf(
+        StopResultHandler.props(sender, specification.serviceName))
+    scaler ! InitiateScaling(resultHandler) 
   }   
   
-  private def create : Future[Any]= {
-    val k8sResources = specification.buildKubernetesResources
-    for {
-      rc   <- ask(kubernetes, CreateReplicationController(k8sResources.rc)).mapTo[ReplicationController]
-      svc  <- ask(kubernetes,CreateService(k8sResources.service)).mapTo[Service]
-    } yield (rc, svc)
+  override def receive = LoggingReceive {
+    case Create => create
+    case Remove => remove
+    case Scale(n) => scale(n)
+    case Stop => stop
   }
-  
-  private def containsNotFoundResult(result: Any) : Boolean = result match {
-    case ResourceNotFound | 
-         (ResourceNotFound, ResourceNotFound) | 
-         (ResourceNotFound,_) | 
-         (_, ResourceNotFound) => true
-    case other => false  
+}
+
+/*
+ * Per service request actors - each of these short-lived actors receives one or more 
+ * responses from a supporting actor (the kubernetes proxy or a scaler) for a given 
+ * specific service request. It then composes and sends the appropriate service 
+ * response to the service consumer, and stops itself.
+ */
+
+abstract class ServiceResultHandler(serviceConsumer: ActorRef) extends Actor with akka.actor.ActorLogging { 
+  def complete(response: Any) = {
+     log.debug("Sending service response " + response + " to " + serviceConsumer.path)
+     serviceConsumer ! response
+     context.stop(self)
   }
+}
+
+import KubernetesProxyActor.ResourceNotFound
+
+object CreateResultHandler {
+  def props(consumer: ActorRef, name: String) = Props(new CreateResultHandler(consumer, name))
+}
+
+class CreateResultHandler(consumer: ActorRef, name: String) extends ServiceResultHandler(consumer) {
+
+  // Two create requests will have been sent to the Kubernetes proxy, so complete when 
+  // the two expected results (created RC and service resources) have been received back
+  var countResults = 0
   
-  override def receive = {
-    
-    case Create => {
-      val requester = sender
-      val reply = create collect {
-        case akka.actor.Status.Failure(ex) => UnexpectedServiceError(specification.serviceName, ex)
-        case rnf if (containsNotFoundResult(rnf)) => 
-          UnexpectedServiceError(specification.serviceName, new Exception("Not Found"))
-        case other => ServiceCreated
-      }
-      reply map{ requester ! _ }
+  private def gotExpectedResult = {
+      countResults += 1
+      if (countResults==2)
+        complete(ServiceCreated)
     }
-    
-    case Remove => {
-      val requester = sender
-      val reply = remove collect {
-        case akka.actor.Status.Failure(ex) => UnexpectedServiceError(specification.serviceName, ex)
-        case other => ServiceRemoved
-      }
-      reply map { requester ! _ }
+  
+  override def receive = LoggingReceive {
+    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case ResourceNotFound => 
+          complete(UnexpectedServiceError(name, new Exception("Not Found")))
+    case r:skuber.ReplicationController => gotExpectedResult
+    case s:skuber.Service => gotExpectedResult
+  }
+}
+
+object RemoveResultHandler {
+  def props(consumer: ActorRef, name: String) = Props(new RemoveResultHandler(consumer, name))
+}
+
+class RemoveResultHandler(consumer: ActorRef, name: String) extends ServiceResultHandler(consumer) {
+  
+  // Two delete requests will have been sent to the Kubernetes proxy, so complete when 
+  // two non error results have been received back
+  var countResults = 0
+  override def receive = LoggingReceive {
+    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case other => {
+      countResults += 1
+      if (countResults==2)
+        complete(ServiceRemoved)
     }
-    
-    case Scale(n: Int) =>  {
-      val requester = sender
-      val reply = scale(n) collect {
-        case ScalingError => 
-          UnexpectedServiceError(specification.serviceName,new Exception("An error occured while scaling"))
-        case akka.actor.Status.Failure(ex) => UnexpectedServiceError(specification.serviceName, ex)
-        case rnf if (containsNotFoundResult(rnf)) => 
-          UnexpectedServiceError(specification.serviceName, new Exception("Unable to scale as resource does not exist"))
-        case other => ServiceScaledTo(n)
-      }
-      reply map { requester ! _ }
-    }
-    
-    case Stop => {
-      val requester = sender
-      val reply = stop collect {
-        case ScalingError => 
-          UnexpectedServiceError(specification.serviceName,new Exception("An error occured while scaling"))
-        case akka.actor.Status.Failure(ex) => UnexpectedServiceError(specification.serviceName, ex)
-        case other => ServiceStopped
-      }
-      reply map { requester ! _ }
-    }
-  }  
+  }
+}
+
+object ScaleResultHandler {
+  def props(consumer: ActorRef, name: String) = Props(new ScaleResultHandler(consumer, name))
+}
+
+class ScaleResultHandler(consumer: ActorRef, name: String) extends ServiceResultHandler(consumer) {
+  override def receive = LoggingReceive {
+    case ScalerActor.ScalingError => complete(UnexpectedServiceError(name,new Exception("An error occured while scaling")))
+    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case ResourceNotFound => complete(UnexpectedServiceError(name, new Exception("Unable to scale as resource does not exist")))
+    case s: ScalerActor.ScalingDone => complete(ServiceScaledTo(name, s.toReplicaCount))
+  }
+}
+
+object StopResultHandler {
+  def props(consumer: ActorRef, name: String) = Props(new StopResultHandler(consumer, name))
+}
+
+class StopResultHandler(consumer: ActorRef, name: String) extends ServiceResultHandler(consumer) {
+  override def receive = LoggingReceive {
+    case ScalerActor.ScalingError => complete(UnexpectedServiceError(name,new Exception("An error occured while scaling")))
+    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case ResourceNotFound => complete(ServiceStopped) // if service not exists treat as Stopped
+    case s: ScalerActor.ScalingDone => complete(ServiceStopped)
+  }
 }
