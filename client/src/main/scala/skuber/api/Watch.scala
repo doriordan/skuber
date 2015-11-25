@@ -60,12 +60,10 @@ object Watch {
         bytes : Enumerator[Array[Byte]])
         (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
     {
-      // interleaving a pulse is a workaround for apparent issue whereby last event note fed to iteratee
-      // until another event is emitted by the enumerator or EOF reached (and there is never an EOF for
-      // a Kubernetes watch response stream)
-      // The pulse ensures all Kubernetes events in the stream are processed by a consuming
-      // iteratee within 100ms of being enumerated from the stream. The pulses are filtered
-      // out by an enumeratee so the iteratee never consumes them,
+      // interleave a regular pulse: workaround for apparent issue that last event in Watch response 
+      // stream doesn't get enumerated until another event is received: problematic when you want 
+      // to react to that last event but  don't expect more events imminently (Guestbook is an example)
+      // The pulse events will be filtered out by an enumeratee in fromBytesEnumerator.
       val pulseWatch = pulse
       val bytesWithPulse = bytes interleave pulseWatch.events
       val enumerator = fromBytesEnumerator(watchId, bytesWithPulse)

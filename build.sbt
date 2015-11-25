@@ -30,7 +30,8 @@ lazy val root = (project in file(".")) aggregate(
 lazy val client = (project in file("client")).
   settings(commonSettings: _*).
   settings(
-    libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test)
+    libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test).
+				map(_.exclude("commons-logging","commons-logging"))
   )
 
 lazy val examples = (project in file("examples")).

@@ -1,9 +1,8 @@
 package skuber.examples.guestbook
 
-package object model {
+import skuber._
 
-  import skuber.{ObjectMeta, portNumToNameablePort, ReplicationController,Container,Pod,Service}
-  import skuber.Service.Type.{ServiceType,ClusterIP}
+package object model {
 
   case class GuestbookServiceSpecification(
       serviceName: String, 
@@ -11,7 +10,7 @@ package object model {
       image: String,
       containerPort: Int,
       replicas: Int,
-      serviceType: ServiceType = ClusterIP, 
+      serviceType: Service.Type.ServiceType = Service.Type.ClusterIP,
       nodePort: Int = 0, // nodePort is only relevant if serviceType == NodePort
       customSelectors: Map[String, String] = Map(), // additional labels that should be selectors
       customLabels: Map[String, String] = Map(), // additional labels (but not selectors) 
