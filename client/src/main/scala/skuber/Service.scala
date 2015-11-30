@@ -25,8 +25,15 @@ object Service {
   
    def apply(name: String): Service = Service(metadata=ObjectMeta(name=name))
    def apply(name: String, spec: Service.Spec) : Service = Service(metadata=ObjectMeta(name=name), spec = Some(spec))
+   def apply(name: String, selector: Map[String, String], port: Int): Service =
+     apply(name, selector, Port(port=port))
+   def apply(name: String, selector: Map[String,String], port: Port): Service = {
+     val meta=ObjectMeta(name=name,labels=selector)
+     val serviceType=if (port.nodePort != 0) Type.NodePort else Type.ClusterIP
+     val spec=Spec(ports=List(port), selector=selector,_type=serviceType)
+     Service(metadata=meta,spec=Some(spec))
+   }
    
-  
    object Affinity extends Enumeration {
      type Affinity=Value
      val ClientIP, None=Value

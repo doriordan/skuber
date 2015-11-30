@@ -26,10 +26,7 @@ package object model {
         val labels = coreLabels ++ customLabels
         val selector=coreLabels ++ customSelectors
     
-        val container=Container(
-          name=containerName, 
-          image=image, 
-          ports=List(Container.Port(containerPort)))
+        val container=Container(containerName, image=image).port(containerPort)
           
         val template = Pod.Template.Spec.withName(serviceName).
                              addLabels(labels).
@@ -43,9 +40,9 @@ package object model {
                              withSelector(selector).
                              withTemplate(template)
                                 
-        val servicePort = Service.Port(port=containerPort, targetPort=Some(containerPort))                          
+        val servicePort = Service.Port(port=containerPort, nodePort = nodePort)                          
         val service = Service(metadata=ObjectMeta(name=serviceName, labels=labels), 
-                              spec=Some(Service.Spec(ports=List(servicePort)).withSelector(selector)))
+                              spec=Some(Service.Spec(ports=List(servicePort),_type=serviceType).withSelector(selector)))
     
         GuestbookServiceResources(controller, service)
       }

@@ -23,6 +23,18 @@ case class Container(
     imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
     securityContext: Option[Security.Context] = None)
       extends Limitable
+{
+  def port(port: Int, prot:Protocol.Value = Protocol.TCP) : Container = 
+    this.copy(ports=Container.Port(containerPort=port, protocol=prot)::this.ports)        
+  def port(p: Container.Port) : Container = this.copy(ports=p::this.ports)
+  def env(e: (String, String)*) = {
+    import EnvVar.strToValue
+    val envVarSeq = e map { case (n,v) => EnvVar(n,v) }
+    this.copy(env = this.env ++ envVarSeq)
+  }
+  def entrypoint(cmd: String*) = this.copy(command=cmd.toList)
+}
+      
     
 object Container {
   

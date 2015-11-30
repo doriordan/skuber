@@ -32,14 +32,14 @@ object GuestbookActor {
   val redisSlaveSpec = GuestbookServiceSpecification(
         serviceName="redis-slave", 
         containerName="worker", 
-        image="kubernetes/redis-slave:v2", 
+        image="kubernetes/redis-slave", 
         containerPort=6379, 
         replicas=2)
   
   val frontEndSpec=GuestbookServiceSpecification(
         serviceName="frontend", 
         containerName="php-redis",
-        image="kubernetes/example-guestbook-php-redis:v2", 
+        image="kubernetes/example-guestbook-php-redis", 
         containerPort=80, 
         replicas=3, 
         serviceType=skuber.Service.Type.NodePort, 
@@ -148,11 +148,10 @@ class GuestbookActor extends Actor with ActorLogging {
         done <- ensureAllRunning
       } yield done
       
-      deploy andThen  {
-        case result => ask(kubernetesProxy, KubernetesProxyActor.Close) andThen { 
-          case Success(_) => requester ! DeployedSuccessfully
-          case Failure(ex) => requester ! DeploymentFailed(ex)
-        }
+      deploy onComplete { case _ => ask(kubernetesProxy, KubernetesProxyActor.Close) }
+      deploy onComplete {
+        case Success(_) => requester ! DeployedSuccessfully
+        case Failure(ex) => requester ! DeploymentFailed(ex)
       }
     }
   }  

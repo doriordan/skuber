@@ -82,7 +82,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
     case GetReplicationController(name: String, resultHandler) => invoke(k8s get[ReplicationController] name) pipeTo resultHandler
     case UpdateReplicationController(newSpec, resultHandler) => invoke(k8s update[ReplicationController] newSpec) pipeTo resultHandler
     
-    case WatchReplicationController(rc: ReplicationController, watcher: ActorRef) => {     
+    case WatchReplicationController(rc: ReplicationController, watcher: ActorRef) => { 
       val currentlyWatching = rcWatching.get(rc.name)
       currentlyWatching match {
         case Some(watching) => {

@@ -9,7 +9,6 @@ val commonsIO = "commons-io" % "commons-io" % "2.4"
 val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
 
 // Akka is required by the examples 
-
 val akka ="com.typesafe.akka" %% "akka-actor" % "2.4.0"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
@@ -23,19 +22,27 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.11.7"
 )
 
+lazy val skuberSettings = Seq(
+  name := "skuber-client",
+  libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test).
+				map(_.exclude("commons-logging","commons-logging"))
+)
+
+lazy val examplesSettings = Seq(
+  name := "skuber-examples",
+  libraryDependencies += akka
+)
+
 lazy val root = (project in file(".")) aggregate(
   client,
   examples)
 
 lazy val client = (project in file("client")).
   settings(commonSettings: _*).
-  settings(
-    libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test).
-				map(_.exclude("commons-logging","commons-logging"))
-  )
+  settings(skuberSettings: _*)
 
 lazy val examples = (project in file("examples")).
   settings(commonSettings: _*).
-  settings(libraryDependencies += akka).
+  settings(examplesSettings: _*).
   dependsOn(client)
 
