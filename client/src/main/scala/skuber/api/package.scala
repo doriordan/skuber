@@ -236,8 +236,8 @@ package object client {
       case code if code < 300 => // ok
       case code => {
         // a non-success or unexpected status returned - we should normally have a Status in the response body
-        if (log.isErrorEnabled())
-          log.error("[Skuber Response: ERROR : status code = " + code + "]")
+        if (log.isWarnEnabled)
+          log.warn("[Skuber Response: Non-ok status code = " + code + "]")
         val status=response.json.validate[Status]
         status match {
           case JsSuccess(status, path) => throw new K8SException(status)

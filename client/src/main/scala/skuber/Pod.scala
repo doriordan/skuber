@@ -19,7 +19,7 @@ object Pod {
   
    import DNSPolicy._
    case class Spec( 
-      containers: List[Container], // should have at least one member
+      containers: List[Container] = List(), // should have at least one member
       volumes: List[Volume] = Nil, 
       restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
       terminationGracePeriodSeconds: Option[Int] = None,
@@ -63,7 +63,7 @@ object Pod {
   case class Template(
     val kind: String ="PodTemplate",
     override val apiVersion: String = "v1",
-    val metadata: ObjectMeta,
+    val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[Template.Spec] = None) 
     extends ObjectResource with KListItem 
   {  

@@ -57,28 +57,36 @@ package object format {
   implicit def jsPath2MaybeEmpty(path: JsPath) = new MaybeEmpty(path)
    
   // general formatting for Enumerations - derived from https://gist.github.com/mikesname/5237809
-  def enumReads[E <: Enumeration](enum: E, default: Option[E#Value]=None): Reads[E#Value] = new Reads[E#Value] {
+  implicit def enumReads[E <: Enumeration](enum: E) : Reads[E#Value] = new Reads[E#Value] {
     def reads(json: JsValue): JsResult[E#Value] = json match {
       case JsString(s) => {
         try {
           JsSuccess(enum.withName(s))
         } catch {
-          case _: NoSuchElementException => default match {
-            case None => JsError(s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'")
-            case Some(e) => JsSuccess(e)
-          }
+          case _: NoSuchElementException => JsError(s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'")
         }
       }
       case _ => JsError("String value expected")
-    }
+    } 
   }
-
+  
+  implicit def enumReads[E <: Enumeration](enum: E, default: E#Value) : Reads[E#Value] = enumReads(enum) or Reads.pure(default)
+  
   implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = new Writes[E#Value] {
     def writes(v: E#Value): JsValue = JsString(v.toString)
   }
 
-  implicit def enumFormat[E <: Enumeration](enum: E): Format[E#Value] = Format(enumReads(enum), enumWrites)
+  implicit def enumFormat[E <: Enumeration](enum: E) : Format[E#Value] = Format(enumReads(enum), enumWrites)
    
+  class EnumFormatter(val path: JsPath) {
+     def formatEnum[E <: Enumeration](enum: E, default: Option[E#Value]=None) : OFormat[E#Value] =
+        path.formatNullable[String].inmap[E#Value](_.map(s => enum.withName(s)).getOrElse(default.get), e =>  Some(e.toString))
+     def formatNullableEnum[E <: Enumeration](enum: E)  : OFormat[Option[E#Value]] =
+        path.formatNullable[String].inmap[Option[E#Value]](_.map(s => enum.withName(s)), e => e map { _.toString } )
+  }
+  implicit def jsPath2enumFmtr(path: JsPath)  = new EnumFormatter(path)
+   
+
   // formatting of the Kubernetes types
   
   implicit lazy val objFormat =
@@ -184,11 +192,11 @@ package object format {
     (JsPath \ "requests").formatMaybeEmptyMap[Resource.Quantity]
   )(Resource.Requirements.apply _, unlift(Resource.Requirements.unapply))
    
-  implicit val protocolFmt = Format(enumReads(Protocol, Some(Protocol.TCP)), enumWrites)
+  implicit val protocolFmt = Format(enumReads(Protocol, Protocol.TCP), enumWrites)
   
   implicit val formatCntrProt: Format[Container.Port] = (
     (JsPath \ "containerPort").format[Int] and
-    (JsPath \ "protocol").format[Protocol.Protocol] and
+    (JsPath \ "protocol").formatEnum(Protocol,Some(Protocol.TCP)) and
     (JsPath \ "name").formatMaybeEmptyString() and
     (JsPath \ "hostIP").formatMaybeEmptyString() and
     (JsPath \ "hostPort").formatNullable[Int]
@@ -400,7 +408,7 @@ package object format {
    )(Volume.Mount.apply _, unlift(Volume.Mount.unapply))
   
    implicit val pullPolicyFormat: Format[Container.PullPolicy.Value] = 
-       Format(enumReads(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)), enumWrites)
+       Format(enumReads(Container.PullPolicy, Container.PullPolicy.IfNotPresent), enumWrites)
        
   implicit val containerFormat: Format[Container] = (
     (JsPath \ "name").format[String] and
@@ -416,7 +424,7 @@ package object format {
     (JsPath \ "readinessProbe").formatNullable[Probe] and
     (JsPath \ "lifeCycle").formatNullable[Lifecycle] and
     (JsPath \ "terminationMessagePath").formatMaybeEmptyString() and
-    (JsPath \ "imagePullPolicy").format[Container.PullPolicy.Value] and
+    (JsPath \ "imagePullPolicy").formatEnum(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)) and
     (JsPath \ "securityContext").formatNullable[Security.Context]
   )(Container.apply _, unlift(Container.unapply))
    
@@ -424,11 +432,10 @@ package object format {
       (JsPath \ "type").format[String] and
       (JsPath \ "status").format[String]
     )(Pod.Condition.apply _, unlift(Pod.Condition.unapply))
-    
-  implicit val podPhaseFormat = enumFormat(Pod.Phase)
+     
   
   implicit val podStatusFormat: Format[Pod.Status] = (
-      (JsPath \ "phase").formatNullable[Pod.Phase.Phase] and
+      (JsPath \ "phase").formatNullableEnum(Pod.Phase) and
       (JsPath \ "conditions").formatMaybeEmptyList[Pod.Condition] and
       (JsPath \ "message").formatNullable[String] and
       (JsPath \ "reason").formatNullable[String] and
@@ -437,8 +444,6 @@ package object format {
       (JsPath \ "startTime").formatNullable[Timestamp] and
       (JsPath \ "containerStatuses").formatMaybeEmptyList[Container.Status]
     )(Pod.Status.apply _, unlift(Pod.Status.unapply))
-    
-  implicit val dnsPolicyFormat = enumFormat(DNSPolicy)  
   
   implicit lazy val podFormat : Format[Pod] = (
       objFormat and
@@ -446,16 +451,14 @@ package object format {
       (JsPath \ "status").formatNullable[Pod.Status]
     ) (Pod.apply _, unlift(Pod.unapply))  
     
-  implicit val restartPolicyFmt: Format[RestartPolicy.RestartPolicy] = 
-        Format(enumReads(RestartPolicy, Some(RestartPolicy.Always)), enumWrites)  
   
   implicit val podSpecFormat: Format[Pod.Spec] = (
       (JsPath \ "containers").format[List[Container]] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
-      (JsPath \ "restartPolicy").format[RestartPolicy.RestartPolicy] and
+      (JsPath \ "restartPolicy").formatEnum(RestartPolicy, Some(RestartPolicy.Always)) and
       (JsPath \ "terminationGracePeriodSeconds").formatNullable[Int] and
       (JsPath \ "activeDeadlineSeconds").formatNullable[Int] and
-      (JsPath \ "dnsPolicy").format[DNSPolicy.Value] and
+      (JsPath \ "dnsPolicy").formatEnum(DNSPolicy, Some(DNSPolicy.Default)) and
       (JsPath \ "nodeSelector").formatMaybeEmptyMap[String] and
       (JsPath \ "serviceAccountName").formatMaybeEmptyString() and
       (JsPath \ "nodeName").formatMaybeEmptyString() and
@@ -487,16 +490,10 @@ package object format {
   implicit val serviceStatusFmt: Format[Service.Status] = 
     (JsPath \ "loadBalancer").formatNullable[Service.LoadBalancer.Status].
         inmap(lbs=> Service.Status(lbs), (ss:Service.Status) => ss.loadBalancer)  
-        
-  implicit val formatServiceSpecType: Format[Service.Type.ServiceType] = 
-    Format(enumReads(Service.Type,Some(Service.Type.ClusterIP)), enumWrites)
-    
-  implicit val formatServiceAffinity: Format[Service.Affinity.Affinity] = 
-    Format(enumReads(Service.Affinity, Some(Service.Affinity.None)), enumWrites)
    
   implicit val servicePortFmt: Format[Service.Port] = (
     (JsPath \ "name").formatMaybeEmptyString() and
-    (JsPath \ "protocol").format[Protocol.Value] and
+    (JsPath \ "protocol").formatEnum(Protocol, Some(Protocol.TCP)) and
     (JsPath \ "port").format[Int] and
     (JsPath \ "targetPort").formatNullable[NameablePort] and
     (JsPath \ "nodePort").formatMaybeEmptyInt()
@@ -506,9 +503,9 @@ package object format {
       (JsPath \ "ports").format[List[Service.Port]] and
       (JsPath \ "selector").formatMaybeEmptyMap[String] and
       (JsPath \ "clusterIP").formatMaybeEmptyString() and
-      (JsPath \ "type").format[Service.Type.ServiceType] and
+      (JsPath \ "type").formatEnum(Service.Type, Some(Service.Type.ClusterIP)) and
       (JsPath \ "externalIPs").formatMaybeEmptyList[String] and
-      (JsPath \ "sessionAffinity").format[Service.Affinity.Affinity]
+      (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Some(Service.Affinity.None))
    )(Service.Spec.apply _, unlift(Service.Spec.unapply))  
    
   implicit val serviceFmt: Format[Service] = (
@@ -532,8 +529,6 @@ package object format {
     (JsPath \ "type").format[String] and
     (JsPath \ "address").format[String]
   )(Node.Address.apply _, unlift(Node.Address.unapply))
-  
-  implicit val nodePhaseFmt = enumFormat(Node.Phase)
  
   implicit val nodeCondFmt: Format[Node.Condition] = (
     (JsPath \ "type").format[String] and
@@ -546,7 +541,7 @@ package object format {
   
   implicit val nodeStatusFmt: Format[Node.Status] = (
     (JsPath \ "capacity").formatMaybeEmptyMap[Resource.Quantity] and
-    (JsPath \ "phase").formatNullable[Node.Phase.Phase] and
+    (JsPath \ "phase").formatNullableEnum(Node.Phase) and
     (JsPath \ "conditions").formatMaybeEmptyList[Node.Condition] and
     (JsPath \ "addresses").formatMaybeEmptyList[Node.Address] and
     (JsPath \ "nodeInfo").formatNullable[Node.SystemInfo]
@@ -577,11 +572,11 @@ package object format {
       JsPath.format[PersistentSource] and
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
       (JsPath \ "claimRef").formatNullable[ObjectReference] and
-      (JsPath \ "persistentVolumeReclaimPolicy").formatNullable[PersistentVolume.ReclaimPolicy.ReclaimPolicy]
+      (JsPath \ "persistentVolumeReclaimPolicy").formatNullableEnum(PersistentVolume.ReclaimPolicy)
   )(PersistentVolume.Spec.apply _, unlift(PersistentVolume.Spec.unapply))
     
   implicit val persVolStatusFmt: Format[PersistentVolume.Status] = (
-      (JsPath \ "phase").formatNullable[PersistentVolume.Phase.Phase] and
+      (JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
   )(PersistentVolume.Status.apply _, unlift(PersistentVolume.Status.unapply))
       
@@ -598,7 +593,7 @@ package object format {
   )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
   
   implicit val pvClaimStatusFmt: Format[PersistentVolumeClaim.Status] = (
-    (JsPath \ "phase").formatNullable[PersistentVolume.Phase.Phase] and
+    (JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
   )(PersistentVolumeClaim.Status.apply _, unlift(PersistentVolumeClaim.Status.unapply))
   
@@ -624,11 +619,10 @@ package object format {
     (JsPath \ "data").formatMaybeEmptyMap[Array[Byte]]
   )(Secret.apply _, unlift(Secret.unapply))
   
-  implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = 
-        Format(enumReads(LimitRange.ItemType, Some(LimitRange.ItemType.Pod)), enumWrites) 
+  implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType) 
         
   implicit val limitRangeItemFmt: Format[LimitRange.Item] = (
-     (JsPath \ "type").format[LimitRange.ItemType.Type] and
+     (JsPath \ "type").formatNullableEnum(LimitRange.ItemType) and
      (JsPath \ "max").formatMaybeEmptyMap[Resource.Quantity] and
      (JsPath \ "min").formatMaybeEmptyMap[Resource.Quantity] and
      (JsPath \ "default").formatMaybeEmptyMap[Resource.Quantity] and
@@ -701,9 +695,8 @@ package object format {
       (JsPath \ "gracePeriodSeconds").formatMaybeEmptyInt()
     )(DeleteOptions.apply _, unlift(DeleteOptions.unapply))     
     
-    implicit val watchEvTypFmt = enumFormat(EventType)
     def watchEventFormat[T <: ObjectResource](implicit objfmt: Format[T]) : Format[WatchEvent[T]] = (
-      (JsPath \ "type").format[EventType.Value] and
+      (JsPath \ "type").formatEnum(EventType) and
       (JsPath \ "object").format[T]
     )(WatchEvent.apply[T] _, unlift(WatchEvent.unapply[T]))
     

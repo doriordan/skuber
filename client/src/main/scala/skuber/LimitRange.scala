@@ -21,7 +21,7 @@ object LimitRange {
   
   import Resource.ResourceList
   case class Item(
-      _type: ItemType.Type = ItemType.Pod,
+      _type: Option[ItemType.Type] = None,
       max: ResourceList = Map(),
       min: ResourceList = Map(),
       default: ResourceList = Map(),

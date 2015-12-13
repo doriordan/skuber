@@ -130,6 +130,11 @@ package object skuber {
   
   trait Limitable // marker trait for types that can be subject to resource limits (i.e. Container, Pod)
   
+  implicit def strToQuantity(value: String) : Resource.Quantity = Resource.Quantity(value)
+  implicit def dblToQuantity(value: Double) : Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
+  implicit def fltToQuantity(value: Float) : Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
+  implicit def intToQuantity(value: Int) : Resource.Quantity = Resource.Quantity((value * 1000) + "m")
+
   case class LocalObjectReference(name: String)
   
   case class ObjectReference(

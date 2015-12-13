@@ -32,6 +32,7 @@ object Resource {
   // K8 has a specific format for Resource Quantity type - see
   // https://godoc.org/github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource#Quantity
   
+  
   class Quantity(val value:String) {
  
     lazy val amount : BigDecimal = 
@@ -68,8 +69,7 @@ object Resource {
   object Quantity {
     
     import scala.language.implicitConversions
-    implicit def strToQuantity(value: String) : Quantity = Quantity(value)
-    
+  
     sealed trait Format
     case object BinarySI extends Format
     case object DecimalSI extends Format

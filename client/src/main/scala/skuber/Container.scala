@@ -33,6 +33,16 @@ case class Container(
     this.copy(env = this.env ++ envVarSeq)
   }
   def entrypoint(cmd: String*) = this.copy(command=cmd.toList)
+  def limitCPU(cpu: Resource.Quantity) = withResourceLimit(Resource.cpu, cpu)
+  def limitMemory(mem: Resource.Quantity) = withResourceLimit(Resource.memory, mem)
+  def withResourceLimit(name: String, limit: Resource.Quantity): Container = {
+    val currResources = this.resources.getOrElse(Resource.Requirements())
+    val newLimits = currResources.limits + (name -> limit)
+    this.copy(resources=Some(Resource.Requirements(newLimits, currResources.requests)))
+  }    
+  def mount(name: String, path: String, readOnly: Boolean = false) = 
+    this.copy(volumeMounts=Volume.Mount(name, path, readOnly) :: this.volumeMounts)
+    
 }
       
     
