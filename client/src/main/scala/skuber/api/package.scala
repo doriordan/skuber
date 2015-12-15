@@ -138,6 +138,7 @@ package object client {
       def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PUT")(obj)
       def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
    
+      
      def list[L <: KList[_]](implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
      {
        val wsReq = buildRequest(Some(kind.urlPathComponent),None)
@@ -236,8 +237,8 @@ package object client {
       case code if code < 300 => // ok
       case code => {
         // a non-success or unexpected status returned - we should normally have a Status in the response body
-        if (log.isWarnEnabled)
-          log.warn("[Skuber Response: Non-ok status code = " + code + "]")
+        if (log.isErrorEnabled)
+          log.error("[Skuber Response: Error - status code = " + code + "]")
         val status=response.json.validate[Status]
         status match {
           case JsSuccess(status, path) => throw new K8SException(status)

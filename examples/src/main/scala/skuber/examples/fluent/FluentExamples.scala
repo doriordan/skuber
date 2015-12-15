@@ -112,9 +112,19 @@ object FluentExamples {
     val externalTestService = Service(name="nginx-test-ext", selector = testExternalSelector,  Service.Port(port=80, nodePort=30003))
 
     // for prod we leverage a load balancer instead
-    val prodServiceSpec=Service.Spec(ports=List(Service.Port(port=80)), _type=Service.Type.LoadBalancer)    
-    val internalProdService = Service(name="nginx-prod-int", prodServiceSpec)   
-    val externalProdService = Service(name="nginx-prod-ext", prodServiceSpec)
+    val internalProdServiceSpec=Service.Spec(
+            ports=List(Service.Port(port=80)), 
+            selector=prodInternalSelector,
+            _type=Service.Type.LoadBalancer)    
+    val externalProdServiceSpec=Service.Spec(
+            ports=List(Service.Port(port=80)), 
+            selector=prodExternalSelector,
+            _type=Service.Type.LoadBalancer) 
+            
+    val internalProdService = Service(metadata=ObjectMeta(name="nginx-prod-int",labels=Map("app" -> "internal-web-server")),
+                                     spec=Some(internalProdServiceSpec)) 
+    val externalProdService = Service(metadata=ObjectMeta(name="nginx-prod-ext",labels=Map("app" -> "external-web-server")),
+                                      spec=Some(externalProdServiceSpec))
     
     List(devService, internalTestService, externalTestService,internalProdService,externalProdService)
   }
@@ -122,26 +132,34 @@ object FluentExamples {
   
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.Future
-  import scala.util.Success
   import skuber.json.format._
     
-  val deployNginxServices : Future[Any] = {
-    
-    val controllers=buildNginxControllers
-    val services=buildNginxServices
-    
+  val deployNginxServices : Future[List[Service]] = {    
     val k8s = k8sInit
     
-    def ignoreIfNotThere[O <: ObjectResource](create: Future[O])  = create recover {
-      case ex: K8SException if (ex.status.code.contains(404)) =>      
+    def deployControllers = buildNginxControllers map {  c=>
+      for {       
+        remove <- (k8s delete[ReplicationController] c.name) recover { 
+                        case ex: K8SException if (ex.status.code.contains(404)) => // not exists - ok
+                     }
+        create <- k8s create c
+      } yield create
+    }
+
+    def deployServices = buildNginxServices map { s => 
+      for {       
+        remove <- (k8s delete[Service] s.name) recover { 
+                        case ex: K8SException if (ex.status.code.contains(404)) => // not exists - ok
+                     }
+        create <- k8s create s
+      } yield create
     }
     
-    def createControllers = Future.sequence { controllers map { c => ignoreIfNotThere(k8s create c) } }
-    def createServices    = Future.sequence { services    map { s => ignoreIfNotThere(k8s create s) } }
-    
-    for {
-      c <- createControllers
-      s <- createServices 
+    val result = for {
+      c <- Future.sequence(deployControllers)
+      s <- Future.sequence(deployServices)
     } yield s 
+    result onFailure { case ex: K8SException => System.err.println("Request failed with status : " + ex.status) }
+    result andThen { case _ => k8s.close }
   }
 }

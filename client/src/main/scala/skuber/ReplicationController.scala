@@ -23,12 +23,21 @@ case class ReplicationController(
     
     
     def withReplicas(n: Int) = this.copy(spec=Some(copySpec.copy(replicas=n)))
+    
+    
     def withSelector(s: Map[String, String]) : ReplicationController = this.copy(spec=Some(copySpec.copy(selector = Some(s))))   
     def withSelector(s: Tuple2[String,String]) : ReplicationController = withSelector(Map(s))
       
     def withTemplate(t: Pod.Template.Spec) = this.copy(spec = Some(copySpec.copy(template = Some(t))))  
+    
+    /*
+     * Set the template from a given Pod spec
+     * This automatically creates the template spec metadata - should only be called after the selector has
+     * been set on the controller so that the template labels are set to the selector as required by K8S
+     */
     def withPodSpec(t: Pod.Spec) = {
-      val template = new Pod.Template.Spec(metadata=ObjectMeta(this.metadata.name),spec=Some(t))
+      val tmplLabels = spec.flatMap(_.selector).getOrElse(Map[String,String]()) 
+      val template = new Pod.Template.Spec(metadata=ObjectMeta(labels=tmplLabels),spec=Some(t))
       withTemplate(template)
     }
 }
