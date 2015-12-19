@@ -94,6 +94,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
         case None => {
           // not yet watching this controller
           // create a new watch on Kubernetes, and initialize the set of watchers on it
+          
           log.debug("creating a watch on Kubernetes for controller + '" + rc.name + "', watcher is " + watcher.path )
           val watch = k8s watch rc
           val watching = Set(watcher)

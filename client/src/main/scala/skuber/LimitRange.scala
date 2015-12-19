@@ -9,7 +9,7 @@ case class LimitRange (
     override val apiVersion: String = "v1",
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[LimitRange.Spec] = None)
-      extends ObjectResource with KListItem
+      extends ObjectResource
    
 object LimitRange {
   case class Spec(items: List[Item] = List())

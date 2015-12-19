@@ -17,7 +17,7 @@ object Resource {
       val metadata: ObjectMeta = ObjectMeta(),
       spec: Option[Quota.Spec] = None,
       status: Option[Quota.Status] = None)
-    extends ObjectResource with KListItem
+    extends ObjectResource 
  
   object Quota {
     case class Spec(hard: ResourceList = Map())

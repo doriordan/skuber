@@ -9,4 +9,4 @@ case class ServiceAccount(
     val metadata: ObjectMeta,
     secrets: List[ObjectReference] = List(),
     imagePullSecrets: List[LocalObjectReference] = List())
-  extends ObjectResource with KListItem  
+  extends ObjectResource 

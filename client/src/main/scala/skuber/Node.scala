@@ -12,7 +12,7 @@ case class Node(
     val metadata: ObjectMeta,
     spec: Option[Node.Spec] = None,
     status: Option[Node.Status] = None) 
-      extends ObjectResource with KListItem
+      extends ObjectResource 
 
 object Node {
    def named(name: String) = Node(metadata=ObjectMeta(name=name))

@@ -11,7 +11,7 @@ case class Pod(
     val metadata: ObjectMeta,
     spec: Option[Pod.Spec] = None,
     status: Option[Pod.Status] = None) 
-      extends ObjectResource with KListItem with Limitable
+      extends ObjectResource with Limitable
 
 object Pod {
    def named(name: String) = Pod(metadata=ObjectMeta(name=name))
@@ -65,7 +65,7 @@ object Pod {
     override val apiVersion: String = "v1",
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[Template.Spec] = None) 
-    extends ObjectResource with KListItem 
+    extends ObjectResource
   {  
     def addLabel(label: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
     def addLabel(label: String) : Template = addLabel(label -> "") 

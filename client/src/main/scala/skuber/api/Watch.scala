@@ -55,10 +55,33 @@ object Watch {
        eventsEnumerator(name, responseBytesEnumerator)  
     }
     
-    def eventsEnumerator[O <: ObjectResource](
-        watchId: String,
-        bytes : Enumerator[Array[Byte]])
+    def eventsOnKind[O <: ObjectResource](
+        context: RequestContext, 
+        sinceResourceVersion: Option[String] = None)
         (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
+    {
+        val watchId = "/" + kind.urlPathComponent
+        if (log.isDebugEnabled) 
+          log.debug("[Skuber Watch (" + watchId + ") : creating...")
+        val wsReq = context.buildRequest(
+                                 Some(kind.urlPathComponent), 
+                                 None, 
+                                 watch=true).withRequestTimeout(2147483647)
+                                 
+        val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
+        val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
+        val (responseBytesIteratee, responseBytesEnumerator) = Concurrent.joined[Array[Byte]]
+       
+        watchRequest.get(_ => responseBytesIteratee).flatMap(_.run)
+       
+        eventsEnumerator(watchId, responseBytesEnumerator)  
+          
+    }
+    
+    def eventsEnumerator[O <: ObjectResource](
+        watchId: String, // for logging only
+        bytes : Enumerator[Array[Byte]])
+        (implicit format: Format[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
     {
       // interleave a regular pulse: workaround for apparent issue that last event in Watch response 
       // stream doesn't get enumerated until another event is received: problematic when you want 
@@ -73,7 +96,7 @@ object Watch {
     def fromBytesEnumerator[O <: ObjectResource](
         watchId: String,
         bytes : Enumerator[Array[Byte]])
-        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Enumerator[WatchEvent[O]] = 
+        (implicit format: Format[O], ec: ExecutionContext) : Enumerator[WatchEvent[O]] = 
     {
       bytes &>
          Encoding.decode() &>
@@ -100,6 +123,8 @@ object Watch {
     {
       events(k8sContext, obj.name, Option(obj.metadata.resourceVersion).filter(_.trim.nonEmpty))  
     }
+    
+    
     
     def pulse : Watch[Array[Byte]] = {
       var terminated = false

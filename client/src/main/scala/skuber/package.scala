@@ -48,10 +48,12 @@ package object skuber {
       selfLink: String = "",
       resourceVersion: String = "")
       
-  // marker trait for any Kubernetes object type that are also items of some Kubernetes list type 
+  // type for classes that can be items of some Kubernetes list type 
   // e.g. a Pod can be an item in a PodList, Node can be in a NodeList etc.
-  trait KListItem 
+  // Just a type alias to ObjectResource 
+  type KListItem=ObjectResource
    
+  // base trait for all list kinds
   trait KList[K <: KListItem] extends TypeMeta {
     def metadata: Option[ListMeta]
     def items: List[K]
@@ -118,6 +120,12 @@ package object skuber {
     override val apiVersion: String = "v1",
     val metadata: Option[ListMeta] = None,
     items: List[LimitRange] = Nil) extends KList[LimitRange]
+  
+   case class ResourceQuotaList(
+     val kind: String = "ResourceQuotaList",
+     override val apiVersion: String = "v1",
+     val metadata: Option[ListMeta] = None,
+     items: List[Resource.Quota] = Nil) extends KList[Resource.Quota]
   
    case class SecretList(
     val kind: String = "SecretList",

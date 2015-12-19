@@ -82,9 +82,13 @@ object FluentExamples {
     // the right zone
     val prodCPU = 1 // 1 KCU 
     val prodMem = "0.5Gi" // 0.5GiB (gigibytes)    
-    val prodContainer=Container(name="nginx-prod", image="nginx").limitCPU(prodCPU).limitMemory(prodMem).port(80)
+    val prodContainer=Container(name="nginx-prod", image="nginx").
+                          limitCPU(prodCPU).
+                          limitMemory(prodMem).
+                          port(80)
     
-    val internalProdPodSpec=Pod.Spec(containers=List(prodContainer), nodeSelector=Map(prodInternalZoneLabel))     
+    val internalProdPodSpec=Pod.Spec(containers=List(prodContainer), 
+                                     nodeSelector=Map(prodInternalZoneLabel))     
     val internalProdController=ReplicationController("nginx-prod-int").
                                   addLabels(prodInternalSelector).
                                   withSelector(prodInternalSelector).
@@ -155,11 +159,11 @@ object FluentExamples {
       } yield create
     }
     
-    val result = for {
+    val deploymentResult = for {
       c <- Future.sequence(deployControllers)
       s <- Future.sequence(deployServices)
     } yield s 
-    result onFailure { case ex: K8SException => System.err.println("Request failed with status : " + ex.status) }
-    result andThen { case _ => k8s.close }
+    deploymentResult onFailure { case ex: K8SException => System.err.println("Request failed with status : " + ex.status) }
+    deploymentResult andThen { case _ => k8s.close }
   }
 }

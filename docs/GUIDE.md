@@ -13,12 +13,40 @@ The entire Skuber data model can be easily imported into your application:
 The model can be divided into categores which correspond to those in the Kubernetes API:
 
 - [Object kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
-Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Secret`.   
+Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`.   
 
 - [List kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. 
-List kind classes include `PodList`, `NodeList`, `ServiceList`, `EndpointList`, `EventList`, `ReplicationControllerList`, `PersistentVolumeList`, `PersistentVolumeClaimList`, `ServiceAccountList`, `LimitRangeList` and `SecretList`.   
+List kind classes include `PodList`, `NodeList`, `ServiceList`, `EndpointList`, `EventList`, `ReplicationControllerList`, `PersistentVolumeList`, `PersistentVolumeClaimList`, `ServiceAccountList`, `LimitRangeList`, `ResourceQuotaList` and `SecretList`.   
 
 - [Simple kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds): There are numerous simple kinds. 
+
+### Fluent API
+
+A combination of Scala case class features and Skuber-defined fluent API methods make buliding out even relatively complex specifications to upload to Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
+
+    val prodLabel = "env" -> "production"
+    val prodInternalZoneLabel = "zone" -> "prod-internal"
+
+    val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
+
+    val prodCPU = 1 // 1 KCU 
+    val prodMem = "0.5Gi" // 0.5GiB (gigibytes)    
+
+    val prodContainer=Container(name="nginx-prod", image="nginx").
+                          limitCPU(prodCPU).
+                          limitMemory(prodMem).
+                          port(80)
+    
+    val internalProdPodSpec=Pod.Spec(containers=List(prodContainer), 
+                                     nodeSelector=Map(prodInternalZoneLabel))     
+
+    val internalProdController=ReplicationController("nginx-prod-int").
+                                  addLabels(prodInternalSelector).
+                                  withSelector(prodInternalSelector).
+                                  withReplicas(8).
+                                  withPodSpec(internalProdPodSpec)
+             
+The unit tests in the skuber subproject contains more examples, along with the examples subproject itself.
 
 ## JSON Mapping
 
@@ -84,7 +112,7 @@ Get a Kubernetes object kind resource by type and name:
 
 Get a list of all Kubernetes objects of a given list kind in the current namespace:
 
-    val rcListFut = k8s get[ReplicationControllerList]
+    val rcListFut = k8s get[ReplicationControllerList]()
     rcFut onSuccess { case rcList => rcList foreach { rc => println(rc.name) } }
     
 Update a Kubernetes object kind resource:
@@ -111,8 +139,8 @@ Kubernetes supports the ability for API clients to watch events on specified res
 
     import play.api.libs.iteratee.Iteratee
 
-    object WatchFrontendScaling {
-      def run = {
+    object WatchExamples {
+      def watchFrontendScaling = {
         val k8s = k8sInit    
         val frontendFetch = k8s get[ReplicationController] "frontend"
         frontendFetch onSuccess { case frontend =>
@@ -120,6 +148,7 @@ Kubernetes supports the ability for API clients to watch events on specified res
           frontendWatch.events |>>> Iteratee.foreach { frontendEvent => println("Current frontend replicas: " + frontendEvent._object.status.get.replicas) }
         }     
       }
+      // ...
     }
 
 To test the above code, call the run method to create the watch and then separately run a number of [kubectl scale](https://cloud.google.com/container-engine/docs/kubectl/scale) commands to set different replica counts on the frontend - for example:
@@ -132,11 +161,46 @@ To test the above code, call the run method to create the watch and then separat
 
 You should see updated statuses being printed out by the Iteratee as the scaling progresses.
 
-The reactive Guestbook example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
+The [reactive guestbook](../src/main/scala/skuber/examples/guestbook) example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
 
-### Fluent APIi
+Additionally you can watch all events related to a specific kind - for example the following can be found in the same example:
 
+    def watchPodPhases = {
+      val k8s = k8sInit    
 
+      // watch only current events - i.e. exclude historic ones  - by specifying the resource version returned with the latest pod list     
 
+      val currPodList = k8s list[PodList]()
      
+      currPodList onSuccess { case pods =>
+        val latestPodVersion = pods.metadata.map { _.resourceVersion } 
+        val podWatch = k8s watchAll[Pod](sinceResourceVersion=latestPodVersion) 
+       
+        podWatch.events |>>> Iteratee.foreach { podEvent => 
+          val pod = podEvent._object
+          val phase = pod.status flatMap { _.phase }
+          println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))    
+        } 
+      }
+      // ...
+    }
+
+This can be demonstrated by calling `watchPodPhases` to start watching all pods, then in the background run the reactive guestbook example: you should see events being reported as guestbook pods are deleted, created and modified during the run.
+
+### Configuration
+
+*Note: Non-default configurations support has been implemented as described below but not yet properly tested*
+
+By default a `k8sInit` call will connect to the default namespace in Kubernetes via a kubectl proxy running on localhost:8001. 
+
+A non-default configuration can be passed to the`k8sInit` call in several ways:
+
+- Set the environment variable SKUBERCONFIG to a file URL that points to a standard [kubeconfig file](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html), or just set it to the value `file` to configure from a kubeconfig file at the default location (~/.kube/config). The current context defined in the file will be used by the request context to define the cluster URL and namespace information to be used for requests to the API server. Note: merge functionality for kubeconfig files is not supported - only a single kubeconfig file is loaded.
+
+- Pass a K8SConfiguration object directly as a parameter to the `k8sInit` call. The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
+
+If a TLS connection is configured for the cluster, the relevant certificate/key data must be stored in the Java keystore - any such certificate/key data in the kubeconfig file will be ignored. 
+
+
+
 

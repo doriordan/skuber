@@ -11,7 +11,7 @@ case class Service(
     val metadata: ObjectMeta,
     spec: Option[Service.Spec] = None,
     status: Option[Service.Status] = None) 
-      extends ObjectResource with KListItem {
+      extends ObjectResource {
 
   import Endpoints._
   def mapsToEndpoint(ip: String, port: Int, protocol : Protocol.Value = Protocol.TCP): Endpoints =
@@ -26,7 +26,6 @@ object Service {
    def apply(name: String): Service = Service(metadata=ObjectMeta(name=name))
    def apply(name: String, spec: Service.Spec) : Service = 
     Service(metadata=ObjectMeta(name=name), spec = Some(spec))
-   
    def apply(name: String, selector: Map[String, String], port: Int): Service =
      apply(name, selector, Port(port=port))
    def apply(name: String, selector: Map[String,String], port: Port): Service = {

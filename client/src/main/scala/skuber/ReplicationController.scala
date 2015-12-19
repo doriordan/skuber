@@ -12,7 +12,7 @@ case class ReplicationController(
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[ReplicationController.Spec] = None,
     status: Option[ReplicationController.Status] = None) 
-      extends ObjectResource with KListItem {
+      extends ObjectResource {
 
     lazy val copySpec = this.spec.getOrElse(new ReplicationController.Spec)
     

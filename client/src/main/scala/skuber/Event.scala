@@ -16,7 +16,7 @@ case class Event(
     firstTimestamp: Option[Timestamp] = None,
     lastTimestamp: Option[Timestamp] = None,
     count: Option[Int] = None) 
-  extends ObjectResource with KListItem
+  extends ObjectResource
 
 object Event {
   case class Source(component: Option[String] = None, host: Option[String] = None)

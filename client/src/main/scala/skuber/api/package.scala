@@ -139,7 +139,7 @@ package object client {
       def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
    
       
-     def list[L <: KList[_]](implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
+     def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
      {
        val wsReq = buildRequest(Some(kind.urlPathComponent),None)
        logRequest(wsReq, kind.urlPathComponent, None)
@@ -175,7 +175,12 @@ package object client {
      def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)       
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
-                                   (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)                                           
+                                    (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)                                           
+ 
+     // watch events on all objects of specified kind in current namespace
+     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O])  = 
+             Watch.eventsOnKind[O](this,sinceResourceVersion)      
+       
      def close = {
        commonClient.underlying[AsyncHttpClient].close()
      }
@@ -184,7 +189,9 @@ package object client {
    // basic resource kinds supported by the K8S API server
    abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { def urlPathComponent: String }
    
-   case class ObjKind[O <: ObjectResource](val urlPathComponent: String, kind: String)(implicit fmt: Format[O]) 
+   case class ObjKind[O <: ObjectResource](
+       val urlPathComponent: String, 
+       kind: String)(implicit fmt: Format[O]) 
        extends Kind[O]
      
    implicit val podKind = ObjKind[Pod]("pods", "Pod")
@@ -192,7 +199,7 @@ package object client {
    implicit val serviceKind = ObjKind[Service]("services", "Service")
    implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers", "ReplicationController")
    implicit val endpointsKind = ObjKind[Endpoints]("endpoints", "Endpoints")
-   implicit val namespaceKind = ObjKind[Namespace]("namespace", "Namepspace")
+   implicit val namespaceKind = ObjKind[Namespace]("namespace", "Namespace")
    implicit val persistentVolumeKind = ObjKind[PersistentVolume]("persistentvolumes", "PersistentVolume")
    implicit val persistentVolumeClaimsKind = ObjKind[PersistentVolumeClaim]("persistentvolumeclaims", "PersistentVolumeClaim")
    implicit val serviceAccountKind = ObjKind[ServiceAccount]("serviceaccounts","ServiceAccount")
@@ -201,14 +208,21 @@ package object client {
    implicit val limitRangeKind = ObjKind[LimitRange]("limitranges","LimitRange")
    implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequoats", "ResourceQuota")
    
-   case class ListKind[L <: KList[_]](val urlPathComponent: String)(implicit fmt: Format[L]) 
+   case class ListKind[L <: TypeMeta](val urlPathComponent: String)(implicit fmt: Format[L]) 
      extends Kind[L]
    implicit val podListKind = ListKind[PodList]("pods")
    implicit val nodeListKind = ListKind[NodeList]("nodes")
    implicit val serviceListKind = ListKind[ServiceList]("services")
-   implicit val replCtrlListKind = ListKind[ReplicationControllerList]("replicationcontrollers")
+   implicit val endpointListKind = ListKind[EndpointList]("endpoints")
    implicit val eventListKind = ListKind[EventList]("events")
-   
+   implicit val replCtrlListKind = ListKind[ReplicationControllerList]("replicationcontrollers")
+   implicit val persistentVolumeListKind = ListKind[PersistentVolumeList]("persistentvolumes")
+   implicit val persistentVolumeClaimListKind = ListKind[PersistentVolumeClaimList]("persistentvolumeclaims")
+   implicit val serviceAccountListKind = ListKind[ServiceAccountList]("serviceaccounts")
+   implicit val limitRangeListKind = ListKind[LimitRangeList]("limitranges")
+   implicit val resourceQuotaListKind = ListKind[ResourceQuotaList]("resourcequotas")
+   implicit val secretListKind = ListKind[SecretList]("secrets")
+ 
   // Status will usually be returned by Kubernetes when an error occurs with a request
   case class Status(
     apiVersion: String = "v1",   

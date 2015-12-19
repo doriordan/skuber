@@ -13,7 +13,7 @@ case class PersistentVolume(
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[PersistentVolume.Spec] = None,
     status: Option[PersistentVolume.Status] = None)
-      extends ObjectResource with KListItem
+      extends ObjectResource
    
 object PersistentVolume {
   

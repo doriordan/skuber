@@ -36,7 +36,9 @@ The service can be accessed from outside the cluster at port 30001 on each node,
 
     k8s.close
 
-The code snippet above illustrates only a small part of the Skuber functionality, which covers most of the capabilites of the Kubernetes API  - for more examples see the reactive Guestbook example in the examples project, and the tests under client/src/test/scala.
+See the [programming guide](docs/GUIDE.md) for more details.
+
+The `examples` sub-project also illustrates several features. See for example the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
 
 ## Features
 
@@ -54,8 +56,6 @@ The project consists of two sub-projects - the main Skuber client library (under
 
 A sbt build file is provided at the top-level directory, so you can use standard SBT commands to build JARs for both projects or select one project to build.
 
-The reactive guestbook example can be built and run as a fat JAR using the sbt assembly plug-in, which is probably the quickest way to get it up and running.
-
 ## Requirements
 
 The client library requires Java 8. The build uses sbt 0.13. A Kubernetes cluster that supports v1.0 of the API is a runtime requirement. 
@@ -66,4 +66,4 @@ The coverage of the Kubernetes API functionality by Skuber is extensive, however
 
 - Testing has largely used the default configuration, which connects to a Kubernetes cluster via a kubectl proxy running on localhost:8001 and uses the default namespace. Your mileage may vary with other client configurations.
 - If some functionality isn't covered by the tests and examples included in this release you should assume it hasn't been tested.
-- Documentation is currently sparse to non-existent - in practice a reasonable knowledge of both Kubernetes and Scala will be a prerequisite, from there the Skuber tests and example should help get you up and running. 
+- Documentation is currently sparse - in practice a reasonable knowledge of both Kubernetes and Scala will be a prerequisite, from there the Skuber tests and examples should help get you up and running. 

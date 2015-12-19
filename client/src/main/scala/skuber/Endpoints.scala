@@ -10,7 +10,7 @@ case class Endpoints(
   	override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
     subsets: List[Endpoints.Subset] = Nil)       
-  extends ObjectResource with KListItem 
+  extends ObjectResource 
 {
     
     def withEndpoint(ip: String, port: Int, protocol: Protocol.Value = Protocol.TCP) = 

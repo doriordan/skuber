@@ -11,7 +11,7 @@ case class Secret(
     override val apiVersion: String = "v1",
     val metadata: ObjectMeta,
     data: Map[String, Array[Byte]] = Map())
-  extends ObjectResource with KListItem {
+  extends ObjectResource  {
   
     def add(key: String, is: InputStream) : Unit = {
        val bytes = IOUtils.toByteArray(is)

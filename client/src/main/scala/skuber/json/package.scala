@@ -667,6 +667,8 @@ package object format {
                     apply(PersistentVolumeClaimList.apply _,unlift(PersistentVolumeClaimList.unapply))
   implicit val svcAcctListFmt: Format[ServiceAccountList] = KListFormat[ServiceAccount].  
                     apply(ServiceAccountList.apply _,unlift(ServiceAccountList.unapply))
+  implicit val resQuotaListFmt: Format[ResourceQuotaList] = KListFormat[Resource.Quota].
+                    apply(ResourceQuotaList.apply _,unlift(ResourceQuotaList.unapply))
   implicit val secretListFmt: Format[SecretList] = KListFormat[Secret].  
                     apply(SecretList.apply _,unlift(SecretList.unapply))
   implicit val limitRangeListFmt: Format[LimitRangeList] = KListFormat[LimitRange].  
