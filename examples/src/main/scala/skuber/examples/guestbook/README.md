@@ -5,10 +5,10 @@ This example shows how to build a multi-tier web application using the Skuber AP
 
 It carries out four main steps, each of which logs its results out to standard output:
 
-- stopping the Guestbook services if they are already running (by specifying replica counts of 0)
-- housekeeping the Guestbook application (i.eremoving the resources from Kubernetes if they exist)
-- (re)creating the Guestbook application on Kubernetes
-- validating that all replicas are running (it does this by placing a watch on the replicaion controller) 
+- *stopping* the Guestbook services if they are already running (by specifying replica counts of 0)
+- *housekeeping* the Guestbook application (i.eremoving the resources from Kubernetes if they exist)
+- *(re-)creating* the Guestbook application on Kubernetes
+- *validating* that all replicas are running (it does this by placing a watch on the replicaion controller) 
 
 ## Prerequisites
 
@@ -104,7 +104,9 @@ All front-end replicas are now running
 *** Deployment of Guestbook application to Kubernetes completed successfully!
 ```
 
-*Note: If you don't already have the guestbook deployed (normally just the first time you run the example) then you will see the Skuber API log some 404 errors because it doesn't find the requested resources for the first steps of stopping/housekeeping them. This is expected and handled by the example. 
+*Note: If you don't already have the guestbook deployed (normally just the first time you run the example) then you will see the Skuber API log some 404 errors because it doesn't find the requested resources for the first steps of stopping/housekeeping them. This is expected and handled by the example.* 
+
+You can verify the Guestbook application is available by navigating to a service URL in your browser: because the example guestbook service specifies a [NodePort](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/services.md#type-nodeport) service type with port 30291, your URL can use the host / IP address of any cluster node (obtained using e.g. `kubectl get nodes`). For example, if there is a node at 10.245.1.3 then navigating to `http://10.245.1.3:30291` should display the main Guestbook UI page. You can try this for each node in your cluster. 
 
 ## Design
 

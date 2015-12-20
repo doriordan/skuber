@@ -18,11 +18,11 @@ Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `
 - [List kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. 
 List kind classes include `PodList`, `NodeList`, `ServiceList`, `EndpointList`, `EventList`, `ReplicationControllerList`, `PersistentVolumeList`, `PersistentVolumeClaimList`, `ServiceAccountList`, `LimitRangeList`, `ResourceQuotaList` and `SecretList`.   
 
-- [Simple kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds): There are numerous simple kinds. 
+- [Simple kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds) 
 
 ### Fluent API
 
-A combination of Scala case class features and Skuber-defined fluent API methods make buliding out even relatively complex specifications to upload to Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
+A combination of generic Scala case class features and Skuber-defined fluent API methods make buliding out even relatively complex specifications for creation or modification on Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
 
     val prodLabel = "env" -> "production"
     val prodInternalZoneLabel = "zone" -> "prod-internal"
@@ -113,7 +113,7 @@ Get a Kubernetes object kind resource by type and name:
 Get a list of all Kubernetes objects of a given list kind in the current namespace:
 
     val rcListFut = k8s get[ReplicationControllerList]()
-    rcFut onSuccess { case rcList => rcList foreach { rc => println(rc.name) } }
+    rcListFut onSuccess { case rcList => rcList foreach { rc => println(rc.name) } }
     
 Update a Kubernetes object kind resource:
 
@@ -123,7 +123,7 @@ Update a Kubernetes object kind resource:
 
 Delete a Kubernetes object:
 
-    val rmFut = k8s delete[RelicationController] "guestbook"
+    val rmFut = k8s delete[ReplicationController] "guestbook"
     rmFut onSuccess { case _ => println("Controller removed") }
 
 Note: There is no support in this alpha release for the Kubernetes API [PATCH operations](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#patch-operations)
@@ -151,7 +151,7 @@ Kubernetes supports the ability for API clients to watch events on specified res
       // ...
     }
 
-To test the above code, call the run method to create the watch and then separately run a number of [kubectl scale](https://cloud.google.com/container-engine/docs/kubectl/scale) commands to set different replica counts on the frontend - for example:
+To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](https://cloud.google.com/container-engine/docs/kubectl/scale) commands to set different replica counts on the frontend - for example:
 
      kubectl scale --replicas=1 rc frontend
      
@@ -161,7 +161,7 @@ To test the above code, call the run method to create the watch and then separat
 
 You should see updated statuses being printed out by the Iteratee as the scaling progresses.
 
-The [reactive guestbook](../src/main/scala/skuber/examples/guestbook) example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
+The [reactive guestbook](../examples/src/main/scala/skuber/examples/guestbook) example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
 
 Additionally you can watch all events related to a specific kind - for example the following can be found in the same example:
 
@@ -185,11 +185,13 @@ Additionally you can watch all events related to a specific kind - for example t
       // ...
     }
 
-This can be demonstrated by calling `watchPodPhases` to start watching all pods, then in the background run the reactive guestbook example: you should see events being reported as guestbook pods are deleted, created and modified during the run.
+The watch can be demonstrated by calling `watchPodPhases` to start watching all pods, then in the background run the reactive guestbook example: you should see events being reported as guestbook pods are deleted, created and modified during the run.
+
+Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored - this is probably what you want. 
 
 ### Configuration
 
-*Note: Non-default configurations support has been implemented as described below but not yet properly tested*
+*Note: Non-default configurations support has been implemented as described below but needs testing*
 
 By default a `k8sInit` call will connect to the default namespace in Kubernetes via a kubectl proxy running on localhost:8001. 
 
@@ -199,8 +201,4 @@ A non-default configuration can be passed to the`k8sInit` call in several ways:
 
 - Pass a K8SConfiguration object directly as a parameter to the `k8sInit` call. The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
 
-If a TLS connection is configured for the cluster, the relevant certificate/key data must be stored in the Java keystore - any such certificate/key data in the kubeconfig file will be ignored. 
-
-
-
-
+Auth tyoes currently implemented include *no auth* (the default), *bearer token* and *basic auth*. Client certificate authentication is not yet implemented. The use of SSL (i.e. using a `https://...` cluster URL) requires the server cert to be in the Java trust store unless your configuration sets the insecureSkipTLSVerify flag.

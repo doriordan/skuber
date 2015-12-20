@@ -8,9 +8,9 @@ The client supports v1 of the Kubernetes REST API.
 
 The code block below illustrates the simple steps required to create a replicated nginx service on a Kubernetes cluster.
  
-The service uses five replicated pods, each running a Docker container of an nginx image (Kubernetes will automatically pull the image if necessary). Each pod publishes the exposed port 80 of its container, on which the nginx service is running.
+The service uses five replicated pods, each running a single Docker container of an nginx image. Each pod publishes the exposed port 80 of its container enabling access to the nginx service within the cluster.
 
-The service can be accessed from outside the cluster at port 30001 on each node, which Kubernetes proxies to port 80 on the service endpoints (i.e. the pods in which the nginx containers are currently running). 
+The service can be accessed from outside the cluster at port 30001 on each cluster node, which Kubernetes proxies to port 80 on the nginx pods. 
 
     import skuber._
     import skuber.json.format._
@@ -25,8 +25,8 @@ The service can be accessed from outside the cluster at port 30001 on each node,
     val k8s = k8sInit
 
     val createOnK8s = for {
-      rc  <- k8s create nginxController
       svc <- k8s create nginxService
+      rc  <- k8s create nginxController
     } yield (rc,svc)
 
     createOnK8s onComplete {
@@ -42,17 +42,17 @@ The `examples` sub-project also illustrates several features. See for example th
 
 ## Features
 
-- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including Pod, Service, ReplicationController, Nodes, Container, Endpoint, Namespace, Volume, PersistentVolume, Resource, Security, EnvVar, ServiceAccount, LimitRange, Secret, Event and others
+- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including Pod, Service, ReplicationController, Node, Container, Endpoint, Namespace, Volume, PersistentVolume, Resource, Security, EnvVar, ServiceAccount, LimitRange, Secret, Event and others
 - Support for Kubernetes object, list and simple kinds
 - Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
 - Implicit json formatters for reading and writing the Kubernetes types
-- Support for create, get, delete, list, update, and watch operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes RESTful API HTTP requests. 
-- Watching Kubernetes objects returns Iteratees for reactive processing of events from the cluster
+- Support for create, get, delete, list, update, and watch operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests. 
+- Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
 - Client contexts (including connection details and namespace) can be configured by a combination of system properties and a config file format based on the Kubernetes kubeconfig file YAML format
 
 ## Build Instructions
 
-The project consists of two sub-projects - the main Skuber client library (under the 'client' directory) and an 'examples' project which currently contains just the reactive Guestbook example.
+The project consists of two sub-projects - the main Skuber client library (under the 'client' directory) and an 'examples' project.
 
 A sbt build file is provided at the top-level directory, so you can use standard SBT commands to build JARs for both projects or select one project to build.
 
