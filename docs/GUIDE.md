@@ -112,7 +112,7 @@ Get a Kubernetes object kind resource by type and name:
 
 Get a list of all Kubernetes objects of a given list kind in the current namespace:
 
-    val rcListFut = k8s get[ReplicationControllerList]()
+    val rcListFut = k8s list[ReplicationControllerList]()
     rcListFut onSuccess { case rcList => rcList foreach { rc => println(rc.name) } }
     
 Update a Kubernetes object kind resource:
@@ -201,4 +201,4 @@ A non-default configuration can be passed to the`k8sInit` call in several ways:
 
 - Pass a K8SConfiguration object directly as a parameter to the `k8sInit` call. The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
 
-Auth tyoes currently implemented include *no auth* (the default), *bearer token* and *basic auth*. Client certificate authentication is not yet implemented. The use of SSL (i.e. using a `https://...` cluster URL) requires the server cert to be in the Java trust store unless your configuration sets the insecureSkipTLSVerify flag.
+Auth types currently implemented include *no auth* (the default), *bearer token* and *basic auth*. Client certificate authentication is not yet implemented. The use of SSL (i.e. using a `https://...` cluster URL) requires the Kubernetes API server cert to be in the Java trust store.
