@@ -2,7 +2,7 @@
 
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a high-level and strongly typed Scala API for remotely managing and reactively monitoring Kubernetes resources (such as Pods, Containers, Services, Replication Controllers etc.) via the Kubernetes API server.
 
-The client supports v1 of the Kubernetes REST API.
+The client supports v1.0 and v1.1 of the Kubernetes REST API.
 
 ## Sample Usage
 
@@ -49,6 +49,7 @@ The `examples` sub-project also illustrates several features. See for example th
 - Support for create, get, delete, list, update, and watch operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests. 
 - Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
 - Client contexts (including connection details and namespace) can be configured by a combination of system properties and a config file format based on the Kubernetes kubeconfig file YAML format
+- Support for horizontal pod auto scaling (Kubernetes V1.1 beta feature)
 
 ## Build Instructions
 
@@ -58,12 +59,15 @@ A sbt build file is provided at the top-level directory, so you can use standard
 
 ## Requirements
 
-The client library requires Java 8. The build uses sbt 0.13. A Kubernetes cluster that supports v1.0 of the API is a runtime requirement. 
+The client library requires Java 8. The build uses sbt 0.13. A Kubernetes cluster that supports at least v1.0 of the API is a runtime requirement.
+
+Use of the newer extensions API group features requires a Kubernetes cluster that supports the associated API and that the feature be enabled on the cluster if necessary *(currently only horizontal pod auto-scaling and the associated Scale subresource from this group is supported by Skuber, this feature requires a V1.1 cluster and is enabled on the cluster by default)* 
 
 ## Status
 
-The coverage of the Kubernetes API functionality by Skuber is extensive, however this is an early ALPHA release with all the caveats that implies. 
+The coverage of the Kubernetes API functionality by Skuber is extensive, however this is an alpha release with all the caveats that implies. 
 
 - Testing has largely used the default configuration, which connects to a Kubernetes cluster via a kubectl proxy running on localhost:8001 and uses the default namespace. Your mileage may vary with other client configurations.
 - If some functionality isn't covered by the tests and examples included in this release you should assume it hasn't been tested.
-- Documentation is currently sparse - in practice a reasonable knowledge of both Kubernetes and Scala will be a prerequisite, from there the Skuber tests and examples should help get you up and running. 
+- Documentation is currently sparse - in practice a basic knowledge of Kubernetes as well as Scala experience will be required, from there the Skuber [programming guide](docs/Guide.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
+- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [horizontal pod autoscaling](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/v1.1/docs/api.html#api-groups) features such as [Daemon Sets](http://kubernetes.io/v1.1/docs/admin/daemons.html), [Deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html), [Jobs](http://kubernetes.io/v1.1/docs/user-guide/jobs.html) and [Ingress / HTTP load balancing](http://kubernetes.io/v1.1/docs/user-guide/ingress.html) is due shortly.
