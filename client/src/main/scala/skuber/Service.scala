@@ -7,7 +7,7 @@ import java.util.Date
  */
 case class Service(
   	val kind: String ="Service",
-  	override val apiVersion: String = "v1",
+  	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     spec: Option[Service.Spec] = None,
     status: Option[Service.Status] = None) 

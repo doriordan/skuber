@@ -8,7 +8,7 @@ import java.util.Date
  */
 case class ReplicationController(
   	val kind: String ="ReplicationController",
-  	override val apiVersion: String = "v1",
+  	override val apiVersion: String = v1,
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[ReplicationController.Spec] = None,
     status: Option[ReplicationController.Status] = None) 

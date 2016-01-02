@@ -13,7 +13,7 @@ object Resource {
   case class Requirements(limits: ResourceList = Map(), requests: ResourceList = Map())
   case class Quota(
       val kind: String = "ResourceQuota",
-      override val apiVersion: String = "v1",
+      override val apiVersion: String = v1,
       val metadata: ObjectMeta = ObjectMeta(),
       spec: Option[Quota.Spec] = None,
       status: Option[Quota.Status] = None)

@@ -19,8 +19,10 @@ package object skuber {
   def emptyL[T]=List[T]()
   def emptyM[V]=Map[String,V]()
   
+  def v1 = "v1"
+  
   abstract class TypeMeta {
-    def apiVersion: String = "v1"
+    def apiVersion: String = v1
     def kind: String 
   }
   
@@ -48,6 +50,10 @@ package object skuber {
       selfLink: String = "",
       resourceVersion: String = "")
       
+  case class APIVersions(
+      kind: String,
+      versions: List[String])
+      
   // type for classes that can be items of some Kubernetes list type 
   // e.g. a Pod can be an item in a PodList, Node can be in a NodeList etc.
   // Just a type alias to ObjectResource 
@@ -63,73 +69,73 @@ package object skuber {
    
   case class PodList(
     val kind: String ="PodList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[Pod] = Nil) extends KList[Pod]
   
   case class NodeList(
     val kind: String ="NodeList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[Node] = Nil) extends KList[Node]
   
   case class ServiceList(
     val kind: String ="ServiceList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[Service] = Nil) extends KList[Service]
   
   case class EndpointList(
     val kind: String ="EndpointList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[Endpoints] = Nil) extends KList[Endpoints]
   
   case class EventList(
     val kind: String ="EventList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[Event] = Nil) extends KList[Event]
   
   case class ReplicationControllerList(  
     val kind: String ="ReplicationControllerList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[ReplicationController] = Nil) extends KList[ReplicationController]
   
   case class PersistentVolumeList(
     val kind: String ="PersistentVolumeList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[PersistentVolume] = Nil) extends KList[PersistentVolume]
   
    case class PersistentVolumeClaimList(
     val kind: String ="PersistentVolumeClaimList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta]= None,
     items: List[PersistentVolumeClaim] = Nil) extends KList[PersistentVolumeClaim]
   
    case class ServiceAccountList(
     val kind: String = "ServiceAccountList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta] = None,
     items: List[ServiceAccount] = Nil) extends KList[ServiceAccount]
   
    case class LimitRangeList(
     val kind: String = "LimitRangeList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta] = None,
     items: List[LimitRange] = Nil) extends KList[LimitRange]
   
    case class ResourceQuotaList(
      val kind: String = "ResourceQuotaList",
-     override val apiVersion: String = "v1",
+     override val apiVersion: String = v1,
      val metadata: Option[ListMeta] = None,
      items: List[Resource.Quota] = Nil) extends KList[Resource.Quota]
   
    case class SecretList(
     val kind: String = "SecretList",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: Option[ListMeta] = None,
     items: List[Secret] = Nil) extends KList[Secret]
   
@@ -164,7 +170,8 @@ package object skuber {
                         uid = obj.metadata.uid,
                         resourceVersion = obj.metadata.resourceVersion)
       
-  type NameablePort = Either[Int, String] // is either an integer or an IANA name       
+  type IntOrString = Either[Int, String]                      
+  type NameablePort = IntOrString // is either an integer or an IANA name       
 
   implicit def portNumToNameablePort(p:Int): NameablePort = Left(p)
   implicit def ianaNameToNameablePort(n: String): NameablePort = Right(n)
@@ -217,6 +224,7 @@ package object skuber {
     type Protocol = Value
     val TCP, UDP = Value
   }
+  
   
   // aliases, references and delegates that enable using the API for many use cases without 
   // having to import anything from the skuber.api package

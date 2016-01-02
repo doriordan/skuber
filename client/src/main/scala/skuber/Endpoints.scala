@@ -7,7 +7,7 @@ import java.util.Date
  */
 case class Endpoints(
   	val kind: String ="Endpoint",
-  	override val apiVersion: String = "v1",
+  	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     subsets: List[Endpoints.Subset] = Nil)       
   extends ObjectResource 

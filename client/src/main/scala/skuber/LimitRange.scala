@@ -6,7 +6,7 @@ package skuber
  */
 case class LimitRange (
     val kind: String ="LimitRange",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[LimitRange.Spec] = None)
       extends ObjectResource

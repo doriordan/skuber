@@ -7,7 +7,7 @@ import java.util.Date
  */
 case class Pod(
   	val kind: String ="Pod",
-  	override val apiVersion: String = "v1",
+  	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     spec: Option[Pod.Spec] = None,
     status: Option[Pod.Status] = None) 
@@ -62,7 +62,7 @@ object Pod {
  
   case class Template(
     val kind: String ="PodTemplate",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[Template.Spec] = None) 
     extends ObjectResource
@@ -93,7 +93,7 @@ object Pod {
        }
      }       
      object Spec {
-       def withName(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
+       def named(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
      }
          
    } 

@@ -42,10 +42,8 @@ object Watch {
     {
        if (log.isDebugEnabled) 
          log.debug("[Skuber Watch (" + name + "): creating...")
-       val wsReq = context.buildRequest(
-                                 Some(kind.urlPathComponent), 
-                                 Some(name), 
-                                 watch=true).withRequestTimeout(2147483647)
+       val wsReq = context.buildRequest(Some(name), watch=true)(kind).
+                               withRequestTimeout(2147483647)
        val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
        val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
        val (responseBytesIteratee, responseBytesEnumerator) = Concurrent.joined[Array[Byte]]
@@ -63,10 +61,8 @@ object Watch {
         val watchId = "/" + kind.urlPathComponent
         if (log.isDebugEnabled) 
           log.debug("[Skuber Watch (" + watchId + ") : creating...")
-        val wsReq = context.buildRequest(
-                                 Some(kind.urlPathComponent), 
-                                 None, 
-                                 watch=true).withRequestTimeout(2147483647)
+        val wsReq = context.buildRequest(None, watch=true)(kind).
+                              withRequestTimeout(2147483647)
                                  
         val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
         val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)

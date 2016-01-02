@@ -8,7 +8,7 @@ import org.apache.commons.io.IOUtils
  */
 case class Secret(
     val kind: String ="Secret",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     data: Map[String, Array[Byte]] = Map())
   extends ObjectResource  {

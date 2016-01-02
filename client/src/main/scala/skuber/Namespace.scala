@@ -6,7 +6,7 @@ package skuber
  */
 case class Namespace(
   	val kind: String ="Namespace",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     spec: Option[Namespace.Spec] = None,
     status: Option[Namespace.Status]= None) 

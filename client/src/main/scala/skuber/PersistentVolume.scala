@@ -9,7 +9,7 @@ import Volume._
  */
 case class PersistentVolume(
     val kind: String ="PersistentVolume",
-    override val apiVersion: String = "v1",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[PersistentVolume.Spec] = None,
     status: Option[PersistentVolume.Status] = None)

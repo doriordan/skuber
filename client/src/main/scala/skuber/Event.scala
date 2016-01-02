@@ -7,7 +7,7 @@ import java.util.Date
  */
 case class Event(
   	val kind: String ="Event",
-  	override val apiVersion: String = "v1",
+  	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     involvedObject: ObjectReference,
     reason: Option[String] = None,

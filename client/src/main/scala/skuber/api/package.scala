@@ -2,7 +2,7 @@ package skuber.api
 
 import play.api.libs.ws._
 import play.api.libs.ws.ning._
-import play.api.libs.json.{JsValue, JsSuccess, JsError, JsResult, Reads, Format}
+import play.api.libs.json.{JsValue, JsSuccess, JsError, JsResult, JsObject, Reads, Format}
 import com.ning.http.client.AsyncHttpClient
 
 import java.net.URL
@@ -63,13 +63,21 @@ package object client {
         case "" => "default"
         case name => name
       }
+      
       val nsPathComponent =  Some("namespaces/" + namespaceName)
       
-      def buildRequest(kindComponent: Option[String],
-                       nameComponent: Option[String],
-                       watch: Boolean = false)
+      def executionContext = executorContext
+      
+      def buildRequest[T <: TypeMeta](nameComponent: Option[String],
+                       watch: Boolean = false,
+                       apiVersion: String = "v1",
+                       forExtensionsAPI: Option[Boolean] = None)(implicit kind: Kind[T])
        : WSRequest = 
       {  
+        val kindComponent = kind.urlPathComponent
+        
+        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
+        val apiPrefix = if (usesExtensionsAPI) "apis" else "api"
         // helper to compose a full URL from a sequence of path components
         def mkUrlString(pathComponents: Option[String]*) : String = {
           pathComponents.foldLeft("")((acc,next) => next match {
@@ -87,14 +95,14 @@ package object client {
         
         val k8sUrlStr = mkUrlString(
           Some(k8sContext.cluster.server), 
-          Some("api"), 
-          Some("v1"), 
+          Some(apiPrefix), 
+          Some(apiVersion), 
           watchPathComponent,
           nsPathComponent, 
-          kindComponent,
+          Some(kindComponent),
           nameComponent)     
-        val url = commonClient.url(k8sUrlStr)
-        Auth.addAuth(url, auth)
+        val req = commonClient.url(k8sUrlStr)
+        Auth.addAuth(req, auth)
       }
       
       def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
@@ -124,7 +132,7 @@ package object client {
           case "POST" => None
           case _ => Some(obj.name)
         }
-        val wsReq = buildRequest(Some(kind.urlPathComponent), nameComponent).
+        val wsReq = buildRequest(nameComponent, apiVersion=obj.apiVersion)(kind).
                       withHeaders("Content-Type" -> "application/json").
                       withMethod(method).
                       withBody(js)
@@ -141,14 +149,14 @@ package object client {
       
      def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
      {
-       val wsReq = buildRequest(Some(kind.urlPathComponent),None)
+       val wsReq = buildRequest(None)(kind)
        logRequest(wsReq, kind.urlPathComponent, None)
        val wsResponse = wsReq.get
        wsResponse map toKubernetesResponse[L]
      }
      
      def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
-       val wsReq = buildRequest(Some(kind.urlPathComponent), Some(name))
+       val wsReq = buildRequest(Some(name))(kind)
        logRequest(wsReq, name, None)
        val wsResponse = wsReq.get
        wsResponse map toKubernetesResponse[O]
@@ -157,7 +165,7 @@ package object client {
      def delete[O <: ObjectResource](name:String, gracePeriodSeconds: Int = 0)(implicit kind: ObjKind[O]): Future[Unit] = {
        val options=DeleteOptions(gracePeriodSeconds=gracePeriodSeconds)
        val js = deleteOptionsWrite.writes(options)
-       val wsReq = buildRequest(Some(kind.urlPathComponent), Some(name)).
+       val wsReq = buildRequest(Some(name))(kind).
                       withHeaders("Content-Type" -> "application/json").
                       withBody(js).withMethod("DELETE")
        logRequest(wsReq, name, None)
@@ -181,13 +189,28 @@ package object client {
      def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O])  = 
              Watch.eventsOnKind[O](this,sinceResourceVersion)      
        
+             
+     // get API versions supported by the cluster - against current v1.x versions of Kubernetes this returns just "v1"
+     def getServerAPIVersions(): Future[List[String]] = {
+       val url = k8sContext.cluster.server + "/api"
+       val noAuthReq = commonClient.url(url)
+       val wsReq = Auth.addAuth(noAuthReq, auth)     
+       log.info("[Skuber Request: method=GET, resource=api/, description=APIVersions]")
+              
+       val wsResponse = wsReq.get
+       wsResponse map toKubernetesResponse[APIVersions] map { _.versions } 
+     }
+     
      def close = {
        commonClient.underlying[AsyncHttpClient].close()
      }
    }
    
    // basic resource kinds supported by the K8S API server
-   abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { def urlPathComponent: String }
+   abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { 
+     def urlPathComponent: String 
+     def isExtensionsKind: Boolean = false
+   }
    
    case class ObjKind[O <: ObjectResource](
        val urlPathComponent: String, 
@@ -208,7 +231,7 @@ package object client {
    implicit val limitRangeKind = ObjKind[LimitRange]("limitranges","LimitRange")
    implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequoats", "ResourceQuota")
    
-   case class ListKind[L <: TypeMeta](val urlPathComponent: String)(implicit fmt: Format[L]) 
+   case class ListKind[L <: TypeMeta](val urlPathComponent: String, val apiPrefix: String = "api")(implicit fmt: Format[L]) 
      extends Kind[L]
    implicit val podListKind = ListKind[PodList]("pods")
    implicit val nodeListKind = ListKind[NodeList]("nodes")
@@ -261,6 +284,8 @@ package object client {
                               reason=Some(response.statusText),
                               details=Some(response.body),
                               code=Some(response.status))
+            if (log.isDebugEnabled)
+              log.debug("[Skuber Response: status = " + status)
             throw new K8SException(status)    
         }
       }

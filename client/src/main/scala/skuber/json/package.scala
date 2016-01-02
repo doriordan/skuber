@@ -51,6 +51,10 @@ package object format {
     // Int: the empty value is 0
     def formatMaybeEmptyInt(omitEmpty: Boolean=true) : OFormat[Int] =
       path.formatNullable[Int].inmap[Int](_.getOrElse(0), i => if (omitEmpty && i==0) None else Some(i))
+      
+    // Int Or String: the emoty value is the specified default  
+    def formatMaybeEmptyIntOrString(empty: IntOrString): OFormat[IntOrString] =
+      path.formatNullable[IntOrString].inmap[IntOrString](_.getOrElse(empty), i => Some(i))
   }
   
   // we make the above formatter methods available on JsPath objects via this implicit conversion
@@ -120,6 +124,8 @@ package object format {
   )(ListMeta.apply _, unlift(ListMeta.unapply))
   
   implicit val localObjRefFormat = Json.format[LocalObjectReference]
+  
+  implicit val apiVersionsFormat = Json.format[APIVersions]
   
   implicit val objRefFormat: Format[ObjectReference] = (
     (JsPath \ "kind").formatMaybeEmptyString() and
@@ -227,19 +233,19 @@ package object format {
     (JsPath \ "command").format[List[String]].inmap(cmd => ExecAction(cmd), (ea: ExecAction) => ea.command)
   )
   
-  implicit val nameablePortReads: Reads[NameablePort] = (
+  implicit val intOrStrReads: Reads[IntOrString] = (
     JsPath.read[Int].map(value => Left(value)) |
     JsPath.read[String].map(value => Right(value) )
   )
       
-  implicit val nameablePortWrite = Writes[NameablePort] { 
+  implicit val intOrStrWrites = Writes[IntOrString] { 
      value => value match {
        case Left(i) => Writes.IntWrites.writes(i)
        case Right(s) => Writes.StringWrites.writes(s)
      }
   }
   
-  implicit val nameablePortFormat: Format[NameablePort] = Format(nameablePortReads, nameablePortWrite)
+  implicit val intOrStringFormat: Format[IntOrString] = Format(intOrStrReads, intOrStrWrites)
   
   implicit val httpGetActionFormat: Format[HTTPGetAction] = (
       (JsPath \ "port").format[NameablePort] and
@@ -477,6 +483,7 @@ package object format {
   
    implicit lazy val repCtrlrFormat: Format[ReplicationController] = (
     objFormat and
+    
     (JsPath \ "spec").formatNullable[ReplicationController.Spec] and
     (JsPath \ "status").formatNullable[ReplicationController.Status]
   ) (ReplicationController.apply _, unlift(ReplicationController.unapply))

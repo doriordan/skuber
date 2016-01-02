@@ -8,7 +8,7 @@ import java.util.Date
  */
 case class Node(
   	val kind: String ="Node",
-  	override val apiVersion: String = "v1",
+  	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     spec: Option[Node.Spec] = None,
     status: Option[Node.Status] = None) 

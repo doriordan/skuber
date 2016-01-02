@@ -28,7 +28,7 @@ package object model {
     
         val container=Container(containerName, image=image).port(containerPort)
           
-        val template = Pod.Template.Spec.withName(serviceName).
+        val template = Pod.Template.Spec.named(serviceName).
                              addLabels(labels).
                              addAnnotations(customAnnotations).                               
                              addContainer(container)
