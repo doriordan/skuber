@@ -69,5 +69,9 @@ The coverage of the Kubernetes API functionality by Skuber is extensive, however
 
 - Testing has largely used the default configuration, which connects to a Kubernetes cluster via a kubectl proxy running on localhost:8001 and uses the default namespace. Your mileage may vary with other client configurations.
 - If some functionality isn't covered by the tests and examples included in this release you should assume it hasn't been tested.
-- Documentation is currently sparse - in practice a basic knowledge of Kubernetes as well as Scala experience will be required, from there the Skuber [programming guide](docs/Guide.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
+- Documentation is currently sparse - in practice a basic knowledge of Kubernetes as well as Scala experience will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
 - Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [horizontal pod autoscaling](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/v1.1/docs/api.html#api-groups) features such as [Daemon Sets](http://kubernetes.io/v1.1/docs/admin/daemons.html), [Deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html), [Jobs](http://kubernetes.io/v1.1/docs/user-guide/jobs.html) and [Ingress / HTTP load balancing](http://kubernetes.io/v1.1/docs/user-guide/ingress.html) is due shortly.
+
+## License
+
+This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
