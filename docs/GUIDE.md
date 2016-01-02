@@ -30,7 +30,7 @@ A combination of generic Scala case class features and Skuber-defined fluent API
     val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
 
     val prodCPU = 1 // 1 KCU 
-    val prodMem = "0.5Gi" // 0.5GiB (gigibytes)    
+    val prodMem = "0.5Gi" // 0.5GiB (gibibytes)    
 
     val prodContainer=Container(name="nginx-prod", image="nginx").
                           limitCPU(prodCPU).
@@ -70,7 +70,7 @@ There are many available examples of JSON representations of Kubernetes objects,
 
 Equally it is straightforward to do the reverse and generate a JSON value from a Skuber model object:
 
-   val json = Json.toJson(controller)
+    val json = Json.toJson(controller)
 
 ## API
 
@@ -86,8 +86,9 @@ To interact with the Kubernetes API server:
 
 For example, the following creates the Replication Controller we just parsed above on our Kubernetes cluster:
 
-    // Note: The k8sInit call below uses the default configuration, which (unless overridden) assumes a kubectl proxy is running on localhost:8001
-    // and uses the default Kubernetes namespace for all its requests
+    // Note: The k8sInit call below uses the default configuration, which (unless overridden) 
+    // assumes a kubectl proxy is running on localhost:8001 and uses the default Kubernetes 
+    // namespace for all its requests. See later in this guide for more details on Configuration.
  
     import skuber._
     import skuber.json.format._
@@ -103,7 +104,9 @@ When finished making requests the application should call `close` on the request
 Create a resource on Kubernetes from a Skuber object kind:
 
     val rcFut = k8s create controller
-    rcFut onSuccess { case rc => println("Created controller, Kubernetes assigned resource version is " rc.metadata.resourceVersion) }
+    rcFut onSuccess { case rc => 
+      println("Created controller, Kubernetes assigned resource version is " rc.metadata.resourceVersion) 
+    }
 
 Get a Kubernetes object kind resource by type and name: 
 
@@ -119,7 +122,9 @@ Update a Kubernetes object kind resource:
 
     val upscaledController = controller.withReplicas(5)
     val rcFut = k8s update upscaledController
-    rcFut onSuccess { case rc => println("Updated controller, new Kubernetes assigned resource version is " + rc.metadata.resourceVersion) }
+    rcFut onSuccess { case rc => 
+      println("Updated controller, Kubernetes assigned resource version is " + rc.metadata.resourceVersion) 
+    }
 
 Delete a Kubernetes object:
 
@@ -145,7 +150,9 @@ Kubernetes supports the ability for API clients to watch events on specified res
         val frontendFetch = k8s get[ReplicationController] "frontend"
         frontendFetch onSuccess { case frontend =>
           val frontendWatch = k8s watch frontend
-          frontendWatch.events |>>> Iteratee.foreach { frontendEvent => println("Current frontend replicas: " + frontendEvent._object.status.get.replicas) }
+          frontendWatch.events |>>> Iteratee.foreach { frontendEvent => 
+            println("Current frontend replicas: " + frontendEvent._object.status.get.replicas) 
+          }
         }     
       }
       // ...
@@ -168,7 +175,8 @@ Additionally you can watch all events related to a specific kind - for example t
     def watchPodPhases = {
       val k8s = k8sInit    
 
-      // watch only current events - i.e. exclude historic ones  - by specifying the resource version returned with the latest pod list     
+      // watch only current events - i.e. exclude historic ones  - 
+      // by specifying the resource version returned with the latest pod list     
 
       val currPodList = k8s list[PodList]()
      
@@ -189,6 +197,58 @@ The watch can be demonstrated by calling `watchPodPhases` to start watching all 
 
 Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored - this is probably what you want. 
 
+### Extensions
+
+Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/v1.1/docs/api.html#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
+
+    // standard Skuber imports to support the "core API" group
+    import skuber._
+    import skuber.json.format._
+
+    // additional imports to support the Extensions API group
+    import skuber.ext._
+    import skuber.json.ext.format._
+     
+The above additional imports add some new types, and also add some additional methods into the request context class.
+
+As the features in the Extensions API group are generally of a beta or experimental status in Kubernetes, it should be expected that this API is more likely to change in a backwards-incompatible manner than the core API.
+
+Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html) and the associated [Scale](http://kubernetes.io/v1.1/docs/design/horizontal-pod-autoscaler.html#scale-subresource) subresource in this group. Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
+
+***Scale*** 
+
+The `Scale` type is a subresource of a `ReplicationController` or `Deployment` (the latter is not yet tested in Skuber), and will probably normally be used by autoscalers such as the `HorizontalPodAutoscaler`. However it can also be accessed directly in the extended API in order to specify a desired replica count for its associated top-level resource as follows:
+
+    // assumes 'k8s' and 'controller' objects have already been instantiated as above
+    
+    val scaleFut = k8s.scale(controller, 4) // specify a desired replica count of 4 for the controller
+    scaleFut onSuccess { case scale => 
+      println("Scale: specified = " + scale.spec.replicas + ", current = " + scale.status.get.replicas) 
+    }
+
+The API returns a `Scale` object (within as usual a Scala `Future` object) which has access not just to the specified replica count but also the current status.
+
+The current `Scale` of a replication controller or deployment can also be obtained. For example:
+
+    val scaleFut = k8s.getReplicationControllerScale(controller.name)
+    scaleFut onSuccess { case scale => 
+      println("Scale: specified = " + scale.spec.replicas + ", current = " + scale.status.get.replicas) 
+    }
+ 
+***HorizontalPodAutoscaler***
+
+A skuber client can also manage `HorizontalPodAutoscaler` objects in order to autoscale a replication controller or deployment. A fluent API approach enables minimum replica count, maximum replica count and CPU utilisation target to be readily specified. For example:
+
+    // following autoscales 'controller' with min replicas of 2, max replicas of 8 
+    // and a target CPU utilisation of 80%
+    val hpas = HorizontalPodAutoscaler.scale(controller).
+                     withMinReplicas(2).
+                     withMaxReplicas(8).
+                     withCPUTargetUtilization(80)
+    k8s create[HorizontalPodAutoscaler] hpas  
+
+The other standard Skuber API methods (`update`, `delete` etc.) can also be used with this type. (Note: the corresponding *list type* will be supported shortly)
+
 ### Configuration
 
 *Note: Non-default configurations support has been implemented as described below but needs testing*
@@ -197,8 +257,8 @@ By default a `k8sInit` call will connect to the default namespace in Kubernetes 
 
 A non-default configuration can be passed to the`k8sInit` call in several ways:
 
-- Set the environment variable SKUBERCONFIG to a file URL that points to a standard [kubeconfig file](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html), or just set it to the value `file` to configure from a kubeconfig file at the default location (~/.kube/config). The current context defined in the file will be used by the request context to define the cluster URL and namespace information to be used for requests to the API server. Note: merge functionality for kubeconfig files is not supported - only a single kubeconfig file is loaded.
+- Set the environment variable `SKUBERCONFIG` to a file URL that points to a standard [kubeconfig file](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html), or just set it to the value `file` to configure from a kubeconfig file at the default location (~/.kube/config). The current context defined in the file will be used by the request context to define the cluster URL and namespace information to be used for requests to the API server. Note: merge functionality for kubeconfig files is not supported - only a single kubeconfig file is loaded.
 
-- Pass a K8SConfiguration object directly as a parameter to the `k8sInit` call. The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
+- Pass a `K8SConfiguration` object directly as a parameter to the `k8sInit` call. The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
 
 Auth types currently implemented include *no auth* (the default), *bearer token* and *basic auth*. Client certificate authentication is not yet implemented. The use of SSL (i.e. using a `https://...` cluster URL) requires the Kubernetes API server cert to be in the Java trust store.
