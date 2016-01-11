@@ -1,10 +1,8 @@
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
-resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
-
 val playws = "com.typesafe.play" %% "play-ws" % "2.4.3"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4"
-val specs2 = "org.specs2" %% "specs2-core" % "3.6.2"
+val specs2 = "org.specs2" %% "specs2-core" % "3.7"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.4"
 val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
