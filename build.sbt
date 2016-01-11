@@ -1,4 +1,5 @@
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
+
 resolvers += "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases"
 
 val playws = "com.typesafe.play" %% "play-ws" % "2.4.3"
