@@ -53,15 +53,17 @@ The `examples` sub-project also illustrates several features. See for example th
 
 ## Build Instructions
 
-The project consists of two sub-projects - the main Skuber client library (under the 'client' directory) and an 'examples' project.
+The project consists of two sub-projects - the main Skuber client library (under the `client` directory) and an `examples` project.
 
-A sbt build file is provided at the top-level directory, so you can use standard SBT commands to build JARs for both projects or select one project to build.
+A sbt build file is provided at the top-level directory, so you can use standard sbt commands to build jars for both projects or select one project to build.
 
 ## Requirements
 
-The client library requires Java 8. The build uses sbt 0.13. A Kubernetes cluster that supports at least v1.0 of the API is a runtime requirement.
+- Java 8 (build and run time)
+- sbt 0.13 (build time)
+- Kubernetes v1.0 or later (run time)
 
-Use of the newer extensions API group features requires a Kubernetes cluster that supports the associated API and that the feature be enabled on the cluster if necessary *(currently only horizontal pod auto-scaling and the associated Scale subresource from this group is supported by Skuber, this feature requires a V1.1 cluster and is enabled on the cluster by default)* 
+Use of the newer extensions API group features ( currently supported: Scale, HorizontalPodAutoScaler) requires a v1.1 Kubernetes cluster at run time. 
 
 ## Status
 
