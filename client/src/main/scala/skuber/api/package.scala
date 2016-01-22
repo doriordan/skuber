@@ -3,7 +3,7 @@ package skuber.api
 import play.api.libs.ws._
 import play.api.libs.ws.ning._
 import play.api.libs.json.{JsValue, JsSuccess, JsError, JsResult, JsObject, Reads, Format}
-import com.ning.http.client.AsyncHttpClient
+import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig}
 
 import java.net.URL
 
@@ -11,6 +11,7 @@ import scala.concurrent.{Future,ExecutionContext, Promise}
 import scala.util.{Try}
 
 import skuber._
+import skuber.api.security.{HTTPRequestAuth, TLS} 
 import skuber.json.format._
 import skuber.json.format.apiobj._
 
@@ -25,12 +26,16 @@ package object client {
 
   val log = LoggerFactory.getLogger("skuber.api")
   
+  // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
+  type PathOrData = Either[String,Array[Byte]]
+  
    // K8S client API classes
    val defaultProxyURL = "http://localhost:8001"
    case class Cluster(
      apiVersion: String = "v1",  
      server: String = defaultProxyURL,
-     insecureSkipTLSVerify: Boolean = false
+     insecureSkipTLSVerify: Boolean = false,
+     certificateAuthority: Option[PathOrData] = None
    )
    
    case class Context(
@@ -40,6 +45,8 @@ package object client {
    )
      
    case class AuthInfo(
+     clientCertificate: Option[PathOrData] = None,
+     clientKey: Option[PathOrData] = None,
      token: Option[String] = None,
      userName: Option[String] = None,
      password: Option[String] = None
@@ -54,55 +61,65 @@ package object client {
      
    
    class RequestContext(k8sContext: Context)(implicit executorContext: ExecutionContext) { 
-      val sslCtxt = Auth.establishSSLContext(k8sContext)
-      val auth = Auth.establishClientAuth(k8sContext)
-      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
-      val commonClient = new NingWSClient(wsConfig)
-      
-      val namespaceName = k8sContext.namespace.name match {
+      val sslContext = TLS.establishSSLContext(k8sContext)
+      val requestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
+//      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
+//      val httpClient = new NingWSClient(wsConfig)
+     val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
+     sslContext foreach { ctx =>
+        httpClientConfigBuilder.setSSLContext(ctx) 
+        // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
+        httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1")) 
+     }
+     val httpClientConfig = httpClientConfigBuilder.build
+     val httpClient = new NingWSClient(httpClientConfig)
+     
+     val namespaceName = k8sContext.namespace.name match {
         case "" => "default"
         case name => name
-      }
+     }
       
-      val nsPathComponent =  Some("namespaces/" + namespaceName)
+     val nsPathComponent =  Some("namespaces/" + namespaceName)
       
-      def executionContext = executorContext
+     def executionContext = executorContext
       
-      def buildRequest[T <: TypeMeta](nameComponent: Option[String],
-                       watch: Boolean = false,
-                       apiVersion: String = "v1",
-                       forExtensionsAPI: Option[Boolean] = None)(implicit kind: Kind[T])
-       : WSRequest = 
-      {  
-        val kindComponent = kind.urlPathComponent
+     def buildRequest[T <: TypeMeta](
+       nameComponent: Option[String],
+       watch: Boolean = false,
+       apiVersion: String = "v1",
+       forExtensionsAPI: Option[Boolean] = None)(implicit kind: Kind[T]) : WSRequest = 
+     {  
+       val kindComponent = kind.urlPathComponent
         
-        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
-        val apiPrefix = if (usesExtensionsAPI) "apis" else "api"
-        // helper to compose a full URL from a sequence of path components
-        def mkUrlString(pathComponents: Option[String]*) : String = {
-          pathComponents.foldLeft("")((acc,next) => next match {
-            case None => acc
-            case Some(pathComponent) => {
-              acc match {
-                case "" => pathComponent
-                case _ => acc + "/" + pathComponent
-              }
-            }
-          })
-        }
+       val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
+       val apiPrefix = if (usesExtensionsAPI) "apis" else "api"
+
+         // helper to compose a full URL from a sequence of path components
+       def mkUrlString(pathComponents: Option[String]*) : String = {
+         pathComponents.foldLeft("")((acc,next) => next match {
+           case None => acc
+           case Some(pathComponent) => {
+             acc match {
+               case "" => pathComponent
+               case _ => acc + "/" + pathComponent
+             }
+           }
+         })
+       }
         
-        val watchPathComponent=if (watch) Some("watch") else None
+       val watchPathComponent=if (watch) Some("watch") else None
         
-        val k8sUrlStr = mkUrlString(
-          Some(k8sContext.cluster.server), 
-          Some(apiPrefix), 
-          Some(apiVersion), 
-          watchPathComponent,
-          nsPathComponent, 
-          Some(kindComponent),
-          nameComponent)     
-        val req = commonClient.url(k8sUrlStr)
-        Auth.addAuth(req, auth)
+       val k8sUrlStr = mkUrlString(
+         Some(k8sContext.cluster.server), 
+         Some(apiPrefix), 
+         Some(apiVersion), 
+         watchPathComponent,
+         nsPathComponent, 
+         Some(kindComponent),
+         nameComponent)     
+         
+       val req = httpClient.url(k8sUrlStr)
+        HTTPRequestAuth.addAuth(req, requestAuth)
       }
       
       def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
@@ -193,8 +210,8 @@ package object client {
      // get API versions supported by the cluster - against current v1.x versions of Kubernetes this returns just "v1"
      def getServerAPIVersions(): Future[List[String]] = {
        val url = k8sContext.cluster.server + "/api"
-       val noAuthReq = commonClient.url(url)
-       val wsReq = Auth.addAuth(noAuthReq, auth)     
+       val noAuthReq = httpClient.url(url)
+       val wsReq = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)     
        log.info("[Skuber Request: method=GET, resource=api/, description=APIVersions]")
               
        val wsResponse = wsReq.get
@@ -202,7 +219,7 @@ package object client {
      }
      
      def close = {
-       commonClient.underlying[AsyncHttpClient].close()
+        httpClient.close
      }
    }
    

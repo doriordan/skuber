@@ -8,6 +8,7 @@ import java.io.{File, FileInputStream}
 import scala.collection.JavaConverters._
 import org.yaml.snakeyaml.Yaml
 
+import java.util.Base64
 
 /**
  * @author David O'Riordan
@@ -37,12 +38,9 @@ object Configuration {
      * See https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md
      * for format of the kubeconfig file.   
      * Enables sharing of config with kubectl when skuber client is not simply directed via a kubectl proxy
-     * However note that the merging funcionality described at the link above is not implemented
+     * However note that the merging functionality described at the link above is not implemented
      * in the Skuber library.    
-     * Also note that any certificate data in the config file is ignored - if a TLS connection is configured for 
-     * a cluster, this will require the relevant certificate/key data to be installed into the Skuber client 
-     * applications keystore / truststore (using keytool) per standard Java methods.
-     */   
+    **/
     import java.nio.file.{Path,Paths,Files}
     def parseKubeconfigFile(path: Path = Paths.get(System.getProperty("user.home"),".kube", "config")) : Try[Configuration] = {
        parseKubeconfigStream(Files.newInputStream(path))
@@ -54,28 +52,58 @@ object Configuration {
       type TopLevelYamlList = java.util.List[YamlMap]
       
       Try {
-        val yaml = new Yaml()
+        val yaml = new Yaml()        
         val mainConfig = yaml.load(is).asInstanceOf[YamlMap]
         
-        def name(parent: YamlMap) = parent.get("name").asInstanceOf[String]  
-        def child(parent: YamlMap, key: String) = parent.get(key).asInstanceOf[YamlMap]
-        def topLevelList(key: String) = mainConfig.get(key).asInstanceOf[TopLevelYamlList]
+        def name(parent: YamlMap) = 
+          parent.get("name").asInstanceOf[String]  
+        
+        def child(parent: YamlMap, key: String) = 
+          parent.get(key).asInstanceOf[YamlMap]
+        
+        def topLevelList(key: String) = 
+          mainConfig.get(key).asInstanceOf[TopLevelYamlList]
+        
         def valueAt[T](parent: YamlMap, key: String, fallback: Option[T] = None) : T = 
           parent.asScala.get(key).orElse(fallback).get.asInstanceOf[T]
-        def optionalValueAt[T](parent: YamlMap, key: String) : Option[T] = parent.asScala.get(key).map(_.asInstanceOf[T])
+        
+        def optionalValueAt[T](parent: YamlMap, key: String) : Option[T] = 
+          parent.asScala.get(key).map(_.asInstanceOf[T])
+            
+        def pathOrDataValueAt[T](parent: YamlMap, pathKey: String, dataKey: String) : Option[PathOrData] = {
+          val path = optionalValueAt[String](parent, pathKey)
+          val data = optionalValueAt[String](parent, dataKey)
+          // Return some Right if data value is set, otherwise some Left if path value is set 
+          // if neither is set return None
+          // Note - implication is that a data setting overrides a path setting
+          (path, data) match {
+            case (_, Some(b64EncodedData)) => Some(Right(Base64.getDecoder.decode(b64EncodedData)))
+            case (Some(p), _) => Some(Left(p))
+            case (None, None) => None
+          }
+        }
+        
         def topLevelYamlToK8SConfigMap[K8SConfigKind](kind: String, toK8SConfig: YamlMap=> K8SConfigKind) =
           topLevelList(kind + "s").asScala.map(item => name(item) -> toK8SConfig(child(item, kind))).toMap
           
         def toK8SCluster(clusterConfig: YamlMap) =
-           Cluster(apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
-                   server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
-                   insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)))   
+          Cluster(
+            apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
+            server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
+            insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)),
+            certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data"))
+            
+                   
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster _)
               
         def toK8SAuthInfo(userConfig:YamlMap) =      
-            AuthInfo(token=optionalValueAt(userConfig, "token"),
-                      userName=optionalValueAt(userConfig, "username"),
-                      password=optionalValueAt(userConfig, "password"))
+          AuthInfo(
+            clientCertificate=pathOrDataValueAt(userConfig, "client-certificate","client-certificate-data"),
+            clientKey=pathOrDataValueAt(userConfig, "client-key","client-key-data"),
+            token=optionalValueAt(userConfig, "token"),
+            userName=optionalValueAt(userConfig, "username"),
+            password=optionalValueAt(userConfig, "password"))
+                      
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo _)                            
       
         def toK8SContext(contextConfig: YamlMap) = {
@@ -84,10 +112,12 @@ object Configuration {
           val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
           Context(cluster,authInfo,namespace)    
         }       
+        
         val k8sContextMap = topLevelYamlToK8SConfigMap("context", toK8SContext _)
         
         val currentContextStr: Option[String] = optionalValueAt(mainConfig, "current-context")
         val currentContext = currentContextStr.flatMap(k8sContextMap.get(_)).getOrElse(Context())
+        
         Configuration(k8sClusterMap, k8sContextMap, currentContext, k8sAuthInfoMap)
       }
     }    

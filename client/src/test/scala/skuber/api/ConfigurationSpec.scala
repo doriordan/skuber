@@ -56,13 +56,16 @@ users:
     val parsedFromStringConfig = k8sConfig.get
     
     // construct equivalent config directly for comparison
+ 
     val cowCluster=K8SCluster("v1", "http://cow.org:8080",false)
-    val horseCluster=K8SCluster("v1","https://horse.org:4443", false)
+    val horseCluster=K8SCluster("v1","https://horse.org:4443", false, certificateAuthority=Some(Left("path/to/my/cafile")))
     val pigCluster=K8SCluster("v1", "https://pig.org:443", true)
     val clusters=Map("cow-cluster" -> cowCluster,"horse-cluster"->horseCluster,"pig-cluster"->pigCluster)
+    
     val blueUser=K8SAuthInfo(token=Some("blue-token"))
-    val greenUser=K8SAuthInfo()
+    val greenUser=K8SAuthInfo(clientCertificate=Some(Left("path/to/my/client/cert")), clientKey=Some(Left("path/to/my/client/key")))    
     val users=Map("blue-user"->blueUser,"green-user"->greenUser)
+
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
     val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))
     val contexts=Map("federal-context"->federalContext,"queen-anne-context"->queenAnneContext)
