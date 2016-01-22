@@ -40,15 +40,43 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 The `examples` sub-project also illustrates several features. See for example the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
 
+## Configuration and Security
+
+By default the client will attempt to connect to the Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. 
+
+However Skuber can configure itself from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes clients, so that you do not need to duplicate your existing configuration. 
+
+    export SKUBERCONFIG=file 
+
+The above instructs Skuber to configure itself from the kubeconfig file in the default location *~/.kube/config*
+
+Or you can supply a specific path for the config file using a file URL:
+
+    export SKUBERCONFIG=file:///home/kubernetes_user/.kube/config
+
+The `k8sInit` call by a Skuber client will load the specified file and configure its connections and requests to the cluster according to the current context set in the config file.
+
+One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_config.html) to manage the configuration settings.
+
+*(Note: If $SKUBERCONFIG is set then all configuration is loaded from that kubeconfig file - no merging with configuration from other sources occurs)*
+
+If the `kubeconfig` file specifies a **TLS** connection (i.e. a `https://` URL) for the cluster server, Skuber will utilise any certificate authority and/or client certificate/key specified in the configuration file for transport level authentication with the server - this means there is no need to store the certificate or key data in the Java key store or trust store. 
+
+Skuber respects the`insecure-skip-tls-verify` flag - if it is set to `true` then with TLS connections the server will be trusted without requiring a certificate authority in the configuration file. By default this flag is set to false i.e a server certificate is required with TLS connections.
+
+At the HTTP request authentication level, Skuber will use any ***bearer token*** or ***basic auth*** credentials specified in the configuration file (bearer token takes precedence over basic auth).
+
+Configuration can alternatively be passed programmatically to the `k8sInit` call, see the programming guide for details.
+
 ## Features
 
 - Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including Pod, Service, ReplicationController, Node, Container, Endpoint, Namespace, Volume, PersistentVolume, Resource, Security, EnvVar, ServiceAccount, LimitRange, Secret, Event and others
 - Support for Kubernetes object, list and simple kinds
 - Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
 - Implicit json formatters for reading and writing the Kubernetes types
-- Support for create, get, delete, list, update, and watch operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests. 
+- Support for create, get, delete, list, update, and watch operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests
 - Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
-- Client contexts (including connection details and namespace) can be configured by a combination of system properties and a config file format based on the Kubernetes kubeconfig file YAML format
+- Highly configurable via kubeconfig files or programmatically
 - Support for horizontal pod auto scaling (Kubernetes V1.1 beta feature)
 
 ## Build Instructions
@@ -67,11 +95,10 @@ Use of the newer extensions API group features ( currently supported: Scale, Hor
 
 ## Status
 
-The coverage of the Kubernetes API functionality by Skuber is extensive, however this is an alpha release with all the caveats that implies. 
+The coverage of the Kubernetes API functionality by Skuber is extensive, however this is an alpha release with all the caveats that implies, including:
 
-- Testing has largely used the default configuration, which connects to a Kubernetes cluster via a kubectl proxy running on localhost:8001 and uses the default namespace. Your mileage may vary with other client configurations.
-- If some functionality isn't covered by the tests and examples included in this release you should assume it hasn't been tested.
-- Documentation is currently sparse - in practice a basic knowledge of Kubernetes as well as Scala experience will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
+- Documentation is currently limited - in practice a basic knowledge of Kubernetes and Scala will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
+
 - Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [horizontal pod autoscaling](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/v1.1/docs/api.html#api-groups) features such as [Daemon Sets](http://kubernetes.io/v1.1/docs/admin/daemons.html), [Deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html), [Jobs](http://kubernetes.io/v1.1/docs/user-guide/jobs.html) and [Ingress / HTTP load balancing](http://kubernetes.io/v1.1/docs/user-guide/ingress.html) is due shortly.
 
 ## License

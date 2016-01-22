@@ -249,16 +249,10 @@ A skuber client can also manage `HorizontalPodAutoscaler` objects in order to au
 
 The other standard Skuber API methods (`update`, `delete` etc.) can also be used with this type. (Note: the corresponding *list type* will be supported shortly)
 
-### Configuration
+## Programmatic configuration
 
-*Note: Non-default configurations support has been implemented as described below but needs testing*
+Normally it is likely that configuration will be via a kubeconfig file. However a client can optionally pass a `K8SConfiguration` object directly as a parameter to the `k8sInit` call. This will override any other configuration. 
 
-By default a `k8sInit` call will connect to the default namespace in Kubernetes via a kubectl proxy running on localhost:8001. 
+The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. 
 
-A non-default configuration can be passed to the`k8sInit` call in several ways:
-
-- Set the environment variable `SKUBERCONFIG` to a file URL that points to a standard [kubeconfig file](http://kubernetes.io/v1.0/docs/user-guide/kubeconfig-file.html), or just set it to the value `file` to configure from a kubeconfig file at the default location (~/.kube/config). The current context defined in the file will be used by the request context to define the cluster URL and namespace information to be used for requests to the API server. Note: merge functionality for kubeconfig files is not supported - only a single kubeconfig file is loaded.
-
-- Pass a `K8SConfiguration` object directly as a parameter to the `k8sInit` call. The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
-
-Auth types currently implemented include *no auth* (the default), *bearer token* and *basic auth*. Client certificate authentication is not yet implemented. The use of SSL (i.e. using a `https://...` cluster URL) requires the Kubernetes API server cert to be in the Java trust store.
+The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
