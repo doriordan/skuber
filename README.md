@@ -4,7 +4,7 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 
 The client supports v1.0 and v1.1 of the Kubernetes REST API.
 
-## Sample Usage
+## Example Usage
 
 The code block below illustrates the simple steps required to create a replicated nginx service on a Kubernetes cluster.
  
@@ -38,46 +38,42 @@ The service can be accessed from outside the cluster at port 30001 on each clust
 
 See the [programming guide](docs/GUIDE.md) for more details.
 
-The `examples` sub-project also illustrates several features. See for example the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
+## Features
 
-## Configuration and Security
+- Support for `create`, `get`, `delete`, `list`, `update`, and `watch` operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests
+- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including `Pod`, `Service`, `ReplicationController`, `Node`, `Container`, `Endpoint`, `Namespace`, `Volume`, `PersistentVolume`,` Resource`, `Security`, `EnvVar`, `ServiceAccount`, `LimitRange`, `Secret`, `Event` and others
+- Support for Kubernetes **object**, **list** and **simple** kinds
+- Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
+- Complete json support for reading and writing the Kubernetes types
+- Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
+- Highly configurable via kubeconfig files or programmatically
+- Support for horizontal pod auto scaling (Kubernetes V1.1 beta feature)
 
-By default the client will attempt to connect to the Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. 
+## Getting Started
 
-However Skuber can configure itself from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes clients, so that you do not need to duplicate your existing configuration. 
+By default a Skuber client will attempt to connect to the Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. So just run 
+
+	kubectl proxy& 
+
+to support this default configuration.
+
+However alternatvely Skuber can configure the connection details from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes client. If you have a working Kubernetes installation, you should already have a kubeconfig file so that you do not need to duplicate your existing configuration. 
+
+The $SKUBERCONFIG environment variable must be set in order to use a kubeconfig file.
 
     export SKUBERCONFIG=file 
 
-The above instructs Skuber to configure itself from the kubeconfig file in the default location *~/.kube/config*
+The above instructs Skuber to configure itself from the kubeconfig file in the default location *$HOME/.kube/config*
 
 Or you can supply a specific path for the config file using a file URL:
 
     export SKUBERCONFIG=file:///home/kubernetes_user/.kube/config
 
-The `k8sInit` call by a Skuber client will load the specified file and configure its connections and requests to the cluster according to the current context set in the config file.
+After establishing your configuration according to one of the above options, you can verify it by (for example) running the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
 
 One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_config.html) to manage the configuration settings.
 
 *(Note: If $SKUBERCONFIG is set then all configuration is loaded from that kubeconfig file - no merging with configuration from other sources occurs)*
-
-If the `kubeconfig` file specifies a **TLS** connection (i.e. a `https://` URL) for the cluster server, Skuber will utilise any certificate authority and/or client certificate/key specified in the configuration file for transport level authentication with the server - this means there is no need to store the certificate or key data in the Java key store or trust store. 
-
-Skuber respects the`insecure-skip-tls-verify` flag - if it is set to `true` then with TLS connections the server will be trusted without requiring a certificate authority in the configuration file. By default this flag is set to false i.e a server certificate is required with TLS connections.
-
-At the HTTP request authentication level, Skuber will use any ***bearer token*** or ***basic auth*** credentials specified in the configuration file (bearer token takes precedence over basic auth).
-
-Configuration can alternatively be passed programmatically to the `k8sInit` call, see the programming guide for details.
-
-## Features
-
-- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including Pod, Service, ReplicationController, Node, Container, Endpoint, Namespace, Volume, PersistentVolume, Resource, Security, EnvVar, ServiceAccount, LimitRange, Secret, Event and others
-- Support for Kubernetes object, list and simple kinds
-- Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
-- Implicit json formatters for reading and writing the Kubernetes types
-- Support for create, get, delete, list, update, and watch operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests
-- Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
-- Highly configurable via kubeconfig files or programmatically
-- Support for horizontal pod auto scaling (Kubernetes V1.1 beta feature)
 
 ## Build Instructions
 
@@ -92,6 +88,18 @@ A sbt build file is provided at the top-level directory, so you can use standard
 - Kubernetes v1.0 or later (run time)
 
 Use of the newer extensions API group features ( currently supported: Scale, HorizontalPodAutoScaler) requires a v1.1 Kubernetes cluster at run time. 
+
+## Security / Authentication
+
+By using the kubeconfig configuraion option, Skuber supports various security/authentication options for its connections with Kubernetes as described below.
+
+If the `kubeconfig` file specifies a **TLS** connection (i.e. a `https://` URL) for the cluster server, Skuber will utilise any server X509 certificate (certificate authority) and/or client X509 certificate/key specified in the configuration file for mutual TLS/SSL authentication with the server - this means there is no need to store the certificate or key data in the Java key store or trust store. 
+
+Skuber respects the`insecure-skip-tls-verify` flag - if it is set to `true` then for  TLS connections the server will be trusted without requiring a server cert. By default this flag is set to false i.e a server certificate is required with TLS connections.
+
+For client authentication Skuber will use any ***bearer token*** or ***basic auth*** credentials specified in the configuration file (bearer token takes precedence over basic auth). Token or basic auth can be used as an alternative to or in conjunction with client certificates.
+
+Configuration can alternatively be passed programmatically to the `k8sInit` call, see the programming guide for details.
 
 ## Status
 
