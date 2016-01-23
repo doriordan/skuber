@@ -51,25 +51,25 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 ## Getting Started
 
-By default a Skuber client will attempt to connect to the Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. So just run 
+By default a Skuber client will attempt to connect to the default namespace in the  Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. So just run 
 
 	kubectl proxy& 
 
-to support this default configuration.
+on the same host(s) as the client to support this default configuration.
 
-However alternatvely Skuber can configure the connection details from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes client. If you have a working Kubernetes installation, you should already have a kubeconfig file so that you do not need to duplicate your existing configuration. 
+However alternatively Skuber can configure the request context details (server URL, namespace, authentication etc.) from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes client. If you have a working Kubernetes installation, you should already have a kubeconfig file so that you do not need to duplicate your existing configuration, or you can use the standard instructions from your Kubernetes provider to create the required file(s). 
 
-The $SKUBERCONFIG environment variable must be set in order to use a kubeconfig file.
+The $SKUBERCONFIG environment variable must be set in the clients environment before running the client in order for a kubeconfig file to be used.
 
     export SKUBERCONFIG=file 
 
-The above instructs Skuber to configure itself from the kubeconfig file in the default location *$HOME/.kube/config*
+The above results ins Skuber configuring itself from the kubeconfig file in the default location *$HOME/.kube/config*
 
 Or you can supply a specific path for the config file using a file URL:
 
     export SKUBERCONFIG=file:///home/kubernetes_user/.kube/config
 
-After establishing your configuration according to one of the above options, you can verify it by (for example) running the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
+After establishing your configuration according to one of the above options, you can verify it by (for example) building and running the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
 
 One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_config.html) to manage the configuration settings.
 
@@ -91,13 +91,17 @@ Use of the newer extensions API group features ( currently supported: Scale, Hor
 
 ## Security / Authentication
 
-By using the kubeconfig configuration option, Skuber supports various security/authentication options for its connections with Kubernetes as described below.
+With the kubeconfig configuration option Skuber supports standard Kubernetes client security/authentication configuration as described below.
 
-If the `kubeconfig` file specifies a **TLS** connection (i.e. a `https://` URL) for the cluster server, Skuber will utilise any server X.509 certificate (certificate authority data or file) and/or client X.509 certificate/key specified in the configuration file for mutual TLS/SSL authentication with the server - this means there is no need to store the certificate or key data in the Java key store or trust store. 
+If the `kubeconfig` file specifies a **TLS** connection (i.e. a `https://` URL) to the cluster server, Skuber will utilise the **certificate authority** specified in the kubeconfig file to verify the server (unless the `insecure-skip-tls-verify` flag is set to true, in which case Skuber will trust the server without verification).
 
-Skuber respects the`insecure-skip-tls-verify` flag - if it is set to `true` then for  TLS connections the server will be trusted without requiring a server cert. By default this flag is set to false i.e a server certificate is required with TLS connections.
+For client authentication **client certificates** (cert and private key pairs) can be specified in the configuration file for authenticating the client to the server when using TLS.
 
-For client authentication Skuber will use any ***bearer token*** or ***basic auth*** credentials specified in the configuration file (bearer token takes precedence over basic auth). Token or basic auth can be used as an alternative to or in conjunction with client certificates.
+Skuber loads the above certificates and keys directly from the kubeconfig file (or from another location in the file system in the case where the configuration of that cert or key specifies a path rather than embedded data). This means there is no need to store them in the Java trust or key stores. 
+
+In addition to client certificates Skuber will use any **bearer token** or **basic authentication** credentials specified in the configuration file. Token or basic auth can be configured as an alternative to or in conjunction with client certificates for client authentication.
+
+All of the above configuration items in the kubeconfig file are the same as used by other Kubernetes clients such as kubectl, so you (or rather the organization deploying the Skuber application) can share configuration with such other clients or set up separate configuration files for the Skuber applications depending on organizational security / deployment policies and other requirements. 
 
 Configuration can alternatively be passed programmatically to the `k8sInit` call, see the programming guide for details.
 
