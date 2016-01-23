@@ -91,7 +91,7 @@ Use of the newer extensions API group features ( currently supported: Scale, Hor
 
 ## Security / Authentication
 
-By using the kubeconfig configuraion option, Skuber supports various security/authentication options for its connections with Kubernetes as described below.
+By using the kubeconfig configuration option, Skuber supports various security/authentication options for its connections with Kubernetes as described below.
 
 If the `kubeconfig` file specifies a **TLS** connection (i.e. a `https://` URL) for the cluster server, Skuber will utilise any server X509 certificate (certificate authority) and/or client X509 certificate/key specified in the configuration file for mutual TLS/SSL authentication with the server - this means there is no need to store the certificate or key data in the Java key store or trust store. 
 
