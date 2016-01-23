@@ -44,7 +44,7 @@ See the [programming guide](docs/GUIDE.md) for more details.
 - Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including `Pod`, `Service`, `ReplicationController`, `Node`, `Container`, `Endpoint`, `Namespace`, `Volume`, `PersistentVolume`,` Resource`, `Security`, `EnvVar`, `ServiceAccount`, `LimitRange`, `Secret`, `Event` and others
 - Support for Kubernetes **object**, **list** and **simple** kinds
 - Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
-- Complete json support for reading and writing the Kubernetes types
+- Complete JSON support for reading and writing the Kubernetes types
 - Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
 - Highly configurable via kubeconfig files or programmatically
 - Support for horizontal pod auto scaling (Kubernetes V1.1 beta feature)
