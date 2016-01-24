@@ -1,6 +1,6 @@
 # Skuber
 
-Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a high-level and strongly typed Scala API for remotely managing and reactively monitoring Kubernetes resources (such as Pods, Containers, Services, Replication Controllers etc.) via the Kubernetes API server.
+Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing and watching Kubernetes resources (such as Pods, Containers, Services, Replication Controllers etc.) in a cluster.
 
 The client supports v1.0 and v1.1 of the Kubernetes REST API.
 
@@ -51,19 +51,21 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 ## Getting Started
 
+Before you start you should have client access to a functioning Kubernetes cluster, which can be tested by running some basic `kubectl` commands e.g. `kubectl get nodes`. If you don't have a Kubernetes cluster that you can use, you can follow the instructions [here](http://kubernetes.io/v1.1/docs/getting-started-guides/README.html) to set one up.
+
 By default a Skuber client will attempt to connect to the default namespace in the  Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. So just run 
 
 	kubectl proxy& 
 
 on the same host(s) as the client to support this default configuration.
 
-However alternatively Skuber can configure the request context details (server URL, namespace, authentication etc.) from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes client. If you have a working Kubernetes installation, you should already have a kubeconfig file so that you do not need to duplicate your existing configuration, or you can use the standard instructions from your Kubernetes provider to create the required file(s). 
+However alternatively Skuber can configure the required details for API requests (cluster API server address, authentication, Kubernetes namespace etc.) from the same [kubeconfig](http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes client. If you can use `kubectl` you should already have a kubeconfig file so that you do not need to duplicate your existing configuration, or you can use the standard instructions from your Kubernetes provider to create the required file(s). 
 
 The $SKUBERCONFIG environment variable must be set in the clients environment before running the client in order for a kubeconfig file to be used.
 
     export SKUBERCONFIG=file 
 
-The above results ins Skuber configuring itself from the kubeconfig file in the default location *$HOME/.kube/config*
+The above results in Skuber configuring itself from the kubeconfig file in the default location *$HOME/.kube/config*
 
 Or you can supply a specific path for the config file using a file URL:
 

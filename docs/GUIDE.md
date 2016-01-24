@@ -133,6 +133,34 @@ Delete a Kubernetes object:
 
 Note: There is no support in this alpha release for the Kubernetes API [PATCH operations](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#patch-operations)
 
+### Error Handling
+
+Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](http://kubernetes.io/v1.1/docs/devel/api-conventions.html#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
+
+This exception can be handled in the appropriate manner for your use case by using the standard Scala Future failure handling mechanisms. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
+
+    val deleteResult = (k8s delete[ReplicationController] c.name) recover { 
+      case ex: K8SException if (ex.status.code.contains(404)) => // ok - no action required 
+    }
+    deleteResult onFailure {
+      case ex: K8SException => 
+        log.error("Error when deleting " + c.name + ", reason: " + ex.status.reason.getOrElse("<unknown>"))
+    } 	
+
+The above code basically causes a 404 error to be silently ignored and the overall result will be a `Success`, other errors will still be propagated as `Failures` in `deleteResult`, which results in the error reason being logged.
+
+The `Status` class is defined as follows:
+
+    case class Status(
+      // ... metadata fields here ...
+      // error details below:
+      status: Option[String] = None,
+      message: Option[String] = None,
+      reason: Option[String] = None,
+      details: Option[Any] = None,
+      code: Option[Int] = None  // HTTP status code
+    ) 
+
 ### Reactive Watch API
 
 Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client.  Skuber supports an [Iteratee](https://www.playframework.com/documentation/2.4.x/Iteratees) API for handling these events reactively, providing a `watch` method that returns an `Enumerator` of events which can then be fed to your Iteratee. The following example can be found in the examples sub-project:
