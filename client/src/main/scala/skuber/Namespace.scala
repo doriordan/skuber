@@ -23,6 +23,7 @@ case class Namespace(
     def service(name:String, spec: Service.Spec) = Service(metadata=meta(name), spec=Some(spec))
     def withFinalizers(f: List[String]) = { this.copy(spec = Some(Namespace.Spec(f))) } 
     def withStatusOfPhase(p: String) =  { this.copy(status = Some(Namespace.Status(p))) } 
+    def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
   }
 
 object Namespace {

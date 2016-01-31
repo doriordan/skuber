@@ -86,11 +86,10 @@ package object client {
      def buildRequest[T <: TypeMeta](
        nameComponent: Option[String],
        watch: Boolean = false,
-       apiVersion: String = "v1",
        forExtensionsAPI: Option[Boolean] = None)(implicit kind: Kind[T]) : WSRequest = 
      {  
        val kindComponent = kind.urlPathComponent
-        
+       val apiVersion = kind.apiVersion 
        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
        val apiPrefix = if (usesExtensionsAPI) "apis" else "api"
 
@@ -149,7 +148,7 @@ package object client {
           case "POST" => None
           case _ => Some(obj.name)
         }
-        val wsReq = buildRequest(nameComponent, apiVersion=obj.apiVersion)(kind).
+        val wsReq = buildRequest(nameComponent)(kind).
                       withHeaders("Content-Type" -> "application/json").
                       withMethod(method).
                       withBody(js)
@@ -227,6 +226,11 @@ package object client {
    abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { 
      def urlPathComponent: String 
      def isExtensionsKind: Boolean = false
+     def apiVersion: String =
+       if (isExtensionsKind) 
+         skuber.ext.extensionsAPIVersion 
+       else
+         "v1"
    }
    
    case class ObjKind[O <: ObjectResource](

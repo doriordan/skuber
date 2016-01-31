@@ -9,4 +9,8 @@ case class ServiceAccount(
     val metadata: ObjectMeta,
     secrets: List[ObjectReference] = List(),
     imagePullSecrets: List[LocalObjectReference] = List())
-  extends ObjectResource 
+  extends ObjectResource {
+  
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
+}

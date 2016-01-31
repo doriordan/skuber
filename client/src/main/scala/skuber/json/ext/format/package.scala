@@ -51,11 +51,17 @@ package object format {
   implicit val depSpecFmt: Format[Deployment.Spec] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "selector").formatMaybeEmptyMap[String] and
-    (JsPath \ "template").format[Pod.Template.Spec] and
+    (JsPath \ "template").formatNullable[Pod.Template.Spec] and
     (JsPath \ "strategy").formatNullable[Deployment.Strategy] and
     (JsPath \ "uniqueLabelKey").formatMaybeEmptyString()
   )(Deployment.Spec.apply _, unlift(Deployment.Spec.unapply))
-  implicit val deploymentFmt = Json.format[Deployment]
+ 
+  implicit lazy val depFormat: Format[Deployment] = (
+    objFormat and
+    (JsPath \ "spec").formatNullable[Deployment.Spec] and
+    (JsPath \ "status").formatNullable[Deployment.Status]
+  ) (Deployment.apply _, unlift(Deployment.unapply))
+  
   
   
    

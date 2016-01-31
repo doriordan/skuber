@@ -10,18 +10,28 @@ case class Deployment(
     val kind: String ="Deployment",
     override val apiVersion: String = extensionsAPIVersion,
     val metadata: ObjectMeta = ObjectMeta(),
-    val spec: Deployment.Spec,
+    val spec:  Option[Deployment.Spec] = None,
     val status: Option[Deployment.Status] = None)
       extends ObjectResource {
-  def withReplicas(count: Int) = this.copy(spec=spec.copy(replicas=count))
+  
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
+  lazy val copySpec = this.spec.getOrElse(new Deployment.Spec)
+  
+  def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=count)))
+      
+  def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
+  
 }
       
 object Deployment {
   
+  def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
+  
   case class Spec(
     replicas: Int = 1,
     selector: Map[String, String] = Map(),
-    template: Pod.Template.Spec,
+    template: Option[Pod.Template.Spec] = None,
     strategy: Option[Strategy] = None,
     uniqueLabelKey: String = "") {
     

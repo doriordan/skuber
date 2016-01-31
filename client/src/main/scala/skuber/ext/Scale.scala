@@ -13,6 +13,9 @@ case class Scale(
     val metadata: ObjectMeta,
     spec: Scale.Spec = Scale.Spec(),
     status: Option[Scale.Status] = None) extends ObjectResource {
+  
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
   def withReplicas(count: Int) = this.copy(spec=Scale.Spec(count))
 }
     

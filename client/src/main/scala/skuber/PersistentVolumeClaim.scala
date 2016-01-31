@@ -13,7 +13,11 @@ case class PersistentVolumeClaim(
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[PersistentVolumeClaim.Spec] = None,
     status: Option[PersistentVolumeClaim.Status] = None)
-      extends ObjectResource
+      extends ObjectResource {
+  
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
+}
    
 object PersistentVolumeClaim {
   

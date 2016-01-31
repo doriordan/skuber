@@ -12,7 +12,11 @@ case class Node(
     val metadata: ObjectMeta,
     spec: Option[Node.Spec] = None,
     status: Option[Node.Status] = None) 
-      extends ObjectResource 
+      extends ObjectResource {
+  
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
+}
 
 object Node {
    def named(name: String) = Node(metadata=ObjectMeta(name=name))

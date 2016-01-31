@@ -16,11 +16,11 @@ case class ReplicationController(
 
     lazy val copySpec = this.spec.getOrElse(new ReplicationController.Spec)
     
+    def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
     def addLabel(label: Tuple2[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(labels = metadata.labels + label)) 
     def addLabels(newLabels: Map[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(labels = metadata.labels ++ newLabels))
     def addAnnotation(anno: Tuple2[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
     def addAnnotations(annos: Map[String, String]) : ReplicationController = this.copy(metadata = metadata.copy(annotations = metadata.annotations ++ annos)) 
-    
     
     def withReplicas(n: Int) = this.copy(spec=Some(copySpec.copy(replicas=n)))
     

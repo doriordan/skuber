@@ -13,6 +13,9 @@ case class HorizontalPodAutoscaler(
     spec: HorizontalPodAutoscaler.Spec,
     status: Option[HorizontalPodAutoscaler.Status] = None) 
       extends ObjectResource {
+
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
   def withMinReplicas(min: Int) = this.copy(spec=this.spec.copy(minReplicas=min))
   def withMaxReplicas(max: Int) = this.copy(spec=this.spec.copy(maxReplicas=max))
   def withCPUTargetUtilization(cpu: Int) =

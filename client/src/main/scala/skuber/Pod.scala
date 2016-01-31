@@ -67,6 +67,8 @@ object Pod {
     spec: Option[Template.Spec] = None) 
     extends ObjectResource
   {  
+    def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
     def addLabel(label: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
     def addLabel(label: String) : Template = addLabel(label -> "") 
     def addLabels(newLabels: Map[String, String]) = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))

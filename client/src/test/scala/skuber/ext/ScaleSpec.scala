@@ -33,8 +33,8 @@ class ScaleSpec extends Specification {
    
   "A scale object can be conrtucted for a given Deployment" >> {
       val container=Container(name="example",image="example")
-      val podTemplateSpec=Pod.Template.Spec.named("example").addContainer(container)
-      val deployment=Deployment(spec=Deployment.Spec(template=podTemplateSpec))
+      val template=Pod.Template.Spec.named("example").addContainer(container)
+      val deployment=Deployment("example").withTemplate(template)
       val scale=Scale.scale(deployment).withReplicas(20)
       
       scale.spec.replicas mustEqual 20
@@ -42,8 +42,8 @@ class ScaleSpec extends Specification {
   
   "A scale object can be written to Json and then read back again successfully" >> {
       val container=Container(name="example",image="example")
-      val podTemplateSpec=Pod.Template.Spec.named("example").addContainer(container)
-      val deployment=Deployment(spec=Deployment.Spec(template=podTemplateSpec))
+      val template=Pod.Template.Spec.named("example").addContainer(container)
+      val deployment=Deployment("example").withTemplate(template)
       val scale=Scale.scale(deployment).withReplicas(20)
       
       val readScale = Json.fromJson[Scale](Json.toJson(scale)).get
@@ -76,8 +76,7 @@ class ScaleSpec extends Specification {
     scale.kind mustEqual "Scale"
     scale.name mustEqual "redis-master"
     scale.spec.replicas mustEqual 1
-      scale.status mustEqual Some(Scale.Status(replicas=1,
-                                               selector=Map("name" -> "redis-master")))
+    scale.status mustEqual Some(Scale.Status(replicas=1, selector=Map("name" -> "redis-master")))
   }
  
 }

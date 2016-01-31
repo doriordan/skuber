@@ -13,6 +13,52 @@ case class Service(
     status: Option[Service.Status] = None) 
       extends ObjectResource {
 
+  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+
+  lazy val copySpec = this.spec.getOrElse(new Service.Spec)
+  
+  def addLabel(lbl: Tuple2[String,String]) = this.copy(metadata = metadata.copy(labels = metadata.labels + lbl))
+  def addLabels(lbls: Map[String,String]) = this.copy(metadata = metadata.copy(labels = metadata.labels ++ lbls))    
+   
+  def withSelector(sel: Map[String, String])  = this.copy(spec = Some(copySpec.copy(selector = sel)))
+  def withSelector(sel: Tuple2[String,String])= this.copy(spec = Some(copySpec.copy(selector = Map(sel))))
+  
+  def withPort(port: Service.Port) = this.copy(spec = Some(copySpec.copy(ports = List(port))))
+  def withPorts(ports: List[Service.Port]) = this.copy(spec = Some(copySpec.copy(ports = ports)))
+  def addPort(port: Service.Port) = this.copy(spec = Some(copySpec.copy(ports = port :: copySpec.ports )))
+  
+  def withNodePort(bind: Tuple2[Int,Int]) = {
+    val nodePort = Service.Port(port=bind._2, nodePort=bind._1)
+    val updated = withPort(nodePort)
+    // set type to node port - only if set to ClusterIP / default
+    val currType = updated.spec.get._type
+    if (currType==Service.Type.ClusterIP)
+      updated.withType(Service.Type.NodePort)
+    else
+      updated
+  }
+  
+  def addNodePort(bind: Tuple2[Int,Int]) = {
+    val nodePort = Service.Port(port=bind._2, nodePort=bind._1)
+    val updated = addPort(nodePort)
+    // set type to node port - only if set to ClusterIP / default
+    val currType = updated.spec.get._type
+    if (currType==Service.Type.ClusterIP)
+      updated.withType(Service.Type.NodePort)
+    else
+      updated
+  }
+    
+  def withClusterIP(ip: String) = this.copy(spec = Some(copySpec.copy(clusterIP = ip)))
+  def withType(_type: Service.Type.Value) = this.copy(spec = Some(copySpec.copy(_type = _type)))
+  def withLoadBalancerType = withType(Service.Type.LoadBalancer)
+  
+  def withExternalIP(ip: String) = this.copy(spec = Some(copySpec.copy(externalIPs = List(ip))))
+  def withExternalIPs(ips: List[String]) = this.copy(spec = Some(copySpec.copy(externalIPs = ips)))
+  def addExternalIP(ip: String) = this.copy(spec = Some(copySpec.copy(externalIPs = ip :: copySpec.externalIPs)))
+      
+  def withSessionAffinity(affinity: Service.Affinity.Value) = this.copy(spec = Some(copySpec.copy(sessionAffinity = affinity)))
+      
   import Endpoints._
   def mapsToEndpoint(ip: String, port: Int, protocol : Protocol.Value = Protocol.TCP): Endpoints =
       Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets=Subset(Address(ip)::Nil, Port(port,protocol)::Nil)::Nil)
@@ -54,12 +100,13 @@ object Service {
        
    import Type._   
    case class Spec( 
-      ports: List[Port],
+      ports: List[Port] = List(),
       selector: Map[String,String]=Map(),
       clusterIP: String = "", // empty by default - can also be "None" or an IP Address
       _type: ServiceType=ClusterIP,
       externalIPs: List[String] = List(),
-      sessionAffinity: Affinity.Affinity = Affinity.None)    {
+      sessionAffinity: Affinity.Affinity = Affinity.None) {
+     
      def withSelector(sel: Map[String, String]) : Spec = this.copy(selector = sel)
      def withSelector(sel: Tuple2[String,String]): Spec = withSelector(Map(sel))
    }      

@@ -483,7 +483,6 @@ package object format {
   
    implicit lazy val repCtrlrFormat: Format[ReplicationController] = (
     objFormat and
-    
     (JsPath \ "spec").formatNullable[ReplicationController.Spec] and
     (JsPath \ "status").formatNullable[ReplicationController.Status]
   ) (ReplicationController.apply _, unlift(ReplicationController.unapply))

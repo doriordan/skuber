@@ -2,10 +2,9 @@ package skuber.examples.scale
 
 import skuber._
 import skuber.json.format._
-
-// import extensions API to access scale functionality
 import skuber.ext._
 import skuber.json.ext.format._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * @author David O'Riordan
@@ -13,7 +12,7 @@ import skuber.json.ext.format._
  * Some simple examples of using the extensions API to scale up and down a Replication Controller
  * or Deployment resource.
  */
-object ScaleExamples {
+object ScaleExamples extends App {
  
   def scaleNginxController = {
     

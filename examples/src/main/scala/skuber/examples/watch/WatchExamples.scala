@@ -11,6 +11,7 @@ import play.api.libs.iteratee.Iteratee
  * @author David O'Riordan
  */
 object WatchExamples {
+  
   def  watchFrontEndScaling = {
      val k8s = k8sInit    
      val frontendFetch = k8s get[ReplicationController] "frontend"

@@ -66,9 +66,8 @@ package object ext {
                             scale: Option[Scale] = None)(implicit kind: ObjKind[O]): Future[Scale] = {      
       
       val req=context.buildRequest(
-                Some(objName + "/scale"), //sub resource name
+                Some(objName + "/scale"), // sub resource name
                 false,
-                extensionsAPIVersion,
                 Some(true))(kind).
               withHeaders("Content-Type" -> "application/json").
               withMethod(methodName)

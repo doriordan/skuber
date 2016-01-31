@@ -15,6 +15,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
+
 lazy val commonSettings = Seq(
   organization := "io.doriordan",
   version := "0.1.0",
@@ -32,6 +33,11 @@ lazy val examplesSettings = Seq(
   libraryDependencies += akka
 )
 
+// by default run the guestbook example when executing a fat examples JAR
+lazy val examplesAssemblySettings = Seq(
+  mainClass in assembly := Some("skuber.examples.guestbook.Guestbook")
+)
+
 lazy val root = (project in file(".")) aggregate(
   client,
   examples)
@@ -43,5 +49,6 @@ lazy val client = (project in file("client")).
 lazy val examples = (project in file("examples")).
   settings(commonSettings: _*).
   settings(examplesSettings: _*).
+  settings(examplesAssemblySettings: _*).
   dependsOn(client)
 
