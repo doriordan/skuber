@@ -11,7 +11,7 @@
   <logger name="com.ning.http.client" level="ERROR" />
   <logger name="play.api.libs.ws" level="ERROR" />
   
-  <root level="INFO">
+  <root level="ERROR">
     <appender-ref ref="STDOUT" />
   </root>
 </configuration>

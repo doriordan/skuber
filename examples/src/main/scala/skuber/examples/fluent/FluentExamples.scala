@@ -9,7 +9,7 @@ import skuber.json.format._
 /**
  * @author David O'Riordan
  * 
- * Some examples of using the fluent interface methods f the Skuber API to build out specs for
+ * Some examples of using the fluent interface methods of the Skuber API to build out specs for
  * various Kubernetes resources.
  * After running the example you can run 'kubect get rc' and 'kubectl get services' to 
  * verify the requested resources have all been created.
@@ -43,44 +43,24 @@ object FluentExamples extends App {
   val depl = deployNginxServices
   
   /*
-   * Helper to get a service of a given name either from the existing resource (if it exists on the cluster)
-   * or newly initialized
+   * Helper to get a service of a given name either from the existing resource (if it is present
+   * in the list retrieved from the cluster) or newly initialized
    */
-  private def getService(currentList: Future[ServiceList], svcName: String) : Future[Service] = {
+  private def getService(listRetrieval: Future[ServiceList], svcName: String) : Future[Service] = 
+    listRetrieval map { list => 
+      list.find(_.name==svcName).getOrElse(Service(svcName))
+    }
     
-     val existingSvc = currentList map {
-            _.filter(_.name==svcName)
-            .headOption
-            .map { _ => k8s get[Service] svcName }
-     }
-     
-     existingSvc flatMap { 
-       _ match {
-            case Some(currentService) => currentService
-            case None                 => Future { Service(svcName) }
-       }
-     }
-  }
   
   /*
-   * Helper to get a replication controller of a given name either from the existing resource (if it exists on the cluster)
-   * or newly initialized
+   * Helper to get a replication controller of a given name either from the existing resource (if it is present
+   * in the list retrieved from the cluster) or newly initialized
    */
-  private def getController(currentList: Future[ReplicationControllerList], rcName: String) : Future[ReplicationController] = {
+   private def getController(listRetrieval: Future[ReplicationControllerList], rcName: String) : Future[ReplicationController] = 
+    listRetrieval map { list => 
+      list.find(_.name==rcName).getOrElse(ReplicationController(rcName))
+    }
     
-     val existingRC = currentList map { 
-         _.filter(_.name==rcName)
-         .headOption
-         .map { _ => k8s get[ReplicationController] rcName }
-     }
-          
-     existingRC flatMap { 
-       _ match {
-          case Some(currentRC) => currentRC
-          case None            => Future { ReplicationController(rcName) }
-       }
-     }
-  }
   
   /*
    * Build a simple nginx service, which can be accessed via port 30001 on any of the cluster nodes,
@@ -139,7 +119,9 @@ object FluentExamples extends App {
         .limitMemory(testMem)
         .port(80)
     
-    val internalTestPodSpec=Pod.Spec(containers=List(testContainer), nodeSelector=Map(testInternalZoneLabel))     
+    val internalTestPodSpec = Pod.Spec()
+      .addNodeSelector(testInternalZoneLabel)
+      .addContainer(testContainer)
     
     val internalTestController =
       getController(rcList, "nginx-test-int") map {
@@ -149,7 +131,9 @@ object FluentExamples extends App {
          .withPodSpec(internalTestPodSpec)
       }
                           
-    val externalTestPodSpec=Pod.Spec(containers=List(testContainer), nodeSelector=Map(testExternalZoneLabel))     
+    val externalTestPodSpec = Pod.Spec()
+      .addNodeSelector(testExternalZoneLabel)
+      .addContainer(testContainer)    
     
     val externalTestController=
       getController(rcList,"nginx-test-ext") map {
@@ -172,10 +156,9 @@ object FluentExamples extends App {
         .limitMemory(prodMem)
         .port(80)
     
-    val internalProdPodSpec=
-      Pod.Spec(
-        containers=List(prodContainer), 
-        nodeSelector=Map(prodInternalZoneLabel))     
+    val internalProdPodSpec=Pod.Spec()
+      .addNodeSelector(prodInternalZoneLabel)
+      .addContainer(prodContainer) 
                                      
     val internalProdController=
       getController(rcList,"nginx-prod-int") map { 
@@ -185,7 +168,9 @@ object FluentExamples extends App {
          .withPodSpec(internalProdPodSpec)
       }
                           
-    val externalProdPodSpec=Pod.Spec(containers=List(prodContainer), nodeSelector=Map(prodExternalZoneLabel))     
+    val externalProdPodSpec=Pod.Spec()
+      .addNodeSelector(prodExternalZoneLabel)
+      .addContainer(prodContainer)  
     
     val externalProdController=
      getController(rcList, "nginx-prod-ext") map {

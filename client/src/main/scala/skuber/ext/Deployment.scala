@@ -22,6 +22,37 @@ case class Deployment(
       
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
   
+  def getPodSpec = for {
+      spec <- this.spec
+      template <- spec.template
+      spec <- template.spec
+    } yield spec
+    
+  /*
+   * A common deployment upgrade scenario would be to add or upgrade a single container e.g. update to a new image version
+   * This supports that by adding the specified container if one of same name not specified already, or just replacing
+   * the existing one of the same name if applicable. 
+   * The modified Deployment can then be updated on Kubernetes to instigate the upgrade.  
+   */
+  def updateContainer(newContainer: Container) = {
+    val containers = getPodSpec map { _.containers }
+    val updatedContainers = containers map { list => 
+      val existing = list.find(_.name==newContainer.name)
+      existing match {
+        case Some(_) => list.collect {
+          case c if (c.name==newContainer.name) => newContainer
+          case c => c
+        }
+        case None => newContainer::list
+      }
+    }
+    val newContainerList = updatedContainers.getOrElse(List(newContainer))
+    val updatedPodSpec = getPodSpec.getOrElse(Pod.Spec())
+    val newPodSpec = updatedPodSpec.copy(containers=newContainerList)
+    val updatedTemplate=copySpec.template.getOrElse(Pod.Template.Spec()).copy(spec=Some(newPodSpec))
+    
+    this.copy(spec=Some(copySpec.copy(template=Some(updatedTemplate))))    
+  }
 }
       
 object Deployment {
@@ -63,6 +94,6 @@ object Deployment {
       minReadySeconds: Int = 0)
       
   case class Status(
-      replicas: Int,
-      updatedReplicas: Int)
+      replicas: Int=0,
+      updatedReplicas: Int=0)
 }

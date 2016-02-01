@@ -41,13 +41,13 @@ See the [programming guide](docs/GUIDE.md) for more details.
 ## Features
 
 - Support for `create`, `get`, `delete`, `list`, `update`, and `watch` operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests
-- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including `Pod`, `Service`, `ReplicationController`, `Node`, `Container`, `Endpoint`, `Namespace`, `Volume`, `PersistentVolume`,` Resource`, `Security`, `EnvVar`, `ServiceAccount`, `LimitRange`, `Secret`, `Event` and others
+- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including `Pod`, `Service`, `ReplicationController`, `Node`, `Container`, `Endpoint`, `Namespace`, `Volume`, `PersistentVolume`,` Resource`, `Security`, `EnvVar`, `ServiceAccount`, `LimitRange`, `Secret`, `Event`, `Deployment`, `HorizontalPodAutoscaler` and others.
 - Support for Kubernetes **object**, **list** and **simple** kinds
 - Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
 - Complete JSON support for reading and writing the Kubernetes types
 - Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
 - Highly configurable via kubeconfig files or programmatically
-- Support for horizontal pod auto scaling (Kubernetes V1.1 beta feature)
+- Support for V1.1 extensions API group
 
 ## Getting Started
 
@@ -71,7 +71,7 @@ Or you can supply a specific path for the config file using a file URL:
 
     export SKUBERCONFIG=file:///home/kubernetes_user/.kube/config
 
-After establishing your configuration according to one of the above options, you can verify it by (for example) building and running the [reactive guestbook](examples/src/main/scala/skuber/examples/guestbook) example.
+After establishing your configuration according to one of the above options, you can verify it by (for example) building and running the examples as described in the next section.
 
 One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io/v1.1/docs/user-guide/kubectl/kubectl_config.html) to manage the configuration settings.
 
@@ -83,13 +83,31 @@ The project consists of two sub-projects - the main Skuber client library (under
 
 A sbt build file is provided at the top-level directory, so you can use standard sbt commands to build jars for both projects or select one project to build.
 
+To test the build and your configuration you can run the examples, the easiest way is to use sbt:
+
+    > project examples
+
+    > run
+    [warn] Multiple main classes detected.  Run 'show discoveredMainClasses' to see the list
+
+    Multiple main classes detected, select one to run:
+
+    [1] skuber.examples.deployment.DeploymentExamples
+    [2] skuber.examples.fluent.FluentExamples
+    [3] skuber.examples.guestbook.Guestbook
+    [4] skuber.examples.scale.ScaleExamples
+
+    Enter number: 
+
+The best example to start with is probably [Guestbook](./examples/src/main/scala/skuber/examples/guestbook/README.md) as it illustrates core Kubernetes / Skuber features.
+
 ## Requirements
 
 - Java 8 (build and run time)
 - sbt 0.13 (build time)
 - Kubernetes v1.0 or later (run time)
 
-Use of the newer extensions API group features ( currently supported: Scale, HorizontalPodAutoScaler) requires a v1.1 Kubernetes cluster at run time. 
+Use of the newer extensions API group features ( currently supported: `Deployment`,`Scale`, `HorizontalPodAutoScaler`) requires a v1.1 Kubernetes cluster at run time - the `DeploymentExamples` and `ScaleExamples` examples depend on these features.
 
 ## Security / Authentication
 
@@ -113,7 +131,7 @@ The coverage of the Kubernetes API functionality by Skuber is extensive, however
 
 - Documentation is currently limited - in practice a basic knowledge of Kubernetes and Scala will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
 
-- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [horizontal pod autoscaling](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/v1.1/docs/api.html#api-groups) features such as [Daemon Sets](http://kubernetes.io/v1.1/docs/admin/daemons.html), [Deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html), [Jobs](http://kubernetes.io/v1.1/docs/user-guide/jobs.html) and [Ingress / HTTP load balancing](http://kubernetes.io/v1.1/docs/user-guide/ingress.html) is due shortly.
+- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html) and [horizontal pod autoscaling](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/v1.1/docs/api.html#api-groups) features such as [Daemon Sets](http://kubernetes.io/v1.1/docs/admin/daemons.html), [Jobs](http://kubernetes.io/v1.1/docs/user-guide/jobs.html) and [Ingress / HTTP load balancing](http://kubernetes.io/v1.1/docs/user-guide/ingress.html) is due shortly.
 
 ## License
 

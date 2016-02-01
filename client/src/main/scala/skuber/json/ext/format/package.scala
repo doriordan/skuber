@@ -17,10 +17,12 @@ package object format {
   
   // Scale formatters
   implicit val scaleSpecFormat = Json.format[Scale.Spec]
+  
   implicit val scaleStatusFormat: Format[Scale.Status] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "selector").formatMaybeEmptyMap[String] 
   )(Scale.Status.apply _, unlift(Scale.Status.unapply))
+  
   implicit val scaleFormat = Json.format[Scale]
   
   // SubresourceReference formatter
@@ -38,16 +40,23 @@ package object format {
   implicit val hpasFmt =  Json.format[HorizontalPodAutoscaler]
    
   // Deployment formatters
-  implicit val depStatusFmt = Json.format[Deployment.Status]        
+  implicit val depStatusFmt: Format[Deployment.Status] = (
+    (JsPath \ "replicas").formatMaybeEmptyInt() and
+    (JsPath \ "updatedReplicas").formatMaybeEmptyInt()
+  )(Deployment.Status.apply _, unlift(Deployment.Status.unapply))
+  
+    
   implicit val rollingUpdFmt: Format[Deployment.RollingUpdate] = (
     (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
     (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1)) and
     (JsPath \ "minReadySeconds").formatMaybeEmptyInt()
   )(Deployment.RollingUpdate.apply _, unlift(Deployment.RollingUpdate.unapply))
+  
   implicit val depStrategyFmt: Format[Deployment.Strategy] =  (
       (JsPath \ "type").formatEnum(Deployment.StrategyType) and
       (JsPath \ "rollingUpdate").formatNullable[Deployment.RollingUpdate]
   )(Deployment.Strategy.apply _, unlift(Deployment.Strategy.unapply))
+  
   implicit val depSpecFmt: Format[Deployment.Spec] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "selector").formatMaybeEmptyMap[String] and

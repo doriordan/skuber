@@ -17,7 +17,7 @@ It carries out four main steps, each of which logs its results out to standard o
 
 ## Running the example
 
-This is part of the 'examples' SBT sub-project. The easiest way to get it up and running is to use the [assembly task](https://github.com/sbt/sbt-assembly) to build a fat JAR with all its dependencies included in the JAR so that it can than be run using a simple `java -jar` command.
+This is part of the 'examples' SBT sub-project. You can run it directly from sbt (you will need to choose it when asked) or use the [assembly task](https://github.com/sbt/sbt-assembly) to build a fat JAR with all its dependencies included in the JAR so that it can than be run using a simple `java -jar` command.
 
 - Run sbt at the root project level 
 - Select the examples project

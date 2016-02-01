@@ -241,7 +241,7 @@ The above additional imports add some new types, and also add some additional me
 
 As the features in the Extensions API group are generally of a beta or experimental status in Kubernetes, it should be expected that this API is more likely to change in a backwards-incompatible manner than the core API.
 
-Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html) and the associated [Scale](http://kubernetes.io/v1.1/docs/design/horizontal-pod-autoscaler.html#scale-subresource) subresource in this group. Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
+Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html) and the associated [Scale](http://kubernetes.io/v1.1/docs/design/horizontal-pod-autoscaler.html#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
 
 ***Scale*** 
 
@@ -277,6 +277,43 @@ A skuber client can also manage `HorizontalPodAutoscaler` objects in order to au
 
 The other standard Skuber API methods (`update`, `delete` etc.) can also be used with this type. (Note: the corresponding *list type* will be supported shortly)
 
+***Deployment***
+
+A Skuber client can also create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
+
+The following example emulates that described [here](http://kubernetes.io/v1.1/docs/user-guide/deployments.html). As noted there you may need to enable the Deployments feature on your cluster explicitly.
+
+Initial creation of the deployment:
+
+    val nginxLabel = "app" -> "nginx"
+    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
+    
+    val nginxTemplate = Pod.Template.Spec
+      .named("nginx")
+      .addContainer(nginxContainer)
+      .addLabel(nginxLabel)
+        
+    val desiredCount = 5  
+    val nginxDeployment = Deployment("nginx-deployment")
+      .withReplicas(desiredCount)
+      .withTemplate(nginxTemplate)
+    
+    println("Creating nginx deployment")
+    val createdDeplFut = k8s create nginxDeployment 
+
+Use `kubectl get deployments` to see the status of the newly created Deployment, and `kubectl get rc` will show a new replication controller which manages the creation of the required pods.
+
+Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
+
+    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
+    val existingDeployment = k8s get[Deployment] "nginx-deployment"
+    val updatedDeployment = existingDeployment.updateContainer(newContainer)
+    k8s update updatedDeployment 
+
+As no explicit deployment strategy has been selected, the default strategy will be used which will result in a rolling update of the nginx pods - again, you can use `kubectl get` commands to view the status of the deployment, replication controllers and pods as the update progresses.
+
+The `DeploymentExamples` example runs the above steps.
+ 
 ## Programmatic configuration
 
 Normally it is likely that configuration will be via a kubeconfig file. However a client can optionally pass a `K8SConfiguration` object directly as a parameter to the `k8sInit` call. This will override any other configuration. 

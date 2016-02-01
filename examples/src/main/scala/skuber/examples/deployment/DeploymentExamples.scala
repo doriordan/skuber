@@ -4,22 +4,76 @@ import skuber._
 import skuber.json.format._
 import skuber.ext._
 import skuber.json.ext.format._
+
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * @author David O'Riordan
  * 
- * Some simple examples of using the Deployment object support in the extensions API to 
- * deploy a simple app
+ * This demonstrates use of Deployment resources to manage installing and upgrading an app/service
+ * on Kubernetes.
+ * 
+ * The steps it executes are:
+ * 
+ * 1. Create a deployment of nginx version 1.7.9
+ * 2. Waits a little to allow initial deployment to complete
+ * 3. Update the deployment to nginx version 1.9.1
+ * 
+ * After step 3 you can call 'kubectl describe deployment nginx-deployment' repeatedly to watch progress of the rolling update -
+ * new pods will be created as old pods are torn down.
+ * The rolling-update (default) strategy is requested, so that nginx pods should remain available even while
+ * the deployment update is being processed.
  */
 object DeploymentExamples extends App {
  
-  deployNginx
+  val k8s = k8sInit
   
-  def deployNginx = {
+  val deployment = deployNginx("1.7.9") 
+  
+  deployment onSuccess {
+    case depl => 
+       
+      // Wait for initial deployment to complete before updating it.
+      // NOTE: Kubernetes v1.1 Deployment status subresource does not seem to be reliably populated
+      // after initial create, although it does get populated later on update.
+      // Hence just wait fixed time rather than polling for status changes to detemrine completion.
+      // Revisit for v1.2, where the Deployment status will hopefully be always present:
+      // https://github.com/kubernetes/kubernetes/commit/8acf01d6205166700754d0d744d15b454bc0669f
+      
+      // Can adjust time up/down depending on your environment and patience levels...
+      // Initial pull of nginx images is likely to be greatest delay
+      val waitingTime = 60 // seconds
+      
+      println("Successfully created deployment of nginx 1.7.9...now waiting " + waitingTime + " seconds before updating it")
+      
+      val reportInterval = 10 // seconds
+      for (i <- 1 to (waitingTime/reportInterval)) {
+        Thread.sleep(1000 * reportInterval)
+        println ("..." + (waitingTime  - (i*reportInterval)) + " seconds to go")
+      } 
+      
+      println("Updating deployment to nginx 1.9.1")
+      updateNginx("1.9.1") onComplete {
+        case scala.util.Success(_) =>
+          println("Update successfully requested - use'kubectl describe deployments' to montor progress")
+          System.exit(0)
+        case scala.util.Failure(ex) =>
+          ex.printStackTrace()
+          System.exit(1)
+      }   
+  }
+  
+  deployment onFailure {
+    case ex =>
+      ex.printStackTrace()
+      System.exit(1)
+  }
+  
+  def deployNginx(version: String) : Future[Deployment] = {
     
     val nginxLabel = "app" -> "nginx"
-    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
+    val nginxContainer = Container("nginx",image="nginx:" + version).port(80)
     
     val nginxTemplate = Pod.Template.Spec
       .named("nginx")
@@ -31,39 +85,31 @@ object DeploymentExamples extends App {
       .withReplicas(desiredCount)
       .withTemplate(nginxTemplate)
     
-    import scala.concurrent.ExecutionContext.Implicits.global
     val k8s = k8sInit
   
     println("Creating nginx deployment")
     val createdDeplFut = k8s create nginxDeployment
    
-    val deplFut = createdDeplFut recoverWith {
+    createdDeplFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
-        println("It seems the deployment object already exists - retrieving latest version")
-        k8s get[Deployment] nginxDeployment.name
-      }
-    }
-
-    def updatedCount(depl: Deployment) = depl.status.get.updatedReplicas
-    def reportProgress(depl: Deployment) = println("Updated replicas: " + updatedCount(depl) + " of " + desiredCount)
-    def checkDone(depl: Deployment) : Boolean = {
-      reportProgress(depl)
-      updatedCount(depl)==desiredCount
-    }
-    
-    val watchUntilDone = deplFut map { deployment =>
-      if (checkDone(deployment))
-        k8s.close
-      else {     
-        import play.api.libs.iteratee.Iteratee
-        val deploymentProgressWatch = k8s watch deployment
-        deploymentProgressWatch.events run Iteratee.foreach { deploymentProgressEvent =>
-          if (checkDone(deploymentProgressEvent._object)) {
-            deploymentProgressWatch.terminate()
-            k8s.close
-          }
+        println("It seems the deployment object already exists - retrieving latest version and updating it")
+        (k8s get[Deployment] nginxDeployment.name) flatMap { curr =>
+          println("retrieved latest deployment, now updating")
+          val updated = nginxDeployment.withResourceVersion(curr.metadata.resourceVersion)
+          k8s update updated
         }
       }
+    }
+  }
+  
+  def updateNginx(version: String): Future[Deployment] = {
+    
+    val updatedContainer = Container("nginx",image="nginx:" + version).port(80)
+    val currentDeployment = k8s get[Deployment] "nginx-deployment"
+    
+    currentDeployment flatMap { nginxDeployment =>
+        val updatedDeployment = nginxDeployment.updateContainer(updatedContainer)
+        k8s update updatedDeployment
     }  
   }
 }
