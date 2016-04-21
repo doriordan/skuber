@@ -135,7 +135,7 @@ Note: There is no support in this alpha release for the Kubernetes API [PATCH op
 
 ### Error Handling
 
-Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](http://kubernetes.io/v1.1/docs/devel/api-conventions.html#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
+Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](http://kubernetes.io/docs/devel/api-conventions.html#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
 
 This exception can be handled in the appropriate manner for your use case by using the standard Scala Future failure handling mechanisms. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
 
@@ -227,7 +227,7 @@ Note that both of the examples above watch only those events which have a later 
 
 ### Extensions
 
-Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/v1.1/docs/api.html#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
+Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/docs/api.html#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
 
     // standard Skuber imports to support the "core API" group
     import skuber._
@@ -241,11 +241,11 @@ The above additional imports add some new types, and also add some additional me
 
 As the features in the Extensions API group are generally of a beta or experimental status in Kubernetes, it should be expected that this API is more likely to change in a backwards-incompatible manner than the core API.
 
-Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/v1.1/docs/user-guide/horizontal-pod-autoscaler.html) and the associated [Scale](http://kubernetes.io/v1.1/docs/design/horizontal-pod-autoscaler.html#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io/v1.1/docs/user-guide/deployments.html). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
+Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaler.html) and the associated [Scale](http://kubernetes.io/docs/design/horizontal-pod-autoscaler.html#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments.html). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
 
 ***Scale*** 
 
-The `Scale` type is a subresource of a `ReplicationController` or `Deployment` (the latter is not yet tested in Skuber), and will probably normally be used by autoscalers such as the `HorizontalPodAutoscaler`. However it can also be accessed directly in the extended API in order to specify a desired replica count for its associated top-level resource as follows:
+The `Scale` type is a subresource of a `ReplicationController` or `Deployment`, and will probably normally be used by autoscalers such as the `HorizontalPodAutoscaler`. However it can also be accessed directly in the extended API in order to specify a desired replica count for its associated top-level resource as follows:
 
     // assumes 'k8s' and 'controller' objects have already been instantiated as above
     
@@ -281,7 +281,7 @@ The other standard Skuber API methods (`update`, `delete` etc.) can also be used
 
 A Skuber client can also create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
 
-The following example emulates that described [here](http://kubernetes.io/v1.1/docs/user-guide/deployments.html). As noted there you may need to enable the Deployments feature on your cluster explicitly.
+The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments.html). As noted there you may need to enable the Deployments feature on your cluster explicitly.
 
 Initial creation of the deployment:
 
