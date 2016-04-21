@@ -241,7 +241,7 @@ The above additional imports add some new types, and also add some additional me
 
 As the features in the Extensions API group are generally of a beta or experimental status in Kubernetes, it should be expected that this API is more likely to change in a backwards-incompatible manner than the core API.
 
-Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaler/) and the associated [Scale](http://kubernetes.io/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
+Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and the associated [Scale](https://github.com/kubernetes/kubernetes/blob/release-1.1/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
 
 ***Scale*** 
 

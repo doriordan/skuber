@@ -131,7 +131,7 @@ The coverage of the Kubernetes API functionality by Skuber is extensive, however
 
 - Documentation is currently limited - in practice a basic knowledge of Kubernetes and Scala will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
 
-- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons.html), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) is due shortly.
+- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons/), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) is due shortly.
 
 ## License
 
