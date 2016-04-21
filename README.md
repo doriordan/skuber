@@ -51,15 +51,15 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 ## Getting Started
 
-Before you start you should have client access to a functioning Kubernetes cluster, which can be tested by running some basic `kubectl` commands e.g. `kubectl get nodes`. If you don't have a Kubernetes cluster that you can use, you can follow the instructions [here](http://kubernetes.io/docs/getting-started-guides/README.html) to set one up.
+Before you start you should have client access to a functioning Kubernetes cluster, which can be tested by running some basic `kubectl` commands e.g. `kubectl get nodes`. If you don't have a Kubernetes cluster that you can use, you can follow the instructions [here](http://kubernetes.io/docs/getting-started-guides/) to set one up.
 
-By default a Skuber client will attempt to connect to the default namespace in the  Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/docs/user-guide/kubectl/kubectl_proxy.html) running on `localhost:8001`. So just run 
+By default a Skuber client will attempt to connect to the default namespace in the  Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/docs/user-guide/kubectl/kubectl_proxy/) running on `localhost:8001`. So just run 
 
 	kubectl proxy& 
 
 on the same host(s) as the client to support this default configuration.
 
-However alternatively Skuber can configure the required details for API requests (cluster API server address, authentication, Kubernetes namespace etc.) from the same [kubeconfig](http://kubernetes.io/docs/user-guide/kubeconfig-file.html) file format used by `kubectl` and other Kubernetes client. If you can use `kubectl` you should already have a kubeconfig file so that you do not need to duplicate your existing configuration, or you can use the standard instructions from your Kubernetes provider to create the required file(s). 
+However alternatively Skuber can configure the required details for API requests (cluster API server address, authentication, Kubernetes namespace etc.) from the same [kubeconfig](http://kubernetes.io/docs/user-guide/kubeconfig-file/) file format used by `kubectl` and other Kubernetes client. If you can use `kubectl` you should already have a kubeconfig file so that you do not need to duplicate your existing configuration, or you can use the standard instructions from your Kubernetes provider to create the required file(s). 
 
 The $SKUBERCONFIG environment variable must be set in the clients environment before running the client in order for a kubeconfig file to be used.
 
@@ -73,7 +73,7 @@ Or you can supply a specific path for the config file using a file URL:
 
 After establishing your configuration according to one of the above options, you can verify it by (for example) building and running the examples as described in the next section.
 
-One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io//docs/user-guide/kubectl/kubectl_config.html) to manage the configuration settings.
+One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io/docs/user-guide/kubectl/kubectl_config/) to manage the configuration settings.
 
 *(Note: If $SKUBERCONFIG is set then all configuration is loaded from that kubeconfig file - no merging with configuration from other sources occurs)*
 
@@ -131,7 +131,7 @@ The coverage of the Kubernetes API functionality by Skuber is extensive, however
 
 - Documentation is currently limited - in practice a basic knowledge of Kubernetes and Scala will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
 
-- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [deployments](http://kubernetes.io/docs/user-guide/deployments.html) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaler.html); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/docs/api.html#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons.html), [Jobs](http://kubernetes.io/docs/user-guide/jobs.html) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress.html) is due shortly.
+- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons.html), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) is due shortly.
 
 ## License
 

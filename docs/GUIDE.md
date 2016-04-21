@@ -12,13 +12,13 @@ The entire Skuber data model can be easily imported into your application:
  
 The model can be divided into categores which correspond to those in the Kubernetes API:
 
-- [Object kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
+- [Object kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
 Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`.   
 
-- [List kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. 
+- [List kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. 
 List kind classes include `PodList`, `NodeList`, `ServiceList`, `EndpointList`, `EventList`, `ReplicationControllerList`, `PersistentVolumeList`, `PersistentVolumeClaimList`, `ServiceAccountList`, `LimitRangeList`, `ResourceQuotaList` and `SecretList`.   
 
-- [Simple kinds](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#lists-and-simple-kinds) 
+- [Simple kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds) 
 
 ### Fluent API
 
@@ -131,11 +131,11 @@ Delete a Kubernetes object:
     val rmFut = k8s delete[ReplicationController] "guestbook"
     rmFut onSuccess { case _ => println("Controller removed") }
 
-Note: There is no support in this alpha release for the Kubernetes API [PATCH operations](http://kubernetes.io/v1.0/docs/devel/api-conventions.html#patch-operations)
+Note: There is no support in this alpha release for the Kubernetes API [PATCH operations](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#patch-operations)
 
 ### Error Handling
 
-Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](http://kubernetes.io/docs/devel/api-conventions.html#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
+Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
 
 This exception can be handled in the appropriate manner for your use case by using the standard Scala Future failure handling mechanisms. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
 
@@ -186,7 +186,7 @@ Kubernetes supports the ability for API clients to watch events on specified res
       // ...
     }
 
-To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](https://cloud.google.com/container-engine/docs/kubectl/scale) commands to set different replica counts on the frontend - for example:
+To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](http://kubernetes.io/docs/user-guide/resizing-a-replication-controller/) commands to set different replica counts on the frontend - for example:
 
      kubectl scale --replicas=1 rc frontend
      
@@ -227,7 +227,7 @@ Note that both of the examples above watch only those events which have a later 
 
 ### Extensions
 
-Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/docs/api.html#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
+Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/docs/api/#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
 
     // standard Skuber imports to support the "core API" group
     import skuber._
@@ -241,7 +241,7 @@ The above additional imports add some new types, and also add some additional me
 
 As the features in the Extensions API group are generally of a beta or experimental status in Kubernetes, it should be expected that this API is more likely to change in a backwards-incompatible manner than the core API.
 
-Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaler.html) and the associated [Scale](http://kubernetes.io/docs/design/horizontal-pod-autoscaler.html#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments.html). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
+Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaler/) and the associated [Scale](http://kubernetes.io/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
 
 ***Scale*** 
 
@@ -281,7 +281,7 @@ The other standard Skuber API methods (`update`, `delete` etc.) can also be used
 
 A Skuber client can also create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
 
-The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments.html). As noted there you may need to enable the Deployments feature on your cluster explicitly.
+The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). As noted there you may need to enable the Deployments feature on your cluster explicitly.
 
 Initial creation of the deployment:
 
