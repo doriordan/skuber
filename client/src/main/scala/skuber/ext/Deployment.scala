@@ -19,9 +19,9 @@ case class Deployment(
   lazy val copySpec = this.spec.getOrElse(new Deployment.Spec)
   
   def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=count)))
-      
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
-  
+  def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
+
   def getPodSpec = for {
       spec <- this.spec
       template <- spec.template
@@ -61,10 +61,9 @@ object Deployment {
   
   case class Spec(
     replicas: Int = 1,
-    selector: Map[String, String] = Map(),
+    selector: Option[LabelSelector] = None,
     template: Option[Pod.Template.Spec] = None,
-    strategy: Option[Strategy] = None,
-    uniqueLabelKey: String = "") {
+    strategy: Option[Strategy] = None) {
     
     def getStrategy: Strategy = strategy.getOrElse(Strategy.apply)
   }
@@ -95,5 +94,7 @@ object Deployment {
       
   case class Status(
       replicas: Int=0,
-      updatedReplicas: Int=0)
+      updatedReplicas: Int=0,
+      availableReplicas: Int = 0,
+      observedGeneration: Int = 0)
 }

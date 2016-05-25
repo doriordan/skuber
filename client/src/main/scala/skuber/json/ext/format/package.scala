@@ -42,7 +42,9 @@ package object format {
   // Deployment formatters
   implicit val depStatusFmt: Format[Deployment.Status] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
-    (JsPath \ "updatedReplicas").formatMaybeEmptyInt()
+    (JsPath \ "updatedReplicas").formatMaybeEmptyInt() and
+        (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
+        (JsPath \ "observedGeneration").formatMaybeEmptyInt()
   )(Deployment.Status.apply _, unlift(Deployment.Status.unapply))
   
     
@@ -59,10 +61,9 @@ package object format {
   
   implicit val depSpecFmt: Format[Deployment.Spec] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
-    (JsPath \ "selector").formatMaybeEmptyMap[String] and
+        (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
-    (JsPath \ "strategy").formatNullable[Deployment.Strategy] and
-    (JsPath \ "uniqueLabelKey").formatMaybeEmptyString()
+        (JsPath \ "strategy").formatNullable[Deployment.Strategy]
   )(Deployment.Spec.apply _, unlift(Deployment.Spec.unapply))
  
   implicit lazy val depFormat: Format[Deployment] = (

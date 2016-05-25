@@ -679,7 +679,69 @@ package object format {
                     apply(SecretList.apply _,unlift(SecretList.unapply))
   implicit val limitRangeListFmt: Format[LimitRangeList] = KListFormat[LimitRange].  
                     apply(LimitRangeList.apply _,unlift(LimitRangeList.unapply))
-  
+
+  case class SelMatchExpression(
+    key: String,
+    operator: String = "Exists",
+    values: Option[List[String]] = None
+  )
+  implicit val selMatchExpressionFmt = Json.format[SelMatchExpression]
+  case class OnTheWireSelector(matchLabels: Option[Map[String,String]]=None, matchExpressions: Option[List[SelMatchExpression]]=None)
+
+  import LabelSelector._
+  private def labelSelMatchExprToRequirement(expr: SelMatchExpression): LabelSelector.Requirement = {
+    expr.operator match {
+      case "Exists" => ExistsRequirement(expr.key)
+      case "DoesNotExist" => NotExistsRequirement(expr.key)
+      case "In" => InRequirement(expr.key,expr.values.get)
+      case "NotIn" => NotInRequirement(expr.key, expr.values.get)
+      case other => throw new Exception("unknown label selector expression operator: " + other)
+    }
+  }
+
+  private def otwSelectorToLabelSelector(otws: OnTheWireSelector): LabelSelector = {
+      val equalityBasedReqsOpt: Option[List[IsEqualRequirement]] = otws.matchLabels.map { labelKVMap =>
+        labelKVMap.map(kv => IsEqualRequirement(kv._1, kv._2)).toList
+      }
+      val setBasedReqsOpt: Option[List[Requirement]] = otws.matchExpressions.map { expressions =>
+        expressions map labelSelMatchExprToRequirement
+        }
+      val ebReqs=equalityBasedReqsOpt.getOrElse(List())
+      val sbReqs=setBasedReqsOpt.getOrElse(List())
+      val allReqs = ebReqs ++ sbReqs
+      LabelSelector(allReqs: _*)
+  }
+
+  private def labelSelToOtwSelector(sel: LabelSelector): OnTheWireSelector = {
+    val eqBased = sel.requirements.collect {
+      case IsEqualRequirement(key,value) => (key,value)
+    }.toMap
+    val matchLabels=if (eqBased.isEmpty) None else Some(eqBased)
+
+    val setBased = sel.requirements.collect {
+      case ExistsRequirement(key) => SelMatchExpression(key)
+      case NotExistsRequirement(key) => SelMatchExpression(key, "DoesNotExist")
+      case IsNotEqualRequirement(key,value) => SelMatchExpression(key, "NotIn", Some(List(value)))
+      case InRequirement(key,values) =>  SelMatchExpression(key, "in", Some(values))
+      case NotInRequirement(key,values) =>  SelMatchExpression(key, "NotIn", Some(values))
+    }.toList
+    val matchExpressions = if(setBased.isEmpty) None else Some(setBased)
+
+    OnTheWireSelector(matchLabels = matchLabels, matchExpressions = matchExpressions)
+  }
+
+  implicit val otwsFormat = Json.format[OnTheWireSelector]
+
+  class LabelSelectorFormat(path: JsPath) {
+    def formatNullableLabelSelector: OFormat[Option[LabelSelector]] =
+      path.formatNullable[OnTheWireSelector].inmap[Option[LabelSelector]](
+        _.map(otwSelectorToLabelSelector),
+        selOpt => selOpt.map(labelSelToOtwSelector)
+      )
+  }
+
+  implicit def jsPath2LabelSelFormat(path: JsPath) = new LabelSelectorFormat(path)
+
   // formatters for API 'supporting' types i.e. non resource types such as status and watch events 
   object apiobj {
      
@@ -710,3 +772,4 @@ package object format {
     
   }  
 }
+

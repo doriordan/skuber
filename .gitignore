@@ -5,6 +5,7 @@ target/
 .settings/
 .cache-main
 .worksheet/
+.idea/
 *.sc
 *.launch
 bin/

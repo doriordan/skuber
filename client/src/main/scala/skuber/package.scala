@@ -1,6 +1,7 @@
 
 import java.net.URL
 import java.util.Date
+
 import scala.collection.immutable.HashMap
 
 import scala.language.implicitConversions
@@ -224,8 +225,8 @@ package object skuber {
     type Protocol = Value
     val TCP, UDP = Value
   }
-  
-  
+
+
   // aliases, references and delegates that enable using the API for many use cases without 
   // having to import anything from the skuber.api package
   val K8SCluster = skuber.api.client.Cluster
