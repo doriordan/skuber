@@ -2,7 +2,7 @@
 
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing and watching Kubernetes resources (such as Pods, Containers, Services, Replication Controllers etc.) in a cluster.
 
-The client supports v1.0 and v1.1 of the Kubernetes REST API.
+The client supports v1.0, v1.1 and V1.2 of the Kubernetes REST API.
 
 ## Example Usage
 
@@ -47,35 +47,32 @@ See the [programming guide](docs/GUIDE.md) for more details.
 - Complete JSON support for reading and writing the Kubernetes types
 - Watching Kubernetes objects and kinds returns Iteratees for reactive processing of events from the cluster
 - Highly configurable via kubeconfig files or programmatically
-- Support for V1.1 extensions API group
+- Support for extensions API group
+- Full support for [label selectors](http://kubernetes.io/docs/user-guide/labels), including a mini-DSL for building expressions from both set-based and equality-based requirements.
 
 ## Getting Started
 
 Before you start you should have client access to a functioning Kubernetes cluster, which can be tested by running some basic `kubectl` commands e.g. `kubectl get nodes`. If you don't have a Kubernetes cluster that you can use, you can follow the instructions [here](http://kubernetes.io/docs/getting-started-guides/) to set one up.
 
-By default a Skuber client will attempt to connect to the default namespace in the  Kubernetes cluster via a [kubectl proxy](http://kubernetes.io/docs/user-guide/kubectl/kubectl_proxy/) running on `localhost:8001`. So just run 
-
-	kubectl proxy& 
-
-on the same host(s) as the client to support this default configuration.
+By default a Skuber client will attempt to connect to `http://localhost:8080' and the default Kubernetes namespace. This works well for a local setup (such as [this](http://kubernetes.io/docs/getting-started-guides/docker/)) where typically your cluster API server can listen on that port, or alternatively you configure a [kubectl proxy](http://kubernetes.io/docs/user-guide/kubectl/kubectl_proxy/) to listen on that port. You can also override the URL that Skuber connects to by setting the SKUBER_URL environment variable.
 
 However alternatively Skuber can configure the required details for API requests (cluster API server address, authentication, Kubernetes namespace etc.) from the same [kubeconfig](http://kubernetes.io/docs/user-guide/kubeconfig-file/) file format used by `kubectl` and other Kubernetes client. If you can use `kubectl` you should already have a kubeconfig file so that you do not need to duplicate your existing configuration, or you can use the standard instructions from your Kubernetes provider to create the required file(s). 
 
-The $SKUBERCONFIG environment variable must be set in the clients environment before running the client in order for a kubeconfig file to be used.
+The $SKUBER_CONFIG environment variable must be set in the clients environment before running the client in order for a kubeconfig file to be used.
 
-    export SKUBERCONFIG=file 
+    export SKUBER_CONFIG=file 
 
 The above results in Skuber configuring itself from the kubeconfig file in the default location *$HOME/.kube/config*
 
 Or you can supply a specific path for the config file using a file URL:
 
-    export SKUBERCONFIG=file:///home/kubernetes_user/.kube/config
+    export SKUBER_CONFIG=file:///home/kubernetes_user/.kube/config
 
 After establishing your configuration according to one of the above options, you can verify it by (for example) building and running the examples as described in the next section.
 
 One benefit of this support for kubeconfig files is that you can use [kubectl config](http://kubernetes.io/docs/user-guide/kubectl/kubectl_config/) to manage the configuration settings.
 
-*(Note: If $SKUBERCONFIG is set then all configuration is loaded from that kubeconfig file - no merging with configuration from other sources occurs)*
+*(Note: If $SKUBER_CONFIG is set then all configuration is loaded from that kubeconfig file - no merging with configuration from other sources occurs)*
 
 ## Build Instructions
 
@@ -107,7 +104,7 @@ The best example to start with is probably [Guestbook](./examples/src/main/scala
 - sbt 0.13 (build time)
 - Kubernetes v1.0 or later (run time)
 
-Use of the newer extensions API group features ( currently supported: `Deployment`,`Scale`, `HorizontalPodAutoScaler`) requires a v1.1 Kubernetes cluster at run time - the `DeploymentExamples` and `ScaleExamples` examples depend on these features.
+Use of the newer extensions API group features ( currently supported: `Deployment`,`Scale`, `HorizontalPodAutoScaler`) requires a v1.1 or later Kubernetes cluster at run time - the `DeploymentExamples` and `ScaleExamples` examples depend on these features.
 
 ## Security / Authentication
 
@@ -127,11 +124,7 @@ Configuration can alternatively be passed programmatically to the `k8sInit` call
 
 ## Status
 
-The coverage of the Kubernetes API functionality by Skuber is extensive, however this is an alpha release with all the caveats that implies, including:
-
-- Documentation is currently limited - in practice a basic knowledge of Kubernetes and Scala will be required, from there the Skuber [programming guide](docs/GUIDE.md) and [examples](examples/src/main/scala/skuber/examples) should help get you up and running.
-
-- Support of the [beta features in Kubernetes v1.1](http://blog.kubernetes.io/2015/11/Kubernetes-1-1-Performance-upgrades-improved-tooling-and-a-growing-community.html) currently includes [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); support for other Kubernetes v1.1 [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons/), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) is due shortly.
+The coverage of the Kubernetes API functionality by Skuber is extensive, howeever support of more recent extensions group functionality is currently more limited:  full support is included for [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); however support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons/), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) are not yet supported but are intended to be shortly.
 
 ## License
 

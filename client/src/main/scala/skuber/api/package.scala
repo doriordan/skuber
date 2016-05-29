@@ -30,10 +30,10 @@ package object client {
   type PathOrData = Either[String,Array[Byte]]
   
    // K8S client API classes
-   val defaultProxyURL = "http://localhost:8001"
+   val defaultApiServerURL = "http://localhost:8080"
    case class Cluster(
      apiVersion: String = "v1",  
-     server: String = defaultProxyURL,
+     server: String = defaultApiServerURL,
      insecureSkipTLSVerify: Boolean = false,
      certificateAuthority: Option[PathOrData] = None
    )
@@ -282,11 +282,19 @@ package object client {
   class K8SException(val status: Status) extends RuntimeException // we throw this when we receive a non-OK response
    
   def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
-    checkResponseStatus(response) 
-    val result=response.json.validate[T].get
+    checkResponseStatus(response)
+    val result = response.json.validate[T]
+    result recover { case errors =>
+        val status =
+          Status(message = Some(errors.toString),
+                 reason = Some("validation error mapping response body to expected Scala class"),
+                 details = Some(response.body),
+                 code = Some(response.status))
+        throw new K8SException(status)
+    }
     if (log.isDebugEnabled)
-      log.debug("[Skuber Response: successfully parsed " + result)
-    result  
+      log.debug("[Skuber Response: successfully parsed " + result.get)
+    result.get
   }
   
   // check for non-OK status, throwing a K8SException if appropriate
@@ -319,8 +327,8 @@ package object client {
     kind: String = "DeleteOptions",
     gracePeriodSeconds: Int = 0)
     
-  def buildConfigForProxyURL(url: Option[String]) = {
-    val cluster = Cluster(server=url.getOrElse(defaultProxyURL))
+  def buildBaseConfigForURL(url: Option[String]) = {
+    val cluster = Cluster(server=url.getOrElse(defaultApiServerURL))
     val context = Context(cluster=cluster)
     Configuration().useContext(context)
   }
@@ -329,26 +337,26 @@ package object client {
     // Initialising without explicit Configuration.
     // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
     // If SKUBERCONFIG value matches:
-    // - Empty / Not Set / "proxy" : Configure to connect via kubectl proxy 
+    // - Empty / Not Set:  Configure to connect via default localhost URL
+    // -
     // - "file" : Configure from kubeconfig file at default location (~/.kube/config)
     // - "file://<path>: Configure from the kubeconfig file at the specified location
     // Further the base server URL if kubectl proxy is determined by SKUBERPROXY - or just 
-    // 'http://localhost:8001' if not set.
+    // 'http://localhost:8080' if not set.
     // Note that the configurations that use the kubectl proxy assumes default namespace context, and delegates auth etc. 
     // to the proxy.
     // If configured to use  a kubeconfig file note that any certificate/key data in the file will be ignored - any 
     // required key/cert data for TLS connections must be installed in the applicable Java keystore/truststore.
     //
-    val skuberConfigEnv = sys.env.get("SKUBERCONFIG")
-    val skuberProxyURLEnv = sys.env.get("SKUBERPROXYURL")
+    val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
+    val skuberUrlEnv = sys.env.get("SKUBER_URL")
     val config : Configuration = skuberConfigEnv match {
-      case Some(conf) if (conf == "proxy") => buildConfigForProxyURL(skuberProxyURLEnv)
-      case Some(conf) if (conf == "file") =>  Configuration.parseKubeconfigFile().get
+      case Some(conf) if conf == "file" =>  Configuration.parseKubeconfigFile().get
       case Some(fileUrl) => {
         val path = java.nio.file.Paths.get(new URL(fileUrl).toURI)
         Configuration.parseKubeconfigFile(path).get
       }
-      case None => buildConfigForProxyURL(skuberProxyURLEnv)
+      case None => buildBaseConfigForURL(skuberUrlEnv)
     }
     init(config)
   }

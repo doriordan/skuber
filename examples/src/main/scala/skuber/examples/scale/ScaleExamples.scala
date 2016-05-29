@@ -16,9 +16,9 @@ object ScaleExamples extends App {
  
   def scaleNginxController = {
     
-    val nginxSelector  = Map("app" -> "nginx")
+    val nginxSelector  = Map("example" -> "scale")
     val nginxContainer = Container("nginx",image="nginx").port(80)
-    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector).withReplicas(5)
+    val nginxController= ReplicationController("nginx-scale-example",nginxContainer,nginxSelector).withReplicas(5)
    
     import scala.concurrent.ExecutionContext.Implicits.global
     val k8s = k8sInit
@@ -28,7 +28,7 @@ object ScaleExamples extends App {
    
     val rcFut = createdRCFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
-        println("It seesm the controller already exists - retrieving latest version")
+        println("It seems the controller already exists - retrieving latest version")
         k8s get[ReplicationController] nginxController.name
       }
     }
@@ -44,18 +44,30 @@ object ScaleExamples extends App {
     
     val autoScale = for {
       rc   <- directlyScale 
-      hpas <-  { 
+      hpas <- {
         println("Now creating a HorizontalPodAutoscaler to automatically scale the replicas")
         val hpas = HorizontalPodAutoscaler.scale(rc).
-                     withMinReplicas(2).
-                     withMaxReplicas(8).
-                     withCPUTargetUtilization(80)
-        k8s create[HorizontalPodAutoscaler] hpas  
+            withMinReplicas(2).
+            withMaxReplicas(8).
+            withCPUTargetUtilization(80)
+        k8s create[HorizontalPodAutoscaler] hpas recover {
+          case ex: K8SException if (ex.status.code.contains(409)) => {
+            println("It seems the auto scaler already exists, so we are done.")
+            hpas
+          }
+        }
       }
       _ = println("Successfully created horizontal pod autoscaler")
     } yield hpas
-    
+
+    autoScale onFailure {
+      case k8sex: K8SException =>
+        print("K8S Error => status code: " + k8sex.status.code +
+            ",\n details=" + k8sex.status.details +
+            "\n, message= " + k8sex.status.message.getOrElse("<>"))
+      case ex: Exception => ex.printStackTrace
+    }
     autoScale onComplete { case _ => k8s.close }
-    
-  } 
+  }
+  scaleNginxController
 }

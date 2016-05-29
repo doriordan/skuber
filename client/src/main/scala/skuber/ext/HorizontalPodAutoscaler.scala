@@ -36,7 +36,7 @@ object HorizontalPodAutoscaler {
         kind=kind,
         name=name,
         apiVersion=apiVersion,
-        subresource=name)
+        subresource="scale")
    HorizontalPodAutoscaler(metadata=meta,spec=Spec(scaleRef=scaleRef))     
   }
    case class Spec( 

@@ -14,16 +14,14 @@ import play.api.libs.functional.syntax._
 import skuber.json.format._ // reuse some core formatters
 
 package object format {
-  
   // Scale formatters
-  implicit val scaleSpecFormat = Json.format[Scale.Spec]
-  
   implicit val scaleStatusFormat: Format[Scale.Status] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
-    (JsPath \ "selector").formatMaybeEmptyMap[String] 
-  )(Scale.Status.apply _, unlift(Scale.Status.unapply))
-  
-  implicit val scaleFormat = Json.format[Scale]
+      (JsPath \ "replicas").formatMaybeEmptyInt() and
+          (JsPath \ "selector").formatNullableLabelSelector and
+          (JsPath \ "targetSelector").formatNullableLabelSelector
+      )(Scale.Status.apply _, unlift(Scale.Status.unapply))
+  implicit val scaleSpecFormat: Format[Scale.Spec] = Json.format[Scale.Spec]
+  implicit val scaleFormat: Format[Scale] = Json.format[Scale]
   
   // SubresourceReference formatter
   implicit val subresFmt: Format[SubresourceReference] = (
@@ -34,36 +32,36 @@ package object format {
   )(SubresourceReference.apply _, unlift(SubresourceReference.unapply))
  
   // HorizontalPodAutoscaler formatters
-  implicit val cpuTUFmt = Json.format[CPUTargetUtilization]
-  implicit val hpasSpecFmt = Json.format[HorizontalPodAutoscaler.Spec]
-  implicit val hpasStatusFmt = Json.format[HorizontalPodAutoscaler.Status]
-  implicit val hpasFmt =  Json.format[HorizontalPodAutoscaler]
+  implicit val cpuTUFmt: Format[CPUTargetUtilization] = Json.format[CPUTargetUtilization]
+  implicit val hpasSpecFmt: Format[HorizontalPodAutoscaler.Spec] = Json.format[HorizontalPodAutoscaler.Spec]
+  implicit val hpasStatusFmt: Format[HorizontalPodAutoscaler.Status] = Json.format[HorizontalPodAutoscaler.Status]
+  implicit val hpasFmt: Format[HorizontalPodAutoscaler] =  Json.format[HorizontalPodAutoscaler]
    
   // Deployment formatters
   implicit val depStatusFmt: Format[Deployment.Status] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "updatedReplicas").formatMaybeEmptyInt() and
-        (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
-        (JsPath \ "observedGeneration").formatMaybeEmptyInt()
+    (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
+    (JsPath \ "observedGeneration").formatMaybeEmptyInt()
   )(Deployment.Status.apply _, unlift(Deployment.Status.unapply))
   
     
   implicit val rollingUpdFmt: Format[Deployment.RollingUpdate] = (
     (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
-    (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1)) and
-    (JsPath \ "minReadySeconds").formatMaybeEmptyInt()
+    (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))
   )(Deployment.RollingUpdate.apply _, unlift(Deployment.RollingUpdate.unapply))
   
   implicit val depStrategyFmt: Format[Deployment.Strategy] =  (
-      (JsPath \ "type").formatEnum(Deployment.StrategyType) and
-      (JsPath \ "rollingUpdate").formatNullable[Deployment.RollingUpdate]
+    (JsPath \ "type").formatEnum(Deployment.StrategyType) and
+    (JsPath \ "rollingUpdate").formatNullable[Deployment.RollingUpdate]
   )(Deployment.Strategy.apply _, unlift(Deployment.Strategy.unapply))
   
   implicit val depSpecFmt: Format[Deployment.Spec] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
-        (JsPath \ "selector").formatNullableLabelSelector and
+    (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
-        (JsPath \ "strategy").formatNullable[Deployment.Strategy]
+    (JsPath \ "strategy").formatNullable[Deployment.Strategy] and
+    (JsPath \ "minReadySeconds").formatMaybeEmptyInt()
   )(Deployment.Spec.apply _, unlift(Deployment.Spec.unapply))
  
   implicit lazy val depFormat: Format[Deployment] = (
@@ -71,11 +69,4 @@ package object format {
     (JsPath \ "spec").formatNullable[Deployment.Spec] and
     (JsPath \ "status").formatNullable[Deployment.Status]
   ) (Deployment.apply _, unlift(Deployment.unapply))
-  
-  
-  
-   
-      
-      
-  
 }

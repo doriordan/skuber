@@ -63,7 +63,8 @@ object Deployment {
     replicas: Int = 1,
     selector: Option[LabelSelector] = None,
     template: Option[Pod.Template.Spec] = None,
-    strategy: Option[Strategy] = None) {
+    strategy: Option[Strategy] = None,
+    minReadySeconds: Int = 0) {
     
     def getStrategy: Strategy = strategy.getOrElse(Strategy.apply)
   }
@@ -89,8 +90,7 @@ object Deployment {
       
   case class RollingUpdate(
       maxUnavailable: IntOrString = Left(1),
-      maxSurge: IntOrString = Left(1),
-      minReadySeconds: Int = 0)
+      maxSurge: IntOrString = Left(1))
       
   case class Status(
       replicas: Int=0,

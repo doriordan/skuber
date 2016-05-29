@@ -39,7 +39,6 @@ package object ext {
   implicit val hpasKind = new ObjKind[HorizontalPodAutoscaler]("horizontalpodautoscalers", "HorizontalPodAutoscaler") 
                                   with IsExtensionsKind[HorizontalPodAutoscaler]
   
-  
   // Extensions Group API methods - for the moment this includes commands to get or change the scale on
   // a RC or Deployment Scale subresource, returning a Scale object with the updated spec and status.
   // (see [[http://kubernetes.io/v1.1/docs/design/horizontal-pod-autoscaler.html here]] for details about the
@@ -54,7 +53,7 @@ package object ext {
     private[this] def getScale[O <: ObjectResource](objName: String)(implicit kind: ObjKind[O]) : Future[Scale] =
       executeScaleMethod(objName, "GET")(kind)
       
-    private[this] def scale[O <: ObjectResource](objName: String, count: Int)(implicit kind: ObjKind[O]) : Future[Scale] = 
+    private[this] def scale[O <: ObjectResource](objName: String, count: Int)(implicit kind: ObjKind[O]): Future[Scale] =
       executeScaleMethod(objName,
                          "PUT", 
                          Some(Scale(metadata=ObjectMeta(name=objName, namespace=context.namespaceName),
@@ -63,12 +62,12 @@ package object ext {
     private[this] def executeScaleMethod[O <: ObjectResource](
                             objName: String,
                             methodName: String,  
-                            scale: Option[Scale] = None)(implicit kind: ObjKind[O]): Future[Scale] = {      
-      
+                            scale: Option[Scale] = None)(implicit kind: ObjKind[O]): Future[Scale] = {
+
       val req=context.buildRequest(
                 Some(objName + "/scale"), // sub resource name
                 false,
-                Some(true))(kind).
+                Some(false))(kind).
               withHeaders("Content-Type" -> "application/json").
               withMethod(methodName)
               

@@ -227,7 +227,7 @@ Note that both of the examples above watch only those events which have a later 
 
 ### Extensions
 
-Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/docs/api/#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
+Client support for Kubernetes v1.1 and later [Extensions Group API](http://kubernetes.io/docs/api/#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
 
     // standard Skuber imports to support the "core API" group
     import skuber._
@@ -238,8 +238,6 @@ Client support for Kubernetes v1.1 [Extensions Group API](http://kubernetes.io/d
     import skuber.json.ext.format._
      
 The above additional imports add some new types, and also add some additional methods into the request context class.
-
-As the features in the Extensions API group are generally of a beta or experimental status in Kubernetes, it should be expected that this API is more likely to change in a backwards-incompatible manner than the core API.
 
 Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and the associated [Scale](https://github.com/kubernetes/kubernetes/blob/release-1.1/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
 
@@ -279,9 +277,11 @@ The other standard Skuber API methods (`update`, `delete` etc.) can also be used
 
 ***Deployment***
 
-A Skuber client can also create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
+(Note that a Kubernetes V1.2+ cluster is needed to use the Deployment funcionality in this release of Skuber).
 
-The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). As noted there you may need to enable the Deployments feature on your cluster explicitly.
+A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
+
+The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). 
 
 Initial creation of the deployment:
 

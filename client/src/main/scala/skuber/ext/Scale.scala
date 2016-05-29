@@ -9,7 +9,7 @@ import scala.reflect.ClassTag
  */
 case class Scale(
     val kind: String = "Scale",
-    override val apiVersion: String = extensionsAPIVersion,
+    override val apiVersion: String = "autoscaling/v1",
     val metadata: ObjectMeta,
     spec: Scale.Spec = Scale.Spec(),
     status: Option[Scale.Status] = None) extends ObjectResource {
@@ -28,6 +28,7 @@ object Scale {
   case class Spec(replicas: Int = 0)
   case class Status(
     replicas: Int = 0,
-    selector: Map[String, String] = Map()
+    selector: Option[LabelSelector] = None,
+    targetSelector: Option[LabelSelector] = None
   )
 }    
