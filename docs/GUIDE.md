@@ -277,7 +277,7 @@ The other standard Skuber API methods (`update`, `delete` etc.) can also be used
 
 ***Deployment***
 
-(Note that a Kubernetes V1.2+ cluster is needed to use the Deployment funcionality in this release of Skuber).
+(Note that a Kubernetes V1.2+ cluster is needed to use the Deployment functionality in this release of Skuber).
 
 A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
 
