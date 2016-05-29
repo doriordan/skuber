@@ -56,7 +56,7 @@ object DeploymentExamples extends App {
       println("Updating deployment to nginx 1.9.1")
       updateNginx("1.9.1") onComplete {
         case scala.util.Success(_) =>
-          println("Update successfully requested - use'kubectl describe deployments' to montor progress")
+          println("Update successfully requested - use'kubectl describe deployments' to monitor progress")
           System.exit(0)
         case scala.util.Failure(ex) =>
           ex.printStackTrace()

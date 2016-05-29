@@ -22,7 +22,7 @@ List kind classes include `PodList`, `NodeList`, `ServiceList`, `EndpointList`, 
 
 ### Fluent API
 
-A combination of generic Scala case class features and Skuber-defined fluent API methods make buliding out even relatively complex specifications for creation or modification on Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
+A combination of generic Scala case class features and Skuber-defined fluent API methods make building out even relatively complex specifications for creation or modification on Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
 
     val prodLabel = "env" -> "production"
     val prodInternalZoneLabel = "zone" -> "prod-internal"
