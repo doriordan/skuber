@@ -124,7 +124,7 @@ Configuration can alternatively be passed programmatically to the `k8sInit` call
 
 ## Status
 
-The coverage of the Kubernetes API functionality by Skuber is extensive, howeever support of more recent extensions group functionality is currently more limited:  full support is included for [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); however support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons/), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) are not yet supported but are intended to be shortly.
+The coverage of the Kubernetes API functionality by Skuber is extensive, however support of more recent extensions group functionality is currently more limited:  full support is included for [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); however support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons/), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) are not yet supported but are intended to be shortly.
 
 ## License
 
