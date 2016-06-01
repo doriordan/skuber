@@ -33,12 +33,37 @@ package object ext {
   trait IsExtensionsKind[T <: TypeMeta] { self: Kind[T] => 
     override def isExtensionsKind = true
   }
-  
-  // implicit kind values for the extensions group
+
+  // implicit object kind values for the extensions group types
   implicit val deploymentKind = new ObjKind[Deployment]("deployments","Deployment") with IsExtensionsKind[Deployment]
   implicit val hpasKind = new ObjKind[HorizontalPodAutoscaler]("horizontalpodautoscalers", "HorizontalPodAutoscaler") 
                                   with IsExtensionsKind[HorizontalPodAutoscaler]
-  
+  implicit val replsetsKind = new ObjKind[ReplicaSet]("replicasets", "ReplicaSet")
+      with IsExtensionsKind[ReplicaSet]
+
+  // support for the corresponding List kinds
+  case class DeploymentList(
+    val kind: String = "DeploymenttList",
+    override val apiVersion: String = extensionsAPIVersion,
+    val metadata: Option[ListMeta] = None,
+    items: List[Deployment] = Nil) extends KList[Deployment]
+  implicit val deplListKind = ListKind[DeploymentList]("deployments", "apis/" + extensionsAPIVersion)
+
+  case class HorizontalPodAutoscalerList(
+    val kind: String = "HorizontalPodAutoscalerList",
+    override val apiVersion: String = extensionsAPIVersion,
+    val metadata: Option[ListMeta] = None,
+    items: List[HorizontalPodAutoscaler] = Nil) extends KList[HorizontalPodAutoscaler]
+  implicit val hpasListKind = ListKind[DeploymentList]("horizontalpodautoscalers", "apis/" + extensionsAPIVersion)
+
+  case class ReplicaSetList(
+    val kind: String = "ReplicSetList",
+    override val apiVersion: String = extensionsAPIVersion,
+    val metadata: Option[ListMeta] = None,
+    items: List[ReplicaSet] = Nil) extends KList[ReplicaSet]
+  implicit val replsetListKind = ListKind[ReplicaSetList]("replicasets", "apis/" + extensionsAPIVersion)
+
+
   // Extensions Group API methods - for the moment this includes commands to get or change the scale on
   // a RC or Deployment Scale subresource, returning a Scale object with the updated spec and status.
   // (see [[http://kubernetes.io/v1.1/docs/design/horizontal-pod-autoscaler.html here]] for details about the
@@ -104,7 +129,14 @@ package object ext {
      */
     def scaleReplicationController(name: String, count: Int): Future[Scale] =
       scale[ReplicationController](name, count)
-      
+
+    /*
+    * Modify the specified replica count for a named replica set, returning a Future with its
+    * updated Scale subresource
+    */
+    def scaleReplicaSet(name: String, count: Int): Future[Scale] =
+      scale[ReplicaSet](name, count)
+
     /*
      * Modify the specified replica count for a named Deployment, returning a Future with its
      * updated Scale subresource
@@ -123,6 +155,13 @@ package object ext {
      * @returns a future containing the retrieved Scale subresource
      */
     def getReplicationControllerScale(objName: String) = getScale[ReplicationController](objName)
+
+    /*
+     * Fetch the Scale subresource of a named Replication Controller
+     * @returns a future containing the retrieved Scale subresource
+     */
+    def getReplicaSetScale(objName: String) = getScale[ReplicaSet](objName)
+
   }
   
   // this implicit conversions makes the ExtensionsAPI methods available on a 

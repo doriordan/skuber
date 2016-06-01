@@ -4,7 +4,9 @@ import org.specs2.mutable.Specification // for unit-style testing
 
 import scala.math.BigInt
 
-import skuber.{ReplicationController,Pod,Container}
+import skuber.{ReplicationController,Pod,Container, LabelSelector}
+import LabelSelector.dsl._
+
 import skuber.json.ext.format._
 
 import play.api.libs.json._
@@ -76,7 +78,8 @@ class ScaleSpec extends Specification {
     scale.kind mustEqual "Scale"
     scale.name mustEqual "redis-master"
     scale.spec.replicas mustEqual 1
-    scale.status mustEqual Some(Scale.Status(replicas=1, selector=Map("name" -> "redis-master")))
+    scale.status mustEqual Some(Scale.Status(
+      replicas=1,
+      selector=Map("name" -> "redis-master")))
   }
- 
 }

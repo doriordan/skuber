@@ -316,6 +316,7 @@ import Pod._
       val probe = cntrs(2).livenessProbe.get 
       probe.action match {
         case ExecAction(command) => command.length mustEqual 3
+        case _ => failure("liveness probe action must be an ExecAction")
       }
       probe.initialDelaySeconds mustEqual 30
       probe.timeoutSeconds mustEqual 5
@@ -343,7 +344,8 @@ import Pod._
       cntrStatuses(0).lastState.get match {
         case c: Container.Terminated => 
           c.exitCode mustEqual 2 
-          c.containerID.get mustEqual "docker://ec96c0a87e374d1b2f309c102b13e88a2605a6df0017472a6d7f808b559324aa"                                
+          c.containerID.get mustEqual "docker://ec96c0a87e374d1b2f309c102b13e88a2605a6df0017472a6d7f808b559324aa"
+        case _ => failure("container must be terminated")
       }
       cntrStatuses(2).state.get match {
         case Container.Running(startTime) if (startTime.nonEmpty) => 
