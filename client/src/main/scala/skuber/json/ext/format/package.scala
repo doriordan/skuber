@@ -118,5 +118,5 @@ package object format {
   implicit val deplListFmt: Format[DeploymentList] = KListFormat[Deployment].apply(DeploymentList.apply _,unlift(DeploymentList.unapply))
   implicit val hpasListFmt: Format[HorizontalPodAutoscalerList] = KListFormat[HorizontalPodAutoscaler].apply(HorizontalPodAutoscalerList.apply _,unlift(HorizontalPodAutoscalerList.unapply))
   implicit val replsetListFmt: Format[ReplicaSetList] = KListFormat[ReplicaSet].apply(ReplicaSetList.apply _,unlift(ReplicaSetList.unapply))
-  implicit val ringressListFmt: Format[IngressList] = KListFormat[Ingress].apply(IngressList.apply _,unlift(IngressList.unapply))
+  implicit val ingressListFmt: Format[IngressList] = KListFormat[Ingress].apply(IngressList.apply _,unlift(IngressList.unapply))
 }

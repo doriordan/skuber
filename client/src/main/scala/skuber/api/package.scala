@@ -122,18 +122,19 @@ package object client {
       }
       
       def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
-        if (log.isInfoEnabled()) 
+        if (log.isInfoEnabled())
         {
            val info = "method=" + request.method + ",resource=" + objName
-           val debugInfo = if (log.isDebugEnabled())
+           val debugInfo =
+             if (log.isDebugEnabled())
                              Some(",namespace=" + namespaceName + ",url=" + request.url + 
                                        request.queryString.headOption.map {
                                          case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"                                    
                                        }.getOrElse("")
                                     + json.fold("")(js => ",body=" + js.toString())) 
-                           else
-                             None
-           log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
+             else
+               None
+           log.info("Skuber Request: " + info + debugInfo.getOrElse("") + "]")
         }
         
 
@@ -292,8 +293,8 @@ package object client {
                  code = Some(response.status))
         throw new K8SException(status)
     }
-    if (log.isDebugEnabled)
-      log.debug("[Skuber Response: successfully parsed " + result.get)
+    if (log.isInfoEnabled)
+      log.info("[Skuber Response: successfully parsed " + result.get)
     result.get
   }
   
