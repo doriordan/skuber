@@ -5,6 +5,9 @@ package skuber.json.ext
  * 
  * Implicit JSON formatters for the extensions API objects
  */
+
+import java.awt.font.ImageGraphicAttribute
+
 import skuber._
 import skuber.ext.Ingress.Backend
 import skuber.ext._
@@ -97,7 +100,23 @@ package object format {
           (JsPath \ "tls").formatMaybeEmptyList[Ingress.TLS]
       )(Ingress.Spec.apply _, unlift(Ingress.Spec.unapply))
 
+
+  implicit val ingrlbingFormat: Format[Ingress.Status.LoadBalancer.Ingress] =
+    Json.format[Ingress.Status.LoadBalancer.Ingress]
+
+  implicit val ingrlbFormat: Format[Ingress.Status.LoadBalancer] =
+    Json.format[Ingress.Status.LoadBalancer]
+
+  implicit val ingressStatusFormat = Json.format[Ingress.Status]
+
+  implicit lazy val ingressFormat: Format[Ingress] = (
+      objFormat and
+          (JsPath \ "spec").formatNullable[Ingress.Spec] and
+          (JsPath \ "status").formatNullable[Ingress.Status]
+      ) (Ingress.apply _, unlift(Ingress.unapply))
+
   implicit val deplListFmt: Format[DeploymentList] = KListFormat[Deployment].apply(DeploymentList.apply _,unlift(DeploymentList.unapply))
   implicit val hpasListFmt: Format[HorizontalPodAutoscalerList] = KListFormat[HorizontalPodAutoscaler].apply(HorizontalPodAutoscalerList.apply _,unlift(HorizontalPodAutoscalerList.unapply))
   implicit val replsetListFmt: Format[ReplicaSetList] = KListFormat[ReplicaSet].apply(ReplicaSetList.apply _,unlift(ReplicaSetList.unapply))
+  implicit val ringressListFmt: Format[IngressList] = KListFormat[Ingress].apply(IngressList.apply _,unlift(IngressList.unapply))
 }

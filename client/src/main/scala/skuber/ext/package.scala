@@ -40,6 +40,8 @@ package object ext {
                                   with IsExtensionsKind[HorizontalPodAutoscaler]
   implicit val replsetsKind = new ObjKind[ReplicaSet]("replicasets", "ReplicaSet")
       with IsExtensionsKind[ReplicaSet]
+  implicit val ingressKind = new ObjKind[Ingress]("ingresses", "Ingress")
+      with IsExtensionsKind[Ingress]
 
   // support for the corresponding List kinds
   case class DeploymentList(
@@ -57,12 +59,18 @@ package object ext {
   implicit val hpasListKind = ListKind[DeploymentList]("horizontalpodautoscalers", "apis/" + extensionsAPIVersion)
 
   case class ReplicaSetList(
-    val kind: String = "ReplicSetList",
+    val kind: String = "ReplicaSetList",
     override val apiVersion: String = extensionsAPIVersion,
     val metadata: Option[ListMeta] = None,
     items: List[ReplicaSet] = Nil) extends KList[ReplicaSet]
   implicit val replsetListKind = ListKind[ReplicaSetList]("replicasets", "apis/" + extensionsAPIVersion)
 
+  case class IngressList(
+    val kind: String = "IngressList",
+    override val apiVersion: String = extensionsAPIVersion,
+    val metadata: Option[ListMeta] = None,
+    items: List[Ingress] = Nil) extends KList[Ingress]
+  implicit val ingressListKind = ListKind[IngressList]("ingresses", "apis/" + extensionsAPIVersion)
 
   // Extensions Group API methods - for the moment this includes commands to get or change the scale on
   // a RC or Deployment Scale subresource, returning a Scale object with the updated spec and status.
