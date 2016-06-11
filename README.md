@@ -128,6 +128,10 @@ The coverage of the core Kubernetes API functionality by Skuber is extensive.
 
 Support of more recent extensions group functionality is not yet entirely complete:  full support (with examples) is included for [Deployments](http://kubernetes.io/docs/user-guide/deployments/), [Horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/); support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features including [Daemon Sets](http://kubernetes.io/docs/admin/daemons/) and [Jobs](http://kubernetes.io/docs/user-guide/jobs/)  is expected shortly.
 
+## More Information
+
+If you have got this far, then the [Programming Guide](docs/GUIDE.md) will take you through the Skuber API in much more detail, including walking through many more examples.
+
 ## License
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
