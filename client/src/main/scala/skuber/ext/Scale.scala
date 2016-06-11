@@ -28,7 +28,7 @@ object Scale {
   case class Spec(replicas: Int = 0)
   case class Status(
     replicas: Int = 0,
-    selector: Map[String,String] = Map(),
+    selector: String = "",
     targetSelector: Option[String] = None
   )
 }    

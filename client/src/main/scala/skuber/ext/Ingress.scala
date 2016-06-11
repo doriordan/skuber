@@ -26,7 +26,7 @@ case class Ingress(
    *                Map("/ship" -> "orderService:80", "inventory" -> "inventoryService:80").
    *
    */
-  def addHttpRule(host:String, pathsMap: Map[String, String]) = {
+  def addHttpRule(host:String, pathsMap: Map[String, String]): Ingress = {
     val paths: List[Ingress.Path] = pathsMap map { case (path: String, backend: String) =>
        val beParts = backend.split(':')
        if (beParts.size != 2)
@@ -42,7 +42,8 @@ case class Ingress(
     this.copy(spec = Some(withRuleSpec))
   }
 
-  def setBackend(serviceName: String, servicePort: Int = 0): Ingress = {
+  // set the default backend i.e. if no ingress rule matches the incoming traffic then it gets routed to the specified service
+  def withDefaultBackendService(serviceName: String, servicePort: Int = 0): Ingress = {
     val be = Backend(serviceName,servicePort)
     this.copy(spec=Some(copySpec.copy(backend = Some(be)))
     )
@@ -66,7 +67,7 @@ object Ingress {
   case class Status(loadBalancer: Option[Status.LoadBalancer] = None)
 
   object Status {
-    case class LoadBalancer(ingress: LoadBalancer.Ingress)
+    case class LoadBalancer(ingress: Option[LoadBalancer.Ingress])
     object LoadBalancer {
       case class Ingress(ip: Option[String] = None, hostName: Option[String] = None)
     }

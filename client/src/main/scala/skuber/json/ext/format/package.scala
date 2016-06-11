@@ -20,10 +20,11 @@ import skuber.json.format._ // reuse some core formatters
 package object format {
   // Scale formatters
   implicit val scaleStatusFormat: Format[Scale.Status] = (
-      (JsPath \ "replicas").formatMaybeEmptyInt() and
-          (JsPath \ "selector").formatMaybeEmptyMap[String] and
-          (JsPath \ "targetSelector").formatNullable[String]
-      )(Scale.Status.apply _, unlift(Scale.Status.unapply))
+    (JsPath \ "replicas").formatMaybeEmptyInt() and
+    (JsPath \ "selector").formatMaybeEmptyString() and
+    (JsPath \ "targetSelector").formatNullable[String]
+  )(Scale.Status.apply _, unlift(Scale.Status.unapply))
+
   implicit val scaleSpecFormat: Format[Scale.Spec] = Json.format[Scale.Spec]
   implicit val scaleFormat: Format[Scale] = Json.format[Scale]
   

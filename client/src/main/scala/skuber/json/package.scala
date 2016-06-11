@@ -160,18 +160,24 @@ package object format {
  
   implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
  
-  implicit val envVarFldSel = Json.format[EnvVar.FieldSelector]
+  implicit val envVarFldRefFmt = Json.format[EnvVar.FieldRef]
+  implicit val envVarCfgMapRefFmt = Json.format[EnvVar.ConfigMapKeyRef]
+  implicit val envVarSecKeyRefFmt = Json.format[EnvVar.SecretKeyRef]
   
   implicit val envVarValueWrite = Writes[EnvVar.Value] { 
      value => value match {
        case EnvVar.StringValue(str) => (JsPath \ "value").write[String].writes(str)
-       case EnvVar.Source(fs) => (JsPath \ "valueFrom").write[EnvVar.FieldSelector](envVarFldSel).writes(fs)
+       case fr: EnvVar.FieldRef => (JsPath \ "valueFrom" \ "fieldRef").write[EnvVar.FieldRef].writes(fr)
+       case cmr: EnvVar.ConfigMapKeyRef => (JsPath \ "valueFrom" \ "configMapKeyRef").write[EnvVar.ConfigMapKeyRef].writes(cmr)
+       case skr: EnvVar.SecretKeyRef => (JsPath \ "valueFrom" \ "secretKeyRef").write[EnvVar.SecretKeyRef].writes(skr)
      }
   }
   
   implicit val envVarValueReads: Reads[EnvVar.Value] = (
     (JsPath \ "value").read[String].map(value => EnvVar.StringValue(value)) |
-    (JsPath \ "valueFrom").read[EnvVar.FieldSelector].map(value => EnvVar.Source(value) )
+    (JsPath \ "valueFrom" \ "fieldRef").read[EnvVar.FieldRef].map(x => x: EnvVar.Value) |
+    (JsPath \ "valueFrom" \ "configMapKeyRef").read[EnvVar.ConfigMapKeyRef].map(x => x: EnvVar.Value) |
+    (JsPath \ "valueForm" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value)
   )
   
    implicit val envVarWrites : Writes[EnvVar] = (

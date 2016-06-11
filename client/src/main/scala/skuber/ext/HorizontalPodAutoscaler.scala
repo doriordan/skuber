@@ -47,9 +47,9 @@ object HorizontalPodAutoscaler {
    )
            
    case class Status(
-      observedGeneration: Long,
+      observedGeneration: Option[Long] = None,
       lastScaleTime: Option[Timestamp] = None,
-      currentReplicas: Int,
-      desiredReplicas: Int,
-      currentCPUUtilizationPercentage: Int)
+      currentReplicas: Int = 0,
+      desiredReplicas: Int = 0,
+      currentCPUUtilizationPercentage: Option[Int] = None)
 }

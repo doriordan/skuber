@@ -67,17 +67,15 @@ object ReplicaSet {
                           ReplicaSet(metadata=ObjectMeta(name=name), spec = Some(spec))
     def apply(name:String, container: Container) : ReplicaSet = {
       val podSpec=Pod.Spec(containers=List(container))
-      ReplicaSet(name, podSpec, None, Map[String,String]())
+      ReplicaSet(name, podSpec, Map[String,String]())
     }
     def apply(
       name:String,
       podSpec: Pod.Spec,
-      selector: Option[LabelSelector],
       labels: Map[String,String]) : ReplicaSet =
     {
       val meta=ObjectMeta(name=name, labels = labels)
-      val withPodSpec = ReplicaSet(metadata=meta).withPodSpec(podSpec)
-      selector.map { withPodSpec.withSelector(_) }.getOrElse(withPodSpec)
+      ReplicaSet(metadata=meta).withPodSpec(podSpec, labels)
     }
     
     case class Spec(

@@ -24,7 +24,7 @@ object Pod {
       restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
       terminationGracePeriodSeconds: Option[Int] = None,
       activeDeadlineSeconds: Option[Int] = None,
-      dnsPolicy: DNSPolicy = Default,
+      dnsPolicy: DNSPolicy.DNSPolicy = Default,
       nodeSelector: Map[String, String] = Map(),
       serviceAccountName: String ="",
       nodeName: String = "",
@@ -41,6 +41,19 @@ object Pod {
        val loref = LocalObjectReference(ref)
        this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
      }
+     def withTerminationGracePeriodSeconds(gp: Int) =
+      this.copy(terminationGracePeriodSeconds = Some(gp))
+     def withActiveDeadlineSeconds(ad: Int) =
+      this.copy(activeDeadlineSeconds = Some(ad))
+     def withDnsPolicy(dp: DNSPolicy.DNSPolicy) =
+      this.copy(dnsPolicy=dp)
+     def withNodeName(nn: String) =
+      this.copy(nodeName = nn)
+     def withServiceAccountName(san: String) =
+       this.copy(serviceAccountName = san)
+     def withRestartPolicy(rp: RestartPolicy.RestartPolicy) =
+       this.copy(restartPolicy = rp)
+     def useHostNetwork = this.copy(hostNetwork=true)
    }
    
   object Phase extends Enumeration {

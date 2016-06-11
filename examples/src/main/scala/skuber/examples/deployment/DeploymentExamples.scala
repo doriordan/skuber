@@ -73,7 +73,7 @@ object DeploymentExamples extends App {
   def deployNginx(version: String) : Future[Deployment] = {
     
     val nginxLabel = "app" -> "nginx"
-    val nginxContainer = Container("nginx",image="nginx:" + version).port(80)
+    val nginxContainer = Container(name="nginx",image="nginx:" + version).exposePort(80)
     
     val nginxTemplate = Pod.Template.Spec
       .named("nginx")
@@ -104,7 +104,7 @@ object DeploymentExamples extends App {
   
   def updateNginx(version: String): Future[Deployment] = {
     
-    val updatedContainer = Container("nginx",image="nginx:" + version).port(80)
+    val updatedContainer = Container("nginx",image="nginx:" + version).exposePort(80)
     val currentDeployment = k8s get[Deployment] "nginx-deployment"
     
     currentDeployment flatMap { nginxDeployment =>

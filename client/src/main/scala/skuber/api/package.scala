@@ -86,7 +86,8 @@ package object client {
      def buildRequest[T <: TypeMeta](
        nameComponent: Option[String],
        watch: Boolean = false,
-       forExtensionsAPI: Option[Boolean] = None)(implicit kind: Kind[T]) : WSRequest = 
+       forExtensionsAPI: Option[Boolean] = None
+       )(implicit kind: Kind[T]) : WSRequest =
      {  
        val kindComponent = kind.urlPathComponent
        val apiVersion = kind.apiVersion 
@@ -107,13 +108,13 @@ package object client {
        }
         
        val watchPathComponent=if (watch) Some("watch") else None
-        
+
        val k8sUrlStr = mkUrlString(
          Some(k8sContext.cluster.server), 
          Some(apiPrefix), 
          Some(apiVersion), 
          watchPathComponent,
-         nsPathComponent, 
+         if (kind.isNamespaced) nsPathComponent else None,
          Some(kindComponent),
          nameComponent)     
          
@@ -124,7 +125,7 @@ package object client {
       def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
         if (log.isInfoEnabled())
         {
-           val info = "method=" + request.method + ",resource=" + objName
+           val info = "method=" + request.method + ",url=" + request.url
            val debugInfo =
              if (log.isDebugEnabled())
                              Some(",namespace=" + namespaceName + ",url=" + request.url + 
@@ -134,9 +135,8 @@ package object client {
                                     + json.fold("")(js => ",body=" + js.toString())) 
              else
                None
-           log.info("Skuber Request: " + info + debugInfo.getOrElse("") + "]")
+           log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
         }
-        
 
       /**
        * Modify the specified K8S resource using a given HTTP method. The modified resource is returned.
@@ -227,20 +227,21 @@ package object client {
    abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { 
      def urlPathComponent: String 
      def isExtensionsKind: Boolean = false
+     def isNamespaced: Boolean = true
      def apiVersion: String =
        if (isExtensionsKind) 
          skuber.ext.extensionsAPIVersion 
        else
          "v1"
    }
-   
+
    case class ObjKind[O <: ObjectResource](
        val urlPathComponent: String, 
        kind: String)(implicit fmt: Format[O]) 
        extends Kind[O]
-     
+
    implicit val podKind = ObjKind[Pod]("pods", "Pod")
-   implicit val nodeKind = ObjKind[Node]("nodes", "Node")
+   implicit val nodeKind = new ObjKind[Node]("nodes", "Node") { override def isNamespaced = false }
    implicit val serviceKind = ObjKind[Service]("services", "Service")
    implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers", "ReplicationController")
    implicit val endpointsKind = ObjKind[Endpoints]("endpoints", "Endpoints")
@@ -256,7 +257,7 @@ package object client {
    case class ListKind[L <: TypeMeta](val urlPathComponent: String, val apiPrefix: String = "api")(implicit fmt: Format[L]) 
      extends Kind[L]
    implicit val podListKind = ListKind[PodList]("pods")
-   implicit val nodeListKind = ListKind[NodeList]("nodes")
+   implicit val nodeListKind = new ListKind[NodeList]("nodes") { override def isNamespaced = false }
    implicit val serviceListKind = ListKind[ServiceList]("services")
    implicit val endpointListKind = ListKind[EndpointList]("endpoints")
    implicit val eventListKind = ListKind[EventList]("events")

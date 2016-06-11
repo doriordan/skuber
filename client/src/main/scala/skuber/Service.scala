@@ -23,24 +23,13 @@ case class Service(
   def withSelector(sel: Map[String, String])  = this.copy(spec = Some(copySpec.copy(selector = sel)))
   def withSelector(sel: Tuple2[String,String])= this.copy(spec = Some(copySpec.copy(selector = Map(sel))))
   
-  def withPort(port: Service.Port) = this.copy(spec = Some(copySpec.copy(ports = List(port))))
-  def withPorts(ports: List[Service.Port]) = this.copy(spec = Some(copySpec.copy(ports = ports)))
-  def addPort(port: Service.Port) = this.copy(spec = Some(copySpec.copy(ports = port :: copySpec.ports )))
+  def setPort(port: Service.Port) = this.copy(spec = Some(copySpec.copy(ports = List(port))))
+  def setPorts(ports: List[Service.Port]) = this.copy(spec = Some(copySpec.copy(ports = ports)))
+  def exposeOnPort(port: Service.Port) = this.copy(spec = Some(copySpec.copy(ports = port :: copySpec.ports )))
   
-  def withNodePort(bind: Tuple2[Int,Int]) = {
-    val nodePort = Service.Port(port=bind._2, nodePort=bind._1)
-    val updated = withPort(nodePort)
-    // set type to node port - only if set to ClusterIP / default
-    val currType = updated.spec.get._type
-    if (currType==Service.Type.ClusterIP)
-      updated.withType(Service.Type.NodePort)
-    else
-      updated
-  }
-  
-  def addNodePort(bind: Tuple2[Int,Int]) = {
-    val nodePort = Service.Port(port=bind._2, nodePort=bind._1)
-    val updated = addPort(nodePort)
+  def exposeOnNodePort(bind: Tuple2[Int,Int], name: String="") = {
+    val nodePort = Service.Port(name=name, port=bind._2, nodePort=bind._1)
+    val updated = exposeOnPort(nodePort)
     // set type to node port - only if set to ClusterIP / default
     val currType = updated.spec.get._type
     if (currType==Service.Type.ClusterIP)

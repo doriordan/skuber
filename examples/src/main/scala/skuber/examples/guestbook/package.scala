@@ -26,7 +26,7 @@ package object model {
         val labels = coreLabels ++ customLabels
         val selector=coreLabels ++ customSelectors
     
-        val container=Container(containerName, image=image).port(containerPort)
+        val container=Container(containerName, image=image).exposePort(containerPort)
           
         val template = Pod.Template.Spec.named(serviceName).
                              addLabels(labels).

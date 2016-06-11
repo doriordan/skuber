@@ -1,24 +1,25 @@
 # Skuber
 
-Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing and watching Kubernetes resources (such as Pods, Containers, Services, Replication Controllers etc.) in a cluster.
+Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing and monitoring Kubernetes resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) in a cluster.
 
-The client supports v1.0, v1.1 and V1.2 of the Kubernetes REST API.
+The client supports V1.0, V1.1 and V1.2 of the Kubernetes REST API.
 
 ## Example Usage
 
 The code block below illustrates the simple steps required to create a replicated nginx service on a Kubernetes cluster.
- 
-The service uses five replicated pods, each running a single Docker container of an nginx image. Each pod publishes the exposed port 80 of its container enabling access to the nginx service within the cluster.
 
-The service can be accessed from outside the cluster at port 30001 on each cluster node, which Kubernetes proxies to port 80 on the nginx pods. 
+It creates a ReplicationController that ensures five replicas (pods) of an nginx container are always running in the cluster, and exposes these outside the cluster via a Service that automatically proxies any request received on port 30001 on any node of the cluster on to port 80 of one of the currently running nginx replicas.
 
     import skuber._
     import skuber.json.format._
 
     val nginxSelector  = Map("app" -> "nginx")
-    val nginxContainer = Container("nginx",image="nginx").port(80)
-    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector).withReplicas(5)
-    val nginxService   = Service("nginx", nginxSelector, Service.Port(port=80, nodePort=30001)) 
+    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
+    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
+    	.withReplicas(5)
+    val nginxService = Service("nginx")
+    	.withSelector(nginxSelector)
+    	.exposeOnNodePort(30001 -> 80) 
 
     import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -41,7 +42,7 @@ See the [programming guide](docs/GUIDE.md) for more details.
 ## Features
 
 - Support for `create`, `get`, `delete`, `list`, `update`, and `watch` operations on Kubernetes types using an asynchronous and type-safe interface that maps each operation to the appropriate Kubernetes REST API requests
-- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including `Pod`, `Service`, `ReplicationController`, `Node`, `Container`, `Endpoint`, `Namespace`, `Volume`, `PersistentVolume`,` Resource`, `Security`, `EnvVar`, `ServiceAccount`, `LimitRange`, `Secret`, `Event`, `Deployment`, `HorizontalPodAutoscaler` and others.
+- Comprehensive Scala case class representations of the Kubernetes types supported by the API server; including `Pod`, `Service`, `ReplicationController`, `Node`, `Container`, `Endpoint`, `Namespace`, `Volume`, `PersistentVolume`,` Resource`, `Security`, `EnvVar`, `ServiceAccount`, `LimitRange`, `Secret`, `Event`, `Deployment`, `HorizontalPodAutoscaler`,`ReplicaSet`,`Ingress` and others.
 - Support for Kubernetes **object**, **list** and **simple** kinds
 - Fluent API for building the desired specification ("spec") of a Kubernetes object to be created or updated on the server 
 - Complete JSON support for reading and writing the Kubernetes types
@@ -93,10 +94,9 @@ To test the build and your configuration you can run the examples, the easiest w
     [2] skuber.examples.fluent.FluentExamples
     [3] skuber.examples.guestbook.Guestbook
     [4] skuber.examples.scale.ScaleExamples
+    [5] skuber.examples.ingress.NginxIngress
 
     Enter number: 
-
-The best example to start with is probably [Guestbook](./examples/src/main/scala/skuber/examples/guestbook/README.md) as it illustrates core Kubernetes / Skuber features.
 
 ## Requirements
 
@@ -104,7 +104,7 @@ The best example to start with is probably [Guestbook](./examples/src/main/scala
 - sbt 0.13 (build time)
 - Kubernetes v1.0 or later (run time)
 
-Use of the newer extensions API group features ( currently supported: `Deployment`,`Scale`, `HorizontalPodAutoScaler`) requires a v1.1 or later Kubernetes cluster at run time - the `DeploymentExamples` and `ScaleExamples` examples depend on these features.
+Use of the newer extensions API group features ( currently supported: `Deployment`,`Scale`, `HorizontalPodAutoScaler`, `ReplicaSet`,`Ingress`) requires a v1.1 or later Kubernetes cluster at run time.
 
 ## Security / Authentication
 
@@ -124,7 +124,9 @@ Configuration can alternatively be passed programmatically to the `k8sInit` call
 
 ## Status
 
-The coverage of the Kubernetes API functionality by Skuber is extensive, however support of more recent extensions group functionality is currently more limited:  full support is included for [deployments](http://kubernetes.io/docs/user-guide/deployments/) and [horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/); however support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features such as [Daemon Sets](http://kubernetes.io/docs/admin/daemons/), [Jobs](http://kubernetes.io/docs/user-guide/jobs/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/) are not yet supported but are intended to be shortly.
+The coverage of the core Kubernetes API functionality by Skuber is extensive.
+
+Support of more recent extensions group functionality is not yet entirely complete:  full support (with examples) is included for [Deployments](http://kubernetes.io/docs/user-guide/deployments/), [Horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/); support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features including [Daemon Sets](http://kubernetes.io/docs/admin/daemons/) and [Jobs](http://kubernetes.io/docs/user-guide/jobs/)  is expected shortly.
 
 ## License
 

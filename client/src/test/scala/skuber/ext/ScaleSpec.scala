@@ -68,9 +68,7 @@ class ScaleSpec extends Specification {
   },
   "status": {
     "replicas": 1,
-    "selector": {
-      "name": "redis-master"
-    }
+    "selector": "redis-master"
   }
 }
 """
@@ -80,6 +78,6 @@ class ScaleSpec extends Specification {
     scale.spec.replicas mustEqual 1
     scale.status mustEqual Some(Scale.Status(
       replicas=1,
-      selector=Map("name" -> "redis-master")))
+      selector="redis-master"))
   }
 }

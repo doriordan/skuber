@@ -17,7 +17,7 @@ object ScaleExamples extends App {
   def scaleNginxController = {
     
     val nginxSelector  = Map("example" -> "scale")
-    val nginxContainer = Container("nginx",image="nginx").port(80)
+    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
     val nginxController= ReplicationController("nginx-scale-example",nginxContainer,nginxSelector).withReplicas(5)
    
     import scala.concurrent.ExecutionContext.Implicits.global

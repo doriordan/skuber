@@ -69,7 +69,7 @@ object FluentExamples extends App {
   def buildSimpleNginxService: (Service, ReplicationController) = {
     
     val nginxSelector  = Map("app" -> "nginx")
-    val nginxContainer = Container("nginx",image="nginx").port(80)
+    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
     val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector).withReplicas(5)
     val nginxService   = Service("nginx", nginxSelector, Service.Port(port=80, nodePort=30001)) 
     (nginxService,nginxController)
@@ -93,7 +93,8 @@ object FluentExamples extends App {
     
     val devContainer=Container(name="nginx-dev",image="nginx")
            .limitCPU(devCPU)
-           .limitMemory(devMem).port(80)
+           .limitMemory(devMem)
+           .exposePort(80)
            
     val devPodSpec = Pod.Spec()
            .addContainer(devContainer)
@@ -117,7 +118,7 @@ object FluentExamples extends App {
       Container(name="nginx-test", image="nginx")
         .limitCPU(testCPU)
         .limitMemory(testMem)
-        .port(80)
+        .exposePort(80)
     
     val internalTestPodSpec = Pod.Spec()
       .addNodeSelector(testInternalZoneLabel)
@@ -154,7 +155,7 @@ object FluentExamples extends App {
       Container(name="nginx-prod", image="nginx")
         .limitCPU(prodCPU)
         .limitMemory(prodMem)
-        .port(80)
+        .exposePort(80)
     
     val internalProdPodSpec=Pod.Spec()
       .addNodeSelector(prodInternalZoneLabel)
@@ -196,19 +197,19 @@ object FluentExamples extends App {
     val devService = 
       getService(svcList, "nginx-dev") map { 
         _.withSelector(devLabel)
-         .withNodePort(30001 -> 80)
+         .exposeOnNodePort(30001 -> 80)
       } 
     
     val internalTestService = 
       getService(svcList, "nginx-test-int") map {
         _.withSelector(testInternalSelector)
-         .withNodePort(30002 -> 80)
+         .exposeOnNodePort(30002 -> 80)
       } 
   
     val externalTestService = 
        getService(svcList, "nginx-test-ext") map {
         _.withSelector(testExternalSelector)
-         .withNodePort(30003 -> 80)
+         .exposeOnNodePort(30003 -> 80)
       } 
 
     // for prod we require a load balancer on top of the node port
@@ -217,7 +218,7 @@ object FluentExamples extends App {
       getService(svcList, "nginx-prod-int") map {
        _.addLabels(Map("app" -> "internal-web-server"))
        .withSelector(prodInternalSelector)
-       .withNodePort(30004 -> 80)
+       .exposeOnNodePort(30004 -> 80)
        .withLoadBalancerType
     }
             
@@ -225,7 +226,7 @@ object FluentExamples extends App {
       getService(svcList, "nginx-prod-ext") map {
         _.addLabels(Map("app" -> "external-web-server"))
         .withSelector(prodExternalSelector)
-        .withNodePort(30005 -> 80)
+        .exposeOnNodePort(30005 -> 80)
         .withLoadBalancerType
       }
     

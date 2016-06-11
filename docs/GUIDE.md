@@ -13,10 +13,9 @@ The entire Skuber data model can be easily imported into your application:
 The model can be divided into categores which correspond to those in the Kubernetes API:
 
 - [Object kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
-Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`.   
+Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`,`Deployment`,`HorizontalPodAutoScaler`,and `Ingress`.   
 
-- [List kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. 
-List kind classes include `PodList`, `NodeList`, `ServiceList`, `EndpointList`, `EventList`, `ReplicationControllerList`, `PersistentVolumeList`, `PersistentVolumeClaimList`, `ServiceAccountList`, `LimitRangeList`, `ResourceQuotaList` and `SecretList`.   
+- [List kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. There are list kinds for each object kind e.g. `PodList`,`EventList`.   
 
 - [Simple kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds) 
 
@@ -76,13 +75,14 @@ Equally it is straightforward to do the reverse and generate a JSON value from a
 
 ### The API basics
 
-To interact with the Kubernetes API server:
+These are the basic steps to use the Skuber API:
 
 - Import the API definitions (the simplest way is to `import skuber._`, which will also import the model classes)
-- Import the implicit JSON formatters (the API uses these to read/write the request and response data) 
-- Ensure a Scala implicit `ExecutionContext` is available
+- Import the implicit JSON formatters (the API uses these to read/write the request and response data) from `skuber.json.format`.
+- Ensure a Scala implicit `ExecutionContext` is available - this will be the execution context in which the `Future`s created for each request will execute.
 - Create a request context by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
-- Invoke the required requests on the API, which generally return their results asynchronously using `Future`s
+- Invoke the required requests using the context.
+- The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
 
 For example, the following creates the Replication Controller we just parsed above on our Kubernetes cluster:
 
@@ -239,7 +239,7 @@ Client support for Kubernetes v1.1 and later [Extensions Group API](http://kuber
      
 The above additional imports add some new types, and also add some additional methods into the request context class.
 
-Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and the associated [Scale](https://github.com/kubernetes/kubernetes/blob/release-1.1/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see this [example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala). 
+Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and the associated [Scale](https://github.com/kubernetes/kubernetes/blob/release-1.1/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/), [ReplicaSets](http://kubernetes.io//docs/user-guide/replicasets) and [Ingresses](http://kubernetes.io//docs/user-guide/ingress/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see [this Autoscaling example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala), [this Deployments example](../examples/src/main/scala/skuber/examples/deployment/DeploymentExamples.scala) and [this Ingress / ReplicaSet example](../examples/src/main/scala/skuber/examples/ingress/NginxIngress.scala). 
 
 ***Scale*** 
 
@@ -313,6 +313,35 @@ Later an update can be posted - in this example the nginx version will be update
 As no explicit deployment strategy has been selected, the default strategy will be used which will result in a rolling update of the nginx pods - again, you can use `kubectl get` commands to view the status of the deployment, replication controllers and pods as the update progresses.
 
 The `DeploymentExamples` example runs the above steps.
+
+***Ingress***
+ 
+An ingress controller manages handling of HTTP requests from an ingress point on the Kubernetes cluster, proxying then to target services according to a user-specified set of routing rules. The rules are specified in a standard format, although different ingress controllers can utilize different underlying mechanisms to control ingress (e.g. an nginx proxy, or by configuring a hardware or cloud load balancer).
+The `NginxIngress` example illustrates creation and testing of an ingress, using an nginx-based ingress controller from the Kubenretes contrib project.
+
+***ReplicaSet***
+
+ReplicaSet is the expected long-term successor of ReplicaionController in the Kubernetes project. It is currently different only in supporting both equality and set based label selectors (ReplicationController only support equality-based ones).
+The `NginxIngress` example uses a ReplicaSet to manage the ingress controller.
+
+## Label Selectors
+
+As alluded to above, newer API types such as ReplicaSets and Deployments support set-based as well as equality-based [label selectors](http://kubernetes.io/docs/user-guide/labels/#label-selectors). 
+For such types, Skuber now supports a mini-DSL to build selectors:
+
+	import skuber._
+	import skuber.LabelSelector.dsl._
+
+    val sel = LabelSelector(
+        "tier" is "frontend",
+        "release" doesNotExist,
+        "env" isNotIn List("production", "staging"))
+        
+    // now the label selector can be used with certain types 
+    val depl = Deployment("exampleDeployment").withSelector(sel)
+       
+
+
  
 ## Programmatic configuration
 
