@@ -86,10 +86,6 @@ These are the basic steps to use the Skuber API:
 
 For example, the following creates the Replication Controller we just parsed above on our Kubernetes cluster:
 
-    // Note: The k8sInit call below uses the default configuration, which (unless overridden) 
-    // assumes a kubectl proxy is running on localhost:8001 and uses the default Kubernetes 
-    // namespace for all its requests. See later in this guide for more details on Configuration.
- 
     import skuber._
     import skuber.json.format._
     import scala.concurrent.ExecutionContext.Implicits.global
