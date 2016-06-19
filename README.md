@@ -38,7 +38,7 @@ The quickest way to get started with Skuber:
     Enter number: 
 ```
 
-For non-default / local setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
+For non-default setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
 
 ## Building
 
