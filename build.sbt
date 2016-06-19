@@ -1,3 +1,4 @@
+
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 val playws = "com.typesafe.play" %% "play-ws" % "2.4.3"
@@ -18,12 +19,14 @@ scalacOptions in Test ++= Seq("-Yrangepos")
 
 lazy val commonSettings = Seq(
   organization := "io.doriordan",
-  version := "0.1.0",
-  scalaVersion := "2.11.7"
+  scalaVersion := "2.11.7",
+  licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
+  publishMavenStyle := false,
+  bintrayRepository := "skuber"
 )
 
 lazy val skuberSettings = Seq(
-  name := "skuber-client",
+  name := "skuber",
   libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
@@ -39,16 +42,18 @@ lazy val examplesAssemblySettings = Seq(
 )
 
 lazy val root = (project in file(".")) aggregate(
-  client,
+  skuber,
   examples)
 
-lazy val client = (project in file("client")).
-  settings(commonSettings: _*).
-  settings(skuberSettings: _*)
+lazy val skuber= (project in file("client"))
+  .enablePlugins(GitVersioning)
+  .settings(commonSettings: _*)
+  .settings(skuberSettings: _*)
 
-lazy val examples = (project in file("examples")).
-  settings(commonSettings: _*).
-  settings(examplesSettings: _*).
-  settings(examplesAssemblySettings: _*).
-  dependsOn(client)
+lazy val examples = (project in file("examples"))
+  .enablePlugins(GitVersioning)
+  .settings(commonSettings: _*)
+  .settings(examplesSettings: _*)
+  .settings(examplesAssemblySettings: _*)
+  .dependsOn(skuber)
 

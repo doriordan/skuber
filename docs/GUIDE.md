@@ -10,6 +10,8 @@ The entire Skuber data model can be easily imported into your application:
 
     import skuber._
  
+or just import the specific classes you need.
+
 The model can be divided into categores which correspond to those in the Kubernetes API:
 
 - [Object kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
