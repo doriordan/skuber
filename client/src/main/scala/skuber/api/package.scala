@@ -262,6 +262,7 @@ package object client {
    implicit val endpointListKind = ListKind[EndpointList]("endpoints")
    implicit val eventListKind = ListKind[EventList]("events")
    implicit val replCtrlListKind = ListKind[ReplicationControllerList]("replicationcontrollers")
+   implicit val namespaceListKind = new ListKind[NamespaceList]("namespaces") { override def isNamespaced = false }
    implicit val persistentVolumeListKind = ListKind[PersistentVolumeList]("persistentvolumes")
    implicit val persistentVolumeClaimListKind = ListKind[PersistentVolumeClaimList]("persistentvolumeclaims")
    implicit val serviceAccountListKind = ListKind[ServiceAccountList]("serviceaccounts")

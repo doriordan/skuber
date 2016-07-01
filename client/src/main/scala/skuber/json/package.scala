@@ -671,6 +671,8 @@ package object format {
   implicit val serviceListFmt: Format[ServiceList] = KListFormat[Service].apply(ServiceList.apply _,unlift(ServiceList.unapply))
   implicit val endpointListFmt: Format[EndpointList] = KListFormat[Endpoints].apply(EndpointList.apply _,unlift(EndpointList.unapply))
   implicit val eventListFmt: Format[EventList] = KListFormat[Event].apply(EventList.apply _,unlift(EventList.unapply))
+  implicit val namespaceListFmt: Format[NamespaceList] = KListFormat[Namespace].
+                    apply(NamespaceList.apply _,unlift(NamespaceList.unapply))
   implicit val replCtrlListFmt: Format[ReplicationControllerList] = KListFormat[ReplicationController].
                     apply(ReplicationControllerList.apply _,unlift(ReplicationControllerList.unapply))
   implicit val persVolListFmt: Format[PersistentVolumeList] = KListFormat[PersistentVolume].  
