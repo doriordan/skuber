@@ -78,7 +78,7 @@ case class Container(
     withLivenessProbe(probe)
   }
   def withReadinessProbe(probe:Probe) =
-    this.copy(livenessProbe=Some(probe))
+    this.copy(readinessProbe=Some(probe))
   def withHttpReadinessProbe(
     path: String,
     port: NameablePort = 80,
