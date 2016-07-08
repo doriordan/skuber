@@ -1,10 +1,11 @@
 package skuber.api.security
 
-import javax.net.ssl.{KeyManager, KeyManagerFactory, TrustManager, TrustManagerFactory, X509TrustManager, X509ExtendedTrustManager, SSLContext}
+import java.net.Socket
+import javax.net.ssl._
 import java.security.cert.X509Certificate
 import java.security.SecureRandom
 
-import skuber.api.client.{Context,PathOrData}
+import skuber.api.client.{Context, PathOrData}
 
 /**
  * @author David O'Riordan
@@ -13,11 +14,15 @@ object TLS {
   
   // This trust manager supports the InsecureSkipTLSVerify flag in kubeconfig files -
   // it always trusts the server i.e. skips verifying the server cert for a TLS connection
-  object InsecureSkipTLSVerifyTrustManager extends X509TrustManager
+  object InsecureSkipTLSVerifyTrustManager extends X509ExtendedTrustManager
   {
     def getAcceptedIssuers() = Array[X509Certificate]()
     def checkClientTrusted(certs: Array[X509Certificate], authType: String) : Unit = {}
     def checkServerTrusted(certs: Array[X509Certificate], authType: String) : Unit = {}
+    def checkClientTrusted(certs: Array[X509Certificate], s: String, socket: Socket): Unit = {}
+    def checkClientTrusted(certs: Array[X509Certificate], s: String, sslEngine: SSLEngine): Unit = {}
+    def checkServerTrusted(certs: Array[X509Certificate], s: String, socket: Socket): Unit = {}
+    def checkServerTrusted(certs: Array[X509Certificate], s: String, sslEngine: SSLEngine): Unit = {}
   }
    
   val skipTLSTrustManagers = Array[TrustManager](InsecureSkipTLSVerifyTrustManager)
