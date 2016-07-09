@@ -69,7 +69,7 @@ package object client {
      sslContext foreach { ctx =>
         httpClientConfigBuilder.setSSLContext(ctx) 
         // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
-        httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1")) 
+        httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2","TLSv1")) 
      }
      val httpClientConfig = httpClientConfigBuilder.build
      val httpClient = new NingWSClient(httpClientConfig)
