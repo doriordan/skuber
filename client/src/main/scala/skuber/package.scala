@@ -127,13 +127,19 @@ package object skuber {
     override val apiVersion: String = v1,
     val metadata: Option[ListMeta] = None,
     items: List[LimitRange] = Nil) extends KList[LimitRange]
-  
-   case class ResourceQuotaList(
+
+  case class NamespaceList(
+     val kind: String = "NamespaceList",
+     override val apiVersion: String = v1,
+     val metadata: Option[ListMeta] = None,
+     items: List[Namespace] = Nil) extends KList[Namespace]
+
+  case class ResourceQuotaList(
      val kind: String = "ResourceQuotaList",
      override val apiVersion: String = v1,
      val metadata: Option[ListMeta] = None,
      items: List[Resource.Quota] = Nil) extends KList[Resource.Quota]
-  
+
    case class SecretList(
     val kind: String = "SecretList",
     override val apiVersion: String = v1,
