@@ -245,7 +245,7 @@ package object client {
    implicit val serviceKind = ObjKind[Service]("services", "Service")
    implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers", "ReplicationController")
    implicit val endpointsKind = ObjKind[Endpoints]("endpoints", "Endpoints")
-   implicit val namespaceKind = ObjKind[Namespace]("namespace", "Namespace")
+   implicit val namespaceKind = new ObjKind[Namespace]("namespaces", "Namespace") { override def isNamespaced = false }
    implicit val persistentVolumeKind = ObjKind[PersistentVolume]("persistentvolumes", "PersistentVolume")
    implicit val persistentVolumeClaimsKind = ObjKind[PersistentVolumeClaim]("persistentvolumeclaims", "PersistentVolumeClaim")
    implicit val serviceAccountKind = ObjKind[ServiceAccount]("serviceaccounts","ServiceAccount")
