@@ -306,18 +306,19 @@ package object client {
       case code if code < 300 => // ok
       case code => {
         // a non-success or unexpected status returned - we should normally have a Status in the response body
-        if (log.isErrorEnabled)
-          log.error("[Skuber Response: Error - status code = " + code + "]")
         val status=response.json.validate[Status]
         status match {
-          case JsSuccess(status, path) => throw new K8SException(status)
+          case JsSuccess(status, path) =>
+            if (log.isWarnEnabled)
+              log.warn("[Skuber Response: non-ok status returned = " + status)
+	    throw new K8SException(status)
           case JsError(e) => // unexpected response, so generate a Status
             val status=Status(message=Some("Unexpected response body for non-OK status "),
                               reason=Some(response.statusText),
                               details=Some(response.body),
                               code=Some(response.status))
-            if (log.isDebugEnabled)
-              log.debug("[Skuber Response: status = " + status)
+            if (log.isErrorEnabled)
+              log.error("[Skuber Response: status code = " + code + ", error parsing body = " + e)
             throw new K8SException(status)    
         }
       }
