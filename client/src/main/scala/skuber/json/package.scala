@@ -614,7 +614,9 @@ package object format {
     (JsPath \ "spec").formatNullable[PersistentVolumeClaim.Spec] and
     (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
   )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
-  
+
+  implicit val configMapFmt: Format[ConfigMap] = Json.format[ConfigMap]
+
   implicit val svcAccountFmt: Format[ServiceAccount] = (
     objFormat and
     (JsPath \ "secrets").formatMaybeEmptyList[ObjectReference] and

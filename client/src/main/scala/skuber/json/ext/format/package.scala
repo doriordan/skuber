@@ -41,7 +41,15 @@ package object format {
   implicit val hpasSpecFmt: Format[HorizontalPodAutoscaler.Spec] = Json.format[HorizontalPodAutoscaler.Spec]
   implicit val hpasStatusFmt: Format[HorizontalPodAutoscaler.Status] = Json.format[HorizontalPodAutoscaler.Status]
   implicit val hpasFmt: Format[HorizontalPodAutoscaler] =  Json.format[HorizontalPodAutoscaler]
-   
+
+  // DaemonSet formatters
+  implicit val daemonsetStatusFmt: Format[DaemonSet.Status] = Json.format[DaemonSet.Status]
+  implicit val daemonsetSpecFormat: Format[DaemonSet.Spec] = (
+    (JsPath \ "selector").formatNullableLabelSelector and
+      (JsPath \ "template").formatNullable[Pod.Template.Spec]
+    )(DaemonSet.Spec.apply, unlift(DaemonSet.Spec.unapply))
+  implicit val daemonsetFmt: Format[DaemonSet] = Json.format[DaemonSet]
+
   // Deployment formatters
   implicit val depStatusFmt: Format[Deployment.Status] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
