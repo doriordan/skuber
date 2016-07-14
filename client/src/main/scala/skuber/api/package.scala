@@ -171,14 +171,21 @@ package object client {
        val wsResponse = wsReq.get
        wsResponse map toKubernetesResponse[L]
      }
-     
+
+     def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[Option[O]] = {
+       _get[O](name) map toKubernetesResponseOption[O]
+     }
+
      def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
+       _get[O](name) map toKubernetesResponse[O]
+     }
+
+     private def _get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[WSResponse] = {
        val wsReq = buildRequest(Some(name))(kind)
        logRequest(wsReq, name, None)
-       val wsResponse = wsReq.get
-       wsResponse map toKubernetesResponse[O]
+       wsReq.get
      }
-     
+
      def delete[O <: ObjectResource](name:String, gracePeriodSeconds: Int = 0)(implicit kind: ObjKind[O]): Future[Unit] = {
        val options=DeleteOptions(gracePeriodSeconds=gracePeriodSeconds)
        val js = deleteOptionsWrite.writes(options)
@@ -298,6 +305,11 @@ package object client {
     if (log.isInfoEnabled)
       log.info("[Skuber Response: successfully parsed " + result.get)
     result.get
+  }
+
+  def toKubernetesResponseOption[T](response: WSResponse)(implicit reader: Reads[T]) : Option[T] = {
+    checkResponseStatus(response)
+    response.json.validate[T].asOpt
   }
   
   // check for non-OK status, throwing a K8SException if appropriate
