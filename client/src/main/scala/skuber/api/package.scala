@@ -259,8 +259,9 @@ package object client {
    implicit val secretKind = ObjKind[Secret]("secrets","Secret")
    implicit val podTemplateKind = ObjKind[Pod.Template]("podtemplates", "PodTemplate")
    implicit val limitRangeKind = ObjKind[LimitRange]("limitranges","LimitRange")
-   implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequoats", "ResourceQuota")
-   
+   implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequotas", "ResourceQuota")
+   implicit val configMapKind = ObjKind[ConfigMap]("configmaps", "ConfigMap")
+
    case class ListKind[L <: TypeMeta](val urlPathComponent: String, val apiPrefix: String = "api")(implicit fmt: Format[L]) 
      extends Kind[L]
    implicit val podListKind = ListKind[PodList]("pods")
@@ -276,7 +277,7 @@ package object client {
    implicit val limitRangeListKind = ListKind[LimitRangeList]("limitranges")
    implicit val resourceQuotaListKind = ListKind[ResourceQuotaList]("resourcequotas")
    implicit val secretListKind = ListKind[SecretList]("secrets")
- 
+
   // Status will usually be returned by Kubernetes when an error occurs with a request
   case class Status(
     apiVersion: String = "v1",   

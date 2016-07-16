@@ -42,6 +42,7 @@ package object ext {
       with IsExtensionsKind[ReplicaSet]
   implicit val ingressKind: ObjKind[Ingress] = new ObjKind[Ingress]("ingresses", "Ingress")
       with IsExtensionsKind[Ingress]
+  implicit val daemonSetKind: ObjKind[DaemonSet] = new ObjKind[DaemonSet]("daemonsets", "DaemonSet")
 
   // support for the corresponding List kinds
   case class DeploymentList(
