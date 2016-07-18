@@ -2,20 +2,16 @@ package skuber.api
 
 import play.api.libs.ws._
 import play.api.libs.ws.ning._
-import play.api.libs.json.{JsValue, JsSuccess, JsError, JsResult, JsObject, Reads, Format}
+import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsSuccess, JsValue, Reads}
 import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig}
-
 import java.net.URL
 
-import scala.concurrent.{Future,ExecutionContext, Promise}
-import scala.util.{Try}
-
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success, Try}
 import skuber._
-import skuber.api.security.{HTTPRequestAuth, TLS} 
+import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.format._
 import skuber.json.format.apiobj._
-
-
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -173,7 +169,7 @@ package object client {
      }
 
      def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[Option[O]] = {
-       _get[O](name) map toKubernetesResponseOption[O]
+       _get[O](name) map toKubernetesResponseOption[O] recover { case _ => None }
      }
 
      def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
