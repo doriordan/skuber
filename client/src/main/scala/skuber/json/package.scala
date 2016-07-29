@@ -43,7 +43,12 @@ package object format {
          implicit  vReads: Reads[V],  vWrites: Writes[V],
          omitEmpty: Boolean=true) : OFormat[Map[String,V]] =
       path.formatNullable[Map[String,V]].inmap[Map[String,V]](_.getOrElse(emptyM[V]), m => if (omitEmpty && m.isEmpty) None else Some(m))
-         
+
+    def formatMaybeEmptyByteArrayMap(
+         implicit vReads: Reads[Map[String, Array[Byte]]], vWrites: Writes[Map[String, Array[Byte]]],
+         omitEmpty: Boolean=true) : OFormat[Map[String,Array[Byte]]] =
+      path.formatNullable[Map[String,Array[Byte]]].inmap[Map[String,Array[Byte]]](_.getOrElse(emptyM[Array[Byte]]), m => if (omitEmpty && m.isEmpty) None else Some(m))
+
     // Boolean: the empty value is 'false'  
     def formatMaybeEmptyBoolean(omitEmpty: Boolean=true) : OFormat[Boolean] =
       path.formatNullable[Boolean].inmap[Boolean](_.getOrElse(false), b => if (omitEmpty && !b) None else Some(b))
@@ -626,11 +631,16 @@ package object format {
   implicit val base64Format: Format[Array[Byte]] = (
       JsPath.format[String].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes))
   )
-  
-  import skuber.Secret 
+
+  implicit val mapStringByteArrayFormat: Format[Map[String,Array[Byte]]] =
+    JsPath.format[Map[String,String]]
+      .inmap(_.map({case (k,v) => k -> Base64.decodeBase64(v.getBytes)}),
+        (map: Map[String, Array[Byte]]) => map.map({case (k,v) => k -> Base64.encodeBase64String(v)}))
+
+  import skuber.Secret
   implicit val secretFmt: Format[Secret] = (
     objFormat and
-    (JsPath \ "data").formatMaybeEmptyMap[Array[Byte]]
+    (JsPath \ "data").formatMaybeEmptyByteArrayMap
   )(Secret.apply _, unlift(Secret.unapply))
   
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType) 
