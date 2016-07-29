@@ -23,4 +23,9 @@ class SecretSpec extends Specification {
     val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
     mySecret mustEqual readSecret
   }
+  "this can be done with the type member defined" >> {
+    val mySecret = Secret(metadata = ObjectMeta("mySecret"), `type` = "myType")
+    val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
+    mySecret mustEqual readSecret
+  }
 }

@@ -640,7 +640,8 @@ package object format {
   import skuber.Secret
   implicit val secretFmt: Format[Secret] = (
     objFormat and
-    (JsPath \ "data").formatMaybeEmptyByteArrayMap
+    (JsPath \ "data").formatMaybeEmptyByteArrayMap and
+    (JsPath \ "type").formatMaybeEmptyString()
   )(Secret.apply _, unlift(Secret.unapply))
   
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType) 

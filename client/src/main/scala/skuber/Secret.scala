@@ -10,7 +10,8 @@ case class Secret(
     val kind: String ="Secret",
     override val apiVersion: String = v1,
     val metadata: ObjectMeta,
-    data: Map[String, Array[Byte]] = Map())
+    data: Map[String, Array[Byte]] = Map(),
+    val `type`: String = "")
   extends ObjectResource  {
   
     def add(key: String, is: InputStream) : Unit = {
