@@ -10,7 +10,7 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-You can include the current skuber release in your Scala application by adding the following to your sbt project:
+You can include the current Skuber release in your Scala application by adding the following to your `sbt` project:
 
     resolvers += Resolver.url(
       "bintray-skuber",
@@ -27,7 +27,9 @@ Building the library from source is very straightforward. Simply run `sbt test`i
 
 The quickest way to get started with Skuber:
 
-- If you don't already have Kubernetes installed, then follow the instructions [here](http://kubernetes.io/docs/getting-started-guides/docker/). This should establish a cluster listening for API requests on port 8080 on the local host, which is the configuration Skuber assumes by default.
+- If you don't already have Kubernetes installed, then follow the instructions [here](https://github.com/kubernetes/minikube) to install minikube, which is now the recommended way to run Kubernetes locally.
+
+- Ensure Skuber uses the minikube config: `export SKUBER_CONFIG=file` 
 
 - Try one or more of the examples: if you have cloned this repository run `sbt` in the top-level directory to start sbt in interactive mode and then:
 
@@ -48,7 +50,7 @@ The quickest way to get started with Skuber:
     Enter number: 
 ```
 
-For non-default setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
+For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
 
 ## Example Usage
 
