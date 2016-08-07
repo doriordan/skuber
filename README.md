@@ -2,9 +2,9 @@
 
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server
 
-The client supports v1.0 through v1.3 of the Kubernetes API, so should work against all supported Kubernetes releases in use today.
-
 ## Prerequisites
+
+The client supports v1.0 through v1.3 of the Kubernetes API, so should work against all supported Kubernetes releases in use today.
 
 You need Java 8 to run Skuber.
 
