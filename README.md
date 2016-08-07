@@ -19,7 +19,7 @@ You can include the current Skuber release in your Scala 2.11 application by add
 
     libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
 
-Other Scala versions can be supported if required.
+Other Scala versions (e.g. 2.12) are likely to be supported in future.
 
 ## Building
 
