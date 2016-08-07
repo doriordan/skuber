@@ -6,20 +6,30 @@ The client supports v1.0 through v1.3 of the Kubernetes API, so should work agai
 
 ## Prerequisites
 
+You need Java 8 to run Skuber.
 
-There is currently no release version, so the following sections assume you have locally cloned this repository and installed the following (if not already installed):
+## Release
 
-  - [sbt](http://www.scala-sbt.org/) version 0.13 or later
-  - Java 8
+You can include the current skuber release in your Scala application by adding the following to your sbt project:
+
+    resolvers += Resolver.url(
+      "bintray-skuber",
+      url("http://dl.bintray.com/oriordan/skuber"))(
+      Resolver.ivyStylePatterns)
+
+    libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
+
+## Building
+
+Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
 
 ## Quick Start
-
 
 The quickest way to get started with Skuber:
 
 - If you don't already have Kubernetes installed, then follow the instructions [here](http://kubernetes.io/docs/getting-started-guides/docker/). This should establish a cluster listening for API requests on port 8080 on the local host, which is the configuration Skuber assumes by default.
 
-- Try one or more of the examples: run `sbt` in the skuber top-level directory to start sbt in interactive mode and then:
+- Try one or more of the examples: if you have cloned this repository run `sbt` in the top-level directory to start sbt in interactive mode and then:
 
 ```
     > project examples
@@ -39,23 +49,6 @@ The quickest way to get started with Skuber:
 ```
 
 For non-default setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
-
-## Release
-
-You can include the current skuber release in your application by adding the following to your sbt project:
-
-    resolvers += Resolver.url(
-      "bintray-skuber",
-      url("http://dl.bintray.com/oriordan/skuber"))(
-      Resolver.ivyStylePatterns)
-
-    libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
-    
-## Building
-
-Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
-
-You can then import the library jar you just built into your project e.g. by copying it into your projects lib folder.
 
 ## Example Usage
 
