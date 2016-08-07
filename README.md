@@ -31,7 +31,9 @@ The quickest way to get started with Skuber:
 
 - If you don't already have Kubernetes installed, then follow the instructions [here](https://github.com/kubernetes/minikube) to install minikube, which is now the recommended way to run Kubernetes locally.
 
-- Ensure Skuber configures itself from the default Kubeconfig file (`$HOME/.kube/config`) : `export SKUBER_CONFIG=file` 
+- Ensure Skuber configures itself from the default Kubeconfig file (`$HOME/.kube/config`) : 
+
+	`export SKUBER_CONFIG=file` 
 
 - Try one or more of the examples: if you have cloned this repository run `sbt` in the top-level directory to start sbt in interactive mode and then:
 
