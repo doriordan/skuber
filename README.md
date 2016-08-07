@@ -2,7 +2,7 @@
 
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server
 
-The client supports v1.0, v1.1 and v1.2 of the Kubernetes API, so should work against all supported Kubernetes releases in use today.
+The client supports v1.0 through v1.3 of the Kubernetes API, so should work against all supported Kubernetes releases in use today.
 
 ## Prerequisites
 
@@ -40,9 +40,20 @@ The quickest way to get started with Skuber:
 
 For non-default setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
 
+## Release
+
+You can include the current skuber release in your application by adding the following to your sbt project:
+
+    resolvers += Resolver.url(
+      "bintray-skuber",
+      url("http://dl.bintray.com/oriordan/skuber"))(
+      Resolver.ivyStylePatterns)
+
+    libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
+    
 ## Building
 
-Although there isn't yet a release version of skuber, building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
+Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
 
 You can then import the library jar you just built into your project e.g. by copying it into your projects lib folder.
 
