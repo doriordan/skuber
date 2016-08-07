@@ -10,7 +10,7 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-You can include the current Skuber release in your Scala application by adding the following to your `sbt` project:
+You can include the current Skuber release in your Scala 2.11 application by adding the following to your `sbt` project:
 
     resolvers += Resolver.url(
       "bintray-skuber",
@@ -18,6 +18,8 @@ You can include the current Skuber release in your Scala application by adding t
       Resolver.ivyStylePatterns)
 
     libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
+
+Other Scala versions can be supported if required.
 
 ## Building
 
