@@ -15,6 +15,9 @@ object Volume {
   case class GitRepo(repository: String, revision: Option[String] = None)  extends Source
   case class Secret(secretName: String)  extends Source 
   
+  case class ConfigMapVolumeSource(name: String, items: List[KeyToPath] = List())  extends Source
+  case class KeyToPath(key: String, path: String)
+
   sealed trait StorageMedium
   case object DefaultStorageMedium extends StorageMedium
   case object MemoryStorageMedium extends StorageMedium

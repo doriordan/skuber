@@ -314,7 +314,13 @@ package object format {
   implicit val hostPathFormat = Json.format[HostPath]  
   implicit val secretFormat = Json.format[Secret]
   implicit val gitFormat = Json.format[GitRepo]
-   
+  implicit val keyToPathFormat = Json.format[KeyToPath]
+
+  implicit val configMapFormat: Format[ConfigMapVolumeSource] = (
+    (JsPath \ "name").format[String] and
+      (JsPath \ "items").formatMaybeEmptyList[KeyToPath]
+    )(ConfigMapVolumeSource.apply _, unlift(ConfigMapVolumeSource.unapply))
+
   implicit  val gceFormat: Format[GCEPersistentDisk] = (
      (JsPath \ "pdName").format[String] and
      (JsPath \ "fsType").format[String] and 
@@ -378,6 +384,7 @@ package object format {
    implicit val volumeSourceReads: Reads[Source] = (
      (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
      (JsPath \ "secret").read[Secret].map(x => x:Source) |
+       (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x:Source) |
      (JsPath \ "gitRepo").read[GitRepo].map(x => x:Source) |
      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
      persVolumeSourceReads.map(x => x: Source)
@@ -398,6 +405,7 @@ package object format {
        case ps:PersistentSource => persVolumeSourceWrites.writes(ps)
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
        case secr: Secret => (JsPath \ "secret").write[Secret](secretFormat).writes(secr) 
+       case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
        case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc) 
      }
