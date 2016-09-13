@@ -182,7 +182,7 @@ package object format {
     (JsPath \ "value").read[String].map(value => EnvVar.StringValue(value)) |
     (JsPath \ "valueFrom" \ "fieldRef").read[EnvVar.FieldRef].map(x => x: EnvVar.Value) |
     (JsPath \ "valueFrom" \ "configMapKeyRef").read[EnvVar.ConfigMapKeyRef].map(x => x: EnvVar.Value) |
-    (JsPath \ "valueForm" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value)
+    (JsPath \ "valueFrom" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value)
   )
   
    implicit val envVarWrites : Writes[EnvVar] = (
