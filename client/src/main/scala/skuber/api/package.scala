@@ -1,19 +1,18 @@
 package skuber.api
 
-import play.api.libs.ws._
-import play.api.libs.ws.ning._
-import play.api.libs.json.{Format, JsError, JsObject, JsResult, JsSuccess, JsValue, Reads}
-import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig}
 import java.net.URL
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success, Try}
+import com.ning.http.client.AsyncHttpClientConfig
+import org.slf4j.LoggerFactory
+import play.api.libs.json._
+import play.api.libs.ws._
+import play.api.libs.ws.ning._
 import skuber._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.format._
 import skuber.json.format.apiobj._
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * @author David O'Riordan
@@ -88,7 +87,8 @@ package object client {
        val kindComponent = kind.urlPathComponent
        val apiVersion = kind.apiVersion
        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
-       val apiPrefix = if (usesExtensionsAPI) "apis" else "api"
+       val usesBatchAPI = forExtensionsAPI.getOrElse(kind.isBatchKind)
+       val apiPrefix = if (usesExtensionsAPI || usesBatchAPI) "apis" else "api"
 
          // helper to compose a full URL from a sequence of path components
        def mkUrlString(pathComponents: Option[String]*) : String = {
@@ -200,7 +200,7 @@ package object client {
 
      import play.api.libs.iteratee.Enumerator
 
-     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)
+     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)       
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
                                     (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
@@ -230,10 +230,13 @@ package object client {
    abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) {
      def urlPathComponent: String
      def isExtensionsKind: Boolean = false
+     def isBatchKind: Boolean = false
      def isNamespaced: Boolean = true
      def apiVersion: String =
        if (isExtensionsKind)
          skuber.ext.extensionsAPIVersion
+       else if (isBatchKind)
+         skuber.batch.batchAPIVersion
        else
          "v1"
    }
