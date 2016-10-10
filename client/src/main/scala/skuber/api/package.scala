@@ -284,10 +284,10 @@ package object client {
     reason: Option[String]=None,
     details: Option[Any] = None,
     code: Option[Int] = None  // HTTP status code
-  ) 
-  
-  class K8SException(val status: Status) extends RuntimeException (status.message.getOrElse(status.toString)) // we throw this when we receive a non-OK response
-   
+  )
+
+  class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
+
   def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
     checkResponseStatus(response)
     val result = response.json.validate[T]
