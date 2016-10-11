@@ -21,72 +21,72 @@ import org.slf4j.LoggerFactory
 package object client {
 
   val log = LoggerFactory.getLogger("skuber.api")
-  
+
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
   type PathOrData = Either[String,Array[Byte]]
-  
+
    // K8S client API classes
    val defaultApiServerURL = "http://localhost:8080"
    case class Cluster(
-     apiVersion: String = "v1",  
+     apiVersion: String = "v1",
      server: String = defaultApiServerURL,
      insecureSkipTLSVerify: Boolean = false,
      certificateAuthority: Option[PathOrData] = None
    )
-   
+
    case class Context(
-     cluster: Cluster = Cluster(), 
+     cluster: Cluster = Cluster(),
      authInfo: AuthInfo = AuthInfo(),
-     namespace: Namespace = Namespace.default 
+     namespace: Namespace = Namespace.default
    )
-     
+
    case class AuthInfo(
      clientCertificate: Option[PathOrData] = None,
      clientKey: Option[PathOrData] = None,
      token: Option[String] = None,
      userName: Option[String] = None,
      password: Option[String] = None
-   ) 
-   
+   )
+
    // for use with the Watch command
    case class WatchEvent[T <: ObjectResource](_type: EventType.Value, _object: T)
    object EventType extends Enumeration {
       type EventType = Value
       val ADDED,MODIFIED,DELETED,ERROR = Value
    }
-     
-   
-   class RequestContext(k8sContext: Context)(implicit executorContext: ExecutionContext) { 
+
+
+   class RequestContext(k8sContext: Context)(implicit executorContext: ExecutionContext) {
       val sslContext = TLS.establishSSLContext(k8sContext)
       val requestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
 //      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
 //      val httpClient = new NingWSClient(wsConfig)
      val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
      sslContext foreach { ctx =>
-        httpClientConfigBuilder.setSSLContext(ctx) 
+        httpClientConfigBuilder.setSSLContext(ctx)
         // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
-        httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2","TLSv1")) 
+        httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2","TLSv1"))
      }
      val httpClientConfig = httpClientConfigBuilder.build
      val httpClient = new NingWSClient(httpClientConfig)
-     
+
      val namespaceName = k8sContext.namespace.name match {
         case "" => "default"
         case name => name
      }
-      
+
      val nsPathComponent =  Some("namespaces/" + namespaceName)
-      
+
      def executionContext = executorContext
-      
+
      def buildRequest[T <: TypeMeta](
        nameComponent: Option[String],
        watch: Boolean = false,
        forExtensionsAPI: Option[Boolean] = None
        )(implicit kind: Kind[T]) : WSRequest =
-     {  
+     {
        val kindComponent = kind.urlPathComponent
-       val apiVersion = kind.apiVersion 
+       val apiVersion = kind.apiVersion
        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
        val apiPrefix = if (usesExtensionsAPI) "apis" else "api"
 
@@ -102,33 +102,33 @@ package object client {
            }
          })
        }
-        
+
        val watchPathComponent=if (watch) Some("watch") else None
 
        val k8sUrlStr = mkUrlString(
-         Some(k8sContext.cluster.server), 
-         Some(apiPrefix), 
-         Some(apiVersion), 
+         Some(k8sContext.cluster.server),
+         Some(apiPrefix),
+         Some(apiVersion),
          watchPathComponent,
          if (kind.isNamespaced) nsPathComponent else None,
          Some(kindComponent),
-         nameComponent)     
-         
+         nameComponent)
+
        val req = httpClient.url(k8sUrlStr)
         HTTPRequestAuth.addAuth(req, requestAuth)
       }
-      
+
       def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
         if (log.isInfoEnabled())
         {
            val info = "method=" + request.method + ",url=" + request.url
            val debugInfo =
              if (log.isDebugEnabled())
-                             Some(",namespace=" + namespaceName + ",url=" + request.url + 
+                             Some(",namespace=" + namespaceName + ",url=" + request.url +
                                        request.queryString.headOption.map {
-                                         case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"                                    
+                                         case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"
                                        }.getOrElse("")
-                                    + json.fold("")(js => ",body=" + js.toString())) 
+                                    + json.fold("")(js => ",body=" + js.toString()))
              else
                None
            log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
@@ -149,18 +149,18 @@ package object client {
                       withHeaders("Content-Type" -> "application/json").
                       withMethod(method).
                       withBody(js)
-        logRequest(wsReq, obj.name, Some(js))              
-       
+        logRequest(wsReq, obj.name, Some(js))
+
         val wsResponse = wsReq.execute()
         wsResponse map toKubernetesResponse[O]
       }
-      
+
       def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], kind: ObjKind[O]) = modify("POST")(obj)
       def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PUT")(obj)
       def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
-   
-      
-     def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = 
+
+
+     def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
      {
        val wsReq = buildRequest(None)(kind)
        logRequest(wsReq, kind.urlPathComponent, None)
@@ -189,58 +189,58 @@ package object client {
                       withHeaders("Content-Type" -> "application/json").
                       withBody(js).withMethod("DELETE")
        logRequest(wsReq, name, None)
-       val wsResponse = wsReq.delete             
-       wsResponse map checkResponseStatus 
+       val wsResponse = wsReq.delete
+       wsResponse map checkResponseStatus
      }
-     
-     
+
+
      // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-     // The methods return Play Framework enumerators that will reactively emit a stream of updated 
+     // The methods return Play Framework enumerators that will reactively emit a stream of updated
      // values of the watched resources.
-    
+
      import play.api.libs.iteratee.Enumerator
-     
-     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)       
+
+     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
-                                    (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)                                           
- 
+                                    (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
+
      // watch events on all objects of specified kind in current namespace
-     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O])  = 
-             Watch.eventsOnKind[O](this,sinceResourceVersion)      
-       
-             
+     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O])  =
+             Watch.eventsOnKind[O](this,sinceResourceVersion)
+
+
      // get API versions supported by the cluster - against current v1.x versions of Kubernetes this returns just "v1"
      def getServerAPIVersions(): Future[List[String]] = {
        val url = k8sContext.cluster.server + "/api"
        val noAuthReq = httpClient.url(url)
-       val wsReq = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)     
+       val wsReq = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
        log.info("[Skuber Request: method=GET, resource=api/, description=APIVersions]")
-              
+
        val wsResponse = wsReq.get
-       wsResponse map toKubernetesResponse[APIVersions] map { _.versions } 
+       wsResponse map toKubernetesResponse[APIVersions] map { _.versions }
      }
-     
+
      def close = {
         httpClient.close
      }
    }
-   
+
    // basic resource kinds supported by the K8S API server
-   abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) { 
-     def urlPathComponent: String 
+   abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) {
+     def urlPathComponent: String
      def isExtensionsKind: Boolean = false
      def isNamespaced: Boolean = true
      def apiVersion: String =
-       if (isExtensionsKind) 
-         skuber.ext.extensionsAPIVersion 
+       if (isExtensionsKind)
+         skuber.ext.extensionsAPIVersion
        else
          "v1"
    }
 
    case class ObjKind[O <: ObjectResource](
-       val urlPathComponent: String, 
-       kind: String)(implicit fmt: Format[O]) 
+       val urlPathComponent: String,
+       kind: String)(implicit fmt: Format[O])
        extends Kind[O]
 
    implicit val podKind = ObjKind[Pod]("pods", "Pod")
@@ -258,7 +258,7 @@ package object client {
    implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequotas", "ResourceQuota")
    implicit val configMapKind = ObjKind[ConfigMap]("configmaps", "ConfigMap")
 
-   case class ListKind[L <: TypeMeta](val urlPathComponent: String, val apiPrefix: String = "api")(implicit fmt: Format[L]) 
+   case class ListKind[L <: TypeMeta](val urlPathComponent: String, val apiPrefix: String = "api")(implicit fmt: Format[L])
      extends Kind[L]
    implicit val podListKind = ListKind[PodList]("pods")
    implicit val nodeListKind = new ListKind[NodeList]("nodes") { override def isNamespaced = false }
@@ -276,18 +276,18 @@ package object client {
 
   // Status will usually be returned by Kubernetes when an error occurs with a request
   case class Status(
-    apiVersion: String = "v1",   
+    apiVersion: String = "v1",
     kind: String = "Status",
-    metadata: ListMeta = ListMeta(),   
+    metadata: ListMeta = ListMeta(),
     status: Option[String] =None,
     message: Option[String]=None,
     reason: Option[String]=None,
     details: Option[Any] = None,
     code: Option[Int] = None  // HTTP status code
-  ) 
-  
-  class K8SException(val status: Status) extends RuntimeException (status.message.getOrElse(status.toString)) // we throw this when we receive a non-OK response
-   
+  )
+
+  class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
+
   def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
     checkResponseStatus(response)
     val result = response.json.validate[T]
@@ -308,7 +308,7 @@ package object client {
     checkResponseStatus(response)
     response.json.validate[T].asOpt
   }
-  
+
   // check for non-OK status, throwing a K8SException if appropriate
   def checkResponseStatus(response: WSResponse) : Unit ={
     response.status match {
@@ -320,7 +320,7 @@ package object client {
           case JsSuccess(status, path) =>
             if (log.isWarnEnabled)
               log.warn("[Skuber Response: non-ok status returned = " + status)
-	    throw new K8SException(status)
+              throw new K8SException(status)
           case JsError(e) => // unexpected response, so generate a Status
             val status=Status(message=Some("Unexpected response body for non-OK status "),
                               reason=Some(response.statusText),
@@ -328,24 +328,24 @@ package object client {
                               code=Some(response.status))
             if (log.isErrorEnabled)
               log.error("[Skuber Response: status code = " + code + ", error parsing body = " + e)
-            throw new K8SException(status)    
+            throw new K8SException(status)
         }
       }
     }
-  }  
-  
+  }
+
   // Delete options are passed with a Delete request
   case class DeleteOptions(
     apiVersion: String = "v1",
     kind: String = "DeleteOptions",
     gracePeriodSeconds: Int = 0)
-    
+
   def buildBaseConfigForURL(url: Option[String]) = {
     val cluster = Cluster(server=url.getOrElse(defaultApiServerURL))
     val context = Context(cluster=cluster)
     Configuration().useContext(context)
   }
-  
+
   def init(implicit executionContext : ExecutionContext): RequestContext = {
     // Initialising without explicit Configuration.
     // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
@@ -354,11 +354,11 @@ package object client {
     // -
     // - "file" : Configure from kubeconfig file at default location (~/.kube/config)
     // - "file://<path>: Configure from the kubeconfig file at the specified location
-    // Further the base server URL if kubectl proxy is determined by SKUBERPROXY - or just 
+    // Further the base server URL if kubectl proxy is determined by SKUBERPROXY - or just
     // 'http://localhost:8080' if not set.
-    // Note that the configurations that use the kubectl proxy assumes default namespace context, and delegates auth etc. 
+    // Note that the configurations that use the kubectl proxy assumes default namespace context, and delegates auth etc.
     // to the proxy.
-    // If configured to use  a kubeconfig file note that any certificate/key data in the file will be ignored - any 
+    // If configured to use  a kubeconfig file note that any certificate/key data in the file will be ignored - any
     // required key/cert data for TLS connections must be installed in the applicable Java keystore/truststore.
     //
     val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
@@ -373,6 +373,6 @@ package object client {
     }
     init(config)
   }
-  
+
   def init(config: Configuration)(implicit executionContext : ExecutionContext) = new RequestContext(config.currentContext)
 }
