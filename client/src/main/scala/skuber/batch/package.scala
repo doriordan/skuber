@@ -23,6 +23,6 @@ package object batch {
                       override val apiVersion: String = batchAPIVersion,
                       val metadata: Option[ListMeta] = None,
                       items: List[Job] = Nil) extends KList[Job]
-  implicit val deplListKind = new ListKind[JobList]("deployments")
+  implicit val jobListKind = new ListKind[JobList]("jobs")
     with IsBatchKind[JobList]
 }
