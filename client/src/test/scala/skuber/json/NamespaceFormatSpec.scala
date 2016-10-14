@@ -42,6 +42,15 @@ class NamespaceFormatSpec extends Specification {
       val readNs = Json.fromJson[Namespace](Json.toJson(myOtherNs)).get
       readNs mustEqual myOtherNs
     }
+
+    "namespace spec allows finalizers to be optional" >> {
+      val readSpec = Json.fromJson[Namespace.Spec](Json.parse("{}")).get
+      readSpec.finalizers.isEmpty mustEqual true
+
+      val readSpec2 = Json.fromJson[Namespace.Spec](Json.parse("""{ "finalizers": ["kubernetes"]}""")).get
+      readSpec2.finalizers.get.head mustEqual "kubernetes"
+    }
+
     "we can read a namespace from a direct JSON string" >> {
       val nsJson = Json.parse("""
         {
