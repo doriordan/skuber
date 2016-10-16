@@ -1,14 +1,14 @@
 
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
-val playws = "com.typesafe.play" %% "play-ws" % "2.4.3"
+val playws = "com.typesafe.play" %% "play-ws" % "2.4.8"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4"
 val specs2 = "org.specs2" %% "specs2-core" % "3.7"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.4"
 val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
 
-// Akka is required by the examples 
+// Akka is required by the examples
 val akka ="com.typesafe.akka" %% "akka-actor" % "2.4.0"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
@@ -19,7 +19,7 @@ scalacOptions in Test ++= Seq("-Yrangepos")
 
 lazy val commonSettings = Seq(
   organization := "io.doriordan",
-  scalaVersion := "2.11.7",
+  scalaVersion := "2.11.8",
   licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   publishMavenStyle := false,
   bintrayRepository := "skuber"
@@ -56,4 +56,3 @@ lazy val examples = (project in file("examples"))
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
-
