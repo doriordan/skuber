@@ -45,7 +45,26 @@ package object client {
      token: Option[String] = None,
      userName: Option[String] = None,
      password: Option[String] = None
-   )
+   ) {
+     override def toString : String = {
+       var result = new StringBuilder("AuthInfo(")
+       clientCertificate.getOrElse("") match {
+         case Left(cert) => result ++= "clientCertificate=" + cert + " "
+         case Right(cert) => result ++= "clientCertificate=<PEM masked> "
+         case _ =>
+       }
+       clientKey.getOrElse("") match {
+         case Left(cert) => result ++= "clientKey=" + cert + " "
+         case Right(cert) => result ++= "clientKey=<PEM masked> "
+         case _ =>
+       }
+       result ++= token.map("token="+_.replaceAll(".","*")+" ").getOrElse("")
+       result ++= userName.map("userName="+_+" ").getOrElse("")
+       result ++= password.map("password="+_.replaceAll(".","*")+" ").getOrElse("")
+       result ++=")"
+       result.toString()
+     }
+   }
 
    // for use with the Watch command
    case class WatchEvent[T <: ObjectResource](_type: EventType.Value, _object: T)
