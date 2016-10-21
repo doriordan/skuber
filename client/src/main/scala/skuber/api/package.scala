@@ -48,16 +48,14 @@ package object client {
    ) {
      override def toString : String = {
        var result = new StringBuilder("AuthInfo(")
-       clientCertificate.getOrElse("") match {
-         case Left(cert) => result ++= "clientCertificate=" + cert + " "
-         case Right(cert) => result ++= "clientCertificate=<PEM masked> "
-         case _ =>
-       }
-       clientKey.getOrElse("") match {
-         case Left(cert) => result ++= "clientKey=" + cert + " "
-         case Right(cert) => result ++= "clientKey=<PEM masked> "
-         case _ =>
-       }
+       result ++= clientCertificate.map({
+         case Left(certPath: String) => "clientCertificate=" + certPath + " "
+         case Right(_: Array[Byte]) => "clientCertificate=<PEM masked> "
+       }).getOrElse("")
+       result ++= clientKey.map({
+         case Left(certPath: String) => "clientKey=" + certPath + " "
+         case Right(_: Array[Byte]) => "clientKey=<PEM masked> "
+       }).getOrElse("")
        result ++= token.map("token="+_.replaceAll(".","*")+" ").getOrElse("")
        result ++= userName.map("userName="+_+" ").getOrElse("")
        result ++= password.map("password="+_.replaceAll(".","*")+" ").getOrElse("")

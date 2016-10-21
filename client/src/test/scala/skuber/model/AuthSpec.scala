@@ -5,7 +5,7 @@ import skuber.api.client.AuthInfo
 
 
 /**
- * @author David O'Riordan
+ * @author Clint Checketts
  */
 class AuthSpec extends Specification {
   "This is a unit specification for the auth data model. ".txt
