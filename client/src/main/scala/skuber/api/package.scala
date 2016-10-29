@@ -72,35 +72,22 @@ package object client {
    }
 
 
-   class RequestContext(k8sContext: Context)(implicit executorContext: ExecutionContext) {
-      val sslContext = TLS.establishSSLContext(k8sContext)
-      val requestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
-//      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
-//      val httpClient = new NingWSClient(wsConfig)
-     val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
-     sslContext foreach { ctx =>
-        httpClientConfigBuilder.setSSLContext(ctx)
-        // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
-        httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2","TLSv1"))
-     }
-     val httpClientConfig = httpClientConfigBuilder.build
-     val httpClient = new NingWSClient(httpClientConfig)
-
-     val namespaceName = k8sContext.namespace.name match {
-        case "" => "default"
-        case name => name
-     }
-
-     val nsPathComponent =  Some("namespaces/" + namespaceName)
+   class RequestContext(createRequestFromUrl: String => WSRequest,
+                        clusterServer: String,
+                        requestAuth: HTTPRequestAuth.RequestAuth,
+                        val namespaceName: String,
+                        onClose: () => Unit)(implicit executorContext: ExecutionContext) {
 
      def executionContext = executorContext
 
      def buildRequest[T <: TypeMeta](
        nameComponent: Option[String],
        watch: Boolean = false,
-       forExtensionsAPI: Option[Boolean] = None
+       forExtensionsAPI: Option[Boolean] = None,
+       namespace: String = namespaceName
        )(implicit kind: Kind[T]) : WSRequest =
      {
+       val nsPathComponent =  Some("namespaces/" + namespace)
        val kindComponent = kind.urlPathComponent
        val apiVersion = kind.apiVersion
        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
@@ -123,7 +110,7 @@ package object client {
        val watchPathComponent=if (watch) Some("watch") else None
 
        val k8sUrlStr = mkUrlString(
-         Some(k8sContext.cluster.server),
+         Some(clusterServer),
          Some(apiPrefix),
          Some(apiVersion),
          watchPathComponent,
@@ -131,51 +118,83 @@ package object client {
          Some(kindComponent),
          nameComponent)
 
-       val req = httpClient.url(k8sUrlStr)
+       val req = createRequestFromUrl(k8sUrlStr)
         HTTPRequestAuth.addAuth(req, requestAuth)
-      }
+     }
 
-      def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None) : Unit =
-        if (log.isInfoEnabled())
-        {
-           val info = "method=" + request.method + ",url=" + request.url
-           val debugInfo =
-             if (log.isDebugEnabled())
-                             Some(",namespace=" + namespaceName + ",url=" + request.url +
-                                       request.queryString.headOption.map {
-                                         case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"
-                                       }.getOrElse("")
-                                    + json.fold("")(js => ",body=" + js.toString()))
-             else
-               None
-           log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
-        }
+     def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None, namespace: String = namespaceName) = {
+       if (log.isInfoEnabled()) {
+         val info = "method=" + request.method + ",url=" + request.url
+         val debugInfo =
+           if (log.isDebugEnabled())
+             Some(",namespace=" + namespace + ",url=" + request.url +
+                 request.queryString.headOption.map {
+                   case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"
+                 }.getOrElse("")
+                 + json.fold("")(js => ",body=" + js.toString()))
+           else
+             None
+         log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
+       }
+     }
 
-      /**
+     /**
        * Modify the specified K8S resource using a given HTTP method. The modified resource is returned.
        * The create, update and partiallyUpdate methods all call this, just passing different HTTP methods
        */
-      def modify[O <: ObjectResource](method: String)(obj: O)(implicit fmt: Format[O], kind: Kind[O]): Future[O] = {
-        val js = fmt.writes(obj)
-        // if this is a POST we don't include the resource name in the URL
-        val nameComponent=method match {
-          case "POST" => None
-          case _ => Some(obj.name)
-        }
-        val wsReq = buildRequest(nameComponent)(kind).
+     def modify[O <: ObjectResource](method: String)(obj: O)(implicit fmt: Format[O], kind: Kind[O]): Future[O] = {
+       val js = fmt.writes(obj)
+       // if this is a POST we don't include the resource name in the URL
+       val nameComponent=method match {
+         case "POST" => None
+         case _ => Some(obj.name)
+       }
+       val wsReq = buildRequest(nameComponent)(kind).
                       withHeaders("Content-Type" -> "application/json").
                       withMethod(method).
                       withBody(js)
-        logRequest(wsReq, obj.name, Some(js))
+       logRequest(wsReq, obj.name, Some(js))
 
-        val wsResponse = wsReq.execute()
-        wsResponse map toKubernetesResponse[O]
-      }
+       val wsResponse = wsReq.execute()
+       wsResponse map toKubernetesResponse[O]
+     }
 
-      def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], kind: ObjKind[O]) = modify("POST")(obj)
-      def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PUT")(obj)
-      def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
+     def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], kind: ObjKind[O]) = modify("POST")(obj)
+     def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PUT")(obj)
+     def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
 
+     def getNamespaceNames: Future[List[String]] = {
+       list[NamespaceList].map { namespaces =>
+         namespaces.items.map(ns => ns.name)
+       }
+     }
+
+     /*
+     * List by namespace returns a map of namespace (specified by name e.g. "default", "kube-sys") to the list of objects
+     * of the specified kind in said namespace. All namespaces in the cluster are included in the map.
+     * For example, it can be used to get a single list of all objects of the given kind across the whole cluster
+     * e.g. val allPodsInCluster: Future[List[Pod]] = listByNamespace[PodKind] map { _.values.flatMap(_.items) }
+     * which supports the feature requested in issue #20
+      */
+     def listByNamespace[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[Map[String,L]] =
+     {
+       val nsNamesFut: Future[List[String]] = getNamespaceNames
+       val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { nsNames: List[String] =>
+         Future.sequence(nsNames map { (nsName: String) => listInNamespace[L](nsName) map { (l: L) => (nsName,l) } } )
+       }
+       tuplesFut map {  _.toMap[String,L] }
+     }
+
+     /*
+      * List all objects of given kind in the specified namespace on the cluster
+      */
+     def listInNamespace[L <: KList[_]](namespace: String)(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
+     {
+       val wsReq = buildRequest(None, namespace = namespace)(kind)
+       logRequest(wsReq, kind.urlPathComponent, None, namespace=namespace)
+       val wsResponse = wsReq.get
+       wsResponse map toKubernetesResponse[L]
+     }
 
      def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
      {
@@ -193,9 +212,13 @@ package object client {
        _get[O](name) map toKubernetesResponse[O]
      }
 
-     private def _get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[WSResponse] = {
-       val wsReq = buildRequest(Some(name))(kind)
-       logRequest(wsReq, name, None)
+     def getInNamespace[O <: ObjectResource](name: String, namespace: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
+       _get[O](name, namespace) map toKubernetesResponse[O]
+     }
+
+     private def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(implicit fmt: Format[O], kind: ObjKind[O]): Future[WSResponse] = {
+       val wsReq = buildRequest(Some(name),namespace=namespace)(kind)
+       logRequest(wsReq, name, None,namespace=namespace)
        wsReq.get
      }
 
@@ -209,7 +232,6 @@ package object client {
        val wsResponse = wsReq.delete
        wsResponse map checkResponseStatus
      }
-
 
      // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
      // The methods return Play Framework enumerators that will reactively emit a stream of updated
@@ -229,8 +251,8 @@ package object client {
 
      // get API versions supported by the cluster - against current v1.x versions of Kubernetes this returns just "v1"
      def getServerAPIVersions(): Future[List[String]] = {
-       val url = k8sContext.cluster.server + "/api"
-       val noAuthReq = httpClient.url(url)
+       val url = clusterServer + "/api"
+       val noAuthReq = createRequestFromUrl(url)
        val wsReq = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
        log.info("[Skuber Request: method=GET, resource=api/, description=APIVersions]")
 
@@ -238,9 +260,7 @@ package object client {
        wsResponse map toKubernetesResponse[APIVersions] map { _.versions }
      }
 
-     def close = {
-        httpClient.close
-     }
+     def close = onClose()
    }
 
    // basic resource kinds supported by the K8S API server
@@ -394,5 +414,30 @@ package object client {
     init(config)
   }
 
-  def init(config: Configuration)(implicit executionContext : ExecutionContext) = new RequestContext(config.currentContext)
+  def init(config: Configuration)(implicit executionContext : ExecutionContext): RequestContext = init(config.currentContext)
+
+  def init(k8sContext: Context)(implicit executionContext : ExecutionContext): RequestContext = {
+    val sslContext = TLS.establishSSLContext(k8sContext)
+    val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
+    //      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
+    //      val httpClient = new NingWSClient(wsConfig)
+    val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
+    sslContext foreach { ctx =>
+      httpClientConfigBuilder.setSSLContext(ctx)
+      // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
+      httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
+    }
+    val httpClientConfig = httpClientConfigBuilder.build
+    val theHttpClient = new NingWSClient(httpClientConfig)
+
+    val theNamespaceName = k8sContext.namespace.name match {
+      case "" => "default"
+      case name => name
+    }
+    val requestMaker = (url:String) => theHttpClient.url(url)
+    val close: () => Unit =  () => theHttpClient.close()
+    new RequestContext(requestMaker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, close)
+  }
+
+
 }
