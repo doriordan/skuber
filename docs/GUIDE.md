@@ -116,6 +116,16 @@ Get a list of all Kubernetes objects of a given list kind in the current namespa
     val rcListFut = k8s list[ReplicationControllerList]()
     rcListFut onSuccess { case rcList => rcList foreach { rc => println(rc.name) } }
     
+As above, but for a specified namespace:
+
+    val ksysPods: Future[PodList] = k8s listInNamespace[PodList]("kube-system")
+    
+Get lists of all Kubernetes objects of a given list kind for all namespaces in the cluster, mapped by namespace:
+    
+    val allPodsMapFut: Future[Map[String, PodList]] = k8s listByNamespace[PodList]()
+
+(See the ListExamples example for examples of the above list operations)
+    
 Update a Kubernetes object kind resource:
 
     val upscaledController = controller.withReplicas(5)
