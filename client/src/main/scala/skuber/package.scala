@@ -39,7 +39,8 @@ package object skuber {
     creationTimestamp: Option[Timestamp] = None,
     deletionTimestamp: Option[Timestamp] = None,
     labels: Map[String, String] = Map(),
-    annotations: Map[String, String] = Map())
+    annotations: Map[String, String] = Map(),
+    generation: Int = 0)
 
   abstract class ObjectResource extends TypeMeta {
     def metadata: ObjectMeta

@@ -120,7 +120,8 @@ package object format {
     (JsPath \ "creationTimestamp").formatNullable[Timestamp] and
     (JsPath \ "deletionTimestamp").formatNullable[Timestamp] and
     (JsPath \ "labels").formatMaybeEmptyMap[String] and
-    (JsPath \ "annotations").formatMaybeEmptyMap[String]
+    (JsPath \ "annotations").formatMaybeEmptyMap[String] and
+    (JsPath \ "generation").formatMaybeEmptyInt()
   )(ObjectMeta.apply _, unlift(ObjectMeta.unapply))
     
   implicit val listMetaFormat: Format[ListMeta] = (
