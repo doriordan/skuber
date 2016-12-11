@@ -1,6 +1,48 @@
 # Skuber
 
-Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server
+Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
+
+## Features
+
+- Comprehensive set of case classes for representing core and extended Kubernetes resource kinds
+- Full support for converting resources between the case class and standard JSON representations 
+- Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
+- The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
+- Fluent API for creating and updating specifications of Kubernetes resources
+
+See the [programming guide](docs/GUIDE.md) for more details.
+
+## Example Usage
+
+This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by five nginx replicas.
+
+    import skuber._
+    import skuber.json.format._
+
+    val nginxSelector  = Map("app" -> "nginx")
+    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
+    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
+    	.withReplicas(5)
+    val nginxService = Service("nginx")
+    	.withSelector(nginxSelector)
+    	.exposeOnNodePort(30001 -> 80) 
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val k8s = k8sInit
+
+    val createOnK8s = for {
+      svc <- k8s create nginxService
+      rc  <- k8s create nginxController
+    } yield (rc,svc)
+
+    createOnK8s onComplete {
+      case Success(_) => System.out.println("Successfully created nginx replication controller & service on Kubernetes cluster")
+      case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
+    }
+
+    k8s.close
+
 
 ## Prerequisites
 
@@ -55,57 +97,6 @@ The quickest way to get started with Skuber:
 ```
 
 For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
-
-## Example Usage
-
-The code block below illustrates the simple steps required to create a replicated nginx service on a Kubernetes cluster that can be accessed by clients (inside or outside the cluster) at a stable address.
-
-It creates a [Replication Controller](http://kubernetes.io/docs/user-guide/replication-controller/) that ensures five replicas ([pods](http://kubernetes.io/docs/user-guide/pods/)) of an nginx container are always running in the cluster, and exposes these to clients via a [Service](http://kubernetes.io/docs/user-guide/services/) that automatically proxies any request received on port 30001 on any node of the cluster to port 80 of one of the currently running nginx replicas.
-
-    import skuber._
-    import skuber.json.format._
-
-    val nginxSelector  = Map("app" -> "nginx")
-    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
-    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
-    	.withReplicas(5)
-    val nginxService = Service("nginx")
-    	.withSelector(nginxSelector)
-    	.exposeOnNodePort(30001 -> 80) 
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    val k8s = k8sInit
-
-    val createOnK8s = for {
-      svc <- k8s create nginxService
-      rc  <- k8s create nginxController
-    } yield (rc,svc)
-
-    createOnK8s onComplete {
-      case Success(_) => System.out.println("Successfully created nginx replication controller & service on Kubernetes cluster")
-      case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
-    }
-
-    k8s.close
-
-## Features
-
-- Comprehensive Scala case class representations of Kubernetes kinds (e.g. `Pod`, `Service` etc.)
-- Reading and writing Kubernetes resources in the standardised Kubernetes JSON format
-- The API has `create`, `get`, `delete`, `list`, `update`, and `watch` operations on Kubernetes resources
-  - These are asynchronous operations (i.e. the API operations return their results in [Futures](http://docs.scala-lang.org/overviews/core/futures.html))
-  - Each operations results in a HTTP request to the Kubernetes REST API server
-  - Strongly-typed API e.g. `k8s get[Deployment]("myDepl")` returns a value of type `Future[Deployment]`
-- Support for the full `core` Kubernetes API group 
-- Support for the `extensions` API group (e.g. `HorizontalPodAutoScaler`,`Ingress`) 
-- Fluent API helps build or modify the desired specification (`spec`) of a Kubernetes resource
-- Watching Kubernetes objects and kinds returns `Iteratees` for reactive processing of events from the cluster
-- Highly [configurable](docs/Configuration.md) via kubeconfig files or programmatically
-- Full support for [label selectors](http://kubernetes.io/docs/user-guide/labels)
-	- includes a mini-DSL for building expressions from both set-based and equality-based requirements.
-
-See the [programming guide](docs/GUIDE.md) for more details.
 
 ## Status
 
