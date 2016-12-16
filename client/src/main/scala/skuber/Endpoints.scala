@@ -6,7 +6,7 @@ import java.util.Date
  * @author David O'Riordan
  */
 case class Endpoints(
-  	val kind: String ="Endpoint",
+  	val kind: String ="Endpoints",
   	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     subsets: List[Endpoints.Subset] = Nil)       
