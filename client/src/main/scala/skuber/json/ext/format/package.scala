@@ -55,6 +55,7 @@ package object format {
     (JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "updatedReplicas").formatMaybeEmptyInt() and
     (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
+    (JsPath \ "unavailableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "observedGeneration").formatMaybeEmptyInt()
   )(Deployment.Status.apply _, unlift(Deployment.Status.unapply))
   

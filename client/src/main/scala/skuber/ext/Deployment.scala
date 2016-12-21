@@ -96,5 +96,6 @@ object Deployment {
       replicas: Int=0,
       updatedReplicas: Int=0,
       availableReplicas: Int = 0,
+      unavailableReplicas: Int = 0,
       observedGeneration: Int = 0)
 }
