@@ -106,6 +106,7 @@ object Pod {
          val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addContainer(container)
          this.copy(spec=Some(newPodSpec))
        }
+       def withPodSpec(spec: Pod.Spec): Spec = this.copy(spec=Some(spec))
      }       
      object Spec {
        def named(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
