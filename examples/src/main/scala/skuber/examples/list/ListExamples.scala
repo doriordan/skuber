@@ -37,7 +37,7 @@ object ListExamples extends App {
   
   val k8s = k8sInit
 
-  System.out.println("\nGetting lists of pods in namespace of current context ==>")
+  System.out.println("\nGetting list of pods in namespace of current context ==>")
 
   val currNsPods: Future[PodList] = k8s list[PodList]()
   val printCurrNsPods = currNsPods map { podList => listPods(podList.items) }

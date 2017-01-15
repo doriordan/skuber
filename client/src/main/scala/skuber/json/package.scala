@@ -108,7 +108,7 @@ package object format {
     (JsPath \ "kind").format[String] and
     (JsPath \ "apiVersion").format[String] and
     (JsPath \ "metadata").formatNullable[ListMeta] and
-    (JsPath \ "items").format[List[K]]
+    (JsPath \ "items").formatMaybeEmptyList[K]
   
   implicit lazy val objectMetaFormat: Format[ObjectMeta] = (
     (JsPath \ "name").formatMaybeEmptyString() and
