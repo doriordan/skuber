@@ -92,7 +92,8 @@ package object client {
        val apiVersion = kind.apiVersion
        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
        val usesBatchAPI = forExtensionsAPI.getOrElse(kind.isBatchKind)
-       val apiPrefix = if (usesExtensionsAPI || usesBatchAPI) "apis" else "api"
+       val usesRBACAPI = forExtensionsAPI.getOrElse(kind.isRBACKind)
+       val apiPrefix = if (usesExtensionsAPI || usesBatchAPI || usesRBACAPI) "apis" else "api"
 
          // helper to compose a full URL from a sequence of path components
        def mkUrlString(pathComponents: Option[String]*) : String = {
@@ -269,11 +270,14 @@ package object client {
      def isExtensionsKind: Boolean = false
      def isBatchKind: Boolean = false
      def isNamespaced: Boolean = true
+     def isRBACKind: Boolean = false
      def apiVersion: String =
        if (isExtensionsKind)
          skuber.ext.extensionsAPIVersion
        else if (isBatchKind)
          skuber.batch.batchAPIVersion
+       else if (isRBACKind)
+         skuber.rbac.rbacAPIVersion
        else
          "v1"
    }
