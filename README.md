@@ -47,7 +47,7 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
 
 ## Prerequisites
 
-The client supports v1.0 through v1.3 of the Kubernetes API, so should work against all supported Kubernetes releases in use today.
+A Kubernetes cluster is needed at runtime, The client has been tested against various releases of Kubernetes, from v1.0 through to v1.5. For local development purposes, minikube is recommended.
 
 You need Java 8 to run Skuber.
 
@@ -63,6 +63,7 @@ You can include the current Skuber release in your application by adding the fol
     libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
 
 The current release has been built for Scala 2.11 - other Scala language versions such as 2.12 will be supported in future.
+The current release version is 1.3.0, which was released for Kubernetes 1.3 so does not support a few recent features of Kubernetes that have since been added to the Skuber master branch.
 
 ## Building
 
