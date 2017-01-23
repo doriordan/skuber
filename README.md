@@ -101,9 +101,9 @@ For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md
 
 ## Status
 
-The coverage of the core Kubernetes API functionality by Skuber is extensive.
+The coverage of the core Kubernetes API functionality by Skuber is comprehensive.
 
-Support of more recent extensions group functionality is not yet entirely complete:  full support (with examples) is included for [Deployments](http://kubernetes.io/docs/user-guide/deployments/), [Horizontal pod autoscaling](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and [Ingress / HTTP load balancing](http://kubernetes.io/docs/user-guide/ingress/); support for other [Extensions API group](http://kubernetes.io/docs/api/#api-groups) features including [Daemon Sets](http://kubernetes.io/docs/admin/daemons/) and [Jobs](http://kubernetes.io/docs/user-guide/jobs/) is added over time.
+Support of non-core API group functionality is pretty extensive, in particular of the more popular/important features. Deployments, ReplicaSet, Autoscaling, Jobs, Ingress, DaemonSet and RBAC are all currently supported on the master branch. Support for other alpha/beta features are being added all the time.
 
 ## License
 
