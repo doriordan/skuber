@@ -44,11 +44,15 @@ package object format {
 
   // DaemonSet formatters
   implicit val daemonsetStatusFmt: Format[DaemonSet.Status] = Json.format[DaemonSet.Status]
-  implicit val daemonsetSpecFormat: Format[DaemonSet.Spec] = (
+  implicit val daemonsetSpecFmt: Format[DaemonSet.Spec] = (
     (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "template").formatNullable[Pod.Template.Spec]
     )(DaemonSet.Spec.apply, unlift(DaemonSet.Spec.unapply))
-  implicit val daemonsetFmt: Format[DaemonSet] = Json.format[DaemonSet]
+  implicit lazy val daemonsetFmt: Format[DaemonSet] = (
+    objFormat and
+      (JsPath \ "spec").formatNullable[DaemonSet.Spec] and
+      (JsPath \ "status").formatNullable[DaemonSet.Status]
+    ) (DaemonSet.apply _, unlift(DaemonSet.unapply))
 
   // Deployment formatters
   implicit val depStatusFmt: Format[Deployment.Status] = (
