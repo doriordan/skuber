@@ -19,7 +19,7 @@ case class Container(
     volumeMounts: List[Volume.Mount] = List(),
     livenessProbe: Option[Probe] = None,
     readinessProbe: Option[Probe] = None,
-    lifeCycle: Option[Lifecycle] = None,
+    lifecycle: Option[Lifecycle] = None,
     terminationMessagePath: String = "/var/log/termination",
     imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
     securityContext: Option[Security.Context] = None)
@@ -92,27 +92,27 @@ case class Container(
 
   def onPostStartDoExec(cmds: List[String]) = {
     val exec = ExecAction(cmds)
-    val currLC = lifeCycle.getOrElse(Lifecycle())
+    val currLC = lifecycle.getOrElse(Lifecycle())
     val newLC = currLC.copy(postStart=Some(exec))
-    this.copy(lifeCycle=Some(newLC))
+    this.copy(lifecycle=Some(newLC))
   }
   def onPreStopDoExec(cmds: List[String]) = {
     val exec = ExecAction(cmds)
-    val currLC = lifeCycle.getOrElse(Lifecycle())
+    val currLC = lifecycle.getOrElse(Lifecycle())
     val newLC = currLC.copy(preStop = Some(exec))
-    this.copy(lifeCycle=Some(newLC))
+    this.copy(lifecycle=Some(newLC))
   }
   def onPostStartDoHTTPGet(path: String, port: NameablePort = 80, schema: String = "HTTP") = {
     val get = HTTPGetAction(path=path,port=port,schema = schema)
-    val currLC = lifeCycle.getOrElse(Lifecycle())
+    val currLC = lifecycle.getOrElse(Lifecycle())
     val newLC = currLC.copy(postStart=Some(get))
-    this.copy(lifeCycle=Some(newLC))
+    this.copy(lifecycle=Some(newLC))
   }
   def onPreStopDoHTTPGet(path: String, port: Int = 80,schema: String = "HTTP") = {
     val get = HTTPGetAction(path=path,port=port,schema = schema)
-    val currLC = lifeCycle.getOrElse(Lifecycle())
+    val currLC = lifecycle.getOrElse(Lifecycle())
     val newLC = currLC.copy(preStop = Some(get))
-    this.copy(lifeCycle=Some(newLC))
+    this.copy(lifecycle=Some(newLC))
   }
 }
       
