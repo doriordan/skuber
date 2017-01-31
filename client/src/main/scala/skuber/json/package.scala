@@ -448,7 +448,7 @@ package object format {
     (JsPath \ "volumeMounts").formatMaybeEmptyList[Volume.Mount] and
     (JsPath \ "livenessProbe").formatNullable[Probe] and
     (JsPath \ "readinessProbe").formatNullable[Probe] and
-    (JsPath \ "lifeCycle").formatNullable[Lifecycle] and
+    (JsPath \ "lifecycle").formatNullable[Lifecycle] and
     (JsPath \ "terminationMessagePath").formatMaybeEmptyString() and
     (JsPath \ "imagePullPolicy").formatEnum(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)) and
     (JsPath \ "securityContext").formatNullable[Security.Context]

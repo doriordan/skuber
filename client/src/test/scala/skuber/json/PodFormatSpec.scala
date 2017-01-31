@@ -56,7 +56,7 @@ import Pod._
                                volumeMounts=List(Volume.Mount("mnt1","/mt1"), 
                                                  Volume.Mount("mnt2","/mt2", readOnly = true)),
                                readinessProbe=Some(Probe(HTTPGetAction(new URL("http://10.145.15.67:8100/ping")))),
-                               lifeCycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
+                               lifecycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
                                securityContext=Some(Security.Context(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
                               )
                      )
