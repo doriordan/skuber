@@ -62,6 +62,11 @@ class DeploymentSpec extends Specification {
         {"key": "tier","operator": "In", "values": ["frontend"]}
       ]
     },
+    "strategy": {
+      "rollingUpdate": {
+        "maxUnavailable": 1
+      }
+    },
     "template": {
       "metadata": {
         "labels": {

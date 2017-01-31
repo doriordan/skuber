@@ -70,7 +70,7 @@ package object format {
   )(Deployment.RollingUpdate.apply _, unlift(Deployment.RollingUpdate.unapply))
   
   implicit val depStrategyFmt: Format[Deployment.Strategy] =  (
-    (JsPath \ "type").formatEnum(Deployment.StrategyType) and
+    (JsPath \ "type").formatEnum(Deployment.StrategyType, Some(Deployment.StrategyType.RollingUpdate)) and
     (JsPath \ "rollingUpdate").formatNullable[Deployment.RollingUpdate]
   )(Deployment.Strategy.apply _, unlift(Deployment.Strategy.unapply))
   
