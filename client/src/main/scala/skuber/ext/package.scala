@@ -54,6 +54,14 @@ package object ext {
   implicit val deplListKind = new ListKind[DeploymentList]("deployments")
     with IsExtensionsKind[DeploymentList]
 
+  case class DaemonSetList(
+    val kind: String = "DaemonSetList",
+    override val apiVersion: String = extensionsAPIVersion,
+    val metadata: Option[ListMeta] = None,
+    items: List[DaemonSet] = Nil) extends KList[DaemonSet]
+  implicit val daesetListKind = new ListKind[DaemonSetList]("daemonsets")
+    with IsExtensionsKind[DaemonSetList]
+
   case class HorizontalPodAutoscalerList(
     val kind: String = "HorizontalPodAutoscalerList",
     override val apiVersion: String = extensionsAPIVersion,
