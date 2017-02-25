@@ -293,7 +293,7 @@ package object client {
    implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers", "ReplicationController")
    implicit val endpointsKind = ObjKind[Endpoints]("endpoints", "Endpoints")
    implicit val namespaceKind = new ObjKind[Namespace]("namespaces", "Namespace") { override def isNamespaced = false }
-   implicit val persistentVolumeKind = ObjKind[PersistentVolume]("persistentvolumes", "PersistentVolume")
+   implicit val persistentVolumeKind = new ObjKind[PersistentVolume]("persistentvolumes", "PersistentVolume") { override def isNamespaced = false }
    implicit val persistentVolumeClaimsKind = ObjKind[PersistentVolumeClaim]("persistentvolumeclaims", "PersistentVolumeClaim")
    implicit val serviceAccountKind = ObjKind[ServiceAccount]("serviceaccounts","ServiceAccount")
    implicit val secretKind = ObjKind[Secret]("secrets","Secret")
@@ -311,7 +311,7 @@ package object client {
    implicit val eventListKind = ListKind[EventList]("events")
    implicit val replCtrlListKind = ListKind[ReplicationControllerList]("replicationcontrollers")
    implicit val namespaceListKind = new ListKind[NamespaceList]("namespaces") { override def isNamespaced = false }
-   implicit val persistentVolumeListKind = ListKind[PersistentVolumeList]("persistentvolumes")
+   implicit val persistentVolumeListKind = new ListKind[PersistentVolumeList]("persistentvolumes") { override def isNamespaced = false }
    implicit val persistentVolumeClaimListKind = ListKind[PersistentVolumeClaimList]("persistentvolumeclaims")
    implicit val serviceAccountListKind = ListKind[ServiceAccountList]("serviceaccounts")
    implicit val limitRangeListKind = ListKind[LimitRangeList]("limitranges")
