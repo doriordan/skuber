@@ -60,5 +60,5 @@ object Volume {
     extends PersistentSource
   case class PersistentVolumeClaimRef(claimName: String,readOnly: Boolean = false) 
     extends Source
-  case class Mount(name: String, mountPath: String, readOnly: Boolean = false)
+  case class Mount(name: String, mountPath: String, readOnly: Boolean = false, subPath: String = "")
 }
