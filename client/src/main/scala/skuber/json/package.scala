@@ -430,7 +430,8 @@ package object format {
    implicit val volMountFormat: Format[Volume.Mount] = (
      (JsPath \ "name").format[String] and
      (JsPath \ "mountPath").format[String] and
-     (JsPath \ "readOnly").formatMaybeEmptyBoolean()
+     (JsPath \ "readOnly").formatMaybeEmptyBoolean() and
+     (JsPath \ "subPath").formatMaybeEmptyString()
    )(Volume.Mount.apply _, unlift(Volume.Mount.unapply))
   
    implicit val pullPolicyFormat: Format[Container.PullPolicy.Value] = 
