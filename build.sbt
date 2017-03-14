@@ -2,11 +2,14 @@
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 val playws = "com.typesafe.play" %% "play-ws" % "2.4.8"
+val playtest = "com.typesafe.play" %% "play-test" % "2.4.8"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4"
 val specs2 = "org.specs2" %% "specs2-core" % "3.7"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.4"
 val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
+val mockws = "de.leanovate.play-mockws" %% "play-mockws" % "2.4.2"
+
 
 // Akka is required by the examples
 val akka ="com.typesafe.akka" %% "akka-actor" % "2.4.0"
@@ -27,7 +30,7 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test).
+  libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test, mockws % Test, playtest % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 

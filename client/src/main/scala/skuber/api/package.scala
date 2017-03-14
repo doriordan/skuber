@@ -197,13 +197,22 @@ package object client {
        wsResponse map toKubernetesResponse[L]
      }
 
-     def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
-     {
-       val wsReq = buildRequest(None)(kind)
+     def _list[L <: KList[_]](maybeLabelSelector: Option[LabelSelector])(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = {
+       val wsReq = maybeLabelSelector.foldLeft( buildRequest(None)(kind) ) {
+         case (r,ls) => r.withQueryString(
+           "labelSelector" -> ls.toString
+         )
+       }
        logRequest(wsReq, kind.urlPathComponent, None)
        val wsResponse = wsReq.get
        wsResponse map toKubernetesResponse[L]
      }
+
+     def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
+       _list[L](None)
+
+     def list[L <: KList[_]](labelSelector: LabelSelector)(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
+       _list[L](Some(labelSelector))
 
      def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[Option[O]] = {
        _get[O](name) map toKubernetesResponseOption[O] recover { case _ => None }
