@@ -32,12 +32,12 @@ class ListQueryParamSpec extends Specification {
     val ws = MockWS {
       case (GET,"http://server/api/v1/namespaces/default/services") => Action{request =>
         request.queryString.get("labelSelector") match {
-          case Some(Seq("tier=database"))         => Ok(Json.toJson(ServiceList(items = List(db))))
-          case Some(Seq("tier=web"))              => Ok(Json.toJson(ServiceList(items = List(web_blue, web_green))))
-          case Some(Seq("tier!=database"))        => Ok(Json.toJson(ServiceList(items = List(web_blue, web_green))))
-          case Some(Seq("tier in (web),stage=a")) => Ok(Json.toJson(ServiceList(items = List(web_blue))))
-          case None                               => Ok(Json.toJson(ServiceList(items = List(db,web_blue,web_green))))
-          case _                                  => BadRequest("test not written for this")
+          case Some(Seq("tier=database"))            => Ok(Json.toJson(ServiceList(items = List(db))))
+          case Some(Seq("tier=web"))                 => Ok(Json.toJson(ServiceList(items = List(web_blue, web_green))))
+          case Some(Seq("tier!=database"))           => Ok(Json.toJson(ServiceList(items = List(web_blue, web_green))))
+          case Some(Seq("tier in (web),stage=blue")) => Ok(Json.toJson(ServiceList(items = List(web_blue))))
+          case None                                  => Ok(Json.toJson(ServiceList(items = List(db,web_blue,web_green))))
+          case _                                     => BadRequest("test not written for this")
         }
       }
     }
@@ -52,7 +52,7 @@ class ListQueryParamSpec extends Specification {
 
     sk8.list[ServiceList](LabelSelector("tier" isNot "database")).map(_.items) must containTheSameElementsAs(List(web_blue,web_green)).await
 
-    sk8.list[ServiceList](LabelSelector("tier" isIn List("web"), "stage" is "a")).map(_.items) must containTheSameElementsAs(List(web_blue)).await
+    sk8.list[ServiceList](LabelSelector("tier" isIn List("web"), "stage" is "blue")).map(_.items) must containTheSameElementsAs(List(web_blue)).await
   }
 
   "No labelSelector query parameter if LabelSelector not specified to ::list" >> { implicit ee: EE =>
