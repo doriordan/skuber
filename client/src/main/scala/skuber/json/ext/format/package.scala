@@ -103,7 +103,13 @@ package object format {
       ) (ReplicaSet.apply _, unlift(ReplicaSet.unapply))
 
   implicit val ingressBackendFmt: Format[Ingress.Backend] = Json.format[Ingress.Backend]
-  implicit val ingressPathFmt: Format[Ingress.Path] = Json.format[Ingress.Path]
+
+  implicit val ingressPathFmt: Format[Ingress.Path] = (
+    (JsPath \ "path").formatMaybeEmptyString() and
+      (JsPath \ "backend").format[Backend]
+  ) (Ingress.Path.apply _, unlift(Ingress.Path.unapply))
+
+
   implicit val ingressHttpRuledFmt: Format[Ingress.HttpRule] = Json.format[Ingress.HttpRule]
   implicit val ingressRuleFmt: Format[Ingress.Rule] = Json.format[Ingress.Rule]
   implicit val ingressTLSFmt: Format[Ingress.TLS] = Json.format[Ingress.TLS]
