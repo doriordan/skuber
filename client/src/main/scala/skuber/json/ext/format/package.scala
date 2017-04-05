@@ -96,7 +96,7 @@ package object format {
 
   implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
-      (JsPath \ "serviceName").format[String] and
+      (JsPath \ "serviceName").formatNullable[String] and
       (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "template").formatNullable[Pod.Template.Spec] and
       (JsPath \ "volumeClaimTemplates").format[List[PersistentVolumeClaim]]
