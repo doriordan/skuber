@@ -20,9 +20,13 @@ class StatefulSetSpec extends Specification {
     val template=Pod.Template.Spec.named("example").addContainer(container)
     val stateSet=StatefulSet("example")
       .withReplicas(200)
+      .withServiceName("nginx-service")
       .withTemplate(template)
+      .withVolumeClaimTemplate(PersistentVolumeClaim("hello"))
     stateSet.spec.get.template mustEqual Some(template)
+    stateSet.spec.get.serviceName mustEqual Some("nginx-service")
     stateSet.spec.get.replicas mustEqual 200
+    stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
     stateSet.name mustEqual "example"
     stateSet.status mustEqual None
   }
@@ -101,6 +105,8 @@ class StatefulSetSpec extends Specification {
     stateSet.kind mustEqual "StatefulSet"
     stateSet.name mustEqual "nginx-stateset"
     stateSet.spec.get.replicas mustEqual 3
+    stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
+    stateSet.spec.get.serviceName.get mustEqual "nginx-service"
     stateSet.spec.get.template.get.metadata.labels mustEqual Map("app" -> "nginx")
     stateSet.spec.get.template.get.spec.get.containers.length mustEqual 1
     stateSet.spec.get.selector.get.requirements.size mustEqual 4

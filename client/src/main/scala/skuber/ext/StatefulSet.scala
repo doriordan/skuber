@@ -15,8 +15,14 @@ case class StatefulSet(override val kind: String ="StatefulSet",
   lazy val copySpec = this.spec.getOrElse(new StatefulSet.Spec)
 
   def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=count)))
+  def withServiceName(serviceName: String) = this.copy(spec=Some(copySpec.copy(serviceName=Some(serviceName))))
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
   def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
+
+  def withVolumeClaimTemplate(claim: PersistentVolumeClaim) = {
+    val spec = copySpec.withVolumeClaimTemplate(claim)
+    this.copy(spec=Some(spec))
+  }
 }
 
 object StatefulSet {
@@ -27,7 +33,9 @@ object StatefulSet {
                   serviceName: Option[String] = None,
                   selector: Option[LabelSelector] = None,
                   template: Option[Pod.Template.Spec] = None,
-                  volumeClaimTemplates: List[PersistentVolumeClaim] = Nil)
+                  volumeClaimTemplates: List[PersistentVolumeClaim] = Nil) {
+    def withVolumeClaimTemplate(claim: PersistentVolumeClaim) = copy(volumeClaimTemplates = claim :: volumeClaimTemplates)
+  }
 
   case class Status(observedGeneration: Int,
                     replicas: Int)
