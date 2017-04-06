@@ -11,10 +11,8 @@ import java.awt.font.ImageGraphicAttribute
 import skuber._
 import skuber.ext.Ingress.Backend
 import skuber.ext._
-
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-
 import skuber.json.format._ // reuse some core formatters
 
 package object format {
@@ -88,26 +86,6 @@ package object format {
     (JsPath \ "status").formatNullable[Deployment.Status]
   ) (Deployment.apply _, unlift(Deployment.unapply))
 
-  // Stateful set formatters
-  implicit val statefulSetStatusFmt: Format[StatefulSet.Status] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
-      (JsPath \ "observedGeneration").formatMaybeEmptyInt()
-    )(StatefulSet.Status.apply _, unlift(StatefulSet.Status.unapply))
-
-  implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
-      (JsPath \ "serviceName").formatNullable[String] and
-      (JsPath \ "selector").formatNullableLabelSelector and
-      (JsPath \ "template").formatNullable[Pod.Template.Spec] and
-      (JsPath \ "volumeClaimTemplates").format[List[PersistentVolumeClaim]]
-    )(StatefulSet.Spec.apply _, unlift(StatefulSet.Spec.unapply))
-
-  implicit lazy val statefulSetFormat: Format[StatefulSet] = (
-    objFormat and
-      (JsPath \ "spec").formatNullable[StatefulSet.Spec] and
-      (JsPath \ "status").formatNullable[StatefulSet.Status]
-    ) (StatefulSet.apply _, unlift(StatefulSet.unapply))
-
   implicit val replsetSpecFormat: Format[ReplicaSet.Spec] = (
       (JsPath \ "replicas").formatMaybeEmptyInt() and
           (JsPath \ "selector").formatNullableLabelSelector and
@@ -150,7 +128,6 @@ package object format {
       ) (Ingress.apply _, unlift(Ingress.unapply))
 
   implicit val deplListFmt: Format[DeploymentList] = KListFormat[Deployment].apply(DeploymentList.apply _,unlift(DeploymentList.unapply))
-  implicit val statefulSetListFormat: Format[StatefulSetList] = KListFormat[StatefulSet].apply(StatefulSetList.apply _,unlift(StatefulSetList.unapply))
   implicit val daesetListFmt: Format[DaemonSetList] = KListFormat[DaemonSet].apply(DaemonSetList.apply _,unlift(DaemonSetList.unapply))
   implicit val hpasListFmt: Format[HorizontalPodAutoscalerList] = KListFormat[HorizontalPodAutoscaler].apply(HorizontalPodAutoscalerList.apply _,unlift(HorizontalPodAutoscalerList.unapply))
   implicit val replsetListFmt: Format[ReplicaSetList] = KListFormat[ReplicaSet].apply(ReplicaSetList.apply _,unlift(ReplicaSetList.unapply))

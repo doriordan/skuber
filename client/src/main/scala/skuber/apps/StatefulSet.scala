@@ -1,5 +1,6 @@
-package skuber.ext
+package skuber.apps
 
+import skuber.ext.extensionsAPIVersion
 import skuber.{LabelSelector, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod}
 
 /**

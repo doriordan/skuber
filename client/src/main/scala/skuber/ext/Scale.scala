@@ -1,6 +1,7 @@
 package skuber.ext
 
 import skuber._
+import skuber.apps.StatefulSet
 
 import scala.reflect.ClassTag
 

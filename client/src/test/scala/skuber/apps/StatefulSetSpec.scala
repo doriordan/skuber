@@ -1,13 +1,10 @@
-package skuber.ext
+package skuber.apps
 
-import org.specs2.mutable.Specification // for unit-style testing
-
-import skuber._
-import skuber.LabelSelector.dsl._
-
-import skuber.json.ext.format._
-
+import org.specs2.mutable.Specification
 import play.api.libs.json._
+import skuber.LabelSelector.dsl._
+import skuber._
+import skuber.json.apps.format._
 
 /**
   * Created by hollinwilkins on 4/5/17.
@@ -47,7 +44,7 @@ class StatefulSetSpec extends Specification {
   "A Deployment object can be read directly from a JSON string" >> {
     val deplJsonStr = """
 {
-  "apiVersion": "extensions/v1beta1",
+  "apiVersion": "apps/v1beta1",
   "kind": "StatefulSet",
   "metadata": {
     "name": "nginx-stateset"

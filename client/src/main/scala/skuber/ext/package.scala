@@ -14,14 +14,12 @@ package skuber
 
 import scala.language.implicitConversions
 import scala.concurrent.Future
-
-
 import skuber.json.ext.format._
 import skuber.api.client._
 
 package object ext {
-  val extensionsAPIVersion = "extensions/v1beta1" 
-  
+  val extensionsAPIVersion = "extensions/v1beta1"
+
   case class SubresourceReference(
       kind: String = "",
       name: String = "",
@@ -36,7 +34,6 @@ package object ext {
 
   // implicit object kind values for the extensions group types
   implicit val deploymentKind: ObjKind[Deployment] = new ObjKind[Deployment]("deployments","Deployment") with IsExtensionsKind[Deployment]
-  implicit val statefulSetKind: ObjKind[StatefulSet] = new ObjKind[StatefulSet]("statefulsets","StatefulSet") with IsExtensionsKind[StatefulSet]
   implicit val hpasKind: ObjKind[HorizontalPodAutoscaler] = new ObjKind[HorizontalPodAutoscaler]("horizontalpodautoscalers", "HorizontalPodAutoscaler")
                                   with IsExtensionsKind[HorizontalPodAutoscaler]
   implicit val replsetsKind: ObjKind[ReplicaSet] = new ObjKind[ReplicaSet]("replicasets", "ReplicaSet")
@@ -54,13 +51,6 @@ package object ext {
     items: List[Deployment] = Nil) extends KList[Deployment]
   implicit val deplListKind = new ListKind[DeploymentList]("deployments")
     with IsExtensionsKind[DeploymentList]
-
-  case class StatefulSetList(val kind: String = "StatefulSetList",
-                             override val apiVersion: String = extensionsAPIVersion,
-                             val metadata: Option[ListMeta] = None,
-                             items: List[StatefulSet] = Nil) extends KList[StatefulSet]
-  implicit val statefulSetListKind = new ListKind[StatefulSetList]("statefulsets")
-    with IsExtensionsKind[StatefulSetList]
 
   case class DaemonSetList(
     val kind: String = "DaemonSetList",
@@ -152,13 +142,6 @@ package object ext {
      */  
     def scale(de: Deployment, count: Int): Future[Scale] =
       scaleDeployment(de.name,  count)
-
-    /*
-     * Modify the specified replica count for a StatefulSet, returning a Future with its
-     * updated Scale subresource
-     */
-    def scale(stateSet: StatefulSet, count: Int): Future[Scale] =
-      scaleStatefulSet(stateSet.name, count)
       
     /*
      * Modify the specified replica count for a named replication controller, returning a Future with its
@@ -180,25 +163,12 @@ package object ext {
      */     
     def scaleDeployment(name: String, count: Int): Future[Scale] =
       scale[Deployment](name, count)
-
-    /*
-     * Modify the specified replica count for a named StatefulSet, returning a Future with its
-     * updated Scale subresource
-     */
-    def scaleStatefulSet(name: String, count: Int): Future[Scale] =
-      scale[StatefulSet](name, count)
       
     /*
      * Fetch the Scale subresource of a named Deployment
      * @returns a future containing the retrieved Scale subresource
      */
     def getDeploymentScale(objName: String) = getScale[Deployment](objName)
-
-    /*
-     * Fetch the Scale subresource of a named StatefulSet
-     * @returns a future containing the retrieved Scale subresource
-     */
-    def getStatefulSetScale(objName: String) = getScale[StatefulSet](objName)
     
     /*
      * Fetch the Scale subresource of a named Replication Controller
