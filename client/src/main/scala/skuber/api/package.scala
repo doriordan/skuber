@@ -267,6 +267,7 @@ package object client {
    // basic resource kinds supported by the K8S API server
    abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) {
      def urlPathComponent: String
+     def isAppsKind: Boolean = false
      def isExtensionsKind: Boolean = false
      def isBatchKind: Boolean = false
      def isNamespaced: Boolean = true
@@ -274,6 +275,8 @@ package object client {
      def apiVersion: String =
        if (isExtensionsKind)
          skuber.ext.extensionsAPIVersion
+       else if (isAppsKind)
+         skuber.apps.appsAPIVersion
        else if (isBatchKind)
          skuber.batch.batchAPIVersion
        else if (isRBACKind)

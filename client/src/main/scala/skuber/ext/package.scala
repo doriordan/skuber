@@ -14,14 +14,12 @@ package skuber
 
 import scala.language.implicitConversions
 import scala.concurrent.Future
-
-
 import skuber.json.ext.format._
 import skuber.api.client._
 
 package object ext {
-  val extensionsAPIVersion = "extensions/v1beta1" 
-  
+  val extensionsAPIVersion = "extensions/v1beta1"
+
   case class SubresourceReference(
       kind: String = "",
       name: String = "",

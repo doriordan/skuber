@@ -11,10 +11,8 @@ import java.awt.font.ImageGraphicAttribute
 import skuber._
 import skuber.ext.Ingress.Backend
 import skuber.ext._
-
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-
 import skuber.json.format._ // reuse some core formatters
 
 package object format {

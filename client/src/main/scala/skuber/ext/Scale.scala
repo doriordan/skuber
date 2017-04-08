@@ -1,6 +1,7 @@
 package skuber.ext
 
 import skuber._
+import skuber.apps.StatefulSet
 
 import scala.reflect.ClassTag
 
@@ -24,7 +25,8 @@ object Scale {
 
   def scale(rc: ReplicationController) = new Scale(metadata=ObjectMeta(name=rc.name,namespace=rc.metadata.namespace))
   def scale(de: Deployment) = new Scale(metadata=ObjectMeta(name=de.name,namespace=de.metadata.namespace))
-  
+  def scale(de: StatefulSet) = new Scale(metadata=ObjectMeta(name=de.name,namespace=de.metadata.namespace))
+
   case class Spec(replicas: Int = 0)
   case class Status(
     replicas: Int = 0,
