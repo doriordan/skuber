@@ -104,7 +104,7 @@ For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md
 
 The coverage of the core Kubernetes API functionality by Skuber is comprehensive.
 
-Support of non-core API group functionality is pretty extensive, in particular of the more popular/important features. Deployment, ReplicaSet, Autoscaling, Job, Ingress, DaemonSet and RBAC are all currently supported on the master branch. Support for other alpha/beta Kubernetes features is being added all the time.
+Support of non-core API group functionality is pretty extensive, in particular of the more popular/important features. Deployment, ReplicaSet, StatefulSet, Autoscaling, Job, Ingress, DaemonSet and RBAC are all currently supported on the master branch. Support for other alpha/beta Kubernetes features is being added all the time.
 
 ## License
 
