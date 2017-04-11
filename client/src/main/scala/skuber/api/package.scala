@@ -93,9 +93,10 @@ package object client {
        val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
        val usesBatchAPI = forExtensionsAPI.getOrElse(kind.isBatchKind)
        val usesRBACAPI = forExtensionsAPI.getOrElse(kind.isRBACKind)
-       val apiPrefix = if (usesExtensionsAPI || usesBatchAPI || usesRBACAPI) "apis" else "api"
+       val usesAppsAPI = forExtensionsAPI.getOrElse(kind.isAppsKind)
+       val apiPrefix = if (usesExtensionsAPI || usesBatchAPI || usesRBACAPI || usesAppsAPI) "apis" else "api"
 
-         // helper to compose a full URL from a sequence of path components
+       // helper to compose a full URL from a sequence of path components
        def mkUrlString(pathComponents: Option[String]*) : String = {
          pathComponents.foldLeft("")((acc,next) => next match {
            case None => acc
