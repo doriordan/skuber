@@ -41,7 +41,14 @@ class DeploymentSpec extends Specification {
       val readDepl = Json.fromJson[Deployment](Json.toJson(deployment)).get
       readDepl mustEqual deployment
   }
-  
+
+  "A Deployment object properly writes with zero replicas" >> {
+    val deployment=Deployment("example").withReplicas(0)
+
+    val writeDepl = Json.toJson(deployment)
+    (writeDepl \ "spec" \ "replicas").asOpt[Int] must beSome(0)
+  }
+
   "A Deployment object can be read directly from a JSON string" >> {
     val deplJsonStr = """
 {
