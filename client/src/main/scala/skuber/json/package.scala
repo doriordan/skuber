@@ -55,7 +55,7 @@ package object format {
       
     // Int: the empty value is 0
     def formatMaybeEmptyInt(omitEmpty: Boolean=true) : OFormat[Int] =
-      path.formatNullable[Int].inmap[Int](_.getOrElse(-1), i => if (omitEmpty && i==(-1)) None else Some(i))
+      path.formatNullable[Int].inmap[Int](_.getOrElse(0), i => if (omitEmpty && i==0) None else Some(i))
       
     // Int Or String: the emoty value is the specified default  
     def formatMaybeEmptyIntOrString(empty: IntOrString): OFormat[IntOrString] =
