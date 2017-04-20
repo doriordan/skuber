@@ -22,7 +22,7 @@ class StatefulSetSpec extends Specification {
       .withVolumeClaimTemplate(PersistentVolumeClaim("hello"))
     stateSet.spec.get.template mustEqual Some(template)
     stateSet.spec.get.serviceName mustEqual Some("nginx-service")
-    stateSet.spec.get.replicas mustEqual 200
+    stateSet.spec.get.replicas must beSome(200)
     stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
     stateSet.name mustEqual "example"
     stateSet.status mustEqual None
@@ -37,12 +37,19 @@ class StatefulSetSpec extends Specification {
       .withLabelSelector(LabelSelector("live" doesNotExist, "microservice", "tier" is "cache", "env" isNotIn List("dev", "test")))
 
 
-    val readDepl = Json.fromJson[StatefulSet](Json.toJson(stateSet)).get
-    readDepl mustEqual stateSet
+    val readSSet = Json.fromJson[StatefulSet](Json.toJson(stateSet)).get
+    readSSet mustEqual stateSet
   }
 
-  "A Deployment object can be read directly from a JSON string" >> {
-    val deplJsonStr = """
+  "A StatefulSet object properly writes with zero replicas" >> {
+    val sset=StatefulSet("example").withReplicas(0)
+
+    val writeSSet = Json.toJson(sset)
+    (writeSSet \ "spec" \ "replicas").asOpt[Int] must beSome(0)
+  }
+
+  "A StatefulSet object can be read directly from a JSON string" >> {
+    val ssetJsonStr = """
 {
   "apiVersion": "apps/v1beta1",
   "kind": "StatefulSet",
@@ -98,10 +105,10 @@ class StatefulSetSpec extends Specification {
   }
 }
 """
-    val stateSet = Json.parse(deplJsonStr).as[StatefulSet]
+    val stateSet = Json.parse(ssetJsonStr).as[StatefulSet]
     stateSet.kind mustEqual "StatefulSet"
     stateSet.name mustEqual "nginx-stateset"
-    stateSet.spec.get.replicas mustEqual 3
+    stateSet.spec.get.replicas must beSome(3)
     stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
     stateSet.spec.get.serviceName.get mustEqual "nginx-service"
     stateSet.spec.get.template.get.metadata.labels mustEqual Map("app" -> "nginx")
