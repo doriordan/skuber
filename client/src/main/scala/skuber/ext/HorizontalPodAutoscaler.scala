@@ -17,7 +17,7 @@ case class HorizontalPodAutoscaler(
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 
   def withMinReplicas(min: Int) = this.copy(spec=this.spec.copy(minReplicas=Some(min)))
-  def withMaxReplicas(max: Int) = this.copy(spec=this.spec.copy(maxReplicas=Some(max)))
+  def withMaxReplicas(max: Int) = this.copy(spec=this.spec.copy(maxReplicas=max))
   def withCPUTargetUtilization(cpu: Int) =
     this.copy(spec=this.spec.copy(cpuUtilization=Some(CPUTargetUtilization(cpu))))
 }
@@ -42,7 +42,7 @@ object HorizontalPodAutoscaler {
    case class Spec( 
      scaleRef: SubresourceReference,
      minReplicas: Option[Int] = Some(1),
-     maxReplicas: Option[Int] = None,
+     maxReplicas: Int = 1,
      cpuUtilization: Option[CPUTargetUtilization] = None
    )
            

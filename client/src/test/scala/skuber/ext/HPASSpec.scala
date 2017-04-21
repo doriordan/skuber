@@ -27,13 +27,13 @@ class HPASSpec extends Specification {
       hpas.name mustEqual "example"   
       hpas.spec.scaleRef.kind mustEqual "ReplicationController"
       hpas.spec.scaleRef.subresource mustEqual "scale"
-      hpas.spec.maxReplicas must beSome(10)
+      hpas.spec.maxReplicas must_== 10
       hpas.spec.minReplicas must beSome(1)
       hpas.spec.cpuUtilization mustEqual Some(CPUTargetUtilization(80))
     }
   }
 
-  "A HPAS object properly writes with zero replicas" >> {
+  "A HPAS object properly writes with zero minReplicas" >> {
     val hpas=HorizontalPodAutoscaler(
       metadata = ObjectMeta("example"),
       spec = HorizontalPodAutoscaler.Spec(
