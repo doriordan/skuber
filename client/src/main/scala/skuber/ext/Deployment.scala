@@ -18,7 +18,7 @@ case class Deployment(
 
   lazy val copySpec = this.spec.getOrElse(new Deployment.Spec)
   
-  def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=count)))
+  def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
   def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
 
@@ -60,7 +60,7 @@ object Deployment {
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
   
   case class Spec(
-    replicas: Int = 1,
+    replicas: Option[Int] = Some(1),
     selector: Option[LabelSelector] = None,
     template: Option[Pod.Template.Spec] = None,
     strategy: Option[Strategy] = None,

@@ -21,7 +21,7 @@ case class ReplicaSet(
     def addAnnotation(anno: Tuple2[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
     def addAnnotations(annos: Map[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(annotations = metadata.annotations ++ annos))
     
-    def withReplicas(n: Int) = this.copy(spec=Some(copySpec.copy(replicas=n)))
+    def withReplicas(n: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(n))))
     
     
     def withSelector(s: LabelSelector) : ReplicaSet = this.copy(spec=Some(copySpec.copy(selector = Some(s))))
@@ -79,7 +79,7 @@ object ReplicaSet {
     }
     
     case class Spec(
-      replicas: Int=1,
+      replicas: Option[Int]=Some(1),
       selector: Option[LabelSelector] = None,
       template: Option[Pod.Template.Spec] = None)
       

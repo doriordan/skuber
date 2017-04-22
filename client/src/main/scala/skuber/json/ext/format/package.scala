@@ -73,7 +73,7 @@ package object format {
   )(Deployment.Strategy.apply _, unlift(Deployment.Strategy.unapply))
   
   implicit val depSpecFmt: Format[Deployment.Spec] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
+    (JsPath \ "replicas").formatNullable[Int] and
     (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
     (JsPath \ "strategy").formatNullable[Deployment.Strategy] and
@@ -87,7 +87,7 @@ package object format {
   ) (Deployment.apply _, unlift(Deployment.unapply))
 
   implicit val replsetSpecFormat: Format[ReplicaSet.Spec] = (
-      (JsPath \ "replicas").formatMaybeEmptyInt() and
+      (JsPath \ "replicas").formatNullable[Int] and
           (JsPath \ "selector").formatNullableLabelSelector and
           (JsPath \ "template").formatNullable[Pod.Template.Spec]
       )(ReplicaSet.Spec.apply _, unlift(ReplicaSet.Spec.unapply))

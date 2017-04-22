@@ -15,7 +15,7 @@ case class StatefulSet(override val kind: String ="StatefulSet",
 
   lazy val copySpec = this.spec.getOrElse(new StatefulSet.Spec)
 
-  def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=count)))
+  def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
   def withServiceName(serviceName: String) = this.copy(spec=Some(copySpec.copy(serviceName=Some(serviceName))))
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
   def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
@@ -30,7 +30,7 @@ object StatefulSet {
   def apply(name: String): StatefulSet =
     StatefulSet(metadata=ObjectMeta(name=name))
 
-  case class Spec(replicas: Int = 1,
+  case class Spec(replicas: Option[Int] = Some(1),
                   serviceName: Option[String] = None,
                   selector: Option[LabelSelector] = None,
                   template: Option[Pod.Template.Spec] = None,
