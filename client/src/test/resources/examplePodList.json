@@ -155,6 +155,18 @@
                       {
                         "name": "FLUENTD_ARGS",
                         "value": "-qq"
+                      },
+                      {
+                        "name": "PASSWORD",
+                        "valueFrom": {
+                          "secretKeyRef": {
+                            "key": "PASSWORD",
+                            "name": "api-secrets"
+                          }
+                        }
+                      },
+                      {
+                        "name": "ARGS"
                       }
                     ],
                     "resources": {
