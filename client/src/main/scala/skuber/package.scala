@@ -2,8 +2,10 @@
 import java.net.URL
 import java.util.Date
 
-import scala.collection.immutable.HashMap
+import play.api.libs.ws.ning.NingWSClient
+import skuber.api.client.Context
 
+import scala.collection.immutable.HashMap
 import scala.language.implicitConversions
 
 import scala.concurrent.ExecutionContext
@@ -247,5 +249,7 @@ package object skuber {
   
   def k8sInit(implicit executionContext: ExecutionContext)  = skuber.api.client.init
   def k8sInit(config: skuber.api.Configuration)(implicit executionContext : ExecutionContext) = skuber.api.client.init(config)
-      
+  def k8sInit(config: skuber.api.Configuration, httpClient: NingWSClient)(implicit executionContext : ExecutionContext) = skuber.api.client.init(config, httpClient)
+  def createDefaultHttpClient(k8sContext: Context): NingWSClient = skuber.api.client.createDefaultHttpClient(k8sContext)
+
 }
