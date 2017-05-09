@@ -1,5 +1,7 @@
 package skuber.examples.list
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber.Pod.Phase
 import skuber._
 
@@ -34,7 +36,10 @@ object ListExamples extends App {
       System.out.println(f"${name}%-50s${ns}%-20s${phase}")
     }
   }
-  
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+
   val k8s = k8sInit
 
   System.out.println("\nGetting list of pods in namespace of current context ==>")

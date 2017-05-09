@@ -1,12 +1,14 @@
 package skuber.examples.job
 
-import skuber.{k8sInit, Pod, Container, RestartPolicy}
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import skuber.{Container, Pod, RestartPolicy, k8sInit}
 import skuber.batch.Job
 import skuber.json.batch.format._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 /**
  * @author David O'Riordan
@@ -15,6 +17,8 @@ import scala.util.{Success, Failure}
  * Starts a Job on Kubernetes that prints pi to 2000 decimal places
  */
 object PrintPiJob extends App {
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
   val k8s = k8sInit
 

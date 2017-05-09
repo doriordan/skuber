@@ -2,19 +2,15 @@ package skuber.examples.guestbook
 
 import skuber._
 import skuber.json.format._
-
-import akka.actor.{Actor, ActorRef, ActorLogging}
-import akka.actor.Props
-import akka.event.{LoggingReceive}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import akka.event.LoggingReceive
 import akka.pattern.pipe
+import akka.stream.ActorMaterializer
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
-import scala.util.{Success, Failure}
-
+import scala.util.{Failure, Success}
 import scala.collection._
-
 import play.api.libs.iteratee.Iteratee
 
 /**
@@ -52,6 +48,8 @@ object KubernetesProxyActor {
 }
 
 class KubernetesProxyActor extends Actor with ActorLogging {
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
   val k8s = k8sInit // initialize skuber client (request context)
   var rcWatching = mutable.HashMap[String, Watching]()

@@ -1,16 +1,19 @@
 package skuber.examples.watch
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
 import skuber.json.format._
-  
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.libs.iteratee.Iteratee
 
 /**
  * @author David O'Riordan
  */
 object WatchExamples {
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
   
   def  watchFrontEndScaling = {
      val k8s = k8sInit    

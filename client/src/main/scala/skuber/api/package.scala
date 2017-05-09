@@ -2,7 +2,11 @@ package skuber.api
 
 import java.net.URL
 
-import com.ning.http.client.AsyncHttpClientConfig
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import io.netty.handler.ssl.{ClientAuth, JdkSslContext}
+import org.asynchttpclient.{AsyncHttpClientConfig, DefaultAsyncHttpClientConfig}
+import org.asynchttpclient.config.AsyncHttpClientConfigDefaults
 import org.slf4j.LoggerFactory
 import play.api.libs.json._
 import play.api.libs.ws._
@@ -402,7 +406,7 @@ package object client {
     Configuration().useContext(context)
   }
 
-  def init(implicit executionContext : ExecutionContext): RequestContext = {
+  def init(implicit executionContext : ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): RequestContext = {
     // Initialising without explicit Configuration.
     // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
     // If SKUBERCONFIG value matches:
@@ -430,16 +434,16 @@ package object client {
     init(config)
   }
 
-  def init(config: Configuration)(implicit executionContext : ExecutionContext): RequestContext = init(config.currentContext)
+  def init(config: Configuration)(implicit executionContext : ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): RequestContext = init(config.currentContext)
 
-  def init(k8sContext: Context)(implicit executionContext : ExecutionContext): RequestContext = {
+  def init(k8sContext: Context)(implicit executionContext : ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): RequestContext = {
     val sslContext = TLS.establishSSLContext(k8sContext)
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     //      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
     //      val httpClient = new NingWSClient(wsConfig)
-    val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
+    val httpClientConfigBuilder = new DefaultAsyncHttpClientConfig.Builder()
     sslContext foreach { ctx =>
-      httpClientConfigBuilder.setSSLContext(ctx)
+      httpClientConfigBuilder.setSslContext(new JdkSslContext(ctx, true, ClientAuth.REQUIRE))
       // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
       httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
     }
