@@ -1,14 +1,14 @@
 
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
-val playws = "com.typesafe.play" %% "play-ws" % "2.4.8"
-val playtest = "com.typesafe.play" %% "play-test" % "2.4.8"
+val playws = "com.typesafe.play" %% "play-ws" % "2.5.14"
+val playtest = "com.typesafe.play" %% "play-test" % "2.5.14"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4"
 val specs2 = "org.specs2" %% "specs2-core" % "3.7"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.4"
-val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
-val mockws = "de.leanovate.play-mockws" %% "play-mockws" % "2.4.2"
+val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.6.0"
+val mockws = "de.leanovate.play-mockws" %% "play-mockws" % "2.5.1"
 
 
 // Akka is required by the examples

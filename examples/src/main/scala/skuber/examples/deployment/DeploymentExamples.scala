@@ -1,5 +1,7 @@
 package skuber.examples.deployment
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
 import skuber.json.format._
 import skuber.ext._
@@ -26,10 +28,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * the deployment update is being processed.
  */
 object DeploymentExamples extends App {
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
  
   val k8s = k8sInit
   
-  val deployment = deployNginx("1.7.9") 
+  val deployment = deployNginx("1.7.9")
   
   deployment onSuccess {
     case depl => 

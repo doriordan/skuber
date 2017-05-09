@@ -2,8 +2,10 @@ package skuber.examples.ingress
 
 import java.net.HttpURLConnection
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
-import skuber.ext.{Ingress,ReplicaSet}
+import skuber.ext.{Ingress, ReplicaSet}
 
 import scala.annotation.tailrec
 
@@ -19,6 +21,8 @@ import skuber.json.ext.format._
   */
 
 object NginxIngress extends App {
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
 
   val httpPort=80
   val httpsPort=443
