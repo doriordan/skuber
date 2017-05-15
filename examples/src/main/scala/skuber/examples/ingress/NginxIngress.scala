@@ -2,8 +2,10 @@ package skuber.examples.ingress
 
 import java.net.HttpURLConnection
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
-import skuber.ext.{Ingress,ReplicaSet}
+import skuber.ext.{Ingress, ReplicaSet}
 
 import scala.annotation.tailrec
 
@@ -241,7 +243,8 @@ object NginxIngress extends App {
 
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.Future
-
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val k8s = k8sInit
 
     // build the resources

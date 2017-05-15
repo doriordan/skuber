@@ -1,14 +1,16 @@
 package skuber.api.security
 
 import scala.io.Source
-import java.io.{InputStream, ByteArrayInputStream, FileInputStream}
-import java.nio.file.{Path,Paths,Files}
+import java.io.{ByteArrayInputStream, FileInputStream, FileOutputStream, InputStream}
+import java.nio.file.{Files, Path, Paths}
 import java.util.Base64
-import java.security.{KeyStore, KeyFactory, PrivateKey }
-import java.security.cert.{Certificate, X509Certificate, CertificateFactory}
-import java.security.spec.{PKCS8EncodedKeySpec, RSAPrivateKeySpec};
+import java.security.{KeyFactory, KeyStore, PrivateKey}
+import java.security.cert.{Certificate, CertificateFactory, X509Certificate}
+import java.security.spec.{PKCS8EncodedKeySpec, RSAPrivateKeySpec}
 
 import skuber.api.client.PathOrData
+
+import scala.util.Try
 
 /**
  * @author David O'Riordan
@@ -88,7 +90,18 @@ object SecurityHelper {
     keyStore.load(null, keyStorePassword)
     keyStore.setKeyEntry(user, clientPrivateKey, keyStorePassword, Array(clientCertificate))   
     keyStore
-  } 
+  }
+
+  def writePKCS12(user: String, clientCertificate: X509Certificate, clientPrivateKey: PrivateKey, password: Option[String] = None) : Option[String] = {
+    Try {
+      val keyStore = createKeyStore(user, clientCertificate, clientPrivateKey, password)
+      val tempFile = java.io.File.createTempFile("privatekeystore", ".p12")
+      val out = new FileOutputStream(tempFile)
+      keyStore.store(out, password.getOrElse("changeit").toCharArray)
+      out.close()
+      tempFile.getAbsolutePath
+    }.toOption
+  }
   
   private object PCKS1Helper {
 

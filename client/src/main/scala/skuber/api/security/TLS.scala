@@ -1,10 +1,14 @@
 package skuber.api.security
 
+import java.io.FileOutputStream
 import java.net.Socket
 import javax.net.ssl._
 import java.security.cert.X509Certificate
-import java.security.SecureRandom
+import java.security.{KeyStore, SecureRandom}
 
+import com.typesafe.config.ConfigFactory
+import com.typesafe.sslconfig.akka.DefaultSSLEngineConfigurator
+import com.typesafe.sslconfig.ssl.{DefaultTrustManagerFactoryWrapper, KeyManagerConfig, KeyStoreConfig, SSLConfigFactory, SSLConfigSettings, SSLDebugConfig, SimpleSSLContextBuilder, TrustManagerConfig, TrustManagerFactoryWrapper, TrustStoreConfig}
 import skuber.api.client.{Context, PathOrData}
 
 /**
@@ -66,12 +70,23 @@ object TLS {
            tmf.init(trustStore)
            tmf.getTrustManagers
        }
+
+  def getPKCS12(k8sContext: Context) : Option[String] = {
+    val clientCert = k8sContext.authInfo.clientCertificate
+    val clientKey = k8sContext.authInfo.clientKey
+    if (clientCert.isDefined && clientKey.isDefined) {
+      val cert = SecurityHelper.getCertificate(clientCert.get)
+      val key = SecurityHelper.getPrivateKey(clientKey.get)
+      val user = k8sContext.authInfo.userName.getOrElse("skuber")
+      SecurityHelper.writePKCS12(user, cert, key)
+    } else None
+  }
   
    private def getKeyManagers(user: Option[String], clientCert: Option[PathOrData], clientKey: Option[PathOrData]) : Option[Array[KeyManager]] = 
      if (clientCert.isDefined && clientKey.isDefined) {
        val cert = SecurityHelper.getCertificate(clientCert.get)
        val key = SecurityHelper.getPrivateKey(clientKey.get)
-       val keyStore = SecurityHelper.createKeyStore(user.getOrElse("skuber"), cert, key) 
+       val keyStore = SecurityHelper.createKeyStore(user.getOrElse("skuber"), cert, key)
        val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
        kmf.init(keyStore, "changeit".toCharArray)
        Some(kmf.getKeyManagers)

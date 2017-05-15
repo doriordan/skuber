@@ -1,10 +1,10 @@
 package skuber.api.security
 
 import javax.net.ssl.SSLContext
-import javax.net.ssl.{TrustManager,X509TrustManager, X509ExtendedTrustManager};
-import java.security.cert.X509Certificate;
-import play.api.libs.ws.{WSRequest,WSAuthScheme}
+import javax.net.ssl.{TrustManager, X509ExtendedTrustManager, X509TrustManager}
+import java.security.cert.X509Certificate
 
+import play.api.libs.ws.{StandaloneWSRequest, WSAuthScheme, WSRequest}
 import skuber.api.client.Context
 
 /**
@@ -30,11 +30,11 @@ object HTTPRequestAuth {
     }
   }
   
-  def addAuth(request: WSRequest, auth: RequestAuth) : WSRequest = {
+  def addAuth(request: StandaloneWSRequest, auth: RequestAuth) : StandaloneWSRequest = {
       auth match {
         case NoAuth => request
         case BasicAuth(user, password) => request.withAuth(user,password,WSAuthScheme.BASIC)
-        case Token(token) => request.withHeaders("Authorization" -> ("BEARER " + token))       
+        case Token(token) => request.withHeaders("Authorization" -> ("BEARER " + token))
       }
   }   
 }

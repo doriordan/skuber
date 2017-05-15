@@ -2,10 +2,10 @@
 import java.net.URL
 import java.util.Date
 
+import akka.stream.Materializer
+
 import scala.collection.immutable.HashMap
-
 import scala.language.implicitConversions
-
 import scala.concurrent.ExecutionContext
 
 /*
@@ -245,7 +245,7 @@ package object skuber {
   type K8SWatch[O] = skuber.api.Watch[O] 
   type K8SWatchEvent[I <: ObjectResource] = skuber.api.client.WatchEvent[I]
   
-  def k8sInit(implicit executionContext: ExecutionContext)  = skuber.api.client.init
-  def k8sInit(config: skuber.api.Configuration)(implicit executionContext : ExecutionContext) = skuber.api.client.init(config)
+  def k8sInit(implicit executionContext: ExecutionContext, materializer: Materializer)  = skuber.api.client.init
+  def k8sInit(config: skuber.api.Configuration)(implicit executionContext : ExecutionContext, materializer: Materializer) = skuber.api.client.init(config)
       
 }

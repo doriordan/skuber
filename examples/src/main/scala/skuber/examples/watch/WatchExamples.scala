@@ -1,10 +1,11 @@
 package skuber.examples.watch
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
 import skuber.json.format._
-  
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.libs.iteratee.Iteratee
 
 /**
@@ -13,6 +14,8 @@ import play.api.libs.iteratee.Iteratee
 object WatchExamples {
   
   def  watchFrontEndScaling = {
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
      val k8s = k8sInit    
      val frontendFetch = k8s get[ReplicationController] "frontend"
      frontendFetch onSuccess { case frontend =>
@@ -24,6 +27,8 @@ object WatchExamples {
   }
   
   def watchPodPhases = {
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
      val k8s = k8sInit    
      
      // watch from the latest Pod resource version i.e. only future Pod events will be enumerated

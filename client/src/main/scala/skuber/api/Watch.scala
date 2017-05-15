@@ -1,28 +1,26 @@
 package skuber.api
 
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
+import akka.util.ByteString
+import play.api.libs.iteratee.streams.IterateeStreams
 import skuber.ObjectResource
 import skuber.json.format.apiobj.watchEventFormat
-import skuber.api.client.{RequestContext,K8SException, WatchEvent, ObjKind, Status}
+import skuber.api.client.{K8SException, ObjKind, RequestContext, Status, WatchEvent}
 
-import scala.concurrent.{Future,ExecutionContext}
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import play.api.libs.ws.WSRequest
-import play.api.libs.ws.WSClientConfig
-
-import play.api.libs.json.{JsSuccess, JsError, JsObject, JsValue, JsResult, Format}
-import play.api.libs.iteratee.{Concurrent, Iteratee, Enumerator, Enumeratee, Input, Done, Cont}
-import play.extras.iteratees.{CharString, JsonEnumeratees, JsonIteratees, JsonParser, Encoding}
-import play.api.libs.concurrent.Promise
+import scala.concurrent.{ExecutionContext, Future}
+import play.api.libs.ws.StreamedResponse
+import play.api.libs.json.{Format, JsError, JsResult, JsSuccess}
+import play.api.libs.iteratee.{Enumeratee, Enumerator}
+import play.extras.iteratees.{Encoding, JsonIteratees}
 
 import scala.concurrent.duration._
 
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import scala.language.postfixOps
-import play.api.libs.ws.ning._
 
 /**
  * @author David O'Riordan
@@ -30,7 +28,7 @@ import play.api.libs.ws.ning._
  * Based on Play iteratee library + Play extras json iteratees
  */
 object Watch {
-  
+
     val log = LoggerFactory.getLogger("skuber.api")
     def pulseEvent = """{ "pulseEvent" : "" }""".getBytes
     
@@ -38,17 +36,23 @@ object Watch {
         context: RequestContext, 
         name: String,
         sinceResourceVersion: Option[String] = None)
-        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
+        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext, system: ActorSystem) : Watch[WatchEvent[O]] =
     {
+      implicit val materializer = ActorMaterializer()
        if (log.isDebugEnabled) 
          log.debug("[Skuber Watch (" + name + "): creating...")
        val wsReq = context.buildRequest(Some(name), watch=true)(kind).
-                               withRequestTimeout(2147483647)
+                               withRequestTimeout(Duration.Inf)
        val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
-       val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
-       val (responseBytesIteratee, responseBytesEnumerator) = Concurrent.joined[Array[Byte]]
-       
-       watchRequest.get(_ => responseBytesIteratee).flatMap(_.run)
+       val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse wsReq
+
+      val futureResponse: Future[StreamedResponse] = watchRequest.stream()
+
+      val responseBytesEnumerator = IterateeStreams.publisherToEnumerator(IterateeStreams.futureToPublisher(futureResponse.flatMap { res =>
+        res.body.runWith(Sink.fold[Array[Byte], ByteString](Array[Byte]()) { (_, bytes) =>
+          bytes.toArray
+        })
+      }))
        
        eventsEnumerator(name, responseBytesEnumerator)  
     }
@@ -56,19 +60,25 @@ object Watch {
     def eventsOnKind[O <: ObjectResource](
         context: RequestContext, 
         sinceResourceVersion: Option[String] = None)
-        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
+        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext, system: ActorSystem) : Watch[WatchEvent[O]] =
     {
+      implicit val materializer = ActorMaterializer()
         val watchId = "/" + kind.urlPathComponent
         if (log.isDebugEnabled) 
           log.debug("[Skuber Watch (" + watchId + ") : creating...")
         val wsReq = context.buildRequest(None, watch=true)(kind).
-                              withRequestTimeout(2147483647)
+                              withRequestTimeout(Duration.Inf)
                                  
         val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
         val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
-        val (responseBytesIteratee, responseBytesEnumerator) = Concurrent.joined[Array[Byte]]
-       
-        watchRequest.get(_ => responseBytesIteratee).flatMap(_.run)
+      val futureResponse: Future[StreamedResponse] = watchRequest.stream()
+
+
+      val responseBytesEnumerator = IterateeStreams.publisherToEnumerator(IterateeStreams.futureToPublisher(futureResponse.flatMap { res =>
+        res.body.runWith(Sink.fold[Array[Byte], ByteString](Array[Byte]()) { (_, bytes) =>
+          bytes.toArray
+        })
+      }))
        
         eventsEnumerator(watchId, responseBytesEnumerator)  
           
@@ -115,14 +125,14 @@ object Watch {
     def events[O <: ObjectResource](
         k8sContext: RequestContext,
         obj: O)
-        (implicit format: Format[O], kind: ObjKind[O],ec: ExecutionContext) : Watch[WatchEvent[O]] =
+        (implicit format: Format[O], kind: ObjKind[O],ec: ExecutionContext, system: ActorSystem) : Watch[WatchEvent[O]] =
     {
       events(k8sContext, obj.name, Option(obj.metadata.resourceVersion).filter(_.trim.nonEmpty))  
     }
     
     
     
-    def pulse : Watch[Array[Byte]] = {
+    def pulse()(implicit ec: ExecutionContext) : Watch[Array[Byte]] = {
       var terminated = false
       def isTerminated = terminated  
       val pulseEvents = Enumerator.generateM { 
