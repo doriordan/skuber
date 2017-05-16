@@ -8,7 +8,6 @@ val playAhcWS = "com.typesafe.play" %% "play-ahc-ws" % "2.6.0-M5"
 val playAhcWSStandalone = "com.typesafe.play" %% "play-ahc-ws-standalone" % "1.0.0-M6"
 val playIteratees = "com.typesafe.play" %% "play-iteratees" % "2.6.1"
 val playIterateesReactiveStreams = "com.typesafe.play" %% "play-iteratees-reactive-streams" % "2.6.1"
-val asyncHttpClient = "org.asynchttpclient" % "async-http-client" % "2.0.32"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.13.5"
 val specs2 = "org.specs2" %% "specs2-core" % "3.8.9"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
@@ -37,7 +36,10 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(playws,playIteratees,playIterateesReactiveStreams,playIterateesExtra,playWS,playAhcWS,playAhcWSStandalone,asyncHttpClient,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test, mockws % Test, playtest % Test).
+  libraryDependencies ++= Seq(playws, playIteratees, playIterateesReactiveStreams, playIterateesExtra,
+    playWS, playAhcWS, playAhcWSStandalone,
+    snakeYaml, commonsIO,
+    scalaCheck % Test, specs2 % Test, mockws % Test, playtest % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 

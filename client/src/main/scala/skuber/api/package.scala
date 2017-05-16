@@ -1,14 +1,10 @@
 package skuber.api
 
 import java.net.URL
-import java.util.Base64
-import javax.net.ssl.{KeyManagerFactory, TrustManager, TrustManagerFactory}
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import com.typesafe.sslconfig.ssl.{ConfigSSLContextBuilder, DefaultKeyManagerFactoryWrapper, DefaultTrustManagerFactoryWrapper, KeyManagerConfig, KeyStoreConfig, SSLConfigSettings, SSLDebugConfig, SimpleSSLContextBuilder, TrustManagerConfig, TrustStoreConfig}
-import io.netty.handler.ssl.{ClientAuth, JdkSslContext, SslContext, SslContextBuilder}
-import org.asynchttpclient.DefaultAsyncHttpClientConfig
+import com.typesafe.sslconfig.ssl.{KeyManagerConfig, KeyStoreConfig, SSLConfigSettings, TrustManagerConfig, TrustStoreConfig}
 import org.slf4j.LoggerFactory
 import play.api.libs.json._
 import play.api.libs.ws._
@@ -459,7 +455,8 @@ package object client {
         }
       } else KeyStoreConfig(None, None)
 
-      val pkcs12 = KeyStoreConfig(None, TLS.getPKCS12(k8sContext)).withPassword(Some("changeit"))
+      val password: Option[String] = Some("changeit")
+      val pkcs12 = KeyStoreConfig(None, TLS.getPKCS12(k8sContext, password)).withPassword(password)
 
       val keyManagerConfig = KeyManagerConfig()
         .withKeyStoreConfigs(immutable.Seq(pkcs12))

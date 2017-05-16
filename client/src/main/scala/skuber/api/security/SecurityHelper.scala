@@ -92,6 +92,9 @@ object SecurityHelper {
     keyStore
   }
 
+  /**
+    * Workaround for not being able to pass KeyStore instances to ssl-config
+    */
   def writePKCS12(user: String, clientCertificate: X509Certificate, clientPrivateKey: PrivateKey, password: Option[String] = None) : Option[String] = {
     Try {
       val keyStore = createKeyStore(user, clientCertificate, clientPrivateKey, password)
