@@ -15,7 +15,6 @@ val commonsIO = "commons-io" % "commons-io" % "2.4"
 val playIterateesExtra = "com.typesafe.play.extras" % "iteratees-extras_2.11" % "1.6.0"
 val mockws = "de.leanovate.play-mockws" %% "play-mockws" % "2.6.0-M1"
 
-
 // Akka is required by the examples
 val akka ="com.typesafe.akka" %% "akka-actor" % "2.5.1"
 
@@ -40,7 +39,7 @@ lazy val skuberSettings = Seq(
     playWS, playAhcWS, playAhcWSStandalone,
     snakeYaml, commonsIO,
     scalaCheck % Test, specs2 % Test, mockws % Test, playtest % Test).
-				map(_.exclude("commons-logging","commons-logging"))
+				map(_.exclude("commons-logging","commons-logging").exclude("org.slf4j", "slf4j-api"))
 )
 
 lazy val examplesSettings = Seq(
