@@ -6,7 +6,8 @@ import java.nio.file.{Path,Paths,Files}
 import java.util.Base64
 import java.security.{KeyStore, KeyFactory, PrivateKey }
 import java.security.cert.{Certificate, X509Certificate, CertificateFactory}
-import java.security.spec.{PKCS8EncodedKeySpec, RSAPrivateKeySpec};
+import java.security.spec.{PKCS8EncodedKeySpec, RSAPrivateKeySpec}
+import scala.collection.JavaConverters._
 
 import skuber.api.client.PathOrData
 
@@ -16,12 +17,14 @@ import skuber.api.client.PathOrData
 object SecurityHelper {
     
   /*
-   * Read an X509 client certificate from a given input stream
+   * Read all X509 client certificates from a given input stream
    */
-  def readCertificate(is: InputStream) : X509Certificate = 
-    CertificateFactory.getInstance("X509").generateCertificate(is).asInstanceOf[X509Certificate]
-    
- 
+  def readCertificates(is: InputStream) : List[X509Certificate] =
+    CertificateFactory.getInstance("X509").generateCertificates(is).asScala.collect {
+      case cert: X509Certificate => cert
+      case _ => throw new Exception("Not X509 cert?")
+    }.toList
+
   private def createInputStreamForPathOrData(target: PathOrData) : InputStream = {
     target match {
       case Right(data) => new ByteArrayInputStream(data)
@@ -33,22 +36,24 @@ object SecurityHelper {
   }
   
   /*
-   * Get a certificate given the file path or embedded data for it  
+   * Get certificates given the file path or embedded data for it
    */
-  def getCertificate(from: PathOrData) = {
+  def getCertificates(from: PathOrData): List[X509Certificate] = {
     val is = createInputStreamForPathOrData(from)
-    readCertificate(is)
+    readCertificates(is)
   }
   
   /*
-   * Create a new trust store that trusts the specified Kubernetes API server certificate 
+   * Create a new trust store that trusts the specified Kubernetes API server certificates
    */
-  def createTrustStore(apiServerCert: X509Certificate) : KeyStore = {
+  def createTrustStore(apiServerCerts: List[X509Certificate]) : KeyStore = {
     val trustStore = KeyStore.getInstance("JKS")
     trustStore.load(null) // create an empty trust store
-    val alias = apiServerCert.getSubjectX500Principal.getName
-    trustStore.setCertificateEntry(alias, apiServerCert) 
-    trustStore
+    apiServerCerts.foldLeft(trustStore){ (trustStore, apiServerCert) =>
+      val alias = apiServerCert.getSubjectX500Principal.getName
+      trustStore.setCertificateEntry(alias, apiServerCert)
+      trustStore
+    }
   }
   
   /*
@@ -80,13 +85,13 @@ object SecurityHelper {
   }
   
   /*
-   * Create a new Java keystore from a client certificate and associated private key, with an optional password
+   * Create a new Java keystore from client certificates and associated private key, with an optional password
    */
-  def createKeyStore(user: String, clientCertificate: X509Certificate, clientPrivateKey: PrivateKey, password: Option[String] = None) : KeyStore = {
+  def createKeyStore(user: String, clientCertificates: List[X509Certificate], clientPrivateKey: PrivateKey, password: Option[String] = None) : KeyStore = {
     val keyStore = KeyStore.getInstance("JKS")
     val keyStorePassword = password.orElse(Some("changeit")).get.toCharArray
     keyStore.load(null, keyStorePassword)
-    keyStore.setKeyEntry(user, clientPrivateKey, keyStorePassword, Array(clientCertificate))   
+    keyStore.setKeyEntry(user, clientPrivateKey, keyStorePassword, clientCertificates.toArray)
     keyStore
   } 
   

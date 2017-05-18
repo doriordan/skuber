@@ -60,8 +60,8 @@ object TLS {
        Some(skipTLSTrustManagers)
      else
        serverCertConfig map { certPathOrData =>
-           val clusterServerCert = SecurityHelper.getCertificate(certPathOrData)
-           val trustStore = SecurityHelper.createTrustStore(clusterServerCert)
+           val clusterServerCerts = SecurityHelper.getCertificates(certPathOrData)
+           val trustStore = SecurityHelper.createTrustStore(clusterServerCerts)
            val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
            tmf.init(trustStore)
            tmf.getTrustManagers
@@ -69,9 +69,9 @@ object TLS {
   
    private def getKeyManagers(user: Option[String], clientCert: Option[PathOrData], clientKey: Option[PathOrData]) : Option[Array[KeyManager]] = 
      if (clientCert.isDefined && clientKey.isDefined) {
-       val cert = SecurityHelper.getCertificate(clientCert.get)
+       val certs = SecurityHelper.getCertificates(clientCert.get)
        val key = SecurityHelper.getPrivateKey(clientKey.get)
-       val keyStore = SecurityHelper.createKeyStore(user.getOrElse("skuber"), cert, key) 
+       val keyStore = SecurityHelper.createKeyStore(user.getOrElse("skuber"), certs, key)
        val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
        kmf.init(keyStore, "changeit".toCharArray)
        Some(kmf.getKeyManagers)
