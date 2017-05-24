@@ -13,6 +13,7 @@ import skuber.json.format._
 import skuber.json.format.apiobj._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /**
  * @author David O'Riordan
@@ -366,25 +367,32 @@ package object client {
   }
 
   // check for non-OK status, throwing a K8SException if appropriate
-  def checkResponseStatus(response: WSResponse) : Unit ={
+  def checkResponseStatus(response: WSResponse) : Unit = {
     response.status match {
       case code if code < 300 => // ok
       case code => {
         // a non-success or unexpected status returned - we should normally have a Status in the response body
-        val status=response.json.validate[Status]
-        status match {
+        Try(response.json.validate[Status]).map {
           case JsSuccess(status, path) =>
             if (log.isWarnEnabled)
               log.warn("[Skuber Response: non-ok status returned = " + status)
-              throw new K8SException(status)
+            throw new K8SException(status)
           case JsError(e) => // unexpected response, so generate a Status
-            val status=Status(message=Some("Unexpected response body for non-OK status "),
-                              reason=Some(response.statusText),
-                              details=Some(response.body),
-                              code=Some(response.status))
+            val status = Status(message = Some("Unexpected response body for non-OK status"),
+                                reason = Some(response.statusText),
+                                details = Some(response.body),
+                                code = Some(response.status))
             if (log.isErrorEnabled)
               log.error("[Skuber Response: status code = " + code + ", error parsing body = " + e)
             throw new K8SException(status)
+        }.getOrElse {
+          val status = Status(message = Some("Invalid response body for non-OK status"),
+                              reason = Some(response.statusText),
+                              details = Some(response.body),
+                              code = Some(response.status))
+          if (log.isErrorEnabled)
+            log.error("[Skuber Response: status code = " + code + ", invalid body")
+          throw new K8SException(status)
         }
       }
     }
