@@ -214,7 +214,9 @@ import Pod._
                     ]
                   },
                   "initialDelaySeconds": 30,
-                  "timeoutSeconds": 5
+                  "timeoutSeconds": 5,
+                  "successThreshold": 1,
+                  "failureThreshold": 3
                 },
                 "terminationMessagePath": "/dev/termination-log",
                 "imagePullPolicy": "IfNotPresent"
@@ -320,6 +322,8 @@ import Pod._
       }
       probe.initialDelaySeconds mustEqual 30
       probe.timeoutSeconds mustEqual 5
+      probe.failureThreshold mustEqual 3
+      probe.successThreshold mustEqual 1
       
       val ports = cntrs(2).ports // skyDNS ports
       ports.length mustEqual 2
