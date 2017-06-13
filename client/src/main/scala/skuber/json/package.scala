@@ -180,10 +180,10 @@ package object format {
   }
   
   implicit val envVarValueReads: Reads[EnvVar.Value] = (
-      (JsPath \ "value").readNullable[String].map(value => EnvVar.StringValue(value.getOrElse(""))) |
       (JsPath \ "valueFrom" \ "fieldRef").read[EnvVar.FieldRef].map(x => x: EnvVar.Value) |
       (JsPath \ "valueFrom" \ "configMapKeyRef").read[EnvVar.ConfigMapKeyRef].map(x => x: EnvVar.Value) |
-      (JsPath \ "valueFrom" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value)
+      (JsPath \ "valueFrom" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value) |
+      (JsPath \ "value").readNullable[String].map(value => EnvVar.StringValue(value.getOrElse("")))
   )
   
    implicit val envVarWrites : Writes[EnvVar] = (
@@ -312,10 +312,10 @@ package object format {
   }  
   implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
   
-  implicit val hostPathFormat = Json.format[HostPath]  
+  implicit val hostPathFormat = Json.format[HostPath]
+  implicit val keyToPathFormat = Json.format[KeyToPath]
   implicit val secretFormat = Json.format[Secret]
   implicit val gitFormat = Json.format[GitRepo]
-  implicit val keyToPathFormat = Json.format[KeyToPath]
 
   implicit val configMapFormat: Format[ConfigMapVolumeSource] = (
     (JsPath \ "name").format[String] and
