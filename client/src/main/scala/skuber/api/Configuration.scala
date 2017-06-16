@@ -2,13 +2,13 @@ package skuber.api
 
 import client._
 import skuber.Namespace
-import scala.util.{Try,Success,Failure}
+
+import scala.util.{Failure, Success, Try}
 import java.io.{File, FileInputStream}
 
 import scala.collection.JavaConverters._
 import org.yaml.snakeyaml.Yaml
-
-import java.util.Base64
+import java.util.{Base64, Collections}
 
 /**
  * @author David O'Riordan
@@ -100,7 +100,13 @@ object Configuration {
         def toK8SAuthInfo(userConfig:YamlMap):AuthInfo = AuthInfo(
           clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data"),
           clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data"),
-          jwt = optionalValueAt(child(child(userConfig, "auth-provider"),"config"), "id-token"),
+          jwt = userConfig.containsKey("auth-provider") match {
+            case true => val authProvider = child(userConfig,"auth-provider"); authProvider.containsKey("config") match {
+              case true => val config = child(authProvider,"config"); optionalValueAt(config,"id-token")
+              case false => None
+            }
+            case false => None
+          },
           token = optionalValueAt(userConfig, "token"),
           userName = optionalValueAt(userConfig, "username"),
           password = optionalValueAt(userConfig, "password"))

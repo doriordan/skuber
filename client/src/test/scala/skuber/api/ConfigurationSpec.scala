@@ -50,6 +50,18 @@ users:
   user:
     client-certificate: path/to/my/client/cert
     client-key: path/to/my/client/key
+- name: jwt-user
+  user:
+    auth-provider:
+      config:
+        client-id: tectonic
+        client-secret: secret
+        extra-scopes: groups
+        id-token: jwt-token
+        idp-certificate-authority-data: data
+        idp-issuer-url: https://xyz/identity
+        refresh-token: refresh
+      name: oidc
 """
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
     val k8sConfig = K8SConfiguration.parseKubeconfigStream(is)
@@ -63,8 +75,9 @@ users:
     val clusters=Map("cow-cluster" -> cowCluster,"horse-cluster"->horseCluster,"pig-cluster"->pigCluster)
     
     val blueUser=K8SAuthInfo(token=Some("blue-token"))
-    val greenUser=K8SAuthInfo(clientCertificate=Some(Left("path/to/my/client/cert")), clientKey=Some(Left("path/to/my/client/key")))    
-    val users=Map("blue-user"->blueUser,"green-user"->greenUser)
+    val greenUser=K8SAuthInfo(clientCertificate=Some(Left("path/to/my/client/cert")), clientKey=Some(Left("path/to/my/client/key")))
+    val jwtUser=K8SAuthInfo(jwt = Some("jwt-token"))
+    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser)
 
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
     val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))
