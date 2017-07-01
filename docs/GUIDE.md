@@ -14,12 +14,12 @@ or just import the specific classes you need.
 
 The model can be divided into categores which correspond to those in the Kubernetes API:
 
-- [Object kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
+- [Object kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
 Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`,`Deployment`,`HorizontalPodAutoScaler`,and `Ingress`.   
 
-- [List kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. There are list kinds for each object kind e.g. `PodList`,`EventList`.   
+- [List kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#spec-and-status): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. There are list kinds for each object kind e.g. `PodList`,`EventList`.   
 
-- [Simple kinds](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#lists-and-simple-kinds) 
+- [Simple kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#spec-and-status) 
 
 ### Fluent API
 
@@ -143,7 +143,7 @@ Note: There is no support in this alpha release for the Kubernetes API [PATCH op
 
 ### Error Handling
 
-Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
+Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
 
 This exception can be handled in the appropriate manner for your use case by using the standard Scala Future failure handling mechanisms. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
 
@@ -233,15 +233,15 @@ The watch can be demonstrated by calling `watchPodPhases` to start watching all 
 
 Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored - this is probably what you want. 
 
-### Extensions
+### API Groups
 
-Client support for Kubernetes v1.1 and later [Extensions Group API](http://kubernetes.io/docs/api/#api-groups) features is enabled by adding a couple of import statements to the standard Skuber imports:
+Kubernetes supports a core API group and some named API groups. The standard Skuber import statements above support the core group. Client support for some [non-core API group](http://kubernetes.io/docs/api/#api-groups) features can be enabled by adding a couple of import statements to the standard Skuber imports e.g. 
 
     // standard Skuber imports to support the "core API" group
     import skuber._
     import skuber.json.format._
 
-    // additional imports to support the Extensions API group
+    // additional imports to support the "extensions" API group
     import skuber.ext._
     import skuber.json.ext.format._
      
