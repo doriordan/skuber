@@ -2,16 +2,19 @@ package skuber.api
 
 import java.net.URL
 
-import com.ning.http.client.AsyncHttpClientConfig
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import com.typesafe.sslconfig.ssl.{KeyManagerConfig, KeyStoreConfig, SSLConfigSettings, TrustManagerConfig, TrustStoreConfig}
 import org.slf4j.LoggerFactory
 import play.api.libs.json._
 import play.api.libs.ws._
-import play.api.libs.ws.ning._
+import play.api.libs.ws.ahc._
 import skuber._
-import skuber.api.security.{HTTPRequestAuth, TLS}
+import skuber.api.security.{HTTPRequestAuth, SecurityHelper, TLS}
 import skuber.json.format._
 import skuber.json.format.apiobj._
 
+import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -72,7 +75,7 @@ package object client {
    }
 
 
-   class RequestContext(createRequestFromUrl: String => WSRequest,
+   class RequestContext(createRequestFromUrl: String => StandaloneWSRequest,
                         clusterServer: String,
                         requestAuth: HTTPRequestAuth.RequestAuth,
                         val namespaceName: String,
@@ -85,7 +88,7 @@ package object client {
        watch: Boolean = false,
        forExtensionsAPI: Option[Boolean] = None,
        namespace: String = namespaceName
-       )(implicit kind: Kind[T]) : WSRequest =
+       )(implicit kind: Kind[T]) : StandaloneWSRequest =
      {
        val nsPathComponent =  Some("namespaces/" + namespace)
        val kindComponent = kind.urlPathComponent
@@ -123,7 +126,7 @@ package object client {
         HTTPRequestAuth.addAuth(req, requestAuth)
      }
 
-     def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None, namespace: String = namespaceName) = {
+     def logRequest(request: StandaloneWSRequest, objName: String, json: Option[JsValue] = None, namespace: String = namespaceName) = {
        if (log.isInfoEnabled()) {
          val info = "method=" + request.method + ",url=" + request.url
          val debugInfo =
@@ -226,7 +229,7 @@ package object client {
        _get[O](name, namespace) map toKubernetesResponse[O]
      }
 
-     private def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(implicit fmt: Format[O], kind: ObjKind[O]): Future[WSResponse] = {
+     private def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(implicit fmt: Format[O], kind: ObjKind[O]): Future[StandaloneWSResponse] = {
        val wsReq = buildRequest(Some(name),namespace=namespace)(kind)
        logRequest(wsReq, name, None,namespace=namespace)
        wsReq.get
@@ -249,13 +252,13 @@ package object client {
 
      import play.api.libs.iteratee.Enumerator
 
-     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)       
+     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O], system: ActorSystem) : Watch[WatchEvent[O]] = Watch.events(this, obj)
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
-                                    (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
+                                    (implicit objfmt: Format[O], kind: ObjKind[O], system: ActorSystem) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
 
      // watch events on all objects of specified kind in current namespace
-     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O])  =
+     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O], system: ActorSystem)  =
              Watch.eventsOnKind[O](this,sinceResourceVersion)
 
 
@@ -344,7 +347,7 @@ package object client {
 
   class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
 
-  def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
+  def toKubernetesResponse[T](response: StandaloneWSResponse)(implicit reader: Reads[T]) : T = {
     checkResponseStatus(response)
     val result = response.json.validate[T]
     result recover { case errors =>
@@ -360,13 +363,13 @@ package object client {
     result.get
   }
 
-  def toKubernetesResponseOption[T](response: WSResponse)(implicit reader: Reads[T]) : Option[T] = {
+  def toKubernetesResponseOption[T](response: StandaloneWSResponse)(implicit reader: Reads[T]) : Option[T] = {
     checkResponseStatus(response)
     response.json.validate[T].asOpt
   }
 
   // check for non-OK status, throwing a K8SException if appropriate
-  def checkResponseStatus(response: WSResponse) : Unit ={
+  def checkResponseStatus(response: StandaloneWSResponse) : Unit ={
     response.status match {
       case code if code < 300 => // ok
       case code => {
@@ -402,7 +405,7 @@ package object client {
     Configuration().useContext(context)
   }
 
-  def init(implicit executionContext : ExecutionContext): RequestContext = {
+  def init(implicit executionContext : ExecutionContext, materializer: Materializer): RequestContext = {
     // Initialising without explicit Configuration.
     // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
     // If SKUBERCONFIG value matches:
@@ -430,21 +433,42 @@ package object client {
     init(config)
   }
 
-  def init(config: Configuration)(implicit executionContext : ExecutionContext): RequestContext = init(config.currentContext)
+  def init(config: Configuration)(implicit executionContext : ExecutionContext, materializer: Materializer): RequestContext = init(config.currentContext)
 
-  def init(k8sContext: Context)(implicit executionContext : ExecutionContext): RequestContext = {
-    val sslContext = TLS.establishSSLContext(k8sContext)
+  def init(k8sContext: Context)(implicit executionContext : ExecutionContext, materializer: Materializer): RequestContext = {
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
-    //      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
-    //      val httpClient = new NingWSClient(wsConfig)
-    val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
-    sslContext foreach { ctx =>
-      httpClientConfigBuilder.setSSLContext(ctx)
-      // following is needed to prevent SSLv2Hello being used in SSL handshake - which Kubernetes doesn't like
-      httpClientConfigBuilder.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
+
+    val ahcWSClientConfig = TLS.establishSSLContext(k8sContext).fold(AhcWSClientConfig()) { ctx =>
+      val trustStoreConfig: Option[TrustStoreConfig] = k8sContext.cluster.certificateAuthority.map {
+          case Right(d) => TrustStoreConfig(Some(d.toString), None)
+          case Left(p) => TrustStoreConfig(None, Some(p))
+      }
+
+      val trustManagerConfig = TrustManagerConfig()
+        .withTrustStoreConfigs(trustStoreConfig.fold(immutable.Seq[TrustStoreConfig]())
+        ((t: TrustStoreConfig) => immutable.Seq(t.withStoreType("PEM"))))
+
+      val cert = if (k8sContext.authInfo.clientCertificate.isDefined) {
+        k8sContext.authInfo.clientCertificate.get match {
+          case Right(d)  => KeyStoreConfig(Some(d.toString), None).withStoreType("PEM")
+          case Left(p) => KeyStoreConfig(None, Some(p)).withStoreType("PEM")
+        }
+      } else KeyStoreConfig(None, None)
+
+      val password: Option[String] = Some("changeit")
+      val pkcs12 = KeyStoreConfig(None, TLS.getPKCS12(k8sContext, password)).withPassword(password)
+
+      val keyManagerConfig = KeyManagerConfig()
+        .withKeyStoreConfigs(immutable.Seq(pkcs12))
+
+      val a = SSLConfigSettings().withProtocol("TLS")
+        .withTrustManagerConfig(trustManagerConfig)
+        .withKeyManagerConfig(keyManagerConfig)
+
+      AhcWSClientConfig(wsClientConfig = WSClientConfig(ssl = a))
     }
-    val httpClientConfig = httpClientConfigBuilder.build
-    val theHttpClient = new NingWSClient(httpClientConfig)
+
+    val theHttpClient = StandaloneAhcWSClient(ahcWSClientConfig)
 
     val theNamespaceName = k8sContext.namespace.name match {
       case "" => "default"

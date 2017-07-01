@@ -1,5 +1,7 @@
 package skuber.examples.fluent
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,6 +18,9 @@ import skuber.json.format._
  * 
  */
 object FluentExamples extends App {
+
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
   
   val image = "nginx"
   val namePrefix = "nginx"
