@@ -30,7 +30,7 @@ will instruct the client to get its configuration for a Kubeconfig file in the d
 
 The use of the kubeconfig format means that `kubectl` can be used to modify configuration settings for Skuber clients, without requiring direct editing of the configuration file - and this is the recommended approach.
 
-Kubeconfig files can contain multiple contexts, each encapsulating the full details required to configure a client - Skuber always configures itself (when initialised by a `k8sInit` call) from the [current context](http://kubernetes.io/docs/user-guide/kubectl/kubectl_config_use-context/).
+Kubeconfig files can contain multiple contexts, each encapsulating the full details required to configure a client - Skuber always configures itself (when initialised by a `k8sInit` call) from the [current context](https://kubernetes.io/docs/user-guide/kubectl/v1.6/#-em-current-context-em-).
 
 Because all of the above configuration items in the configuration file are the same as used by other Kubernetes clients such as kubectl, you (or rather the organization deploying the Skuber application) can share configuration with such other clients or set up separate configuration files for applications depending on organizational security policies, deployment processes and other requirements. 
 
@@ -44,9 +44,9 @@ When using kubeconfig files, Skuber supports standard security configuration as 
 
 If the current context specifies a **TLS** connection (i.e. a `https://` URL) to the cluster server, Skuber will utilise the configured **certificate authority** to verify the server (unless the `insecure-skip-tls-verify` flag is set to true, in which case Skuber will trust the server without verification). 
 
-The above cluster configuration details can be set using [this kubectl command](http://kubernetes.io/docs/user-guide/kubectl/kubectl_config_set-cluster/).
+The above cluster configuration details can be set using [this kubectl command](https://kubernetes.io/docs/user-guide/kubectl/v1.6/#-em-set-cluster-em-).
 
-For client authentication **client certificates** (cert and private key pairs) can be specified for the case where TLS is in use. In addition to client certificates Skuber will use any **bearer token** or **basic authentication** credentials specified. Token or basic auth can be configured as an alternative to or in conjunction with client certificates. These client credentials can be set using [this kubectl command](http://kubernetes.io/docs/user-guide/kubectl/kubectl_config_set-credentials/).
+For client authentication **client certificates** (cert and private key pairs) can be specified for the case where TLS is in use. In addition to client certificates Skuber will use any **bearer token** or **basic authentication** credentials specified. Token or basic auth can be configured as an alternative to or in conjunction with client certificates. These client credentials can be set using [this kubectl command](https://kubernetes.io/docs/user-guide/kubectl/v1.6/#-em-set-credentials-em-).
 
 *(Skuber loads configured server and client certificates / keys directly from the kubeconfig file (or from another location in the file system in the case where the configuration specifies a path rather than embedded data). This means there is no need to store them in the Java trust or key stores.)*
 
