@@ -430,11 +430,28 @@ package object client {
     init(config)
   }
 
-  def init(config: Configuration)(implicit executionContext : ExecutionContext): RequestContext = init(config.currentContext)
+  def init(config: Configuration)(implicit executionContext : ExecutionContext): RequestContext = init(config.currentContext, createDefaultHttpClient(config.currentContext))
 
-  def init(k8sContext: Context)(implicit executionContext : ExecutionContext): RequestContext = {
-    val sslContext = TLS.establishSSLContext(k8sContext)
+  def init(config: Configuration, theHttpClient: NingWSClient)(implicit executionContext : ExecutionContext): RequestContext = init(config.currentContext, theHttpClient)
+
+  def init(k8sContext: Context)(implicit executionContext: ExecutionContext): RequestContext =
+    init(k8sContext, createDefaultHttpClient(k8sContext))
+
+  def init(k8sContext: Context, theHttpClient: NingWSClient)(implicit executionContext : ExecutionContext): RequestContext = {
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
+
+    val theNamespaceName = k8sContext.namespace.name match {
+      case "" => "default"
+      case name => name
+    }
+
+    val requestMaker = (url:String) => theHttpClient.url(url)
+    val close: () => Unit =  () => theHttpClient.close()
+    new RequestContext(requestMaker, k8sContext.cluster.server, theRequestAuth, theNamespaceName, close)
+  }
+
+  def createDefaultHttpClient(k8sContext: Context): NingWSClient= {
+    val sslContext = TLS.establishSSLContext(k8sContext)
     //      val wsConfig = new NingAsyncHttpClientConfigBuilder(WSClientConfig()).build
     //      val httpClient = new NingWSClient(wsConfig)
     val httpClientConfigBuilder = new AsyncHttpClientConfig.Builder
@@ -445,14 +462,7 @@ package object client {
     }
     val httpClientConfig = httpClientConfigBuilder.build
     val theHttpClient = new NingWSClient(httpClientConfig)
-
-    val theNamespaceName = k8sContext.namespace.name match {
-      case "" => "default"
-      case name => name
-    }
-    val requestMaker = (url:String) => theHttpClient.url(url)
-    val close: () => Unit =  () => theHttpClient.close()
-    new RequestContext(requestMaker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, close)
+    theHttpClient
   }
 
 
