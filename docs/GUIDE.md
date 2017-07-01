@@ -194,7 +194,7 @@ Kubernetes supports the ability for API clients to watch events on specified res
       // ...
     }
 
-To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](http://kubernetes.io/docs/user-guide/resizing-a-replication-controller/) commands to set different replica counts on the frontend - for example:
+To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](https://kubernetes.io/docs/tutorials/kubernetes-basics/scale-interactive/) commands to set different replica counts on the frontend - for example:
 
      kubectl scale --replicas=1 rc frontend
      
