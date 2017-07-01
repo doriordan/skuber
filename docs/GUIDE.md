@@ -139,7 +139,7 @@ Delete a Kubernetes object:
     val rmFut = k8s delete[ReplicationController] "guestbook"
     rmFut onSuccess { case _ => println("Controller removed") }
 
-Note: There is no support in this alpha release for the Kubernetes API [PATCH operations](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/api-conventions.md#patch-operations)
+Note: There is no support in this alpha release for the Kubernetes API [PATCH operations](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#patch-operations)
 
 ### Error Handling
 
