@@ -318,7 +318,8 @@ package object format {
   implicit val keyToPathFormat = Json.format[KeyToPath]
 
   implicit val configMapFormat: Format[ConfigMapVolumeSource] = (
-    (JsPath \ "name").format[String] and
+      (JsPath \ "defaultMode").formatMaybeEmptyInt() and
+      (JsPath \ "name").format[String] and
       (JsPath \ "items").formatMaybeEmptyList[KeyToPath]
     )(ConfigMapVolumeSource.apply _, unlift(ConfigMapVolumeSource.unapply))
 
