@@ -1,26 +1,22 @@
 package skuber.json
 
-import org.specs2.mutable.Specification // for unit-style testing
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
-
-import scala.math.BigInt
-
-import skuber._
-import format._
-
+import org.specs2.execute.{Failure, Result}
+import org.specs2.mutable.Specification
 import play.api.libs.json._
-
+import skuber._
+import skuber.json.format._
 
 /**
  * @author David O'Riordan
  */
 class VolumeReadWriteSpec extends Specification {
   "This is a unit specification for the skuber json readers and writers for types that have multiple choices e.g. Volumes have multiple choices of Source type.\n ".txt 
-  
+
+  import Volume._
+
   // Volume reader and writer
   "A Volume spec can be symmetrically written to json and the same value read back in\n" >> {
-    "this can be done for the an emptydir type source spec" >> {
+    "this can be done for the emptydir type source spec" >> {
       val edVol = Volume("myVol", Volume.EmptyDir())
       val myVolJson = Json.toJson(edVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
@@ -30,7 +26,8 @@ class VolumeReadWriteSpec extends Specification {
         case _ => Failure("not an emptyDir!")
       }
       readVol.source mustEqual Volume.EmptyDir()
-    }    
+    }
+
     "this can be done for the a hostpath type source" >> {
       val hpVol = Volume("myVol", Volume.HostPath("myHostPath"))
       val myVolJson = Json.toJson(hpVol)
@@ -41,7 +38,8 @@ class VolumeReadWriteSpec extends Specification {
         case _ => Failure("not a hostpath!")
       }
       readVol.source mustEqual Volume.HostPath("myHostPath")
-    }   
+    }
+
     "this can be done for the a secret type source spec" >> {
       val scVol = Volume("myVol", Volume.Secret("mySecretName"))
       val myVolJson = Json.toJson(scVol)
@@ -52,7 +50,8 @@ class VolumeReadWriteSpec extends Specification {
         case _ => Failure("not a secret!")
       }
       readVol.source mustEqual Volume.Secret("mySecretName")
-    }    
+    }
+
     "this can be done for the a git repo source spec" >> {
       val gitVol = Volume("myVol", Volume.GitRepo("git://host/mygitrepo"))
       val myVolJson = Json.toJson(gitVol)
@@ -75,7 +74,20 @@ class VolumeReadWriteSpec extends Specification {
         case _ => Failure("not a git repo!") 
       }
       readVol2.source mustEqual Volume.GitRepo("git://host/mygitrepo2",Some("abdcef457677"))
-    }    
+    }
+
+    "this can be done for the DownwardAPIVolumeSource spec" >> {
+      val objectFieldSelector = ObjectFieldSelector("v1", "/mnt/api")
+      val resourceFieldSelector = ResourceFieldSelector(Option("container"), Option(Resource.Quantity("1")), "resouce")
+      val downwardApiVolumeFile1 = DownwardApiVolumeFile(objectFieldSelector, None, "/mnt", Option(resourceFieldSelector))
+      val volume = Volume("myVol", DownwardApiVolumeSource(Option(644), List(downwardApiVolumeFile1)))
+
+      val volumeJson = Json.toJson(volume)
+      val readVolume = Json.fromJson[Volume](volumeJson).get
+
+      readVolume mustEqual volume
+    }
+
     "this can be done for the a GCE Persistent Disk source spec" >> {
       val gceVol = Volume("myVol", Volume.GCEPersistentDisk("pd1","ext4",3))
       val myVolJson = Json.toJson(gceVol)
@@ -104,7 +116,8 @@ class VolumeReadWriteSpec extends Specification {
         case _ => Failure("not a GCE disk!")
       }   
       readVol2.source mustEqual Volume.GCEPersistentDisk("pd1","ext4",0, true)
-    }    
+    }
+
     "this can be done for the a AWS EBS source spec" >> {
       val awsVol = Volume("myVol", Volume.AWSElasticBlockStore("vol1","ext4",3))
       val myVolJson = Json.toJson(awsVol)
@@ -133,7 +146,8 @@ class VolumeReadWriteSpec extends Specification {
         case _ => Failure("not an AWS EBS disk!")
       }   
       readVol2.source mustEqual Volume.AWSElasticBlockStore("vol2","ext4",0, true)
-    } 
+    }
+
     "this can be done for the a serialised RDB source spec" >> {
       val monitors = List(
                     "10.16.154.78:6789",
@@ -156,24 +170,25 @@ class VolumeReadWriteSpec extends Specification {
       }
       readVol.name mustEqual "rbdpd"
     }
+
     "a RDB volume spec can be deserialised straight from a JSON string" >> {
       val jsVal = Json.parse("""
         {
-                "name": "rbdpd",
-                "rbd": {
-                    "monitors": [
-                    "10.16.154.78:6789",
-                    "10.16.154.82:6789",
-                    "10.16.154.83:6789"
-                    ],
-                    "pool": "kube",
-                    "image": "foo",
-                    "user": "admin",
-                    "secretRef": {
-                        "name": "ceph-secret"
-                     },
-                    "fsType": "ext4"
-                }
+            "name": "rbdpd",
+            "rbd": {
+                "monitors": [
+                "10.16.154.78:6789",
+                "10.16.154.82:6789",
+                "10.16.154.83:6789"
+                ],
+                "pool": "kube",
+                "image": "foo",
+                "user": "admin",
+                "secretRef": {
+                    "name": "ceph-secret"
+                 },
+                "fsType": "ext4"
+            }
          }
       """)
       val res = Json.fromJson[Volume](jsVal)
@@ -192,7 +207,8 @@ class VolumeReadWriteSpec extends Specification {
           case JsError(e) => Failure(e.toString)
       }   
       ret
-    } 
+    }
+
     "an NFS volume spec can be written and read back in" >> {
       val nfsVol = Volume("myVol", Volume.NFS("myServer", "/usr/mypath"))
       val myVolJson = Json.toJson(nfsVol)
@@ -207,6 +223,7 @@ class VolumeReadWriteSpec extends Specification {
       }
       ret
     }
+
     "a Glusterfs volume spec can be written and read back in" >> {
       val gfsVol = Volume("myVol", Volume.Glusterfs("myEndpointsName", "/usr/mypath"))
       val myVolJson = Json.toJson(gfsVol)
