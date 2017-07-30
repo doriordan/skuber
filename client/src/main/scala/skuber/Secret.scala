@@ -22,3 +22,17 @@ case class Secret(
       this.copy(data = data + (key -> bytes))
 } 
 
+object Secret {
+
+  val specification=CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(
+      plural="secrets",
+      singular="secret",
+      kind="Secret",
+      shortNames=Nil
+    )
+  )
+  implicit val secDef = new ResourceDefinition[Secret] { def spec=specification }
+  implicit val secListDef = new ResourceDefinition[SecretList] { def spec=specification }
+}

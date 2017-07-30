@@ -7,8 +7,8 @@ import java.util.Date
  */
 case class Event(
   	val kind: String ="Event",
-  	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
+    override val apiVersion: String = v1,
     involvedObject: ObjectReference,
     reason: Option[String] = None,
     message: Option[String] = None,
@@ -19,5 +19,18 @@ case class Event(
   extends ObjectResource
 
 object Event {
+
+  val specification=CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(
+      plural="events",
+      singular="event",
+      kind="Event",
+      shortNames=List("ev")
+    )
+  )
+  implicit val evDef = new ResourceDefinition[Event] { def spec=specification }
+  implicit val evListDef = new ResourceDefinition[EventList] { def spec=specification }
+
   case class Source(component: Option[String] = None, host: Option[String] = None)
 }

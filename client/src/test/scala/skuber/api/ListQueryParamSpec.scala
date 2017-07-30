@@ -60,7 +60,7 @@ class ListQueryParamSpec extends Specification {
     val ws = MockWS {
       case (GET,"http://server/api/v1/namespaces/default/pods") => Action{request =>
         request.queryString.get("labelSelector") match {
-          case None => Ok(Json.toJson(PodList()))
+          case None => Ok(Json.toJson(PodList(List())))
           case _ => BadRequest("test not written for this")
         }
       }

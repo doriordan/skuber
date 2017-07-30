@@ -4,6 +4,7 @@ package skuber.ext
   * @author David O'Riordan
   */
 
+import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 import skuber.ext.Ingress.Backend
 
@@ -51,6 +52,21 @@ case class Ingress(
 }
 
 object Ingress {
+
+  val specification=NonCoreResourceSpecification(
+    group = Some("extensions"),
+    version = "v1beta1",
+    scope = Scope.Namespaced,
+    names = Names(
+      plural = "ingresses",
+      singular = "ingress",
+      kind = "Ingress",
+      shortNames = List("ing")
+    )
+  )
+  implicit val ingDef = new ResourceDefinition[Ingress] { def spec=specification }
+  implicit val ingListDef = new ResourceDefinition[IngressList] { def spec=specification }
+
   def apply(name: String) : Ingress = Ingress(metadata=ObjectMeta(name=name))
 
   case class Backend(serviceName: String, servicePort: Int = 0)

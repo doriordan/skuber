@@ -4,13 +4,12 @@ import java.time._
 import java.time.format._
 
 import skuber._
-
 import play.api.libs.ws._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.data.validation.ValidationError
-
 import org.apache.commons.codec.binary.Base64
+import play.api.libs.functional.FunctionalBuilder
 
 import scala.language.implicitConversions
 
@@ -94,7 +93,6 @@ package object format {
         path.formatNullable[String].inmap[Option[E#Value]](_.map(s => enum.withName(s)), e => e map { _.toString } )
   }
   implicit def jsPath2enumFmtr(path: JsPath)  = new EnumFormatter(path)
-   
 
   // formatting of the Kubernetes types
   
@@ -103,12 +101,14 @@ package object format {
     (JsPath \ "apiVersion").formatMaybeEmptyString() and 
     (JsPath \ "metadata").lazyFormat[ObjectMeta](objectMetaFormat) 
    // metadata format must be lazy as it can be used in indirectly recursive namespace structure (Namespace has a metadata.namespace field)
-    
-  def KListFormat[K <: KListItem](implicit f: Format[K]) =
-    (JsPath \ "kind").format[String] and
+
+  def listResourceFormatBuilder[O <: ObjectResource](implicit f: Format[O]) =
     (JsPath \ "apiVersion").format[String] and
+    (JsPath \ "kind").format[String] and
     (JsPath \ "metadata").formatNullable[ListMeta] and
-    (JsPath \ "items").formatMaybeEmptyList[K]
+    (JsPath \ "items").formatMaybeEmptyList[O]
+
+  def ListResourceFormat[O <: ObjectResource](implicit f: Format[O]): OFormat[ListResource[O]] = listResourceFormatBuilder[O].apply(ListResource.apply _, unlift(ListResource.unapply))
   
   implicit lazy val objectMetaFormat: Format[ObjectMeta] = (
     (JsPath \ "name").formatMaybeEmptyString() and
@@ -128,7 +128,7 @@ package object format {
     (JsPath \ "selfLink").formatMaybeEmptyString() and
     (JsPath \ "resourceVersion").formatMaybeEmptyString()
   )(ListMeta.apply _, unlift(ListMeta.unapply))
-  
+
   implicit val localObjRefFormat = Json.format[LocalObjectReference]
   
   implicit val apiVersionsFormat = Json.format[APIVersions]
@@ -265,7 +265,7 @@ package object format {
       (JsPath \ "path").formatMaybeEmptyString() and 
       (JsPath \ "scheme").formatMaybeEmptyString() 
    )(HTTPGetAction.apply _, unlift(HTTPGetAction.unapply))
-   
+
    
   implicit val tcpSocketActionFormat: Format[TCPSocketAction] = (
       (JsPath \ "port").format[NameablePort].inmap(port => TCPSocketAction(port), (tsa: TCPSocketAction) => tsa.port)
@@ -688,28 +688,20 @@ package object format {
     (JsPath \ "spec").formatNullable[Resource.Quota.Spec] and
     (JsPath \ "status").formatNullable[Resource.Quota.Status]
   )(Resource.Quota.apply _,unlift(Resource.Quota.unapply))
-      
-  implicit val podListFmt: Format[PodList] = KListFormat[Pod].apply(PodList.apply _,unlift(PodList.unapply))
-  implicit val nodeListFmt: Format[NodeList] = KListFormat[Node].apply(NodeList.apply _,unlift(NodeList.unapply))
-  implicit val serviceListFmt: Format[ServiceList] = KListFormat[Service].apply(ServiceList.apply _,unlift(ServiceList.unapply))
-  implicit val endpointListFmt: Format[EndpointList] = KListFormat[Endpoints].apply(EndpointList.apply _,unlift(EndpointList.unapply))
-  implicit val eventListFmt: Format[EventList] = KListFormat[Event].apply(EventList.apply _,unlift(EventList.unapply))
-  implicit val namespaceListFmt: Format[NamespaceList] = KListFormat[Namespace].
-                    apply(NamespaceList.apply _,unlift(NamespaceList.unapply))
-  implicit val replCtrlListFmt: Format[ReplicationControllerList] = KListFormat[ReplicationController].
-                    apply(ReplicationControllerList.apply _,unlift(ReplicationControllerList.unapply))
-  implicit val persVolListFmt: Format[PersistentVolumeList] = KListFormat[PersistentVolume].  
-                    apply(PersistentVolumeList.apply _,unlift(PersistentVolumeList.unapply))
-  implicit val persVolClaimListFmt: Format[PersistentVolumeClaimList] = KListFormat[PersistentVolumeClaim].  
-                    apply(PersistentVolumeClaimList.apply _,unlift(PersistentVolumeClaimList.unapply))
-  implicit val svcAcctListFmt: Format[ServiceAccountList] = KListFormat[ServiceAccount].  
-                    apply(ServiceAccountList.apply _,unlift(ServiceAccountList.unapply))
-  implicit val resQuotaListFmt: Format[ResourceQuotaList] = KListFormat[Resource.Quota].
-                    apply(ResourceQuotaList.apply _,unlift(ResourceQuotaList.unapply))
-  implicit val secretListFmt: Format[SecretList] = KListFormat[Secret].  
-                    apply(SecretList.apply _,unlift(SecretList.unapply))
-  implicit val limitRangeListFmt: Format[LimitRangeList] = KListFormat[LimitRange].  
-                    apply(LimitRangeList.apply _,unlift(LimitRangeList.unapply))
+
+  implicit val podListFmt: Format[PodList] = ListResourceFormat[Pod]
+  implicit val nodeListFmt: Format[NodeList] = ListResourceFormat[Node]
+  implicit val serviceListFmt: Format[ServiceList] = ListResourceFormat[Service]
+  implicit val endpointsListFmt: Format[EndpointsList] = ListResourceFormat[Endpoints]
+  implicit val eventListFmt: Format[EventList] = ListResourceFormat[Event]
+  implicit val namespaceListFmt: Format[NamespaceList] = ListResourceFormat[Namespace]
+  implicit val replCtrlListFmt: Format[ReplicationControllerList] = ListResourceFormat[ReplicationController]
+  implicit val persVolListFmt: Format[PersistentVolumeList] = ListResourceFormat[PersistentVolume]
+  implicit val persVolClaimListFmt: Format[PersistentVolumeClaimList] = ListResourceFormat[PersistentVolumeClaim]
+  implicit val svcAcctListFmt: Format[ServiceAccountList] = ListResourceFormat[ServiceAccount]
+  implicit val resQuotaListFmt: Format[ResourceQuotaList] = ListResourceFormat[Resource.Quota]
+  implicit val secretListFmt: Format[SecretList] = ListResourceFormat[Secret]
+  implicit val limitRangeListFmt: Format[LimitRangeList] = ListResourceFormat[LimitRange]
 
   case class SelMatchExpression(
     key: String,

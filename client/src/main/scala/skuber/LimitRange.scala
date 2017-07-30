@@ -16,6 +16,19 @@ case class LimitRange (
 }
    
 object LimitRange {
+
+  val specification=CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(
+      plural="limitranges",
+      singular="limitrange",
+      kind="LimitRange",
+      shortNames=List("limits")
+    )
+  )
+  implicit val lrDef = new ResourceDefinition[LimitRange] { def spec=specification }
+  implicit val lrListDef = new ResourceDefinition[LimitRangeList] { def spec=specification }
+
   case class Spec(items: List[Item] = List())
   
   object ItemType extends Enumeration {

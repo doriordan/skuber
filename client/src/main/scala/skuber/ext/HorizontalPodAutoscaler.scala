@@ -1,7 +1,7 @@
 package skuber.ext
 
-import skuber.{Timestamp, ObjectResource, ObjectMeta}
-import skuber.ReplicationController
+import skuber.ResourceSpecification.{Names, Scope}
+import skuber.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, ReplicationController, ResourceDefinition, Timestamp}
 
 /**
  * @author David O'Riordan
@@ -23,11 +23,25 @@ case class HorizontalPodAutoscaler(
 }
       
 object HorizontalPodAutoscaler {
-  
+
+  val specification=NonCoreResourceSpecification(
+    group = Some("extensions"),
+    version = "v1beta1",
+    scope = Scope.Namespaced,
+    names = Names(
+      plural = "horizontalpodautoscalers",
+      singular = "replicaset",
+      kind = "ReplicaSet",
+      shortNames = List("rs")
+    )
+  )
+  implicit val hpasDef = new ResourceDefinition[HorizontalPodAutoscaler] { def spec=specification }
+  implicit val hpasListDef = new ResourceDefinition[HorizontalPodAutoscalerList] { def spec=specification }
+
   def scale(rc: ReplicationController): HorizontalPodAutoscaler = 
     build(rc.name, rc.metadata.namespace, "ReplicationController")
 
-  def scale(de: Deployment): HorizontalPodAutoscaler = 
+  def scale(de: skuber.apps.Deployment): HorizontalPodAutoscaler =
     build(de.name, de.metadata.namespace, "Deployment")
    
   def build(name: String, namespace: String, kind: String, apiVersion: String = "v1") : HorizontalPodAutoscaler = {

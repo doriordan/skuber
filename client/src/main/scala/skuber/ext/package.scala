@@ -16,6 +16,7 @@ import scala.language.implicitConversions
 import scala.concurrent.Future
 import skuber.json.ext.format._
 import skuber.api.client._
+import skuber.apps.Deployment
 
 package object ext {
   val extensionsAPIVersion = "extensions/v1beta1"
@@ -28,61 +29,15 @@ package object ext {
       
   case class CPUTargetUtilization(targetPercentage: Int)
 
-  trait IsExtensionsKind[T <: TypeMeta] { self: Kind[T] => 
-    override def isExtensionsKind = true
-  }
+  type DaemonSetList = ListResource[DaemonSet]
+  type HorizontalPodAutoscalerList = ListResource[HorizontalPodAutoscaler]
+  type ReplicaSetList = ListResource[ReplicaSet]
+  type IngressList = ListResource[Ingress]
 
-  // implicit object kind values for the extensions group types
-  implicit val deploymentKind: ObjKind[Deployment] = new ObjKind[Deployment]("deployments","Deployment") with IsExtensionsKind[Deployment]
-  implicit val hpasKind: ObjKind[HorizontalPodAutoscaler] = new ObjKind[HorizontalPodAutoscaler]("horizontalpodautoscalers", "HorizontalPodAutoscaler")
-                                  with IsExtensionsKind[HorizontalPodAutoscaler]
-  implicit val replsetsKind: ObjKind[ReplicaSet] = new ObjKind[ReplicaSet]("replicasets", "ReplicaSet")
-      with IsExtensionsKind[ReplicaSet]
-  implicit val ingressKind: ObjKind[Ingress] = new ObjKind[Ingress]("ingresses", "Ingress")
-      with IsExtensionsKind[Ingress]
-  implicit val daemonSetKind: ObjKind[DaemonSet] = new ObjKind[DaemonSet]("daemonsets", "DaemonSet")
-      with IsExtensionsKind[DaemonSet]
-
-  // support for the corresponding List kinds
-  case class DeploymentList(
-    val kind: String = "DeploymenttList",
-    override val apiVersion: String = extensionsAPIVersion,
-    val metadata: Option[ListMeta] = None,
-    items: List[Deployment] = Nil) extends KList[Deployment]
-  implicit val deplListKind = new ListKind[DeploymentList]("deployments")
-    with IsExtensionsKind[DeploymentList]
-
-  case class DaemonSetList(
-    val kind: String = "DaemonSetList",
-    override val apiVersion: String = extensionsAPIVersion,
-    val metadata: Option[ListMeta] = None,
-    items: List[DaemonSet] = Nil) extends KList[DaemonSet]
-  implicit val daesetListKind = new ListKind[DaemonSetList]("daemonsets")
-    with IsExtensionsKind[DaemonSetList]
-
-  case class HorizontalPodAutoscalerList(
-    val kind: String = "HorizontalPodAutoscalerList",
-    override val apiVersion: String = extensionsAPIVersion,
-    val metadata: Option[ListMeta] = None,
-    items: List[HorizontalPodAutoscaler] = Nil) extends KList[HorizontalPodAutoscaler]
-  implicit val hpasListKind = new ListKind[HorizontalPodAutoscalerList]("horizontalpodautoscalers")
-    with IsExtensionsKind[HorizontalPodAutoscalerList]
-
-  case class ReplicaSetList(
-    val kind: String = "ReplicaSetList",
-    override val apiVersion: String = extensionsAPIVersion,
-    val metadata: Option[ListMeta] = None,
-    items: List[ReplicaSet] = Nil) extends KList[ReplicaSet]
-  implicit val replsetListKind = new ListKind[ReplicaSetList]("replicasets")
-    with IsExtensionsKind[ReplicaSetList]
-
-  case class IngressList(
-    val kind: String = "IngressList",
-    override val apiVersion: String = extensionsAPIVersion,
-    val metadata: Option[ListMeta] = None,
-    items: List[Ingress] = Nil) extends KList[Ingress]
-  implicit val ingressListKind = new ListKind[IngressList]("ingresses")
-    with IsExtensionsKind[IngressList]
+  @deprecated("Use type `skuber.apps.Deployment` instead of `skuber.ext.Deployment", "Skuber 1.7")
+  type Deployment = skuber.apps.Deployment
+  @deprecated("Use type `skuber.apps.DeploymentList` instead of `skuber.ext.DeploymentList", "Skuber 1.7")
+  type DeploymentList = skuber.apps.DeploymentList
 
   // Extensions Group API methods - for the moment this includes commands to get or change the scale on
   // a RC or Deployment Scale subresource, returning a Scale object with the updated spec and status.
@@ -95,26 +50,23 @@ package object ext {
   {
     implicit val executionContext = context.executionContext
     
-    private[this] def getScale[O <: ObjectResource](objName: String)(implicit kind: ObjKind[O]) : Future[Scale] =
-      executeScaleMethod(objName, "GET")(kind)
+    private[this] def getScale[O <: ObjectResource](objName: String)(implicit rd: ResourceDefinition[O]) : Future[Scale] =
+      executeScaleMethod(objName, "GET")(rd)
       
-    private[this] def scale[O <: ObjectResource](objName: String, count: Int)(implicit kind: ObjKind[O]): Future[Scale] =
+    private[this] def scale[O <: ObjectResource](objName: String, count: Int)(implicit rd: ResourceDefinition[O]): Future[Scale] =
       executeScaleMethod(objName,
                          "PUT", 
                          Some(Scale(metadata=ObjectMeta(name=objName, namespace=context.namespaceName),
-                                    spec=Scale.Spec(replicas=count))))(kind)
+                                    spec=Scale.Spec(replicas=count))))(rd)
                                       
     private[this] def executeScaleMethod[O <: ObjectResource](
                             objName: String,
                             methodName: String,  
-                            scale: Option[Scale] = None)(implicit kind: ObjKind[O]): Future[Scale] = {
+                            scale: Option[Scale] = None)(implicit rd: ResourceDefinition[O]): Future[Scale] = {
 
-      val req=context.buildRequest(
-                Some(objName + "/scale"), // sub resource name
-                false,
-                Some(false))(kind).
-              withHeaders("Content-Type" -> "application/json").
-              withMethod(methodName)
+      val req=context.buildRequest(rd, Some(objName + "/scale"), false, Some(false))
+                .withHeaders("Content-Type" -> "application/json")
+                .withMethod(methodName)
               
       val reqWithBody = scale map { s =>
         val body = scaleFormat.writes(s)
@@ -140,7 +92,7 @@ package object ext {
      * Modify the specified replica count for a Deployment, returning a Future with its
      * updated Scale subresource
      */  
-    def scale(de: Deployment, count: Int): Future[Scale] =
+    def scale(de: skuber.apps.Deployment, count: Int): Future[Scale] =
       scaleDeployment(de.name,  count)
       
     /*
