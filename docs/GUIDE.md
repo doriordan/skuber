@@ -257,7 +257,8 @@ For example, to use the `HorizontalPodAutoscaler` kind:
      
 The above additional imports add some new types, and also add some additional methods into the request context class.
 
-The currently support extensions group kinds include `ReplicaSet`,`Ingress` and `DaemonSet`, together with their list kinds. Note that `Deployment` has been moved from this package to the `apps` package, reflecting a corresponding change in Kubernetes. There is a type alias to support backwards compatibility, but usage of `skuber.ext.Deployment` is deprecated in favour of `skuber.apps.Deployment`. As the Kubernetes long-term strategy is to use more specific API groups rather then the generic extensions group, other kinds in this subpackage may also be moved in future to reflect changes in Kubernetes.
+The currently supported extensions group kinds include `ReplicaSet`,`HorizaontalPodAutoscaler`, `Ingress` and `DaemonSet`, together with their list kinds. 
+(Note that `Deployment` has been moved from this package to the `apps` package, reflecting a corresponding change in Kubernetes. There is a type alias to support backwards compatibility, but usage of `skuber.ext.Deployment` is deprecated in favour of `skuber.apps.Deployment`. As the Kubernetes long-term strategy is to use more specific API groups rather then the generic extensions group, other kinds in this subpackage may also be moved in future to reflect changes in Kubernetes.)
 
 ***HorizontalPodAutoscaler***
 
