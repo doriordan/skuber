@@ -313,9 +313,12 @@ package object format {
   implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
   
   implicit val hostPathFormat = Json.format[HostPath]  
-  implicit val secretFormat = Json.format[Secret]
-  implicit val gitFormat = Json.format[GitRepo]
   implicit val keyToPathFormat = Json.format[KeyToPath]
+  implicit val secretFormat: Format[Secret] = (
+    (JsPath \ "secretName").format[String] and
+      (JsPath \ "items").formatMaybeEmptyList[KeyToPath]
+    )(Secret.apply _, unlift(Secret.unapply))
+  implicit val gitFormat = Json.format[GitRepo]
 
   implicit val configMapFormat: Format[ConfigMapVolumeSource] = (
     (JsPath \ "name").format[String] and
