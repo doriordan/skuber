@@ -1,9 +1,10 @@
 package skuber.examples.ingress
 
+import java.io.Serializable
 import java.net.HttpURLConnection
 
 import skuber._
-import skuber.ext.{Ingress,ReplicaSet}
+import skuber.ext.{Ingress, ReplicaSet}
 
 import scala.annotation.tailrec
 
@@ -129,7 +130,7 @@ object NginxIngress extends App {
     (List(echoheadersX, echoheadersY), rset)
   }
 
-  def testIngress(implicit k8s: K8SRequestContext, ec: scala.concurrent.ExecutionContext) = {
+  def testIngress(ingress: Ingress)(implicit k8s: K8SRequestContext, ec: scala.concurrent.ExecutionContext) = {
     // we test the ingress simply by sending a GET with an appropriate Host header
 
     // for this simple use case we leverage the built in Java URL / HTTP support, iwth code brutally
@@ -186,42 +187,39 @@ object NginxIngress extends App {
     val retryIntervalSeconds = 3
     val retryCount = 10
 
-    import scala.concurrent.Future
-    println("Getting cluster node information")
-    val nodesListFut: Future[NodeList] = k8s list[NodeList]()
-    nodesListFut map { nodes: NodeList =>
-      val node = nodes.head
-      // pick an address of type ExternalIP or LegacyHostIP - decent chance it'll work (i.e be reachable from this
-      // client), but there are provider differences in this respect so next line of code may need to be customised...
-      val nodeAddress = node.status.get.addresses
-          .find(addr => addr._type=="ExternalIP" || addr._type=="LegacyHostIP")
-          .map { _.address}
-          .getOrElse("127.0.0.1")
+    println("The next step tests the ingress rule by sending a valid HTTP request to the ingress")
+    println(" *** The address at which the ingress can be reached depends partly on your environment")
+    println(" *** By default we use an address we obtain from the load balaancer information on the status field ")
+    println(" *** of the Ingress we created, if none available it defaults to 127.0.0.1")
+    println(" *** You can override the address if it looks wrong (e.g. if using minikube, use output of 'minikube ip')")
 
-      println("The next step tests the ingress rule by sending a valid HTTP request to the ingress")
-      println(" *** The address at which the ingress can be reached depends partly on your environment")
-      println(s" *** By default we use an address we obtain from Kubernetes for one of its nodes ($nodeAddress)")
-      println(" *** - which works if this client has direct access to that node address")
-      println(" *** However the client may not able to directly reach that address, if so you need to override it here")
-      println(" *** For example, if using minikube enter the address returned by 'minikube ip'")
-      print("Enter Ingress Address [" + nodeAddress + "]:")
-      val enteredAddress = scala.io.StdIn.readLine()
-      val address = enteredAddress match {
-        case "" => nodeAddress	
-        case _ => enteredAddress
-      }
+    val lbAddressOpt = for {
+      status <- ingress.status
+      lb <- status.loadBalancer
+      headIng <- lb.ingress.headOption
+      addr <- headIng.ip.orElse((headIng.hostName))
+    } yield addr
+    val lbAddress=lbAddressOpt.getOrElse("127.0.0.1")
 
-      val retryIntervalSeconds = 3
-      val retryCount = 10
+    print("Enter Ingress Address [" + lbAddress + "]:")
+    val enteredAddress = scala.io.StdIn.readLine()
+    val address = enteredAddress match {
+      case "" => lbAddress
+      case _ => enteredAddress
+    }
 
-      import scala.annotation.tailrec
-      @tailrec def attempt(remainingAttempts: Int): Boolean = try {
-        println("Testing...attempting to GET from a path that ingress should route to echoheaders service")
+    import scala.annotation.tailrec
+    @tailrec
+    def attempt(remainingAttempts: Int): Boolean =
+    {
+      try {
+       println("Testing...attempting to GET from a path that ingress should route to echoheaders service")
         val response = httpGet(ipAddress = address, port = nodeIngressHttpPort, path = "foo", host = "foo.bar.com")
         println("Testing...successfully got response: \n" + response)
         true
       } catch {
-        case ex : Throwable => println("Testing...attempt failed: " + ex.getMessage)
+        case ex: Throwable =>
+          println("Testing...attempt failed: " + ex.getMessage)
           if (remainingAttempts > 0) {
             Thread.sleep(retryIntervalSeconds * 1000)
             attempt(remainingAttempts - 1)
@@ -231,10 +229,8 @@ object NginxIngress extends App {
             false
           }
       }
-      attempt(retryCount)
     }
-
-
+    attempt(retryCount)
   }
 
   def run = {
@@ -254,7 +250,7 @@ object NginxIngress extends App {
     val ingCtrlr= buildIngressController
     val ingCtrlSvc = ingCtrlr._1
     val ingCtrlRset = ingCtrlr._2
-    val ingress = buildIngress
+    val ingressSpec = buildIngress
 
     // wrappers for creating resources which processes 409 (resource already exists) or 422 (probably port already allocated)
     // so that the example continues to run.
@@ -292,7 +288,7 @@ object NginxIngress extends App {
     def createIngressController = Future.sequence(List(
           createSvc(ingCtrlSvc),
           createRS(ingCtrlRset)))
-    def createIngress = createIng(ingress)
+    def createIngress = createIng(ingressSpec)
 
     // create the resources in this order:
     // 1. Create the non-ingress resources (default backend service, echoheaders services)
@@ -301,18 +297,18 @@ object NginxIngress extends App {
     // 4. Create the ingress rules
     // 5. Test the ingress / rules by performing an appropriate GET to a node/port that exposes the ingress service
     println("Creating required services on cluster")
-    val createAll: Future[Ingress] = for {
+    val ingress: Future[Ingress] = for {
       _ <- createNonIngressResources
       _ <- createIngressController
       _ <- Future.successful(println("Waiting for 10 seconds to enable ingress controller to start..."))
       _ <- Future.successful(Thread.sleep(10000))
       _ <- Future.successful(println("now creating / updating the ingress rules"))
-      done <- createIngress
-    } yield done
+      ing <- createIngress
+    } yield ing
 
     val done = for {
-      created <- createAll
-      succeeded <- testIngress
+      ing <- ingress
+      succeeded = testIngress(ing)
     } yield succeeded
 
     done map { success =>

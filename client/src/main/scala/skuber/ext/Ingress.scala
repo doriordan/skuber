@@ -83,7 +83,7 @@ object Ingress {
   case class Status(loadBalancer: Option[Status.LoadBalancer] = None)
 
   object Status {
-    case class LoadBalancer(ingress: Option[LoadBalancer.Ingress])
+    case class LoadBalancer(ingress: List[LoadBalancer.Ingress])
     object LoadBalancer {
       case class Ingress(ip: Option[String] = None, hostName: Option[String] = None)
     }

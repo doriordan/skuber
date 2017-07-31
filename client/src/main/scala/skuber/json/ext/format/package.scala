@@ -96,8 +96,12 @@ package object format {
   implicit val ingrlbingFormat: Format[Ingress.Status.LoadBalancer.Ingress] =
     Json.format[Ingress.Status.LoadBalancer.Ingress]
 
-  implicit val ingrlbFormat: Format[Ingress.Status.LoadBalancer] =
-    Json.format[Ingress.Status.LoadBalancer]
+  implicit val ingrlbFormat: Format[Ingress.Status.LoadBalancer] = (
+      (JsPath \ "ingress").formatMaybeEmptyList[Ingress.Status.LoadBalancer.Ingress].inmap(
+        ings => Ingress.Status.LoadBalancer(ings),
+        lb => lb.ingress
+      )
+  )
 
   implicit val ingressStatusFormat = Json.format[Ingress.Status]
 
