@@ -247,9 +247,9 @@ Note that both of the examples above watch only those events which have a later 
 
 ### Extensions API Group
 
-Along with the core API group, the extensions API group is probably the most commonly used as it traditionally contains soem key types.
+Along with the core API group, the extensions API group is probably the most commonly used as it traditionally contains some key types.
 
-For example, to import the `HorizontalPodAutoscaler` kind:
+For example, to use the `HorizontalPodAutoscaler` kind:
 
     // additional imports to support the "extensions" API group, specifically for HorizontalPodAutoscaler.
     import skuber.ext.
@@ -273,18 +273,21 @@ A skuber client can also manage `HorizontalPodAutoscaler` objects in order to au
 
 The other standard Skuber API methods (`update`, `delete` etc.) can also be used with this type. (Note: the corresponding *list type* will be supported shortly)
 
+***Ingress***
  
 An ingress controller manages handling of HTTP requests from an ingress point on the Kubernetes cluster, proxying then to target services according to a user-specified set of routing rules. The rules are specified in a standard format, although different ingress controllers can utilize different underlying mechanisms to control ingress (e.g. an nginx proxy, or by configuring a hardware or cloud load balancer).
+
 The `NginxIngress` example illustrates creation and testing of an ingress, using an nginx-based ingress controller from the Kubenretes contrib project.
 
 ***ReplicaSet***
 
-ReplicaSet is the expected long-term successor of ReplicaionController in the Kubernetes project. It is currently different only in supporting both equality and set based label selectors (ReplicationController only support equality-based ones).
+ReplicaSet is the expected long-term successor of ReplicationController in the Kubernetes project. It is currently different only in supporting both equality and set based label selectors (ReplicationController only support equality-based ones).
+
 The `NginxIngress` example uses a ReplicaSet to manage the ingress controller.
 
 ### Other API groups
 
-Along with the core and extensions groups, more recent Kubernetes kinds tend to be defined in other groups. Currently skuber supports the following subpackages, each mapping to a different Kubernetes API group:
+Aside from the `core` and `extensions` groups, more recent Kubernetes kinds tend to be defined in other, more targetted API groups. Currently skuber supports the following subpackages, each mapping to a different Kubernetes API group:
 
 ***apps***
 
