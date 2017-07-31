@@ -6,18 +6,28 @@ This guide assumes a working knowledge of Kubernetes concepts.
 
 The Skuber data model is a representation of the Kubernetes types / kinds in Scala.
 
-The entire Skuber data model can be easily imported into your application:
+The Skuber data model for the the original core Kubernetes API group (which manages many of the most fundamental Kubernetes kinds) is defined in the top-level package, so they can be easily imported into your application:
 
     import skuber._
- 
-or just import the specific classes you need.
+    
+This also imports many other common types and aliases that are generally useful.
+
+Example of more specific core API kind imports:
+   
+    import skuber.{Service,ServiceList,ReplicationController}   
+
+Newer (non-core) API group classes are contained in subpackages associated with each API group. For example`skuber.ext` for the extensions API group or `skuber.rbac` for the rbac API group. Example specific imports for these kinds:
+
+    import skuber.ext.{Deployment,Ingress}
+    import skuber.batch.{Job,CronJob}
 
 The model can be divided into categores which correspond to those in the Kubernetes API:
 
 - [Object kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
-Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`,`Deployment`,`HorizontalPodAutoScaler`,and `Ingress`.   
+Object kind classes include `Namespace`, `Pod`,`Node`, `Service`, `Endpoints`, `Event`, `ReplicationController`, `PersistentVolume`, `PersistentVolumeClaim`, `ServiceAccount`, `LimitRange`, `Resource.Quota`, `Secret`,`Deployment`,`HorizontalPodAutoScaler`,and `Ingress` amongst others.  
 
-- [List kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#lists-and-simple-kinds): These represent lists of other kinds. All list kinds are mapped to classes implementing a `KList` trait supporting access to basic metadata and the items in the list. There are list kinds for each object kind e.g. `PodList`,`EventList`.   
+- [List kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#lists-and-simple-kinds): These represent lists of object resources, and in skuber are typically returned by one of the `list` API methods. All list kinds are mapped to a `ListResource[O]` case class supporting access to basic metadata and the object kind specific items in the list. 
+There are thus list kinds for each object kind e.g. `ListResource[Pod]`,`ListResource[Node]`, and skuber also defines type aliases defined for each supported list kind e.g. `PodList`,`NodeList`.   
 
 - [Simple kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#lists-and-simple-kinds) 
 
@@ -51,9 +61,11 @@ The unit tests in the skuber subproject contains more examples, along with the e
 
 ## JSON Mapping
 
-Kubernetes defines specific JSON representations of its types. Skuber implements Play JSON read/write [converters](https://www.playframework.com/documentation/2.4.x/ScalaJsonCombinators) for mapping between the model classes and their JSON representations. These implicit converters (formatters) can all be made available to your application by a simple import statement.
+Kubernetes defines specific JSON representations of its types. Skuber implements Play JSON read/write [converters](https://www.playframework.com/documentation/2.4.x/ScalaJsonCombinators) for mapping between the model classes and their JSON representations. These implicit converters (formatters) can be made available to your application via import statements, for example, to import all formatters for the core API group:
  
     import skuber.json.format._
+
+Similiarly, subpackages of `skuber.json` contain formatters for non-core API group kinds such as `Deployment` etc.
 
 There are many available examples of JSON representations of Kubernetes objects, for example [this file](https://github.com/kubernetes/kubernetes/blob/master/examples/guestbook-go/guestbook-controller.json) specifies a replication controller for the main Kubernetes project Guestbook example. To convert that JSON representation into a Skuber `ReplicationController` object:
 
@@ -79,8 +91,8 @@ Equally it is straightforward to do the reverse and generate a JSON value from a
 
 These are the basic steps to use the Skuber API:
 
-- Import the API definitions (the simplest way is to `import skuber._`, which will also import the model classes)
-- Import the implicit JSON formatters (the API uses these to read/write the request and response data) from `skuber.json.format`.
+- Import the API definitions from the appropriate package(s)
+- Import the implicit JSON formatters from the appropriate package(s). The API uses these to read/write the request and response data.
 - Ensure a Scala implicit `ExecutionContext` is available - this will be the execution context in which the `Future`s created for each request will execute.
 - Create a request context by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
 - Invoke the required requests using the context.
@@ -233,42 +245,18 @@ The watch can be demonstrated by calling `watchPodPhases` to start watching all 
 
 Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored - this is probably what you want. 
 
-### API Groups
+### Extensions API Groups
 
-Kubernetes supports a core API group and some named API groups. The standard Skuber import statements above support the core group. Client support for some [non-core API group](http://kubernetes.io/docs/api/#api-groups) features can be enabled by adding a couple of import statements to the standard Skuber imports e.g. 
+Example of using a kind in the Kubernetes extensions group:
 
-    // standard Skuber imports to support the "core API" group
-    import skuber._
-    import skuber.json.format._
-
-    // additional imports to support the "extensions" API group
-    import skuber.ext._
+    // additional imports to support the "extensions" API group, specifically for Deployment kind.
+    import skuber.ext.Deployment
     import skuber.json.ext.format._
      
 The above additional imports add some new types, and also add some additional methods into the request context class.
 
-Currently Skuber supports [HorizontalPodAutoscaler](http://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/) and the associated [Scale](https://github.com/kubernetes/kubernetes/blob/release-1.1/docs/design/horizontal-pod-autoscaler.md#scale-subresource) subresource in this group, as well as [Deployments](http://kubernetes.io//docs/user-guide/deployments/), [ReplicaSets](http://kubernetes.io//docs/user-guide/replicasets) and [Ingresses](http://kubernetes.io//docs/user-guide/ingress/). Support for other features in this API group will be added shortly. The following paragraphs explain how to use these types - for more details see [this Autoscaling example](../examples/src/main/scala/skuber/examples/scale/ScaleExamples.scala), [this Deployments example](../examples/src/main/scala/skuber/examples/deployment/DeploymentExamples.scala) and [this Ingress / ReplicaSet example](../examples/src/main/scala/skuber/examples/ingress/NginxIngress.scala). 
+The currently support extensions group kinds include `ReplicaSet`,`Ingress` and `DaemonSet`, together with their list kinds. Note that `Deployment` has been moved from this package to the `apps` package - there is a type alias to support backwards compatibility, but usage of `skuber.ext.Deployment` is deprecated in favour of `skuber.apps.Deployment`.
 
-***Scale*** 
-
-The `Scale` type is a subresource of a `ReplicationController` or `Deployment`, and will probably normally be used by autoscalers such as the `HorizontalPodAutoscaler`. However it can also be accessed directly in the extended API in order to specify a desired replica count for its associated top-level resource as follows:
-
-    // assumes 'k8s' and 'controller' objects have already been instantiated as above
-    
-    val scaleFut = k8s.scale(controller, 4) // specify a desired replica count of 4 for the controller
-    scaleFut onSuccess { case scale => 
-      println("Scale: specified = " + scale.spec.replicas + ", current = " + scale.status.get.replicas) 
-    }
-
-The API returns a `Scale` object (within as usual a Scala `Future` object) which has access not just to the specified replica count but also the current status.
-
-The current `Scale` of a replication controller or deployment can also be obtained. For example:
-
-    val scaleFut = k8s.getReplicationControllerScale(controller.name)
-    scaleFut onSuccess { case scale => 
-      println("Scale: specified = " + scale.spec.replicas + ", current = " + scale.status.get.replicas) 
-    }
- 
 ***HorizontalPodAutoscaler***
 
 A skuber client can also manage `HorizontalPodAutoscaler` objects in order to autoscale a replication controller or deployment. A fluent API approach enables minimum replica count, maximum replica count and CPU utilisation target to be readily specified. For example:
@@ -285,7 +273,7 @@ The other standard Skuber API methods (`update`, `delete` etc.) can also be used
 
 ***Deployment***
 
-(Note that a Kubernetes V1.2+ cluster is needed to use the Deployment functionality in this release of Skuber).
+(Note that a recent version of Kubernetes is needed to use the Deployment functionality in this release of Skuber).
 
 A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
 
@@ -331,6 +319,70 @@ The `NginxIngress` example illustrates creation and testing of an ingress, using
 
 ReplicaSet is the expected long-term successor of ReplicaionController in the Kubernetes project. It is currently different only in supporting both equality and set based label selectors (ReplicationController only support equality-based ones).
 The `NginxIngress` example uses a ReplicaSet to manage the ingress controller.
+
+### Other API groups
+
+Along with the core and extensions groups, more recent Kubernetes kinds tend to be defined in other groups. Currently skuber supports the following subpackages, each mapping to a different Kubernetes API group:
+
+***apps***
+
+Contains the `Deployment` and `StatefulSet` types:
+
+- Deployment
+
+(Note that a recent version of Kubernetes is needed to use the Deployment functionality in this release of Skuber).
+
+A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
+
+The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). 
+
+Initial creation of the deployment:
+
+    val nginxLabel = "app" -> "nginx"
+    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
+    
+    val nginxTemplate = Pod.Template.Spec
+      .named("nginx")
+      .addContainer(nginxContainer)
+      .addLabel(nginxLabel)
+        
+    val desiredCount = 5  
+    val nginxDeployment = Deployment("nginx-deployment")
+      .withReplicas(desiredCount)
+      .withTemplate(nginxTemplate)
+    
+    println("Creating nginx deployment")
+    val createdDeplFut = k8s create nginxDeployment 
+
+Use `kubectl get deployments` to see the status of the newly created Deployment, and `kubectl get rc` will show a new replication controller which manages the creation of the required pods.
+
+Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
+
+    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
+    val existingDeployment = k8s get[Deployment] "nginx-deployment"
+    val updatedDeployment = existingDeployment.updateContainer(newContainer)
+    k8s update updatedDeployment 
+
+As no explicit deployment strategy has been selected, the default strategy will be used which will result in a rolling update of the nginx pods - again, you can use `kubectl get` commands to view the status of the deployment, replication controllers and pods as the update progresses.
+
+The `DeploymentExamples` example runs the above steps.
+
+- StatefulSet
+
+This can be used to manage stateful applications on Kubernetes - such as databases - analagous to the way in which `ReplicaSet` is used to manage stateless applications.
+
+***batch***
+
+Contains the `Job` and `CronJob` kinds. One of the skuber examples demonstrates a client of the `Job` type.
+
+***rbac***
+
+Contains the `Role`,`RoleBinding,`ClusterRole` and `ClusterRoleBinding` kinds - see the Kubernetes Role-Based Access Control documentation for details on how to use these kinds.
+
+***apiextensions***
+
+Currently just supports the CustomResourceDefinition kind introduced in Kubernetes V1.7. This is a powerful feature which allows clients to define their own Kubernetes resources, for use by custom controllers and for other advanced use cases.
+
 
 ## Label Selectors
 
