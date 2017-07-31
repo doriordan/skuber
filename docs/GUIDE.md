@@ -245,17 +245,19 @@ The watch can be demonstrated by calling `watchPodPhases` to start watching all 
 
 Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored - this is probably what you want. 
 
-### Extensions API Groups
+### Extensions API Group
 
-Example of using a kind in the Kubernetes extensions group:
+Along with the core API group, the extensions API group is probably the most commonly used as it traditionally contains soem key types.
 
-    // additional imports to support the "extensions" API group, specifically for Deployment kind.
-    import skuber.ext.Deployment
+For example, to import the `HorizontalPodAutoscaler` kind:
+
+    // additional imports to support the "extensions" API group, specifically for HorizontalPodAutoscaler.
+    import skuber.ext.
     import skuber.json.ext.format._
      
 The above additional imports add some new types, and also add some additional methods into the request context class.
 
-The currently support extensions group kinds include `ReplicaSet`,`Ingress` and `DaemonSet`, together with their list kinds. Note that `Deployment` has been moved from this package to the `apps` package - there is a type alias to support backwards compatibility, but usage of `skuber.ext.Deployment` is deprecated in favour of `skuber.apps.Deployment`.
+The currently support extensions group kinds include `ReplicaSet`,`Ingress` and `DaemonSet`, together with their list kinds. Note that `Deployment` has been moved from this package to the `apps` package, reflecting a corresponding change in Kubernetes. There is a type alias to support backwards compatibility, but usage of `skuber.ext.Deployment` is deprecated in favour of `skuber.apps.Deployment`. As the Kubernetes long-term strategy is to use more specific API groups rather then the generic extensions group, other kinds in this subpackage may also be moved in future to reflect changes in Kubernetes.
 
 ***HorizontalPodAutoscaler***
 
@@ -271,46 +273,6 @@ A skuber client can also manage `HorizontalPodAutoscaler` objects in order to au
 
 The other standard Skuber API methods (`update`, `delete` etc.) can also be used with this type. (Note: the corresponding *list type* will be supported shortly)
 
-***Deployment***
-
-(Note that a recent version of Kubernetes is needed to use the Deployment functionality in this release of Skuber).
-
-A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
-
-The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). 
-
-Initial creation of the deployment:
-
-    val nginxLabel = "app" -> "nginx"
-    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
-    
-    val nginxTemplate = Pod.Template.Spec
-      .named("nginx")
-      .addContainer(nginxContainer)
-      .addLabel(nginxLabel)
-        
-    val desiredCount = 5  
-    val nginxDeployment = Deployment("nginx-deployment")
-      .withReplicas(desiredCount)
-      .withTemplate(nginxTemplate)
-    
-    println("Creating nginx deployment")
-    val createdDeplFut = k8s create nginxDeployment 
-
-Use `kubectl get deployments` to see the status of the newly created Deployment, and `kubectl get rc` will show a new replication controller which manages the creation of the required pods.
-
-Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
-
-    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
-    val existingDeployment = k8s get[Deployment] "nginx-deployment"
-    val updatedDeployment = existingDeployment.updateContainer(newContainer)
-    k8s update updatedDeployment 
-
-As no explicit deployment strategy has been selected, the default strategy will be used which will result in a rolling update of the nginx pods - again, you can use `kubectl get` commands to view the status of the deployment, replication controllers and pods as the update progresses.
-
-The `DeploymentExamples` example runs the above steps.
-
-***Ingress***
  
 An ingress controller manages handling of HTTP requests from an ingress point on the Kubernetes cluster, proxying then to target services according to a user-specified set of routing rules. The rules are specified in a standard format, although different ingress controllers can utilize different underlying mechanisms to control ingress (e.g. an nginx proxy, or by configuring a hardware or cloud load balancer).
 The `NginxIngress` example illustrates creation and testing of an ingress, using an nginx-based ingress controller from the Kubenretes contrib project.
@@ -326,7 +288,7 @@ Along with the core and extensions groups, more recent Kubernetes kinds tend to 
 
 ***apps***
 
-Contains the `Deployment` and `StatefulSet` types:
+Currently contains the `Deployment` and `StatefulSet` types:
 
 - Deployment
 
