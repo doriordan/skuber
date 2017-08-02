@@ -16,28 +16,23 @@ import scala.language.implicitConversions
 import scala.concurrent.Future
 import skuber.json.ext.format._
 import skuber.api.client._
-import skuber.apps.Deployment
 
 package object ext {
   val extensionsAPIVersion = "extensions/v1beta1"
-
-  case class SubresourceReference(
-      kind: String = "",
-      name: String = "",
-      apiVersion: String = extensionsAPIVersion,
-      subresource: String = "")
-      
-  case class CPUTargetUtilization(targetPercentage: Int)
-
-  type DaemonSetList = ListResource[DaemonSet]
-  type HorizontalPodAutoscalerList = ListResource[HorizontalPodAutoscaler]
-  type ReplicaSetList = ListResource[ReplicaSet]
-  type IngressList = ListResource[Ingress]
 
   @deprecated("Use type `skuber.apps.Deployment` instead of `skuber.ext.Deployment", "Skuber 1.7")
   type Deployment = skuber.apps.Deployment
   @deprecated("Use type `skuber.apps.DeploymentList` instead of `skuber.ext.DeploymentList", "Skuber 1.7")
   type DeploymentList = skuber.apps.DeploymentList
+
+  @deprecated("Use type 'skuber.autoscaling.HorizontalPodAutoscaler' instead of 'skuber.ext.HorizontalPodAutoscaler'", "Skuber 1.7")
+  type HorizontalPodAutoscaler = skuber.autoscaling.HorizontalPodAutoscaler
+  @deprecated("Use type 'skuber.autoscaling.HorizontalPodAutoscalerList' instead of 'skuber.ext.HorizontalPodAutoscalerList'", "Skuber 1.7")
+  type HorizontalPodAutoscalerList = skuber.autoscaling.HorizontalPodAutoscalerList
+
+  type DaemonSetList = ListResource[DaemonSet]
+  type ReplicaSetList = ListResource[ReplicaSet]
+  type IngressList = ListResource[Ingress]
 
   // Extensions Group API methods - for the moment this includes commands to get or change the scale on
   // a RC or Deployment Scale subresource, returning a Scale object with the updated spec and status.
@@ -46,6 +41,9 @@ package object ext {
   // The standard K8SRequestContext RESTful API methods will work with Extensions API top-level 
   // resource types such as HorizontalPodAutoscaler and Deployment, so no additional methods are 
   // required here for creating, updating etc. these types.
+  //
+  // NOTE: in a future release these scale methods are likely to be moved or modified
+
   class ExtensionsGroupAPI(val context: K8SRequestContext)
   {
     implicit val executionContext = context.executionContext
@@ -53,23 +51,36 @@ package object ext {
     private[this] def getScale[O <: ObjectResource](objName: String)(implicit rd: ResourceDefinition[O]) : Future[Scale] =
       executeScaleMethod(objName, "GET")(rd)
       
-    private[this] def scale[O <: ObjectResource](objName: String, count: Int)(implicit rd: ResourceDefinition[O]): Future[Scale] =
-      executeScaleMethod(objName,
-                         "PUT", 
-                         Some(Scale(metadata=ObjectMeta(name=objName, namespace=context.namespaceName),
-                                    spec=Scale.Spec(replicas=count))))(rd)
+    private[this] def scale[O <: ObjectResource](
+      apiVersion: String,
+      objName: String, count: Int)(implicit rd: ResourceDefinition[O]): Future[Scale] =
+      executeScaleMethod(
+        objName,
+        "PUT",
+        Some(
+          Scale(
+            apiVersion=apiVersion,
+            metadata=ObjectMeta(name=objName, namespace=context.namespaceName),
+            spec=Scale.Spec(replicas=count)
+          )
+        )
+      )(rd)
                                       
     private[this] def executeScaleMethod[O <: ObjectResource](
                             objName: String,
                             methodName: String,  
                             scale: Option[Scale] = None)(implicit rd: ResourceDefinition[O]): Future[Scale] = {
 
-      val req=context.buildRequest(rd, Some(objName + "/scale"), false, Some(false))
-                .withHeaders("Content-Type" -> "application/json")
-                .withMethod(methodName)
+      val req=context.buildRequest(
+                rd,
+                Some(objName + "/scale"),
+                false,
+                Some(false))
+          .withHeaders("Content-Type" -> "application/json")
+          .withMethod(methodName)
               
       val reqWithBody = scale map { s =>
-        val body = scaleFormat.writes(s)
+        val body = Scale.scaleFormat.writes(s)
         context.logRequest(req, objName, Some(body))
         req.withBody(body) 
       } getOrElse {
@@ -100,27 +111,27 @@ package object ext {
      * updated Scale subresource
      */
     def scaleReplicationController(name: String, count: Int): Future[Scale] =
-      scale[ReplicationController](name, count)
+      scale[ReplicationController]("autoscaling/v1", name, count)
 
     /*
     * Modify the specified replica count for a named replica set, returning a Future with its
     * updated Scale subresource
     */
     def scaleReplicaSet(name: String, count: Int): Future[Scale] =
-      scale[ReplicaSet](name, count)
+      scale[ReplicaSet]("extensions/v1beta1", name, count)
 
     /*
      * Modify the specified replica count for a named Deployment, returning a Future with its
      * updated Scale subresource
      */     
     def scaleDeployment(name: String, count: Int): Future[Scale] =
-      scale[Deployment](name, count)
+      scale[skuber.apps.Deployment]("apps/v1beta1", name, count)
       
     /*
      * Fetch the Scale subresource of a named Deployment
      * @returns a future containing the retrieved Scale subresource
      */
-    def getDeploymentScale(objName: String) = getScale[Deployment](objName)
+    def getDeploymentScale(objName: String) = getScale[skuber.apps.Deployment](objName)
     
     /*
      * Fetch the Scale subresource of a named Replication Controller

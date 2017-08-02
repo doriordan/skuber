@@ -10,36 +10,13 @@ import java.awt.font.ImageGraphicAttribute
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-
 import skuber._
+import skuber.autoscaling.HorizontalPodAutoscaler
 import skuber.ext.Ingress.Backend
 import skuber.ext._
 import skuber.json.format._ // reuse some core formatters
 
 package object format {
-  // Scale formatters
-  implicit val scaleStatusFormat: Format[Scale.Status] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
-    (JsPath \ "selector").formatMaybeEmptyString() and
-    (JsPath \ "targetSelector").formatNullable[String]
-  )(Scale.Status.apply _, unlift(Scale.Status.unapply))
-
-  implicit val scaleSpecFormat: Format[Scale.Spec] = Json.format[Scale.Spec]
-  implicit val scaleFormat: Format[Scale] = Json.format[Scale]
-  
-  // SubresourceReference formatter
-  implicit val subresFmt: Format[SubresourceReference] = (
-    (JsPath \ "kind").formatMaybeEmptyString() and
-    (JsPath \ "name").formatMaybeEmptyString() and
-    (JsPath \ "apiVersion").formatMaybeEmptyString() and
-    (JsPath \ "subresource").formatMaybeEmptyString()
-  )(SubresourceReference.apply _, unlift(SubresourceReference.unapply))
- 
-  // HorizontalPodAutoscaler formatters
-  implicit val cpuTUFmt: Format[CPUTargetUtilization] = Json.format[CPUTargetUtilization]
-  implicit val hpasSpecFmt: Format[HorizontalPodAutoscaler.Spec] = Json.format[HorizontalPodAutoscaler.Spec]
-  implicit val hpasStatusFmt: Format[HorizontalPodAutoscaler.Status] = Json.format[HorizontalPodAutoscaler.Status]
-  implicit val hpasFmt: Format[HorizontalPodAutoscaler] =  Json.format[HorizontalPodAutoscaler]
 
   // DaemonSet formatters
 
@@ -112,7 +89,6 @@ package object format {
       ) (Ingress.apply _, unlift(Ingress.unapply))
 
   implicit val daesetListFmt: Format[DaemonSetList] = ListResourceFormat[DaemonSet]
-  implicit val hpasListFmt: Format[HorizontalPodAutoscalerList] = ListResourceFormat[HorizontalPodAutoscaler]
   implicit val replsetListFmt: Format[ReplicaSetList] = ListResourceFormat[ReplicaSet]
   implicit val ingressListFmt: Format[IngressList] = ListResourceFormat[Ingress]
 }
