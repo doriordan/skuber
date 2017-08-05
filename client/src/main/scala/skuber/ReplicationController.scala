@@ -43,26 +43,38 @@ case class ReplicationController(
 }
 
 object ReplicationController {
-  
-    def apply(name: String) : ReplicationController = ReplicationController(metadata=ObjectMeta(name=name))
-    def apply(name: String, spec: ReplicationController.Spec) : ReplicationController = 
-                          ReplicationController(metadata=ObjectMeta(name=name), spec = Some(spec))
-    def apply(name:String, container: Container, selector: Map[String, String]) : ReplicationController = {
-      val podSpec=Pod.Spec(containers=List(container))
-      apply(name, podSpec, selector)
-    }
-    def apply(name:String, podSpec: Pod.Spec, selector: Map[String, String]) : ReplicationController = {
-      val meta=ObjectMeta(name=name, labels = selector)
-      val templSpec=Pod.Template.Spec(metadata=meta, spec=Some(podSpec))
-      ReplicationController(metadata=meta, spec=Some(Spec(template=Some(templSpec),selector=Some(selector))))
-    }
+
+  val specification=CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(
+      plural="replicationcontrollers",
+      singular="replicationcontroller",
+      kind="ReplicationController",
+      shortNames=List("rc")
+    )
+  )
+  implicit val rcDef = new ResourceDefinition[ReplicationController] { def spec=specification }
+  implicit val rcListDef = new ResourceDefinition[ReplicationControllerList] { def spec=specification }
+
+  def apply(name: String) : ReplicationController = ReplicationController(metadata=ObjectMeta(name=name))
+  def apply(name: String, spec: ReplicationController.Spec) : ReplicationController =
+    ReplicationController(metadata=ObjectMeta(name=name), spec = Some(spec))
+  def apply(name:String, container: Container, selector: Map[String, String]) : ReplicationController = {
+    val podSpec=Pod.Spec(containers=List(container))
+    apply(name, podSpec, selector)
+  }
+  def apply(name:String, podSpec: Pod.Spec, selector: Map[String, String]) : ReplicationController = {
+    val meta=ObjectMeta(name=name, labels = selector)
+    val templSpec=Pod.Template.Spec(metadata=meta, spec=Some(podSpec))
+    ReplicationController(metadata=meta, spec=Some(Spec(template=Some(templSpec),selector=Some(selector))))
+  }
     
-    case class Spec(
-      replicas: Int=1,
-      selector: Option[Map[String, String]] = None,
-      template: Option[Pod.Template.Spec] = None)
+  case class Spec(
+    replicas: Int=1,
+    selector: Option[Map[String, String]] = None,
+    template: Option[Pod.Template.Spec] = None)
       
-    case class Status(
-      replicas: Int,
-      observerdGeneration: Option[Int])
+  case class Status(
+    replicas: Int,
+    observerdGeneration: Option[Int])
 }

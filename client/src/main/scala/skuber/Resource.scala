@@ -20,6 +20,18 @@ object Resource {
     extends ObjectResource 
  
   object Quota {
+    val specification=CoreResourceSpecification(
+      scope = ResourceSpecification.Scope.Namespaced,
+      names = ResourceSpecification.Names(
+        plural="resourcequotas",
+        singular="resourcequota",
+        kind="ResourceQuota",
+        shortNames=List("quota")
+      )
+    )
+    implicit val rqDef = new ResourceDefinition[Resource.Quota] { def spec=specification }
+    implicit val rqListDef = new ResourceDefinition[ResourceQuotaList] { def spec=specification }
+
     case class Spec(hard: ResourceList = Map())
     case class Status(hard: ResourceList = Map(), used: ResourceList = Map())
   }  
@@ -62,9 +74,7 @@ object Resource {
       }
     }
     override def hashCode = this.amount.hashCode
-   
   }
-  
   
   object Quantity {
     

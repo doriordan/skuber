@@ -1,14 +1,10 @@
-package skuber.ext
-
-import org.specs2.mutable.Specification // for unit-style testing
+package skuber.autoscaling
+import org.specs2.mutable.Specification
 
 import scala.math.BigInt
-
-import skuber.{ReplicationController,Pod,Container, ObjectMeta}
-
-import skuber.json.ext.format._
-
+import skuber.{Container, ObjectMeta, Pod, ReplicationController}
 import play.api.libs.json._
+import skuber.autoscaling.HorizontalPodAutoscaler.CrossVersionObjectReference
 
 /**
  * @author David O'Riordan
@@ -24,9 +20,8 @@ class HPASSpec extends Specification {
                     withMinReplicas(1).
                     withMaxReplicas(10).
                     withCPUTargetUtilization(80)
-      hpas.name mustEqual "example"   
-      hpas.spec.scaleRef.kind mustEqual "ReplicationController"
-      hpas.spec.scaleRef.subresource mustEqual "scale"
+      hpas.name mustEqual "example"
+      hpas.spec.scaleTargetRef.kind mustEqual "ReplicationController"
       hpas.spec.maxReplicas must_== 10
       hpas.spec.minReplicas must beSome(1)
       hpas.spec.cpuUtilization mustEqual Some(CPUTargetUtilization(80))
@@ -37,7 +32,7 @@ class HPASSpec extends Specification {
     val hpas=HorizontalPodAutoscaler(
       metadata = ObjectMeta("example"),
       spec = HorizontalPodAutoscaler.Spec(
-        scaleRef = SubresourceReference()
+        scaleTargetRef = CrossVersionObjectReference(name="example")
       )
     ).withMaxReplicas(0).withMinReplicas(0)
 

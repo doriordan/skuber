@@ -19,10 +19,23 @@ case class Node(
 }
 
 object Node {
-   def named(name: String) = Node(metadata=ObjectMeta(name=name))
-   def apply(name: String, spec: Node.Spec) : Node = Node(metadata=ObjectMeta(name=name), spec = Some(spec))
+
+  val specification=CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Cluster,
+    names = ResourceSpecification.Names(
+      plural = "nodes",
+      singular = "node",
+      kind = "Node",
+      shortNames = List("no")
+    )
+  )
+  implicit val nodeDef = new ResourceDefinition[Node] { def spec=specification }
+  implicit val nodeListDef = new ResourceDefinition[NodeList] { def spec=specification }
+
+  def named(name: String) = Node(metadata=ObjectMeta(name=name))
+  def apply(name: String, spec: Node.Spec) : Node = Node(metadata=ObjectMeta(name=name), spec = Some(spec))
   
-   case class Spec(
+  case class Spec(
       podCIDR: String = "",
       providerID: String = "",
       unschedulable: Boolean = false,

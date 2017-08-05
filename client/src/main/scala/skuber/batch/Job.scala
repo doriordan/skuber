@@ -1,6 +1,7 @@
 package skuber.batch
 
-import skuber.{LabelSelector, ObjectMeta, ObjectResource, Pod, Timestamp}
+import skuber.ResourceSpecification.{Names, Scope}
+import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, Timestamp}
 
 /**
   * @author Cory Klein
@@ -11,12 +12,26 @@ case class Job(val kind: String ="Job",
                spec: Option[Job.Spec] = None,
                status: Option[Job.Status] = None) extends ObjectResource {
 
-  lazy val copySpec: Job.Spec = this.spec.getOrElse(new Job.Spec)
+  lazy val copySpec: Job.Spec = this.spec.getOrElse(new Job.Spec())
 
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
 }
 
 object Job {
+
+  val specification=NonCoreResourceSpecification (
+    group=Some("batch"),
+    version="v1",
+    scope = Scope.Namespaced,
+    names=Names(
+      plural = "jobs",
+      singular = "job",
+      kind = "Job",
+      shortNames = Nil
+    )
+  )
+  implicit val jobDef = new ResourceDefinition[Job] { def spec=specification }
+  implicit val jobListDef = new ResourceDefinition[JobList] { def spec=specification }
 
   def apply(name: String) = new Job(metadata=ObjectMeta(name=name))
 

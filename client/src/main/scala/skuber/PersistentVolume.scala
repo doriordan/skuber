@@ -20,7 +20,19 @@ case class PersistentVolume(
 }
    
 object PersistentVolume {
-  
+
+  val specification=CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Cluster,
+    names = ResourceSpecification.Names(
+      plural="persistentvolumes",
+      singular="persistentvolume",
+      kind="PersistentVolume",
+      shortNames=Nil
+    )
+  )
+  implicit val pvDef = new ResourceDefinition[PersistentVolume] { def spec=specification }
+  implicit val pvListDef = new ResourceDefinition[PersistentVolumeList] { def spec=specification }
+
   object AccessMode extends Enumeration {
     type AccessMode = Value
     val ReadWriteOnce,ReadOnlyMany,ReadWriteMany = Value

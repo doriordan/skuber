@@ -27,6 +27,19 @@ case class Namespace(
   }
 
 object Namespace {
+
+  val specification = CoreResourceSpecification(
+    scope = ResourceSpecification.Scope.Cluster,
+    names = ResourceSpecification.Names(
+      plural="namespaces",
+      singular="namespace",
+      kind="Namespace",
+      shortNames=List("ns")
+    )
+  )
+  implicit val namespaceDef = new ResourceDefinition[Namespace]  { def spec=specification }
+  implicit val nsListDef = new ResourceDefinition[NamespaceList] { def spec=specification }
+
   case class Spec(finalizers: Option[List[String]])
   case class Status(phase: String)
  

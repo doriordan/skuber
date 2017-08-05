@@ -1,14 +1,15 @@
-package skuber.ext
+package skuber.apps
 
 /**
  * @author David O'Riordan
  */
 
+import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
 case class Deployment(
     val kind: String ="Deployment",
-    override val apiVersion: String = extensionsAPIVersion,
+    override val apiVersion: String = "apps/v1beta1",
     val metadata: ObjectMeta = ObjectMeta(),
     val spec:  Option[Deployment.Spec] = None,
     val status: Option[Deployment.Status] = None)
@@ -34,13 +35,13 @@ case class Deployment(
    * the existing one of the same name if applicable. 
    * The modified Deployment can then be updated on Kubernetes to instigate the upgrade.  
    */
-  def updateContainer(newContainer: Container) = {
+  def updateContainer(newContainer: Container): Deployment = {
     val containers = getPodSpec map { _.containers }
     val updatedContainers = containers map { list => 
       val existing = list.find(_.name==newContainer.name)
       existing match {
         case Some(_) => list.collect {
-          case c if (c.name==newContainer.name) => newContainer
+          case c if c.name==newContainer.name => newContainer
           case c => c
         }
         case None => newContainer::list
@@ -56,7 +57,21 @@ case class Deployment(
 }
       
 object Deployment {
-  
+
+  val specification=NonCoreResourceSpecification (
+    group=Some("apps"),
+    version="v1beta1",
+    scope = Scope.Namespaced,
+    names=Names(
+      plural = "deployments",
+      singular = "deployment",
+      kind = "Deployment",
+      shortNames = List("deploy")
+    )
+  )
+  implicit val deployDef = new ResourceDefinition[Deployment] { def spec=specification }
+  implicit val deployListDef =  new ResourceDefinition[DeploymentList] { def spec=specification }
+
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
   
   case class Spec(

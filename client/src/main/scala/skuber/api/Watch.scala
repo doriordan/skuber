@@ -1,9 +1,9 @@
 package skuber.api
 
 
-import skuber.ObjectResource
+import skuber.{ResourceDefinition,ObjectResource}
 import skuber.json.format.apiobj.watchEventFormat
-import skuber.api.client.{RequestContext,K8SException, WatchEvent, ObjKind, Status}
+import skuber.api.client.{RequestContext,K8SException, WatchEvent, Status}
 
 import scala.concurrent.{Future,ExecutionContext}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,12 +38,11 @@ object Watch {
         context: RequestContext, 
         name: String,
         sinceResourceVersion: Option[String] = None)
-        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
+        (implicit format: Format[O], rd: ResourceDefinition[O], ec: ExecutionContext) : Watch[WatchEvent[O]] =
     {
        if (log.isDebugEnabled) 
          log.debug("[Skuber Watch (" + name + "): creating...")
-       val wsReq = context.buildRequest(Some(name), watch=true)(kind).
-                               withRequestTimeout(2147483647)
+       val wsReq = context.buildRequest(rd, Some(name), watch=true).withRequestTimeout(2147483647)
        val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
        val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
        val (responseBytesIteratee, responseBytesEnumerator) = Concurrent.joined[Array[Byte]]
@@ -56,13 +55,12 @@ object Watch {
     def eventsOnKind[O <: ObjectResource](
         context: RequestContext, 
         sinceResourceVersion: Option[String] = None)
-        (implicit format: Format[O], kind: ObjKind[O], ec: ExecutionContext) : Watch[WatchEvent[O]] = 
+        (implicit format: Format[O], rd: ResourceDefinition[O], ec: ExecutionContext) : Watch[WatchEvent[O]] =
     {
-        val watchId = "/" + kind.urlPathComponent
+        val watchId = "/" + rd.spec.names.plural
         if (log.isDebugEnabled) 
           log.debug("[Skuber Watch (" + watchId + ") : creating...")
-        val wsReq = context.buildRequest(None, watch=true)(kind).
-                              withRequestTimeout(2147483647)
+        val wsReq = context.buildRequest(rd, None, watch=true).withRequestTimeout(2147483647)
                                  
         val maybeResourceVersionParam = sinceResourceVersion map { "resourceVersion" -> _ }
         val watchRequest = maybeResourceVersionParam map { wsReq.withQueryString(_) } getOrElse(wsReq)
@@ -115,7 +113,7 @@ object Watch {
     def events[O <: ObjectResource](
         k8sContext: RequestContext,
         obj: O)
-        (implicit format: Format[O], kind: ObjKind[O],ec: ExecutionContext) : Watch[WatchEvent[O]] =
+        (implicit format: Format[O], rd: ResourceDefinition[O],ec: ExecutionContext) : Watch[WatchEvent[O]] =
     {
       events(k8sContext, obj.name, Option(obj.metadata.resourceVersion).filter(_.trim.nonEmpty))  
     }

@@ -1,15 +1,8 @@
-package skuber.ext
+package skuber.apps
 
-import org.specs2.mutable.Specification // for unit-style testing
-
-import scala.math.BigInt
-
-import skuber.{ReplicationController,Pod,Container, LabelSelector}
-import LabelSelector.dsl._
-
-import skuber.json.ext.format._
-
-import play.api.libs.json._
+import org.specs2.mutable.Specification
+import skuber.{Container, LabelSelector, ObjectMeta, Pod, ReplicationController, Scale}
+import play.api.libs.json.Json
 
 /**
  * @author David O'Riordan
@@ -24,29 +17,13 @@ class ScaleSpec extends Specification {
     scale.status mustEqual None
   }
   
-  "A scale object can be conrtucted for a given replication controller" >> {
-      val container=Container(name="example",image="example")
-      val podSpec=Pod.Spec(containers=List(container))
-      val rc=ReplicationController("myRC").withPodSpec(podSpec)
-      val scale=Scale.scale(rc).withReplicas(20)
-      
-      scale.spec.replicas mustEqual 20
-  }
-   
-  "A scale object can be conrtucted for a given Deployment" >> {
-      val container=Container(name="example",image="example")
-      val template=Pod.Template.Spec.named("example").addContainer(container)
-      val deployment=Deployment("example").withTemplate(template)
-      val scale=Scale.scale(deployment).withReplicas(20)
-      
-      scale.spec.replicas mustEqual 20
-  }
-  
   "A scale object can be written to Json and then read back again successfully" >> {
-      val container=Container(name="example",image="example")
-      val template=Pod.Template.Spec.named("example").addContainer(container)
-      val deployment=Deployment("example").withTemplate(template)
-      val scale=Scale.scale(deployment).withReplicas(20)
+
+      val scale= Scale(
+        apiVersion="autoscaling/v1",
+        metadata=ObjectMeta(name="example", namespace="na"),
+        spec=Scale.Spec(replicas=10)
+      )
       
       val readScale = Json.fromJson[Scale](Json.toJson(scale)).get
       readScale mustEqual scale
@@ -68,7 +45,7 @@ class ScaleSpec extends Specification {
   },
   "status": {
     "replicas": 1,
-    "selector": "redis-master"
+    "targetSelector": "redis-master"
   }
 }
 """
@@ -76,8 +53,6 @@ class ScaleSpec extends Specification {
     scale.kind mustEqual "Scale"
     scale.name mustEqual "redis-master"
     scale.spec.replicas mustEqual 1
-    scale.status mustEqual Some(Scale.Status(
-      replicas=1,
-      selector="redis-master"))
+    scale.status mustEqual Some(Scale.Status(replicas=1, selector=None, targetSelector=Some("redis-master")))
   }
 }

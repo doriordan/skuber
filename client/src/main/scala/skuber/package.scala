@@ -2,10 +2,11 @@
 import java.net.URL
 import java.util.Date
 
+import ch.qos.logback.core.property.ResourceExistsPropertyDefiner
+import play.api.libs.openid.Errors.AUTH_CANCEL
+
 import scala.collection.immutable.HashMap
-
 import scala.language.implicitConversions
-
 import scala.concurrent.ExecutionContext
 
 /*
@@ -13,22 +14,25 @@ import scala.concurrent.ExecutionContext
  * @author David O'Riordan
  */
 package object skuber {
-  
+
   // define standard empty values - some Json formatters use them
-  val emptyS=""
-  val emptyB=false
-  def emptyL[T]=List[T]()
-  def emptyM[V]=Map[String,V]()
-  
+  val emptyS = ""
+  val emptyB = false
+
+  def emptyL[T] = List[T]()
+
+  def emptyM[V] = Map[String, V]()
+
   def v1 = "v1"
-  
+
   abstract class TypeMeta {
-    def apiVersion: String = v1
-    def kind: String 
+    def apiVersion: String
+    def kind: String
+    def resourceVersion: String
   }
-  
-  type Timestamp=java.time.ZonedDateTime
-  
+
+  type Timestamp = java.time.ZonedDateTime
+
   case class ObjectMeta(
     name: String = emptyS,
     generateName: String = emptyS,
@@ -43,110 +47,92 @@ package object skuber {
     generation: Int = 0)
 
   abstract class ObjectResource extends TypeMeta {
-    def metadata: ObjectMeta
+    val metadata: ObjectMeta
+
     def name = metadata.name
-    def ns = if (metadata.namespace==emptyS) "default" else metadata.namespace
+    def resourceVersion=metadata.resourceVersion
+    def ns = if (metadata.namespace == emptyS) "default" else metadata.namespace
   }
- 
-  case class ListMeta( 
-      selfLink: String = "",
-      resourceVersion: String = "")
-      
+
+  // This will be used to associate an implicit API resource definition with each ObjectResource type
+  // (the implicit values are declared in the companion objects of the resource type case classes)
+  // This will allow us to implicitly pass the required spec to construct API requests with each
+  // typed call to the Skuber API
+  trait ResourceDefinition[T <: TypeMeta] {
+    def spec: ResourceSpecification
+  }
+
+  // This trait is used to edit common fields (currently just metadata) of an object
+  // Each object resource kind defines an implicit object of this type that can be passed around
+  // Useful for methods that handle generic object resource kinds and need to modify some fields
+  trait ObjectEditor[O <: ObjectResource] {
+    def updateMetadata(obj: O, newMetadata: ObjectMeta): O
+  }
+
+  case class ListMeta(
+    selfLink: String = "",
+    resourceVersion: String = "")
+
   case class APIVersions(
-      kind: String,
-      versions: List[String])
-      
+    kind: String,
+    versions: List[String])
+
   // type for classes that can be items of some Kubernetes list type 
   // e.g. a Pod can be an item in a PodList, Node can be in a NodeList etc.
   // Just a type alias to ObjectResource 
-  type KListItem=ObjectResource
-   
+  type KListItem = ObjectResource
+
   // base trait for all list kinds
-  trait KList[K <: KListItem] extends TypeMeta {
+  sealed abstract class KList[K <: KListItem] extends TypeMeta {
     def metadata: Option[ListMeta]
     def items: List[K]
   }
-  
-  implicit def toList[I <: KListItem](resource: KList[I]) : List[I] = resource.items  
-   
-  case class PodList(
-    val kind: String ="PodList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[Pod] = Nil) extends KList[Pod]
-  
-  case class NodeList(
-    val kind: String ="NodeList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[Node] = Nil) extends KList[Node]
-  
-  case class ServiceList(
-    val kind: String ="ServiceList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[Service] = Nil) extends KList[Service]
-  
-  case class EndpointList(
-    val kind: String ="EndpointList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[Endpoints] = Nil) extends KList[Endpoints]
-  
-  case class EventList(
-    val kind: String ="EventList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[Event] = Nil) extends KList[Event]
-  
-  case class ReplicationControllerList(  
-    val kind: String ="ReplicationControllerList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[ReplicationController] = Nil) extends KList[ReplicationController]
-  
-  case class PersistentVolumeList(
-    val kind: String ="PersistentVolumeList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[PersistentVolume] = Nil) extends KList[PersistentVolume]
-  
-   case class PersistentVolumeClaimList(
-    val kind: String ="PersistentVolumeClaimList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta]= None,
-    items: List[PersistentVolumeClaim] = Nil) extends KList[PersistentVolumeClaim]
-  
-   case class ServiceAccountList(
-    val kind: String = "ServiceAccountList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta] = None,
-    items: List[ServiceAccount] = Nil) extends KList[ServiceAccount]
-  
-   case class LimitRangeList(
-    val kind: String = "LimitRangeList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta] = None,
-    items: List[LimitRange] = Nil) extends KList[LimitRange]
 
-  case class NamespaceList(
-     val kind: String = "NamespaceList",
-     override val apiVersion: String = v1,
-     val metadata: Option[ListMeta] = None,
-     items: List[Namespace] = Nil) extends KList[Namespace]
+  case class ListResource[K <: KListItem](
+    override val apiVersion: String,
+    override val kind: String,
+    override val metadata: Option[ListMeta],
+    override val items: List[K]) extends KList[K]
+  {
+    def resourceVersion=metadata.map(_.resourceVersion).getOrElse("")
+  }
 
-  case class ResourceQuotaList(
-     val kind: String = "ResourceQuotaList",
-     override val apiVersion: String = v1,
-     val metadata: Option[ListMeta] = None,
-     items: List[Resource.Quota] = Nil) extends KList[Resource.Quota]
 
-   case class SecretList(
-    val kind: String = "SecretList",
-    override val apiVersion: String = v1,
-    val metadata: Option[ListMeta] = None,
-    items: List[Secret] = Nil) extends KList[Secret]
-  
+  implicit def toList[I <: KListItem](resource: KList[I]): List[I] = resource.items
+
+  // Handy type aliases & implicits for core list resource kinds...
+  // the resource definitions for each list kind is the same as that of the
+
+  type PodList = ListResource[Pod]
+  type PodTemplateList = ListResource[Pod.Template]
+  type ConfigMapList = ListResource[ConfigMap]
+  type NodeList = ListResource[Node]
+  type ServiceList = ListResource[Service]
+  type EndpointsList = ListResource[Endpoints]
+  type EventList = ListResource[Event]
+  type ReplicationControllerList = ListResource[ReplicationController]
+  type PersistentVolumeList = ListResource[PersistentVolume]
+  type PersistentVolumeClaimList = ListResource[PersistentVolumeClaim]
+  type ServiceAccountList = ListResource[ServiceAccount]
+  type LimitRangeList = ListResource[LimitRange]
+  type NamespaceList = ListResource[Namespace]
+  type ResourceQuotaList = ListResource[Resource.Quota]
+  type SecretList = ListResource[Secret]
+
+  def listResourceFromItems[K <: KListItem](items: List[K])(implicit rd: ResourceDefinition[K]) =
+    new ListResource[K](
+      apiVersion = rd.spec.group.map(_ + "/" + rd.spec.version).getOrElse(v1),
+      kind = rd.spec.names.kind + "List",
+      metadata = None,
+      items = items
+    )
+
+  // a few functions for backwards compatibility (some the tests use them)
+  def PodList(items: List[Pod]) = listResourceFromItems(items)
+  def ServiceList(items: List[Service]) = listResourceFromItems(items)
+  def ReplicationControllerList(items: List[ReplicationController]) = listResourceFromItems(items)
+
+
   type Finalizer=String
   type Phase=String
   

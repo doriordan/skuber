@@ -1,5 +1,6 @@
 package skuber.ext
 
+import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
 /**
@@ -61,30 +62,44 @@ case class ReplicaSet(
 }
 
 object ReplicaSet {
-  
-    def apply(name: String) : ReplicaSet = ReplicaSet(metadata=ObjectMeta(name=name))
-    def apply(name: String, spec: ReplicaSet.Spec) : ReplicaSet =
-                          ReplicaSet(metadata=ObjectMeta(name=name), spec = Some(spec))
-    def apply(name:String, container: Container) : ReplicaSet = {
-      val podSpec=Pod.Spec(containers=List(container))
-      ReplicaSet(name, podSpec, Map[String,String]())
-    }
-    def apply(
-      name:String,
-      podSpec: Pod.Spec,
-      labels: Map[String,String]) : ReplicaSet =
-    {
-      val meta=ObjectMeta(name=name, labels = labels)
-      ReplicaSet(metadata=meta).withPodSpec(podSpec, labels)
-    }
+
+  val specification=NonCoreResourceSpecification(
+    group = Some("extensions"),
+    version = "v1beta1",
+    scope = Scope.Namespaced,
+    names = Names(
+      plural = "replicasets",
+      singular = "replicaset",
+      kind = "ReplicaSet",
+      shortNames = List("rs")
+    )
+  )
+  implicit val rsDef = new ResourceDefinition[ReplicaSet] { def spec=specification }
+  implicit val rsListDef = new ResourceDefinition[ReplicaSetList] { def spec=specification }
+
+  def apply(name: String) : ReplicaSet = ReplicaSet(metadata=ObjectMeta(name=name))
+  def apply(name: String, spec: ReplicaSet.Spec) : ReplicaSet =
+    ReplicaSet(metadata=ObjectMeta(name=name), spec = Some(spec))
+  def apply(name:String, container: Container) : ReplicaSet = {
+    val podSpec=Pod.Spec(containers=List(container))
+    ReplicaSet(name, podSpec, Map[String,String]())
+  }
+  def apply(
+    name:String,
+    podSpec: Pod.Spec,
+    labels: Map[String,String]) : ReplicaSet =
+  {
+    val meta=ObjectMeta(name=name, labels = labels)
+    ReplicaSet(metadata=meta).withPodSpec(podSpec, labels)
+  }
     
-    case class Spec(
-      replicas: Option[Int]=Some(1),
-      selector: Option[LabelSelector] = None,
-      template: Option[Pod.Template.Spec] = None)
-      
-    case class Status(
-      replicas: Int,
-      fullyLabeledReplicas: Option[Int],
-      observerdGeneration: Option[Int])
+  case class Spec(
+    replicas: Option[Int]=Some(1),
+    selector: Option[LabelSelector] = None,
+    template: Option[Pod.Template.Spec] = None)
+
+  case class Status(
+    replicas: Int,
+    fullyLabeledReplicas: Option[Int],
+    observerdGeneration: Option[Int])
 }

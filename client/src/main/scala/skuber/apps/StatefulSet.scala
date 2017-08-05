@@ -1,7 +1,8 @@
 package skuber.apps
 
+import skuber.ResourceSpecification.{Names, Scope}
 import skuber.ext.extensionsAPIVersion
-import skuber.{LabelSelector, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod}
+import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod, ResourceDefinition}
 
 /**
   * Created by hollinwilkins on 4/5/17.
@@ -27,6 +28,21 @@ case class StatefulSet(override val kind: String ="StatefulSet",
 }
 
 object StatefulSet {
+
+  val specification=NonCoreResourceSpecification (
+    group=Some("apps"),
+    version="v1beta1",
+    scope = Scope.Namespaced,
+    names=Names(
+      plural = "statefulset",
+      singular = "statefulset",
+      kind = "StatefulSet",
+      shortNames = List("deploy")
+    )
+  )
+  implicit val stsDef = new ResourceDefinition[StatefulSet] { def spec=specification }
+  implicit val stsListDef = new ResourceDefinition[StatefulSetList] { def spec=specification }
+
   def apply(name: String): StatefulSet =
     StatefulSet(metadata=ObjectMeta(name=name))
 

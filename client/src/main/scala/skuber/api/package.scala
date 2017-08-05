@@ -80,50 +80,43 @@ package object client {
 
      def executionContext = executorContext
 
-     def buildRequest[T <: TypeMeta](
+     private[skuber] def buildRequest[T <: TypeMeta](
+       rd: ResourceDefinition[_],
        nameComponent: Option[String],
        watch: Boolean = false,
        forExtensionsAPI: Option[Boolean] = None,
-       namespace: String = namespaceName
-       )(implicit kind: Kind[T]) : WSRequest =
+       namespace: String = namespaceName) : WSRequest =
      {
-       val nsPathComponent =  Some("namespaces/" + namespace)
-       val kindComponent = kind.urlPathComponent
-       val apiVersion = kind.apiVersion
-       val usesExtensionsAPI = forExtensionsAPI.getOrElse(kind.isExtensionsKind)
-       val usesBatchAPI = forExtensionsAPI.getOrElse(kind.isBatchKind)
-       val usesRBACAPI = forExtensionsAPI.getOrElse(kind.isRBACKind)
-       val apiPrefix = if (usesExtensionsAPI || usesBatchAPI || usesRBACAPI) "apis" else "api"
-
-         // helper to compose a full URL from a sequence of path components
-       def mkUrlString(pathComponents: Option[String]*) : String = {
-         pathComponents.foldLeft("")((acc,next) => next match {
-           case None => acc
-           case Some(pathComponent) => {
-             acc match {
-               case "" => pathComponent
-               case _ => acc + "/" + pathComponent
-             }
-           }
-         })
+       val nsPathComponent = if (rd.spec.scope==ResourceSpecification.Scope.Namespaced) {
+         Some("namespaces/" + namespaceName)
+       } else {
+         None
        }
 
        val watchPathComponent=if (watch) Some("watch") else None
 
-       val k8sUrlStr = mkUrlString(
-         Some(clusterServer),
-         Some(apiPrefix),
-         Some(apiVersion),
+       val k8sUrlOptionalParts = List(
+         clusterServer,
+         rd.spec.apiPathPrefix,
+         rd.spec.group,
+         rd.spec.version,
          watchPathComponent,
-         if (kind.isNamespaced) nsPathComponent else None,
-         Some(kindComponent),
+         nsPathComponent,
+         rd.spec.names.plural,
          nameComponent)
+
+       val k8sUrlParts = k8sUrlOptionalParts collect {
+         case p: String if p != "" => p
+         case Some(p: String) if p != "" => p
+       }
+
+       val k8sUrlStr = k8sUrlParts.mkString("/")
 
        val req = createRequestFromUrl(k8sUrlStr)
         HTTPRequestAuth.addAuth(req, requestAuth)
      }
 
-     def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None, namespace: String = namespaceName) = {
+     private[skuber] def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None, namespace: String = namespaceName) = {
        if (log.isInfoEnabled()) {
          val info = "method=" + request.method + ",url=" + request.url
          val debugInfo =
@@ -143,14 +136,14 @@ package object client {
        * Modify the specified K8S resource using a given HTTP method. The modified resource is returned.
        * The create, update and partiallyUpdate methods all call this, just passing different HTTP methods
        */
-     def modify[O <: ObjectResource](method: String)(obj: O)(implicit fmt: Format[O], kind: Kind[O]): Future[O] = {
+     private def modify[O <: ObjectResource](method: String)(obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]): Future[O] = {
        val js = fmt.writes(obj)
        // if this is a POST we don't include the resource name in the URL
        val nameComponent=method match {
          case "POST" => None
          case _ => Some(obj.name)
        }
-       val wsReq = buildRequest(nameComponent)(kind).
+       val wsReq = buildRequest(rd, nameComponent).
                       withHeaders("Content-Type" -> "application/json").
                       withMethod(method).
                       withBody(js)
@@ -160,13 +153,14 @@ package object client {
        wsResponse map toKubernetesResponse[O]
      }
 
-     def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], kind: ObjKind[O]) = modify("POST")(obj)
-     def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PUT")(obj)
-     def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],  kind: ObjKind[O]) = modify("PATCH")(obj)
+     def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]) = modify("POST")(obj)
+     def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]) = modify("PUT")(obj)
+     def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]) = modify("PATCH")(obj)
 
      def getNamespaceNames: Future[List[String]] = {
-       list[NamespaceList].map { namespaces =>
-         namespaces.items.map(ns => ns.name)
+       list[NamespaceList].map {  namespaceList =>
+         val namespaces  = namespaceList.items
+         namespaces.map(_.name).toList
        }
      }
 
@@ -174,14 +168,22 @@ package object client {
      * List by namespace returns a map of namespace (specified by name e.g. "default", "kube-sys") to the list of objects
      * of the specified kind in said namespace. All namespaces in the cluster are included in the map.
      * For example, it can be used to get a single list of all objects of the given kind across the whole cluster
-     * e.g. val allPodsInCluster: Future[List[Pod]] = listByNamespace[PodKind] map { _.values.flatMap(_.items) }
+     * e.g. val allPodsInCluster: Future[List[Pod]] = listByNamespace[Pod] map { _.values.flatMap(_.items) }
      * which supports the feature requested in issue #20
       */
-     def listByNamespace[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[Map[String,L]] =
+     def listByNamespace[L <: ListResource[_]]()
+        (implicit fmt: Format[L],rd: ResourceDefinition[L]): Future[Map[String,L]] =
+     {
+       listByNamespace[L](rd)
+     }
+
+     private def listByNamespace[L <: ListResource[_]](rd: ResourceDefinition[_])
+         (implicit fmt: Format[L]): Future[Map[String,L]] =
      {
        val nsNamesFut: Future[List[String]] = getNamespaceNames
        val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { nsNames: List[String] =>
-         Future.sequence(nsNames map { (nsName: String) => listInNamespace[L](nsName) map { (l: L) => (nsName,l) } } )
+         Future.sequence(nsNames map { (nsName: String) =>
+           listInNamespace[L](nsName, rd) map { l => (nsName,l) } } )
        }
        tuplesFut map {  _.toMap[String,L] }
      }
@@ -189,53 +191,64 @@ package object client {
      /*
       * List all objects of given kind in the specified namespace on the cluster
       */
-     def listInNamespace[L <: KList[_]](namespace: String)(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
+     def listInNamespace[L <: ListResource[_]](namespace: String)
+      (implicit fmt: Format[L],rd: ResourceDefinition[L]) : Future[L] =
      {
-       val wsReq = buildRequest(None, namespace = namespace)(kind)
-       logRequest(wsReq, kind.urlPathComponent, None, namespace=namespace)
+       listInNamespace[L](namespace,rd)
+     }
+
+     private def listInNamespace[L <: ListResource[_]](namespace: String, rd: ResourceDefinition[_])
+         (implicit fmt: Format[L]) : Future[L] =
+     {
+       val wsReq = buildRequest(rd, None, namespace = namespace)
+       logRequest(wsReq, rd.spec.names.plural, None, namespace=namespace)
        val wsResponse = wsReq.get
        wsResponse map toKubernetesResponse[L]
      }
 
-     def _list[L <: KList[_]](maybeLabelSelector: Option[LabelSelector])(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] = {
-       val wsReq = maybeLabelSelector.foldLeft( buildRequest(None)(kind) ) {
+     /*
+      * List in current namespace, selecting objects of given kind and with labels matching given selector
+      */
+     def list[L <: ListResource[_]]()(implicit fmt: Format[L],rd: ResourceDefinition[L]) : Future[L] = _list[L](rd, None)
+
+     def list[L <: ListResource[_]](labelSelector: LabelSelector)(implicit fmt: Format[L],rd: ResourceDefinition[L]): Future[L] =
+       _list[L](rd, Some(labelSelector))
+
+     private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])
+         (implicit fmt: Format[L]) : Future[L] = {
+       val wsReq = maybeLabelSelector.foldLeft( buildRequest(rd, None) ) {
          case (r,ls) => r.withQueryString(
            "labelSelector" -> ls.toString
          )
        }
-       logRequest(wsReq, kind.urlPathComponent, None)
+       logRequest(wsReq, rd.spec.names.plural, None)
        val wsResponse = wsReq.get
        wsResponse map toKubernetesResponse[L]
      }
 
-     def list[L <: KList[_]]()(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
-       _list[L](None)
-
-     def list[L <: KList[_]](labelSelector: LabelSelector)(implicit fmt: Format[L], kind: ListKind[L]) : Future[L] =
-       _list[L](Some(labelSelector))
-
-     def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[Option[O]] = {
+     def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Option[O]] = {
        _get[O](name) map toKubernetesResponseOption[O] recover { case _ => None }
      }
 
-     def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
+     def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
        _get[O](name) map toKubernetesResponse[O]
      }
 
-     def getInNamespace[O <: ObjectResource](name: String, namespace: String)(implicit fmt: Format[O], kind: ObjKind[O]): Future[O] = {
+     def getInNamespace[O <: ObjectResource](name: String, namespace: String)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
        _get[O](name, namespace) map toKubernetesResponse[O]
      }
 
-     private def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(implicit fmt: Format[O], kind: ObjKind[O]): Future[WSResponse] = {
-       val wsReq = buildRequest(Some(name),namespace=namespace)(kind)
+     private def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)
+         (implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[WSResponse] = {
+       val wsReq = buildRequest(rd, Some(name),namespace=namespace)
        logRequest(wsReq, name, None,namespace=namespace)
        wsReq.get
      }
 
-     def delete[O <: ObjectResource](name:String, gracePeriodSeconds: Int = 0)(implicit kind: ObjKind[O]): Future[Unit] = {
+     def delete[O <: ObjectResource](name:String, gracePeriodSeconds: Int = 0)(implicit rd: ResourceDefinition[O]): Future[Unit] = {
        val options=DeleteOptions(gracePeriodSeconds=gracePeriodSeconds)
        val js = deleteOptionsWrite.writes(options)
-       val wsReq = buildRequest(Some(name))(kind).
+       val wsReq = buildRequest(rd, Some(name)).
                       withHeaders("Content-Type" -> "application/json").
                       withBody(js).withMethod("DELETE")
        logRequest(wsReq, name, None)
@@ -249,13 +262,13 @@ package object client {
 
      import play.api.libs.iteratee.Enumerator
 
-     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  kind: ObjKind[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)       
+     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  rd: ResourceDefinition[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
-                                    (implicit objfmt: Format[O], kind: ObjKind[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
+                                    (implicit objfmt: Format[O], rd: ResourceDefinition[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
 
      // watch events on all objects of specified kind in current namespace
-     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], kind: ObjKind[O])  =
+     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O])  =
              Watch.eventsOnKind[O](this,sinceResourceVersion)
 
 
@@ -273,63 +286,6 @@ package object client {
      def close = onClose()
    }
 
-   // basic resource kinds supported by the K8S API server
-   abstract class Kind[T <: TypeMeta](implicit fmt: Format[T]) {
-     def urlPathComponent: String
-     def isAppsKind: Boolean = false
-     def isExtensionsKind: Boolean = false
-     def isBatchKind: Boolean = false
-     def isNamespaced: Boolean = true
-     def isRBACKind: Boolean = false
-     def apiVersion: String =
-       if (isExtensionsKind)
-         skuber.ext.extensionsAPIVersion
-       else if (isAppsKind)
-         skuber.apps.appsAPIVersion
-       else if (isBatchKind)
-         skuber.batch.batchAPIVersion
-       else if (isRBACKind)
-         skuber.rbac.rbacAPIVersion
-       else
-         "v1"
-   }
-
-   case class ObjKind[O <: ObjectResource](
-       val urlPathComponent: String,
-       kind: String)(implicit fmt: Format[O])
-       extends Kind[O]
-
-   implicit val podKind = ObjKind[Pod]("pods", "Pod")
-   implicit val nodeKind = new ObjKind[Node]("nodes", "Node") { override def isNamespaced = false }
-   implicit val serviceKind = ObjKind[Service]("services", "Service")
-   implicit val replCtrllrKind = ObjKind[ReplicationController]("replicationcontrollers", "ReplicationController")
-   implicit val endpointsKind = ObjKind[Endpoints]("endpoints", "Endpoints")
-   implicit val namespaceKind = new ObjKind[Namespace]("namespaces", "Namespace") { override def isNamespaced = false }
-   implicit val persistentVolumeKind = new ObjKind[PersistentVolume]("persistentvolumes", "PersistentVolume") { override def isNamespaced = false }
-   implicit val persistentVolumeClaimsKind = ObjKind[PersistentVolumeClaim]("persistentvolumeclaims", "PersistentVolumeClaim")
-   implicit val serviceAccountKind = ObjKind[ServiceAccount]("serviceaccounts","ServiceAccount")
-   implicit val secretKind = ObjKind[Secret]("secrets","Secret")
-   implicit val podTemplateKind = ObjKind[Pod.Template]("podtemplates", "PodTemplate")
-   implicit val limitRangeKind = ObjKind[LimitRange]("limitranges","LimitRange")
-   implicit val resourceQuotaKind = ObjKind[Resource.Quota]("resourcequotas", "ResourceQuota")
-   implicit val configMapKind = ObjKind[ConfigMap]("configmaps", "ConfigMap")
-
-   case class ListKind[L <: TypeMeta](val urlPathComponent: String, val apiPrefix: String = "api")(implicit fmt: Format[L])
-     extends Kind[L]
-   implicit val podListKind = ListKind[PodList]("pods")
-   implicit val nodeListKind = new ListKind[NodeList]("nodes") { override def isNamespaced = false }
-   implicit val serviceListKind = ListKind[ServiceList]("services")
-   implicit val endpointListKind = ListKind[EndpointList]("endpoints")
-   implicit val eventListKind = ListKind[EventList]("events")
-   implicit val replCtrlListKind = ListKind[ReplicationControllerList]("replicationcontrollers")
-   implicit val namespaceListKind = new ListKind[NamespaceList]("namespaces") { override def isNamespaced = false }
-   implicit val persistentVolumeListKind = new ListKind[PersistentVolumeList]("persistentvolumes") { override def isNamespaced = false }
-   implicit val persistentVolumeClaimListKind = ListKind[PersistentVolumeClaimList]("persistentvolumeclaims")
-   implicit val serviceAccountListKind = ListKind[ServiceAccountList]("serviceaccounts")
-   implicit val limitRangeListKind = ListKind[LimitRangeList]("limitranges")
-   implicit val resourceQuotaListKind = ListKind[ResourceQuotaList]("resourcequotas")
-   implicit val secretListKind = ListKind[SecretList]("secrets")
-
   // Status will usually be returned by Kubernetes when an error occurs with a request
   case class Status(
     apiVersion: String = "v1",
@@ -344,7 +300,7 @@ package object client {
 
   class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
 
-  def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
+  private[skuber] def toKubernetesResponse[T](response: WSResponse)(implicit reader: Reads[T]) : T = {
     checkResponseStatus(response)
     val result = response.json.validate[T]
     result recover { case errors =>
@@ -360,13 +316,13 @@ package object client {
     result.get
   }
 
-  def toKubernetesResponseOption[T](response: WSResponse)(implicit reader: Reads[T]) : Option[T] = {
+  private[skuber] def toKubernetesResponseOption[T](response: WSResponse)(implicit reader: Reads[T]) : Option[T] = {
     checkResponseStatus(response)
     response.json.validate[T].asOpt
   }
 
   // check for non-OK status, throwing a K8SException if appropriate
-  def checkResponseStatus(response: WSResponse) : Unit ={
+  private def checkResponseStatus(response: WSResponse) : Unit ={
     response.status match {
       case code if code < 300 => // ok
       case code => {
@@ -396,7 +352,7 @@ package object client {
     kind: String = "DeleteOptions",
     gracePeriodSeconds: Int = 0)
 
-  def buildBaseConfigForURL(url: Option[String]) = {
+  private def buildBaseConfigForURL(url: Option[String]) = {
     val cluster = Cluster(server=url.getOrElse(defaultApiServerURL))
     val context = Context(cluster=cluster)
     Configuration().useContext(context)
