@@ -88,14 +88,15 @@ The quickest way to get started with Skuber:
     [warn] Multiple main classes detected.  Run 'show discoveredMainClasses' to see the list
 
     Multiple main classes detected, select one to run:
-
-    [1] skuber.examples.deployment.DeploymentExamples
-    [2] skuber.examples.fluent.FluentExamples
-    [3] skuber.examples.guestbook.Guestbook
-    [4] skuber.examples.ingress.NginxIngress
-    [5] skuber.examples.job.PrintPiJob
-    [6] skuber.examples.list.ListExamples
-    [7] skuber.examples.scale.ScaleExamples
+    
+     [1] skuber.examples.customresources.CreateCRD
+     [2] skuber.examples.deployment.DeploymentExamples
+     [3] skuber.examples.fluent.FluentExamples
+     [4] skuber.examples.guestbook.Guestbook
+     [5] skuber.examples.ingress.NginxIngress
+     [6] skuber.examples.job.PrintPiJob
+     [7] skuber.examples.list.ListExamples
+     [8] skuber.examples.scale.ScaleExamples
 
     Enter number: 
 ```
