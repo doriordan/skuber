@@ -18,7 +18,7 @@ Example of more specific core API kind imports:
 
 Newer (non-core) API group classes are contained in subpackages associated with each API group. For example`skuber.ext` for the extensions API group or `skuber.rbac` for the rbac API group. Example specific imports for these kinds:
 
-    import skuber.ext.{Deployment,Ingress}
+    import skuber.ext.{DaemonSet,Ingress}
     import skuber.batch.{Job,CronJob}
 
 The model can be divided into categories which correspond to those in the Kubernetes API:
