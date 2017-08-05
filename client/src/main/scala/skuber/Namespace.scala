@@ -29,7 +29,7 @@ case class Namespace(
 object Namespace {
 
   val specification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Clustered,
+    scope = ResourceSpecification.Scope.Cluster,
     names = ResourceSpecification.Names(
       plural="namespaces",
       singular="namespace",

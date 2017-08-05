@@ -21,7 +21,7 @@ case class Node(
 object Node {
 
   val specification=CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Clustered,
+    scope = ResourceSpecification.Scope.Cluster,
     names = ResourceSpecification.Names(
       plural = "nodes",
       singular = "node",

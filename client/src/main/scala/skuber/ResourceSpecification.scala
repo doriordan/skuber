@@ -28,7 +28,7 @@ object ResourceSpecification {
 
   object Scope extends Enumeration {
     type ResourceScope = Value
-    val Namespaced, Clustered = Value
+    val Namespaced, Cluster = Value
   }
 
   case class Names(
@@ -40,17 +40,21 @@ object ResourceSpecification {
 }
 
 case class CoreResourceSpecification(
-  override val apiPathPrefix: String = "api",
   override val group: Option[String] = None,
   override val version: String = "v1",
   override val scope: ResourceSpecification.Scope.Value,
   override val names: ResourceSpecification.Names) extends ResourceSpecification
+{
+  def apiPathPrefix="api"
+}
 
 case class NonCoreResourceSpecification(
-  override val apiPathPrefix: String = "apis",
   override val group: Option[String],
   override val version: String,
   override val scope: ResourceSpecification.Scope.Value,
   override val names: ResourceSpecification.Names) extends ResourceSpecification
+{
+  def apiPathPrefix="apis"
+}
 
 

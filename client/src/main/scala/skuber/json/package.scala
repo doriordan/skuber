@@ -62,7 +62,7 @@ package object format {
   }
   
   // we make the above formatter methods available on JsPath objects via this implicit conversion
-  implicit def jsPath2MaybeEmpty(path: JsPath) = new MaybeEmpty(path)
+  implicit def maybeEmptyFormatMethods(path: JsPath) = new MaybeEmpty(path)
    
   // general formatting for Enumerations - derived from https://gist.github.com/mikesname/5237809
   implicit def enumReads[E <: Enumeration](enum: E) : Reads[E#Value] = new Reads[E#Value] {
@@ -92,7 +92,7 @@ package object format {
      def formatNullableEnum[E <: Enumeration](enum: E)  : OFormat[Option[E#Value]] =
         path.formatNullable[String].inmap[Option[E#Value]](_.map(s => enum.withName(s)), e => e map { _.toString } )
   }
-  implicit def jsPath2enumFmtr(path: JsPath)  = new EnumFormatter(path)
+  implicit def enumFormatMethods(path: JsPath)  = new EnumFormatter(path)
 
   // formatting of the Kubernetes types
   

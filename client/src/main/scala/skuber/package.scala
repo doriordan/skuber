@@ -27,8 +27,8 @@ package object skuber {
 
   abstract class TypeMeta {
     def apiVersion: String
-
     def kind: String
+    def resourceVersion: String
   }
 
   type Timestamp = java.time.ZonedDateTime
@@ -50,7 +50,7 @@ package object skuber {
     val metadata: ObjectMeta
 
     def name = metadata.name
-
+    def resourceVersion=metadata.resourceVersion
     def ns = if (metadata.namespace == emptyS) "default" else metadata.namespace
   }
 
@@ -60,6 +60,13 @@ package object skuber {
   // typed call to the Skuber API
   trait ResourceDefinition[T <: TypeMeta] {
     def spec: ResourceSpecification
+  }
+
+  // This trait is used to edit common fields (currently just metadata) of an object
+  // Each object resource kind defines an implicit object of this type that can be passed around
+  // Useful for methods that handle generic object resource kinds and need to modify some fields
+  trait ObjectEditor[O <: ObjectResource] {
+    def updateMetadata(obj: O, newMetadata: ObjectMeta): O
   }
 
   case class ListMeta(
@@ -78,7 +85,6 @@ package object skuber {
   // base trait for all list kinds
   sealed abstract class KList[K <: KListItem] extends TypeMeta {
     def metadata: Option[ListMeta]
-
     def items: List[K]
   }
 
@@ -87,6 +93,9 @@ package object skuber {
     override val kind: String,
     override val metadata: Option[ListMeta],
     override val items: List[K]) extends KList[K]
+  {
+    def resourceVersion=metadata.map(_.resourceVersion).getOrElse("")
+  }
 
 
   implicit def toList[I <: KListItem](resource: KList[I]): List[I] = resource.items

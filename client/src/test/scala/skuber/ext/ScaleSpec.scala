@@ -53,6 +53,6 @@ class ScaleSpec extends Specification {
     scale.kind mustEqual "Scale"
     scale.name mustEqual "redis-master"
     scale.spec.replicas mustEqual 1
-    scale.status mustEqual Some(Scale.Status(replicas=1, selector=Map(), targetSelector=Some("redis-master")))
+    scale.status mustEqual Some(Scale.Status(replicas=1, selector=None, targetSelector=Some("redis-master")))
   }
 }

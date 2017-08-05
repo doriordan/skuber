@@ -19,7 +19,7 @@ object ClusterRoleBinding {
     def spec = NonCoreResourceSpecification (
       group=Some("rbac.authorization.k8s.io"),
       version="v1beta1",
-      scope = Scope.Clustered,
+      scope = Scope.Cluster,
       names=Names(
         plural = "clusterrolebindings",
         singular = "clusterrolebinding",
