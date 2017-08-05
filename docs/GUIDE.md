@@ -340,11 +340,13 @@ Contains the `Job` and `CronJob` kinds. One of the skuber examples demonstrates 
 
 ***rbac***
 
-Contains the `Role`,`RoleBinding,`ClusterRole` and `ClusterRoleBinding` kinds - see the Kubernetes Role-Based Access Control documentation for details on how to use these kinds.
+Contains the `Role`,`RoleBinding`,`ClusterRole` and `ClusterRoleBinding` kinds - see the Kubernetes Role-Based Access Control documentation for details on how to use these kinds.
 
 ***apiextensions***
 
-Currently just supports the CustomResourceDefinition kind introduced in Kubernetes V1.7. This is a powerful feature which allows clients to define their own Kubernetes resources, for use by custom controllers and for other advanced use cases.
+Currently supports one kind - the `CustomResourceDefinition` kind introduced in Kubernetes V1.7 (as successor to the now deprecated `Third Party Resources` kind, which is not supported in Skuber). 
+
+[Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) are a powerful feature which enable Kubernetes clients to define and use their own custom resources to be treated in the same way as built-in kinds. They are useful for building custom controllers and other advanced use cases. See the `customresources` example in the `examples` sub-project to see how you can define custom resources that are first-class citizens in the Skuber API.
 
 
 ## Label Selectors
