@@ -527,11 +527,12 @@ package object format {
   ) (Service.Port.apply _, unlift(Service.Port.unapply))
   
   implicit val serviceSpecFmt: Format[Service.Spec] = (
-      (JsPath \ "ports").format[List[Service.Port]] and
+      (JsPath \ "ports").formatMaybeEmptyList[Service.Port] and
       (JsPath \ "selector").formatMaybeEmptyMap[String] and
       (JsPath \ "clusterIP").formatMaybeEmptyString() and
       (JsPath \ "type").formatEnum(Service.Type, Some(Service.Type.ClusterIP)) and
       (JsPath \ "externalIPs").formatMaybeEmptyList[String] and
+      (JsPath \ "externalName").formatMaybeEmptyString() and
       (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Some(Service.Affinity.None))
    )(Service.Spec.apply _, unlift(Service.Spec.unapply))  
    
