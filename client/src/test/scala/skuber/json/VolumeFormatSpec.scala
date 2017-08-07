@@ -48,7 +48,7 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       readVol.source match { 
-        case Volume.Secret(secretName) => secretName mustEqual "mySecretName"
+        case Volume.Secret(secretName, _) => secretName mustEqual "mySecretName"
         case _ => Failure("not a secret!")
       }
       readVol.source mustEqual Volume.Secret("mySecretName")
