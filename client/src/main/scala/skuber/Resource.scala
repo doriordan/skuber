@@ -45,7 +45,7 @@ object Resource {
   // https://godoc.org/github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource#Quantity
   
   
-  class Quantity(val value:String) {
+  class Quantity(val value: String) {
  
     lazy val amount : BigDecimal = 
       format match {

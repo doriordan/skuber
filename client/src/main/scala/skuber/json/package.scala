@@ -1,17 +1,15 @@
 package skuber.json
 
+import scala.language.implicitConversions
+
 import java.time._
 import java.time.format._
 
-import skuber._
-import play.api.libs.ws._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import play.api.data.validation.ValidationError
 import org.apache.commons.codec.binary.Base64
-import play.api.libs.functional.FunctionalBuilder
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import skuber._
 
-import scala.language.implicitConversions
 
 /**
  * @author David O'Riordan
@@ -180,10 +178,10 @@ package object format {
   }
   
   implicit val envVarValueReads: Reads[EnvVar.Value] = (
-      (JsPath \ "value").readNullable[String].map(value => EnvVar.StringValue(value.getOrElse(""))) |
       (JsPath \ "valueFrom" \ "fieldRef").read[EnvVar.FieldRef].map(x => x: EnvVar.Value) |
       (JsPath \ "valueFrom" \ "configMapKeyRef").read[EnvVar.ConfigMapKeyRef].map(x => x: EnvVar.Value) |
-      (JsPath \ "valueFrom" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value)
+      (JsPath \ "valueFrom" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value) |
+      (JsPath \ "value").readNullable[String].map(value => EnvVar.StringValue(value.getOrElse("")))
   )
   
    implicit val envVarWrites : Writes[EnvVar] = (
@@ -292,17 +290,15 @@ package object format {
     (JsPath \ "timeoutSeconds").formatMaybeEmptyInt()
   )(Probe.apply _, unlift(Probe.unapply))
   
-  
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]
   
   import Volume._
   
   implicit val emptyDirReads: Reads[EmptyDir] = {
-      (JsPath \ "medium").readNullable[String].map(
-          medium => medium match {
-            case Some(med) if (med=="Memory") => EmptyDir(MemoryStorageMedium)
-            case _ => EmptyDir(DefaultStorageMedium)
-          })      
+      (JsPath \ "medium").readNullable[String].map {
+        case Some(med) if med == "Memory" => EmptyDir(MemoryStorageMedium)
+        case _ => EmptyDir(DefaultStorageMedium)
+      }
   }  
   implicit val emptyDirWrites: Writes[EmptyDir] = Writes[EmptyDir] {
     ed => ed.medium match {
@@ -312,102 +308,117 @@ package object format {
   }  
   implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
   
-  implicit val hostPathFormat = Json.format[HostPath]  
-  implicit val secretFormat = Json.format[Secret]
-  implicit val gitFormat = Json.format[GitRepo]
-  implicit val keyToPathFormat = Json.format[KeyToPath]
+  implicit val hostPathFormat: Format[HostPath] = Json.format[HostPath]
+  implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
+  implicit val secretFormat: Format[Secret] = Json.format[Secret]
+  implicit val gitFormat: Format[GitRepo] = Json.format[GitRepo]
+
+  implicit val objectFieldSelectorFormat: Format[ObjectFieldSelector] = (
+    (JsPath \ "apiVersion").formatMaybeEmptyString() and
+    (JsPath \ "fieldPath").format[String]
+  )(ObjectFieldSelector.apply _, unlift(ObjectFieldSelector.unapply))
+
+  implicit val resourceFieldSelectorFormat: Format[ResourceFieldSelector] = Json.format[ResourceFieldSelector]
+  implicit val downwardApiVolumeFileFormat: Format[DownwardApiVolumeFile] = Json.format[DownwardApiVolumeFile]
+
+  implicit val downwardApiVolumeSourceFormat: Format[DownwardApiVolumeSource] = (
+      (JsPath \ "defaultMode").formatNullable[Int] and
+      (JsPath \ "items").formatMaybeEmptyList[DownwardApiVolumeFile]
+    )(DownwardApiVolumeSource.apply _, unlift(DownwardApiVolumeSource.unapply))
 
   implicit val configMapFormat: Format[ConfigMapVolumeSource] = (
-    (JsPath \ "name").format[String] and
+      (JsPath \ "name").format[String] and
       (JsPath \ "items").formatMaybeEmptyList[KeyToPath]
     )(ConfigMapVolumeSource.apply _, unlift(ConfigMapVolumeSource.unapply))
 
   implicit  val gceFormat: Format[GCEPersistentDisk] = (
      (JsPath \ "pdName").format[String] and
-     (JsPath \ "fsType").format[String] and 
+     (JsPath \ "fsType").format[String] and
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(GCEPersistentDisk.apply _, unlift(GCEPersistentDisk.unapply))
-   
+
    implicit val awsFormat: Format[AWSElasticBlockStore] = (
      (JsPath \ "volumeID").format[String] and
-     (JsPath \ "fsType").format[String] and 
+     (JsPath \ "fsType").format[String] and
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(AWSElasticBlockStore.apply _, unlift(AWSElasticBlockStore.unapply))
-   
+
     implicit val nfsFormat: Format[NFS] = (
      (JsPath \ "server").format[String] and
-     (JsPath \ "path").format[String] and 
+     (JsPath \ "path").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(NFS.apply _, unlift(NFS.unapply))
-   
+
    implicit val glusterfsFormat: Format[Glusterfs] = (
      (JsPath \ "endpoints").format[String] and
-     (JsPath \ "path").format[String] and 
+     (JsPath \ "path").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Glusterfs.apply _, unlift(Glusterfs.unapply))
-   
+
    implicit val rbdFormat: Format[RBD] = (
      (JsPath \ "monitors").format[List[String]] and
-     (JsPath \ "image").format[String] and 
-     (JsPath \ "fsType").format[String] and 
-     (JsPath \ "pool").formatMaybeEmptyString() and 
+     (JsPath \ "image").format[String] and
+     (JsPath \ "fsType").format[String] and
+     (JsPath \ "pool").formatMaybeEmptyString() and
      (JsPath \ "user").formatMaybeEmptyString() and
      (JsPath \ "keyring").formatMaybeEmptyString() and
      (JsPath \ "secretRef").formatNullable[LocalObjectReference] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(RBD.apply _, unlift(RBD.unapply))
-   
+
    implicit val iscsiFormat: Format[ISCSI] = (
-     (JsPath \ "targetPortal").format[String] and 
-     (JsPath \ "iqn").format[String] and 
-     (JsPath \ "lun").format[Int] and 
-     (JsPath \ "fsType").format[String] and 
+     (JsPath \ "targetPortal").format[String] and
+     (JsPath \ "iqn").format[String] and
+     (JsPath \ "lun").format[Int] and
+     (JsPath \ "fsType").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(ISCSI.apply _, unlift(ISCSI.unapply))
-     
+
    implicit val persistentVolumeClaimRefFormat: Format[Volume.PersistentVolumeClaimRef] = (
      (JsPath \ "claimName").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Volume.PersistentVolumeClaimRef.apply _, unlift(Volume.PersistentVolumeClaimRef.unapply))
-   
+
    implicit val persVolumeSourceReads: Reads[PersistentSource] = (
      (JsPath \ "hostPath").read[HostPath].map(x => x: PersistentSource) |
-     (JsPath \ "gcePersistentDisk").read[GCEPersistentDisk].map(x => x:PersistentSource) |
+     (JsPath \ "gcePersistentDisk").read[GCEPersistentDisk].map(x => x: PersistentSource) |
      (JsPath \ "awsElasticBlockStore").read[AWSElasticBlockStore].map(x => x: PersistentSource) |
      (JsPath \ "nfs").read[NFS].map(x => x: PersistentSource) |
      (JsPath \ "glusterfs").read[Glusterfs].map(x => x: PersistentSource) |
      (JsPath \ "rbd").read[RBD].map(x => x: PersistentSource) |
-     (JsPath \ "iscsi").read[ISCSI].map(x => x: PersistentSource) 
+     (JsPath \ "iscsi").read[ISCSI].map(x => x: PersistentSource)
    )
-   
+
    implicit val volumeSourceReads: Reads[Source] = (
      (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
-     (JsPath \ "secret").read[Secret].map(x => x:Source) |
-       (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x:Source) |
-     (JsPath \ "gitRepo").read[GitRepo].map(x => x:Source) |
+     (JsPath \ "secret").read[Secret].map(x => x: Source) |
+     (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
+     (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
+     (JsPath \ "downwardAPI").read[DownwardApiVolumeSource].map(x => x: Source) |
      persVolumeSourceReads.map(x => x: Source)
    )
-   
+
    implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
      case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
      case gced: GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[GCEPersistentDisk](gceFormat).writes(gced)
      case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
      case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
      case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
-     case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd) 
-     case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi) 
+     case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
+     case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
    }
-  
-   implicit val volumeSourceWrites: Writes[Source] = Writes[Source] { 
+
+   implicit val volumeSourceWrites: Writes[Source] = Writes[Source] {
      source => source match {
-       case ps:PersistentSource => persVolumeSourceWrites.writes(ps)
+       case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
-       case secr: Secret => (JsPath \ "secret").write[Secret](secretFormat).writes(secr) 
+       case secr: Secret => (JsPath \ "secret").write[Secret](secretFormat).writes(secr)
        case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
+       case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
        case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc) 
      }
    }
