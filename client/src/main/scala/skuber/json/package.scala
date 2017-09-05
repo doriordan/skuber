@@ -313,7 +313,11 @@ package object format {
   implicit val secretFormat: Format[Secret] = Json.format[Secret]
   implicit val gitFormat: Format[GitRepo] = Json.format[GitRepo]
 
-  implicit val objectFieldSelectorFormat: Format[ObjectFieldSelector] = Json.format[ObjectFieldSelector]
+  implicit val objectFieldSelectorFormat: Format[ObjectFieldSelector] = (
+    (JsPath \ "apiVersion").formatMaybeEmptyString() and
+    (JsPath \ "fieldPath").format[String]
+  )(ObjectFieldSelector.apply _, unlift(ObjectFieldSelector.unapply))
+
   implicit val resourceFieldSelectorFormat: Format[ResourceFieldSelector] = Json.format[ResourceFieldSelector]
   implicit val downwardApiVolumeFileFormat: Format[DownwardApiVolumeFile] = Json.format[DownwardApiVolumeFile]
 
