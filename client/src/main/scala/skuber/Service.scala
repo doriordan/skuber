@@ -89,7 +89,7 @@ object Service {
    
   object Type extends Enumeration {
     type ServiceType = Value
-    val ClusterIP, NodePort,LoadBalancer = Value
+    val ClusterIP, NodePort, LoadBalancer, ExternalName = Value
   }
    
   case class Port(
@@ -106,6 +106,7 @@ object Service {
      clusterIP: String = "", // empty by default - can also be "None" or an IP Address
      _type: ServiceType=ClusterIP,
      externalIPs: List[String] = List(),
+     externalName: String = "",
      sessionAffinity: Affinity.Affinity = Affinity.None)
    {
      def withSelector(sel: Map[String, String]) : Spec = this.copy(selector = sel)
