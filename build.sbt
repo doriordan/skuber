@@ -19,10 +19,29 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
+version in ThisBuild := "1.7.0"
+
+// NOTE: not the long-term planned profile name or organization
+sonatypeProfileName := "io.github.doriordan"
+
+publishMavenStyle in ThisBuild := true
+
+licenses in ThisBuild := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+
+homepage in ThisBuild := Some(url("https://github.com/doriordan"))
+
+scmInfo in ThisBuild := Some(
+  ScmInfo(
+    url("https://github.com/doriordan/skuber"),
+    "scm:git@github.com:doriordan/skuber.git"
+  )
+)
+
+developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan", email="doriordan@gmail.com", url=url("https://github.com/doriordan")))
+
 lazy val commonSettings = Seq(
   organization := "io.github.doriordan",
   scalaVersion := "2.11.8",
-  licenses += ("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -30,7 +49,6 @@ lazy val commonSettings = Seq(
     else
       Some("releases"  at nexus + "service/local/staging/deploy/maven2")
   },
-  publishMavenStyle := true,
   pomIncludeRepository := { _ => false }
 )
 
@@ -50,17 +68,17 @@ lazy val examplesAssemblySettings = Seq(
   mainClass in assembly := Some("skuber.examples.guestbook.Guestbook")
 )
 
+publishArtifact in root := false
+
 lazy val root = (project in file(".")) aggregate(
   skuber,
   examples)
 
 lazy val skuber= (project in file("client"))
-  .enablePlugins(GitVersioning)
   .settings(commonSettings: _*)
   .settings(skuberSettings: _*)
 
 lazy val examples = (project in file("examples"))
-  .enablePlugins(GitVersioning)
   .settings(commonSettings: _*)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
