@@ -12,6 +12,8 @@ import skuber.api.client.{Context, RequestContext}
 import skuber.api.security.HTTPRequestAuth
 import skuber.json.format._
 
+import scala.concurrent.duration._
+
 import LabelSelector.dsl._
 
 /**
@@ -44,15 +46,15 @@ class ListQueryParamSpec extends Specification {
 
     val sk8 = new RequestContext( ws.url(_), "http://server", HTTPRequestAuth.NoAuth, Namespace.default.name, () => ws.close())
 
-    sk8.list[ServiceList]().map(_.items) must containTheSameElementsAs(List(db,web_blue,web_green)).await
+    sk8.list[ServiceList]().map(_.items) must containTheSameElementsAs(List(db,web_blue,web_green)).await(5, 5 seconds)
 
-    sk8.list[ServiceList](LabelSelector("tier" is "database")).map(_.items) must containTheSameElementsAs(List(db)).await
+    sk8.list[ServiceList](LabelSelector("tier" is "database")).map(_.items) must containTheSameElementsAs(List(db)).await(5, 5 seconds)
 
-    sk8.list[ServiceList](LabelSelector("tier" is "web")).map(_.items) must containTheSameElementsAs(List(web_blue,web_green)).await
+    sk8.list[ServiceList](LabelSelector("tier" is "web")).map(_.items) must containTheSameElementsAs(List(web_blue,web_green)).await(5, 5 seconds)
 
-    sk8.list[ServiceList](LabelSelector("tier" isNot "database")).map(_.items) must containTheSameElementsAs(List(web_blue,web_green)).await
+    sk8.list[ServiceList](LabelSelector("tier" isNot "database")).map(_.items) must containTheSameElementsAs(List(web_blue,web_green)).await(5, 5 seconds)
 
-    sk8.list[ServiceList](LabelSelector("tier" isIn List("web"), "stage" is "blue")).map(_.items) must containTheSameElementsAs(List(web_blue)).await
+    sk8.list[ServiceList](LabelSelector("tier" isIn List("web"), "stage" is "blue")).map(_.items) must containTheSameElementsAs(List(web_blue)).await(5, 5 seconds)
   }
 
   "No labelSelector query parameter if LabelSelector not specified to ::list" >> { implicit ee: EE =>
@@ -68,7 +70,7 @@ class ListQueryParamSpec extends Specification {
 
     val sk8 = new RequestContext( ws.url(_), "http://server", HTTPRequestAuth.NoAuth, Namespace.default.name, () => ws.close())
 
-    sk8.list[PodList]().map(_.items.isEmpty) must beTrue.await
+    sk8.list[PodList]().map(_.items.isEmpty) must beTrue.await(5, 5 seconds)
   }
 
 }
