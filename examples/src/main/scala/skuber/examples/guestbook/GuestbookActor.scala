@@ -115,11 +115,15 @@ class GuestbookActor extends Actor with ActorLogging {
   } yield done
   
   // STEP 3 (re)create the service resources on Kubernetes in the appropriate order
-  def create = for {
-    _ <-    askService(redisMasterService, Create, "Front-end service & replication controller (re)created")
-    _ <-    askService(redisSlaveService, Create, "Redis slave service & replication controller (re)created")
-    done <- askService(frontEndService, Create, "Redis master service & replication controller (re)created")
-  } yield done
+  def create = {
+    System.out.println("*** (waiting 5 seconds to allow any previous housekeeping to complete on server...) ***")
+    Thread.sleep(5000)
+    for {
+      _ <-    askService(redisMasterService, Create, "Front-end service & replication controller (re)created")
+      _ <-    askService(redisSlaveService, Create, "Redis slave service & replication controller (re)created")
+      done <- askService(frontEndService, Create, "Redis master service & replication controller (re)created")
+    } yield done
+  }
     
   // STEP 4 This step completes when all replicas are running
   // To get notified if/when they are all running we ask each service to scale to the

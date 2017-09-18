@@ -1,9 +1,11 @@
 package skuber.examples.scale
 
 import skuber._
+import skuber.autoscaling.HorizontalPodAutoscaler
 import skuber.json.format._
 import skuber.ext._
 import skuber.json.ext.format._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**

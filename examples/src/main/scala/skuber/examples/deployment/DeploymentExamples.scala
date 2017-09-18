@@ -1,9 +1,8 @@
 package skuber.examples.deployment
 
 import skuber._
-import skuber.json.format._
-import skuber.ext._
-import skuber.json.ext.format._
+import skuber.apps.Deployment
+import skuber.json.apps.format._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

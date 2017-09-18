@@ -58,8 +58,8 @@ package object format {
       (JsPath \ "subjects").formatMaybeEmptyList[Subject]
     )(RoleBinding.apply _, unlift(RoleBinding.unapply))
 
-  implicit val roleListFormat: Format[RoleList] = KListFormat[Role].apply(RoleList.apply _, unlift(RoleList.unapply))
-  implicit val roleBindingListFormat: Format[RoleBindingList] = KListFormat[RoleBinding].apply(RoleBindingList.apply _, unlift(RoleBindingList.unapply))
-  implicit val clusterRoleListFormat: Format[ClusterRoleList] = KListFormat[ClusterRole].apply(ClusterRoleList.apply _, unlift(ClusterRoleList.unapply))
-  implicit val clusterRoleBindingListFormat: Format[ClusterRoleBindingList] = KListFormat[ClusterRoleBinding].apply(ClusterRoleBindingList.apply _, unlift(ClusterRoleBindingList.unapply))
+  implicit val roleListFormat: Format[RoleList] = ListResourceFormat[Role]
+  implicit val roleBindingListFormat: Format[RoleBindingList] = ListResourceFormat[RoleBinding]
+  implicit val clusterRoleListFormat: Format[ClusterRoleList] = ListResourceFormat[ClusterRole]
+  implicit val clusterRoleBindingListFormat: Format[ClusterRoleBindingList] = ListResourceFormat[ClusterRoleBinding]
 }

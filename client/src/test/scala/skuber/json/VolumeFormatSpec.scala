@@ -88,6 +88,18 @@ class VolumeReadWriteSpec extends Specification {
       readVolume mustEqual volume
     }
 
+    "this can be done for the DownwardAPIVolumeSource spec with field selector apiVersion left at default" >> {
+      val objectFieldSelector = ObjectFieldSelector(fieldPath = "/mnt/api")
+      val resourceFieldSelector = ResourceFieldSelector(Option("container"), Option(Resource.Quantity("1")), "resouce")
+      val downwardApiVolumeFile1 = DownwardApiVolumeFile(objectFieldSelector, None, "/mnt", Option(resourceFieldSelector))
+      val volume = Volume("myVol", DownwardApiVolumeSource(Option(644), List(downwardApiVolumeFile1)))
+
+      val volumeJson = Json.toJson(volume)
+      val readVolume = Json.fromJson[Volume](volumeJson).get
+
+      readVolume mustEqual volume
+    }
+
     "this can be done for the a GCE Persistent Disk source spec" >> {
       val gceVol = Volume("myVol", Volume.GCEPersistentDisk("pd1","ext4",3))
       val myVolJson = Json.toJson(gceVol)

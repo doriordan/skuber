@@ -108,7 +108,7 @@ object Volume {
       resourceFieldRef: Option[ResourceFieldSelector])
 
   case class ObjectFieldSelector(
-      apiVersion: String,
+      apiVersion: String = "v1",
       fieldPath: String)
 
   case class ResourceFieldSelector(

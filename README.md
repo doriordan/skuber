@@ -47,7 +47,7 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
 
 ## Prerequisites
 
-A Kubernetes cluster is needed at runtime, The client has been tested against various releases of Kubernetes, from v1.0 through to v1.5. For local development purposes, minikube is recommended.
+A Kubernetes cluster is needed at runtime, The client has been tested against various releases of Kubernetes, from v1.0 through to v1.7. For local development purposes, minikube is recommended.
 
 You need Java 8 to run Skuber.
 
@@ -88,12 +88,15 @@ The quickest way to get started with Skuber:
     [warn] Multiple main classes detected.  Run 'show discoveredMainClasses' to see the list
 
     Multiple main classes detected, select one to run:
-
-    [1] skuber.examples.deployment.DeploymentExamples
-    [2] skuber.examples.fluent.FluentExamples
-    [3] skuber.examples.guestbook.Guestbook
-    [4] skuber.examples.scale.ScaleExamples
-    [5] skuber.examples.ingress.NginxIngress
+    
+     [1] skuber.examples.customresources.CreateCRD
+     [2] skuber.examples.deployment.DeploymentExamples
+     [3] skuber.examples.fluent.FluentExamples
+     [4] skuber.examples.guestbook.Guestbook
+     [5] skuber.examples.ingress.NginxIngress
+     [6] skuber.examples.job.PrintPiJob
+     [7] skuber.examples.list.ListExamples
+     [8] skuber.examples.scale.ScaleExamples
 
     Enter number: 
 ```
@@ -104,7 +107,7 @@ For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md
 
 The coverage of the core Kubernetes API functionality by Skuber is comprehensive.
 
-Support of non-core API group functionality is pretty extensive, in particular of the more popular/important features. Deployment, ReplicaSet, StatefulSet, Autoscaling, Job, Ingress, DaemonSet and RBAC are all currently supported on the master branch. Support for other alpha/beta Kubernetes features is being added all the time.
+Support of non-core API group functionality is pretty extensive, in particular of the more popular/important features. Deployment, ReplicaSet, StatefulSet, HorizontalPodAutoscaler,Ingress, DaemonSet, Job, CronJob, CustomResourceDefinition and RBAC (Role/RoleBinding/ClusterRole/ClusterRoleBinding) are all currently supported on the master branch. Support for other newer Kubernetes features is being added all the time.
 
 ## License
 

@@ -1,7 +1,7 @@
 package skuber.json.batch
 
-import play.api.libs.json.{Format, JsPath}
-import skuber.batch.{Job, JobList}
+import play.api.libs.json.{Format, JsPath, Json}
+import skuber.batch.{Job, JobList, JobTemplate, CronJob, CronJobList}
 
 /**
   * Created by Cory Klein on 9/30/16.
@@ -48,5 +48,24 @@ package object format {
       (JsPath \ "status").formatNullable[Job.Status]
     )(Job.apply _, unlift(Job.unapply))
 
-  implicit val jobListFmt: Format[JobList] = KListFormat[Job].apply(JobList.apply _, unapply(JobList.unapply))
+  implicit val jobTmplSpecFmt: Format[JobTemplate.Spec] = Json.format[JobTemplate.Spec]
+
+  implicit val cronJobSpecFmt:Format[CronJob.Spec] = Json.format[CronJob.Spec]
+
+  implicit val cronJobStatusFmt: Format[CronJob.Status] = (
+      (JsPath \ "lastScheduleTime").formatNullable[Timestamp] and
+      (JsPath \ "active").formatMaybeEmptyList[ObjectReference]
+  )(CronJob.Status.apply _, unlift(CronJob.Status.unapply))
+
+  implicit val cronJob: Format[CronJob] = (
+      (JsPath \ "kind").format[String] and
+      (JsPath \ "apiVersion").format[String] and
+      (JsPath \ "metadata").format[ObjectMeta] and
+      (JsPath \ "spec").formatNullable[CronJob.Spec] and
+      (JsPath \ "status").formatNullable[CronJob.Status]
+  )(CronJob.apply _, unlift(CronJob.unapply))
+
+  implicit val jobListFmt: Format[JobList] = ListResourceFormat[Job]
+  implicit val cronJobListFmt: Format[CronJobList] = ListResourceFormat[CronJob]
+
 }

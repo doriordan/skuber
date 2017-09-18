@@ -14,46 +14,48 @@ case class Pod(
       extends ObjectResource with Limitable
 
 object Pod {
-   def named(name: String) = Pod(metadata=ObjectMeta(name=name))
-   def apply(name: String, spec: Pod.Spec) : Pod = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
+
+  val specification = CoreResourceSpecification(
+      scope = ResourceSpecification.Scope.Namespaced,
+      names = ResourceSpecification.Names(plural="pods",singular="pod",kind="Pod",shortNames=List("po"))
+  )
+  implicit val poDef = new ResourceDefinition[Pod] { def spec = specification }
+  implicit val poListDef = new ResourceDefinition[PodList] { def spec = specification }
+
+  def named(name: String) = Pod(metadata=ObjectMeta(name=name))
+  def apply(name: String, spec: Pod.Spec) : Pod = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
   
-   import DNSPolicy._
-   case class Spec( 
-      containers: List[Container] = List(), // should have at least one member
-      volumes: List[Volume] = Nil, 
-      restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
-      terminationGracePeriodSeconds: Option[Int] = None,
-      activeDeadlineSeconds: Option[Int] = None,
-      dnsPolicy: DNSPolicy.DNSPolicy = Default,
-      nodeSelector: Map[String, String] = Map(),
-      serviceAccountName: String ="",
-      nodeName: String = "",
-      hostNetwork: Boolean = false,
-      imagePullSecrets: List[LocalObjectReference] = List()) {
+  import DNSPolicy._
+  case class Spec(
+    containers: List[Container] = List(), // should have at least one member
+    volumes: List[Volume] = Nil,
+    restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
+    terminationGracePeriodSeconds: Option[Int] = None,
+    activeDeadlineSeconds: Option[Int] = None,
+    dnsPolicy: DNSPolicy.DNSPolicy = Default,
+    nodeSelector: Map[String, String] = Map(),
+    serviceAccountName: String ="",
+    nodeName: String = "",
+    hostNetwork: Boolean = false,
+    imagePullSecrets: List[LocalObjectReference] = List()) {
      
-     // a few convenience methods for fluently building out a pod spec
-     def addContainer(c: Container) = { this.copy(containers = c :: containers) }
-     def addVolume(v: Volume) = { this.copy(volumes = v :: volumes) }
-     def addNodeSelector(kv: Tuple2[String,String]) = {
-       this.copy(nodeSelector = this.nodeSelector + kv)
-     }
-     def addImagePullSecretRef(ref: String) = {
-       val loref = LocalObjectReference(ref)
-       this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
-     }
-     def withTerminationGracePeriodSeconds(gp: Int) =
-      this.copy(terminationGracePeriodSeconds = Some(gp))
-     def withActiveDeadlineSeconds(ad: Int) =
-      this.copy(activeDeadlineSeconds = Some(ad))
-     def withDnsPolicy(dp: DNSPolicy.DNSPolicy) =
-      this.copy(dnsPolicy=dp)
-     def withNodeName(nn: String) =
-      this.copy(nodeName = nn)
-     def withServiceAccountName(san: String) =
-       this.copy(serviceAccountName = san)
-     def withRestartPolicy(rp: RestartPolicy.RestartPolicy) =
-       this.copy(restartPolicy = rp)
-     def useHostNetwork = this.copy(hostNetwork=true)
+    // a few convenience methods for fluently building out a pod spec
+    def addContainer(c: Container) = { this.copy(containers = c :: containers) }
+    def addVolume(v: Volume) = { this.copy(volumes = v :: volumes) }
+    def addNodeSelector(kv: Tuple2[String,String]) = {
+      this.copy(nodeSelector = this.nodeSelector + kv)
+    }
+    def addImagePullSecretRef(ref: String) = {
+      val loref = LocalObjectReference(ref)
+      this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
+    }
+    def withTerminationGracePeriodSeconds(gp: Int) = this.copy(terminationGracePeriodSeconds = Some(gp))
+    def withActiveDeadlineSeconds(ad: Int) = this.copy(activeDeadlineSeconds = Some(ad))
+    def withDnsPolicy(dp: DNSPolicy.DNSPolicy) = this.copy(dnsPolicy=dp)
+    def withNodeName(nn: String) = this.copy(nodeName = nn)
+    def withServiceAccountName(san: String) = this.copy(serviceAccountName = san)
+    def withRestartPolicy(rp: RestartPolicy.RestartPolicy) = this.copy(restartPolicy = rp)
+    def useHostNetwork = this.copy(hostNetwork=true)
    }
    
   object Phase extends Enumeration {
@@ -62,15 +64,15 @@ object Pod {
   }
            
   case class Status(
-      phase: Option[Phase.Phase] = None,
-      conditions: List[Condition] = Nil,
-      message: Option[String] = None,
-      reason: Option[String] = None,
-      hostIP: Option[String] = None,
-      podIP: Option[String] = None,
-      startTime: Option[Timestamp] = None,
-      containerStatuses: List[Container.Status] = Nil)
-      
+    phase: Option[Phase.Phase] = None,
+    conditions: List[Condition] = Nil,
+    message: Option[String] = None,
+    reason: Option[String] = None,
+    hostIP: Option[String] = None,
+    podIP: Option[String] = None,
+    startTime: Option[Timestamp] = None,
+    containerStatuses: List[Container.Status] = Nil)
+
   case class Condition(_type : String="Ready", status: String)
  
   case class Template(
@@ -93,7 +95,20 @@ object Pod {
   }
     
   object Template {
-     def named(name: String) : Pod.Template =Pod.Template(metadata=ObjectMeta(name=name))
+
+    val specification = CoreResourceSpecification(
+      scope = ResourceSpecification.Scope.Namespaced,
+      names = ResourceSpecification.Names(
+        plural="podtemplates",
+        singular="podtemplate",
+        kind="PodTemplate",
+        shortNames=Nil
+      )
+    )
+    implicit val ptDef = new ResourceDefinition[Pod.Template] { def spec=specification }
+    implicit val ptListDef = new ResourceDefinition[PodTemplateList] { def spec=specification }
+
+    def named(name: String) : Pod.Template = Pod.Template(metadata=ObjectMeta(name=name))
      case class Spec(
          metadata: ObjectMeta = ObjectMeta(),
          spec: Option[Pod.Spec] = None) {
@@ -111,6 +126,5 @@ object Pod {
      object Spec {
        def named(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
      }
-         
    } 
 }
