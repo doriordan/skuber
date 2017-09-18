@@ -20,11 +20,6 @@ import skuber.api.client._
 package object ext {
   val extensionsAPIVersion = "extensions/v1beta1"
 
-  @deprecated("Use type `skuber.apps.Deployment` instead of `skuber.ext.Deployment", "Skuber 1.7")
-  type Deployment = skuber.apps.Deployment
-  @deprecated("Use type `skuber.apps.DeploymentList` instead of `skuber.ext.DeploymentList", "Skuber 1.7")
-  type DeploymentList = skuber.apps.DeploymentList
-
   @deprecated("Use type 'skuber.autoscaling.HorizontalPodAutoscaler' instead of 'skuber.ext.HorizontalPodAutoscaler'", "Skuber 1.7")
   type HorizontalPodAutoscaler = skuber.autoscaling.HorizontalPodAutoscaler
   @deprecated("Use type 'skuber.autoscaling.HorizontalPodAutoscalerList' instead of 'skuber.ext.HorizontalPodAutoscalerList'", "Skuber 1.7")

@@ -1,11 +1,11 @@
-package skuber.apps
+package skuber.ext
 
 import org.specs2.mutable.Specification
 import play.api.libs.json.Json
 
 import skuber.LabelSelector.dsl._
 import skuber._
-import skuber.json.apps.format._
+import skuber.json.ext.format._
 
 /**
  * @author David O'Riordan
@@ -24,7 +24,6 @@ class DeploymentSpec extends Specification {
     deployment.name mustEqual "example"
     deployment.status mustEqual None
   }
-  
   
   "A Deployment object can be written to Json and then read back again successfully" >> {
       val container=Container(name="example",image="example")
@@ -48,7 +47,7 @@ class DeploymentSpec extends Specification {
   "A Deployment object can be read directly from a JSON string" >> {
     val deplJsonStr = """
 {
-  "apiVersion": "apps/v1beta1",
+  "apiVersion": "extensions/v1beta1",
   "kind": "Deployment",
   "metadata": {
     "name": "nginx-deployment"
