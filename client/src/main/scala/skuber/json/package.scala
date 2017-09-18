@@ -10,7 +10,6 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber._
 
-
 /**
  * @author David O'Riordan
  * Play/json formatters for the Skuber k8s model types
