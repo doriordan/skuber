@@ -163,7 +163,11 @@ package object format {
  
   implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
  
-  implicit val envVarFldRefFmt = Json.format[EnvVar.FieldRef]
+  implicit val envVarFldRefFmt: Format[EnvVar.FieldRef] = (
+    (JsPath \ "fieldPath").format[String] and
+    (JsPath \ "apiVersion").formatMaybeEmptyString()
+  )(EnvVar.FieldRef.apply _, unlift(EnvVar.FieldRef.unapply))
+
   implicit val envVarCfgMapRefFmt = Json.format[EnvVar.ConfigMapKeyRef]
   implicit val envVarSecKeyRefFmt = Json.format[EnvVar.SecretKeyRef]
   
