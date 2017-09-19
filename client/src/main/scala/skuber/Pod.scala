@@ -28,6 +28,7 @@ object Pod {
   import DNSPolicy._
   case class Spec(
     containers: List[Container] = List(), // should have at least one member
+    initContainers: List[Container] = Nil,
     volumes: List[Volume] = Nil,
     restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
     terminationGracePeriodSeconds: Option[Int] = None,
@@ -41,6 +42,7 @@ object Pod {
      
     // a few convenience methods for fluently building out a pod spec
     def addContainer(c: Container) = { this.copy(containers = c :: containers) }
+    def addInitContainer(c: Container) = { this.copy(initContainers = c :: initContainers) }
     def addVolume(v: Volume) = { this.copy(volumes = v :: volumes) }
     def addNodeSelector(kv: Tuple2[String,String]) = {
       this.copy(nodeSelector = this.nodeSelector + kv)
