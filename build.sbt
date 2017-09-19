@@ -19,7 +19,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "1.7.0"
+version in ThisBuild := "1.7.1-RC2"
 
 // NOTE: not the long-term planned profile name or organization
 sonatypeProfileName := "io.github.doriordan"

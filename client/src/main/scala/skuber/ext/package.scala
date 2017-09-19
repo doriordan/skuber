@@ -28,6 +28,7 @@ package object ext {
   type DaemonSetList = ListResource[DaemonSet]
   type ReplicaSetList = ListResource[ReplicaSet]
   type IngressList = ListResource[Ingress]
+  type DeploymentList = ListResource[Deployment]
 
   // Extensions Group API methods - for the moment this includes commands to get or change the scale on
   // a RC or Deployment Scale subresource, returning a Scale object with the updated spec and status.

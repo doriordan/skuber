@@ -125,4 +125,5 @@ package object format {
   implicit val daesetListFmt: Format[DaemonSetList] = ListResourceFormat[DaemonSet]
   implicit val replsetListFmt: Format[ReplicaSetList] = ListResourceFormat[ReplicaSet]
   implicit val ingressListFmt: Format[IngressList] = ListResourceFormat[Ingress]
+  implicit val deployListFormat: Format[DeploymentList] = ListResourceFormat[Deployment]
 }
