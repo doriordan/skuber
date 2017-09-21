@@ -43,7 +43,11 @@ object Configuration {
     **/
     import java.nio.file.{Path,Paths,Files}
     def parseKubeconfigFile(path: Path = Paths.get(System.getProperty("user.home"),".kube", "config")) : Try[Configuration] = {
-       parseKubeconfigStream(Files.newInputStream(path))
+      Try {
+        Files.newInputStream(path)
+      } flatMap { is =>
+        parseKubeconfigStream(is)
+      }
     }
 
     def parseKubeconfigStream(is: java.io.InputStream) : Try[Configuration]= {
