@@ -255,9 +255,47 @@ For example, to use the `HorizontalPodAutoscaler` kind:
     import skuber.json.ext.format._ // imports the implicit JSON formatters required to use extensions group resources
 
 The currently supported extensions group kinds include `Deployment`,`ReplicaSet`,`HorizaontalPodAutoscaler`, `Ingress`, `DaemonSet`, together with their list kinds. 
-Note that there is also a `Deployment` class in the `apps` package - the latter targets the newer `apps` API group on Kubernetes but is otherwise equivalent. If you need to support versions of Kubernetes before v1.6 then continue to use `ext.Deployment`, otherwise use `apps.Deployment` - the extensions API group Deployment is ultimately likely to be removed in from Kubernetes in favour of the `apps` variant, and thus likely to be deprecated and ultimately removed froma . future version of Skuber. 
 
-As the Kubernetes long-term strategy is to use more specific API groups rather then the generic extensions group, other classes in the `ext` subpackage are also likely to be migrated in future to reflect changes in Kubernetes.)
+***Deployment***
+
+A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
+
+The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). 
+
+Initial creation of the deployment:
+
+    val nginxLabel = "app" -> "nginx"
+    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
+    
+    val nginxTemplate = Pod.Template.Spec
+      .named("nginx")
+      .addContainer(nginxContainer)
+      .addLabel(nginxLabel)
+        
+    val desiredCount = 5  
+    val nginxDeployment = Deployment("nginx-deployment")
+      .withReplicas(desiredCount)
+      .withTemplate(nginxTemplate)
+    
+    println("Creating nginx deployment")
+    val createdDeplFut = k8s create nginxDeployment 
+
+Use `kubectl get deployments` to see the status of the newly created Deployment, and `kubectl get rc` will show a new replication controller which manages the creation of the required pods.
+
+Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
+
+    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
+    val existingDeployment = k8s get[Deployment] "nginx-deployment"
+    val updatedDeployment = existingDeployment.updateContainer(newContainer)
+    k8s update updatedDeployment 
+
+As no explicit deployment strategy has been selected, the default strategy will be used which will result in a rolling update of the nginx pods - again, you can use `kubectl get` commands to view the status of the deployment, replication controllers and pods as the update progresses.
+
+The `DeploymentExamples` example runs the above steps.
+
+If you need to support versions of Kubernetes before v1.6 then continue to use `ext.Deployment`, otherwise use `apps.Deployment` (see below) which is the strategic long-term replacement for `ext.Deployment`.
+
+As the Kubernetes long-term strategy is to use more specific API groups rather then the generic extensions group, other classes in the `ext` subpackage are also likely to be migrated in future to reflect changes in Kubernetes.
 
 ***HorizontalPodAutoscaler***
 
@@ -295,42 +333,7 @@ Currently contains the `Deployment` and `StatefulSet` types:
 
 - Deployment
 
-(Note that a recent version of Kubernetes is needed to use the Deployment functionality in this release of Skuber).
-
-A Skuber client can create and update `Deployment` objects on the cluster to have Kubernetes automatically manage the deployment and upgrade strategy (for example rolling upgrade) of applications to the cluster.
-
-The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/). 
-
-Initial creation of the deployment:
-
-    val nginxLabel = "app" -> "nginx"
-    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
-    
-    val nginxTemplate = Pod.Template.Spec
-      .named("nginx")
-      .addContainer(nginxContainer)
-      .addLabel(nginxLabel)
-        
-    val desiredCount = 5  
-    val nginxDeployment = Deployment("nginx-deployment")
-      .withReplicas(desiredCount)
-      .withTemplate(nginxTemplate)
-    
-    println("Creating nginx deployment")
-    val createdDeplFut = k8s create nginxDeployment 
-
-Use `kubectl get deployments` to see the status of the newly created Deployment, and `kubectl get rc` will show a new replication controller which manages the creation of the required pods.
-
-Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
-
-    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
-    val existingDeployment = k8s get[Deployment] "nginx-deployment"
-    val updatedDeployment = existingDeployment.updateContainer(newContainer)
-    k8s update updatedDeployment 
-
-As no explicit deployment strategy has been selected, the default strategy will be used which will result in a rolling update of the nginx pods - again, you can use `kubectl get` commands to view the status of the deployment, replication controllers and pods as the update progresses.
-
-The `DeploymentExamples` example runs the above steps.
+Essentially equivalent to `ext.Deployment` at present, but requires Kubernetes clusters that are at v1.6 or later. Long-term strategic replacement for `ext.Deployment`.
 
 - StatefulSet
 
@@ -366,8 +369,6 @@ For such types, Skuber now supports a mini-DSL to build selectors:
         
     // now the label selector can be used with certain types 
     val depl = Deployment("exampleDeployment").withSelector(sel)
-       
-
 
  
 ## Programmatic configuration
