@@ -253,8 +253,6 @@ For example, to use the `HorizontalPodAutoscaler` kind:
 
     import skuber.ext.HorizontalPodAutoscaler
     import skuber.json.ext.format._ // imports the implicit JSON formatters required to use extensions group resources
-    
-The currently supported extensions group kinds include `Deployment`,`ReplicaSet`,`HorizaontalPodAutoscaler`, `Ingress`, `DaemonSet`, together with their list kinds. 
 
 The currently supported extensions group kinds include `Deployment`,`ReplicaSet`,`HorizaontalPodAutoscaler`, `Ingress`, `DaemonSet`, together with their list kinds. 
 Note that there is also a `Deployment` class in the `apps` package - the latter targets the newer `apps` API group on Kubernetes but is otherwise equivalent. If you need to support versions of Kubernetes before v1.6 then continue to use `ext.Deployment`, otherwise use `apps.Deployment` - the extensions API group Deployment is ultimately likely to be removed in from Kubernetes in favour of the `apps` variant, and thus likely to be deprecated and ultimately removed froma . future version of Skuber. 
