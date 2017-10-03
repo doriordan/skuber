@@ -78,5 +78,11 @@ users:
     
     directlyConstructedConfig mustEqual parsedFromStringConfig
   }
-  
+
+  "If kubeconfig is not found at expected path then a Failure is returned" >> {
+      import java.nio.file.Paths
+      val path=Paths.get("file:///doesNotExist")
+      val parsed = Configuration.parseKubeconfigFile(path)
+      parsed.isFailure mustEqual true
+  }
 }
