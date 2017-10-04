@@ -44,13 +44,15 @@ object Configuration {
     import java.nio.file.{Path,Paths,Files}
     def parseKubeconfigFile(path: Path = Paths.get(System.getProperty("user.home"),".kube", "config")) : Try[Configuration] = {
       Try {
-        Files.newInputStream(path)
-      } flatMap { is =>
-        parseKubeconfigStream(is)
+        val kubeconfigDir: Path = path.getParent
+        val is = Files.newInputStream(path)
+        (is,kubeconfigDir)
+      } flatMap { case (is, kubeconfigDir) =>
+        parseKubeconfigStream(is, Some(kubeconfigDir))
       }
     }
 
-    def parseKubeconfigStream(is: java.io.InputStream) : Try[Configuration]= {
+    def parseKubeconfigStream(is: java.io.InputStream, kubeconfigDir: Option[Path] = None) : Try[Configuration]= {
 
       type YamlMap= java.util.Map[String, Object]
       type TopLevelYamlList = java.util.List[YamlMap]
@@ -77,12 +79,23 @@ object Configuration {
         def pathOrDataValueAt[T](parent: YamlMap, pathKey: String, dataKey: String) : Option[PathOrData] = {
           val path = optionalValueAt[String](parent, pathKey)
           val data = optionalValueAt[String](parent, dataKey)
+
           // Return some Right if data value is set, otherwise some Left if path value is set
           // if neither is set return None
           // Note - implication is that a data setting overrides a path setting
           (path, data) match {
             case (_, Some(b64EncodedData)) => Some(Right(Base64.getDecoder.decode(b64EncodedData)))
-            case (Some(p), _) => Some(Left(p))
+            case (Some(p), _) => {
+              // path specified
+              // if it is a relative path and a directory was specified then construct full path from those components,
+              // otherwise just return path as given
+              val expandedPath = (Paths.get(p), kubeconfigDir) match {
+                case (basePath, Some(dir)) if !basePath.isAbsolute =>
+                  Paths.get(dir.normalize.toString, basePath.normalize.toString).normalize.toString
+                case _  => p
+              }
+              Some(Left(expandedPath))
+            }
             case (None, None) => None
           }
         }

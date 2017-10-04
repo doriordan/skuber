@@ -1,17 +1,18 @@
 package skuber.api
 
 import skuber._
-
 import org.specs2.mutable.Specification
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
 import org.specs2.execute.Success
+import java.nio.file.Paths
+
+import skuber.api.client.PathOrData
 
 /**
  * @author David O'Riordan
  */
 class ConfigurationSpec extends Specification {
-  "An example kubeconfig file can be parsed correctly" >> {
     val kubeConfigStr =  """
 apiVersion: v1
 clusters:
@@ -51,6 +52,7 @@ users:
     client-certificate: path/to/my/client/cert
     client-key: path/to/my/client/key
 """
+  "An example kubeconfig file can be parsed correctly" >> {
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
     val k8sConfig = K8SConfiguration.parseKubeconfigStream(is)
     val parsedFromStringConfig = k8sConfig.get
@@ -84,5 +86,12 @@ users:
       val path=Paths.get("file:///doesNotExist")
       val parsed = Configuration.parseKubeconfigFile(path)
       parsed.isFailure mustEqual true
+  }
+
+  "if a relative path and directory are specfied, then the parsed config must contain the fully expanded paths" >> {
+    val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
+    val k8sConfig = K8SConfiguration.parseKubeconfigStream(is, Some(Paths.get("/top/level/path")))
+    val parsedFromStringConfig = k8sConfig.get
+    parsedFromStringConfig.users("green-user").clientCertificate.get mustEqual Left("/top/level/path/path/to/my/client/cert")
   }
 }
