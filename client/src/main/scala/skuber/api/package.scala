@@ -3,7 +3,7 @@ package skuber.api
 import java.net.URL
 
 import com.ning.http.client.AsyncHttpClientConfig
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import play.api.libs.json._
 import play.api.libs.ws._
 import play.api.libs.ws.ning._
@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 package object client {
 
-  val log = LoggerFactory.getLogger("skuber.api")
+  val log: Logger = LoggerFactory.getLogger("skuber.api")
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
   type PathOrData = Either[String,Array[Byte]]
@@ -78,7 +78,7 @@ package object client {
                         val namespaceName: String,
                         onClose: () => Unit)(implicit executorContext: ExecutionContext) {
 
-     def executionContext = executorContext
+     val executionContext: ExecutionContext = executorContext
 
      private[skuber] def buildRequest[T <: TypeMeta](
        rd: ResourceDefinition[_],
@@ -118,17 +118,13 @@ package object client {
 
      private[skuber] def logRequest(request: WSRequest, objName: String, json: Option[JsValue] = None, namespace: String = namespaceName) = {
        if (log.isInfoEnabled()) {
-         val info = "method=" + request.method + ",url=" + request.url
+         val info = s"${request.method} ${request.url}"
          val debugInfo =
            if (log.isDebugEnabled())
-             Some(",namespace=" + namespace + ",url=" + request.url +
-                 request.queryString.headOption.map {
-                   case (s, seq) => ",query='" + s + "=" + seq.headOption.getOrElse("") + "'"
-                 }.getOrElse("")
-                 + json.fold("")(js => ",body=" + js.toString()))
+             s" (namespace=$namespace, query=${request.queryString}, body=$json)"
            else
-             None
-         log.info("[Skuber Request: " + info + debugInfo.getOrElse("") + "]")
+             ""
+         log.info(s"[Skuber Request: $info$debugInfo]")
        }
      }
 
@@ -153,14 +149,14 @@ package object client {
        wsResponse map toKubernetesResponse[O]
      }
 
-     def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]) = modify("POST")(obj)
-     def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]) = modify("PUT")(obj)
-     def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]) = modify("PATCH")(obj)
+     def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = modify("POST")(obj)
+     def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]): Future[O] = modify("PUT")(obj)
+     def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O],rd: ResourceDefinition[O]): Future[O] = modify("PATCH")(obj)
 
      def getNamespaceNames: Future[List[String]] = {
        list[NamespaceList].map {  namespaceList =>
          val namespaces  = namespaceList.items
-         namespaces.map(_.name).toList
+         namespaces.map(_.name)
        }
      }
 
@@ -260,20 +256,24 @@ package object client {
      // The methods return Play Framework enumerators that will reactively emit a stream of updated
      // values of the watched resources.
 
-     import play.api.libs.iteratee.Enumerator
+     def watch[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]) : Watch[WatchEvent[O]] = {
+       Watch.events(this, obj)
+     }
 
-     def watch[O <: ObjectResource](obj: O)(implicit objfmt: Format[O],  rd: ResourceDefinition[O]) : Watch[WatchEvent[O]] = Watch.events(this, obj)
      def watch[O <: ObjectResource](name: String,
                                     sinceResourceVersion: Option[String] = None)
-                                    (implicit objfmt: Format[O], rd: ResourceDefinition[O]) : Watch[WatchEvent[O]] =  Watch.events(this, name, sinceResourceVersion)
+                                    (implicit fmt: Format[O], rd: ResourceDefinition[O]) : Watch[WatchEvent[O]] = {
+       Watch.events(this, name, sinceResourceVersion)
+     }
 
      // watch events on all objects of specified kind in current namespace
-     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O])  =
-             Watch.eventsOnKind[O](this,sinceResourceVersion)
-
+     def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None)
+         (implicit fmt: Format[O], rd: ResourceDefinition[O]): Watch[WatchEvent[O]] = {
+       Watch.eventsOnKind[O](this, sinceResourceVersion)
+     }
 
      // get API versions supported by the cluster - against current v1.x versions of Kubernetes this returns just "v1"
-     def getServerAPIVersions(): Future[List[String]] = {
+     def getServerAPIVersions: Future[List[String]] = {
        val url = clusterServer + "/api"
        val noAuthReq = createRequestFromUrl(url)
        val wsReq = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
@@ -283,7 +283,7 @@ package object client {
        wsResponse map toKubernetesResponse[APIVersions] map { _.versions }
      }
 
-     def close = onClose()
+     def close: Unit = onClose()
    }
 
   // Status will usually be returned by Kubernetes when an error occurs with a request
@@ -304,6 +304,8 @@ package object client {
     checkResponseStatus(response)
     val result = response.json.validate[T]
     result recover { case errors =>
+        if (log.isErrorEnabled())
+          log.error("[Skuber Response: error(s) parsing body - $errors")
         val status =
           Status(message = Some(errors.toString),
                  reason = Some("validation error mapping response body to expected Scala class"),
@@ -311,8 +313,8 @@ package object client {
                  code = Some(response.status))
         throw new K8SException(status)
     }
-    if (log.isInfoEnabled)
-      log.info("[Skuber Response: successfully parsed " + result.get)
+    if (log.isDebugEnabled)
+      log.debug(s"s[Skuber Response: successfully parsed body = ${result.get}]")
     result.get
   }
 
@@ -324,24 +326,27 @@ package object client {
   // check for non-OK status, throwing a K8SException if appropriate
   private def checkResponseStatus(response: WSResponse) : Unit ={
     response.status match {
-      case code if code < 300 => // ok
-      case code => {
+      case code if code < 300 =>
+        if (log.isDebugEnabled())
+          log.debug(s"[Skuber response: status = $code]")
+      case code =>
         // a non-success or unexpected status returned - we should normally have a Status in the response body
-        val status=response.json.validate[Status]
-        status match {
-          case JsSuccess(status, path) =>
-            if (log.isWarnEnabled)
-              log.warn("[Skuber Response: non-ok status returned = " + status)
-              throw new K8SException(status)
-          case JsError(e) => // unexpected response, so generate a Status
-            val status=Status(message=Some("Unexpected response body for non-OK status "),
+        if (log.isWarnEnabled)
+          log.warn(s"[Skuber Response: non-ok status code $code]")
+        val statusJs=response.json.validate[Status]
+        statusJs match {
+          case JsSuccess(status, _) =>
+            if (log.isDebugEnabled())
+              log.debug(s"[Skuber Response: Status returned for non-ok response = $status")
+            throw new K8SException(status)
+          case JsError(parseErrors) => // unexpected response body, so generate a Status
+            val status=Status(message=Some("Unexpected response body for non-OK status"),
                               reason=Some(response.statusText),
                               details=Some(response.body),
-                              code=Some(response.status))
-            if (log.isErrorEnabled)
-              log.error("[Skuber Response: status code = " + code + ", error parsing body = " + e)
+                              code=Some(code))
+            if (log.isDebugEnabled())
+              log.debug(s"[Skuber Response: status code = $code, unable to parse expected Status - $parseErrors")
             throw new K8SException(status)
-        }
       }
     }
   }
@@ -377,10 +382,9 @@ package object client {
     val skuberUrlEnv = sys.env.get("SKUBER_URL")
     val config : Configuration = skuberConfigEnv match {
       case Some(conf) if conf == "file" =>  Configuration.parseKubeconfigFile().get
-      case Some(fileUrl) => {
+      case Some(fileUrl) =>
         val path = java.nio.file.Paths.get(new URL(fileUrl).toURI)
         Configuration.parseKubeconfigFile(path).get
-      }
       case None => buildBaseConfigForURL(skuberUrlEnv)
     }
     init(config)
@@ -410,6 +414,4 @@ package object client {
     val close: () => Unit =  () => theHttpClient.close()
     new RequestContext(requestMaker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, close)
   }
-
-
 }
