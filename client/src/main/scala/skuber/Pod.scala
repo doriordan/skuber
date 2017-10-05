@@ -2,6 +2,9 @@ package skuber
 
 import java.util.Date
 
+import skuber.Pod.Affinity.Operator
+import skuber.annotation.NodeAffinity
+
 /**
  * @author David O'Riordan
  */
@@ -37,7 +40,8 @@ object Pod {
     serviceAccountName: String ="",
     nodeName: String = "",
     hostNetwork: Boolean = false,
-    imagePullSecrets: List[LocalObjectReference] = List()) {
+    imagePullSecrets: List[LocalObjectReference] = List(),
+    affinity: Option[Affinity] = None) {
      
     // a few convenience methods for fluently building out a pod spec
     def addContainer(c: Container) = { this.copy(containers = c :: containers) }
@@ -62,7 +66,68 @@ object Pod {
     type Phase = Value
     val Pending, Running, Succeeded, Failed, Unknown = Value
   }
-           
+
+  case class Affinity(nodeAffinity: Option[Affinity.NodeAffinity] = None)
+
+  case object Affinity {
+
+    object Operator extends Enumeration {
+      type Operator = Value
+      val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
+    }
+
+    case class MatchExpression(key: String, operator: Operator.Value, values: List[String])
+    type MatchExpressions = List[MatchExpression]
+    def MatchExpressions(xs: MatchExpression*) = List(xs: _*)
+
+    case class NodeSelectorTerm(matchExpressions: MatchExpressions)
+    type NodeSelectorTerms = List[NodeSelectorTerm]
+    def NodeSelectorTerms(xs: NodeSelectorTerm*) = List(xs: _*)
+
+    case class NodeAffinity(requiredDuringSchedulingIgnoredDuringExecution: Option[NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution],
+                            preferredDuringSchedulingIgnoredDuringExecution: NodeAffinity.PreferredSchedulingTerms)
+
+    case object NodeAffinity {
+
+      case class RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms: NodeSelectorTerms)
+
+      case object RequiredDuringSchedulingIgnoredDuringExecution {
+
+        def requiredQuery(key: String, operator: Operator.Value, values: List[String]): RequiredDuringSchedulingIgnoredDuringExecution = {
+          RequiredDuringSchedulingIgnoredDuringExecution(
+            NodeSelectorTerms(
+              NodeSelectorTerm(
+                MatchExpressions(
+                  MatchExpression(key, operator, values)
+                )
+              )
+            )
+          )
+        }
+
+      }
+
+      case class PreferredSchedulingTerm(preference: NodeSelectorTerm, weight: Int)
+
+      object PreferredSchedulingTerm {
+        def preferredQuery(weight: Int, key: String, operator: Operator.Value, values: List[String]): PreferredSchedulingTerm = {
+          PreferredSchedulingTerm(
+            preference = NodeSelectorTerm(
+              MatchExpressions(MatchExpression(key, operator, values))
+            ),
+            weight = weight
+          )
+        }
+      }
+
+      type PreferredSchedulingTerms = List[PreferredSchedulingTerm]
+      def PreferredSchedulingTerms(xs: PreferredSchedulingTerm*) = List(xs: _*)
+
+
+    }
+
+  }
+
   case class Status(
     phase: Option[Phase.Phase] = None,
     conditions: List[Condition] = Nil,
