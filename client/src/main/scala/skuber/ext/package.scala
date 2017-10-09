@@ -12,10 +12,15 @@ package skuber
  * @author David O'Riordan
  */
 
+import akka.http.scaladsl.marshalling.Marshal
+
 import scala.language.implicitConversions
 import scala.concurrent.Future
 import skuber.json.ext.format._
 import skuber.api.client._
+import akka.http.scaladsl.model._
+
+import skuber.json.PlayJsonSupportForAkkaHttp._
 
 package object ext {
   val extensionsAPIVersion = "extensions/v1beta1"
@@ -42,52 +47,33 @@ package object ext {
 
   class ExtensionsGroupAPI(val context: K8SRequestContext)
   {
-    implicit val executionContext = context.executionContext
-    
     private[this] def getScale[O <: ObjectResource](objName: String)(implicit rd: ResourceDefinition[O]) : Future[Scale] =
-      executeScaleMethod(objName, "GET")(rd)
-      
+    {
+      val req = context.buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
+      context.sendRequestAndUnmarshalResponse[Scale](req)
+    }
+
     private[this] def scale[O <: ObjectResource](
       apiVersion: String,
-      objName: String, count: Int)(implicit rd: ResourceDefinition[O]): Future[Scale] =
-      executeScaleMethod(
-        objName,
-        "PUT",
-        Some(
-          Scale(
-            apiVersion=apiVersion,
-            metadata=ObjectMeta(name=objName, namespace=context.namespaceName),
-            spec=Scale.Spec(replicas=count)
-          )
-        )
-      )(rd)
-                                      
-    private[this] def executeScaleMethod[O <: ObjectResource](
-                            objName: String,
-                            methodName: String,  
-                            scale: Option[Scale] = None)(implicit rd: ResourceDefinition[O]): Future[Scale] = {
-
-      val req=context.buildRequest(
-                rd,
-                Some(objName + "/scale"),
-                false,
-                Some(false))
-          .withHeaders("Content-Type" -> "application/json")
-          .withMethod(methodName)
-              
-      val reqWithBody = scale map { s =>
-        val body = Scale.scaleFormat.writes(s)
-        context.logRequest(req, objName, Some(body))
-        req.withBody(body) 
-      } getOrElse {
-        context.logRequest(req, objName)
-        req
-      }
-     
-      val updatedScaleFut = reqWithBody.execute()
-      updatedScaleFut map toKubernetesResponse[Scale]
+      objName: String,
+      count: Int)(implicit rd: ResourceDefinition[O]): Future[Scale] =
+    {
+      val scale = Scale(
+        apiVersion = apiVersion,
+        metadata = ObjectMeta(name = objName, namespace = context.namespaceName),
+        spec = Scale.Spec(replicas = count)
+      )
+      implicit val dispatcher=context.actorSystem.dispatcher
+      val marshal = Marshal(scale)
+      for {
+        requestEntity <- marshal.to[RequestEntity]
+        httpRequest = context
+              .buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
+              .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+        scaledResource <- context.sendRequestAndUnmarshalResponse[Scale](httpRequest)
+      } yield scaledResource
     }
-    
+
     /*
      * Modify the specified replica count for a replication controller, returning a Future with its
      * updated Scale subresource

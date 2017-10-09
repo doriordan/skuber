@@ -10,9 +10,9 @@ val commonsIO = "commons-io" % "commons-io" % "2.4"
 val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
 val mockws = "de.leanovate.play-mockws" %% "play-mockws" % "2.4.2"
 
-
-// Akka is required by the examples
-val akka ="com.typesafe.akka" %% "akka-actor" % "2.4.0"
+val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.5.6"
+val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.6"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
@@ -54,13 +54,12 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(playws,playIterateesExtra,snakeYaml,commonsIO,scalaCheck % Test,specs2 % Test, mockws % Test, playtest % Test).
+  libraryDependencies ++= Seq(akkaActor, akkaHttp, akkaStream,snakeYaml,playws, commonsIO,scalaCheck % Test,specs2 % Test, mockws % Test, playtest % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
-  name := "skuber-examples",
-  libraryDependencies += akka
+  name := "skuber-examples"
 )
 
 // by default run the guestbook example when executing a fat examples JAR

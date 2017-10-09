@@ -1,9 +1,11 @@
 package skuber.examples.list
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+
 import skuber.Pod.Phase
 import skuber._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import skuber.json.format._
@@ -34,7 +36,11 @@ object ListExamples extends App {
       System.out.println(f"${name}%-50s${ns}%-20s${phase}")
     }
   }
-  
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+
   val k8s = k8sInit
 
   System.out.println("\nGetting list of pods in namespace of current context ==>")
@@ -59,6 +65,7 @@ object ListExamples extends App {
   val allPods: Future[List[Pod]] = allPodsMapFut map { allPodsMap =>
     allPodsMap.values.flatMap(_.items).toList
   }
+
   val printAllPods = allPods map { pods=> listPods(pods) }
   printAllPods onFailure { case ex: Exception => System.err.println("Failed => " + ex) }
 
