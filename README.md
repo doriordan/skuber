@@ -1,3 +1,5 @@
+# NOTE: This branch (for release 2.0 of skuber) is a work in progress!
+
 # Skuber
 
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
@@ -20,6 +22,12 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
 
     import skuber._
     import skuber.json.format._
+    import akka.actor.ActorSystem
+    import akka.stream.ActorMaterializer
+    
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    implicit val dispatcher = system.dispatcher
 
     val nginxSelector  = Map("app" -> "nginx")
     val nginxContainer = Container("nginx",image="nginx").exposePort(80)
@@ -28,9 +36,15 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
     val nginxService = Service("nginx")
     	.withSelector(nginxSelector)
     	.exposeOnNodePort(30001 -> 80) 
-
-    import scala.concurrent.ExecutionContext.Implicits.global
-
+ 
+    // Some standard Akka implicits that are required by the skuber client API
+    import akka.actor.ActorSystem
+    import akka.stream.ActorMaterializer
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    implicit val dispatcher = system.dispatcher
+    
+    // Initialise skuber client
     val k8s = k8sInit
 
     val createOnK8s = for {
@@ -53,6 +67,8 @@ A Kubernetes cluster is needed at runtime, The client has been tested against va
 You need Java 8 to run Skuber.
 
 ## Release
+
+* note: this section needs updating *
 
 You can include the current Skuber release in your application by adding the following to your `sbt` project:
 
