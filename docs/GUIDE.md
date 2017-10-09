@@ -93,7 +93,7 @@ These are the basic steps to use the Skuber API:
 
 - Import the API definitions from the appropriate package(s)
 - Import the implicit JSON formatters from the appropriate package(s). The API uses these to read/write the request and response data.
-- Ensure a Scala implicit `ExecutionContext` is available - this will be the execution context in which the `Future`s created for each request will execute.
+- Declare some additional Akka implicit values as shown below (this is basically to configure the Akka HTTP client which Skuber uses under the hood)
 - Create a request context by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
 - Invoke the required requests using the context.
 - The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
@@ -102,12 +102,21 @@ For example, the following creates the Replication Controller we just parsed abo
 
     import skuber._
     import skuber.json.format._
-    import scala.concurrent.ExecutionContext.Implicits.global
+    
+    import akka.actor.ActorSystem
+    import akka.stream.ActorMaterializer
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    implicit val dispatcher = system.dispatcher
+    
     val k8s = k8sInit
   
     k8s create controller
 
-When finished making requests the application should call `close` on the request context to release the underlying connection-related resources.
+When finished making requests the application should call `close` on the request context. Note that this call no longer closes connection resources since Skuber migrated to using Akka, because the use of application-supplied  implicit Akka actor systems means Skuber cannot be sure that other application components are not also using the same actor system. Therefore the application should explicitly perform any required Akka cleanup, e.g.
+  
+    k8s.close
+    system.terminate
      
 ### API Method Summary
 
@@ -183,25 +192,28 @@ The `Status` class is defined as follows:
 
 ### Reactive Watch API
 
-Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client.  Skuber supports an [Iteratee](https://www.playframework.com/documentation/2.4.x/Iteratees) API for handling these events reactively, providing a `watch` method that returns an `Enumerator` of events which can then be fed to your Iteratee. The following example can be found in the examples sub-project:
+Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client. Skuber now uses Akka streams for this (instead of Play iterattes, as in v1.x releases), so the `watch[O]` API calls return `Future[Source[O]` objects which can then be plugged into Akka flows.
 
     import skuber._
     import skuber.json.format._
-  
-    import scala.concurrent.ExecutionContext.Implicits.global
-
-    import play.api.libs.iteratee.Iteratee
+    
+    import akka.actor.ActorSystem
+    import akka.stream.ActorMaterializer
+    import akka.stream.scaladsl.Sink
+    
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    implicit val dispatcher = system.dispatcher
 
     object WatchExamples {
-      def watchFrontendScaling = {
-        val k8s = k8sInit    
-        val frontendFetch = k8s get[ReplicationController] "frontend"
-        frontendFetch onSuccess { case frontend =>
-          val frontendWatch = k8s watch frontend
-          frontendWatch.events |>>> Iteratee.foreach { frontendEvent => 
-            println("Current frontend replicas: " + frontendEvent._object.status.get.replicas) 
-          }
-        }     
+      val k8s = k8sInit    
+      val frontendFetch = k8s get[ReplicationController] "frontend"
+      frontendFetch onSuccess { case frontend =>
+        val frontendWatch = k8s watch frontend
+        val sink = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
+          println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
+        }
+       }
       }
       // ...
     }
@@ -231,13 +243,12 @@ Additionally you can watch all events related to a specific kind - for example t
       currPodList onSuccess { case pods =>
         val latestPodVersion = pods.metadata.map { _.resourceVersion } 
         val podWatch = k8s watchAll[Pod](sinceResourceVersion=latestPodVersion) 
-       
-        podWatch.events |>>> Iteratee.foreach { podEvent => 
-          val pod = podEvent._object
-          val phase = pod.status flatMap { _.phase }
-          println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))    
-        } 
-      }
+   
+        val sink = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
+        val pod = podEvent._object
+        val phase = pod.status flatMap { _.phase }
+        println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))    
+      }     
       // ...
     }
 
