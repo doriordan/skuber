@@ -3,19 +3,18 @@ package skuber.examples.guestbook
 import skuber._
 import skuber.json.format._
 
-import akka.actor.{Actor, ActorRef, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.actor.Props
-import akka.event.{LoggingReceive}
+import akka.event.LoggingReceive
 import akka.pattern.pipe
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Source,Sink}
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import scala.util.{Success, Failure}
-
+import scala.util.{Failure, Success}
 import scala.collection._
 
-import play.api.libs.iteratee.Iteratee
 
 /**
  * A KubernetesProxyActor proxies all requests from the Guestbook actors to Kubernetes. It is a slim wrapper 
@@ -52,6 +51,10 @@ object KubernetesProxyActor {
 }
 
 class KubernetesProxyActor extends Actor with ActorLogging {
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit // initialize skuber client (request context)
   var rcWatching = mutable.HashMap[String, Watching]()
@@ -96,15 +99,17 @@ class KubernetesProxyActor extends Actor with ActorLogging {
           // create a new watch on Kubernetes, and initialize the set of watchers on it
           
           log.debug("creating a watch on Kubernetes for controller + '" + rc.name + "', watcher is " + watcher.path )
-          val watch = k8s watch rc
+          val watchFut = k8s watch rc
           val watching = Set(watcher)
-          rcWatching += rc.name -> Watching(watch, watching)
+          rcWatching += rc.name -> Watching(watchFut, watching)
           
-          // this iteratee simply sends any updated RC objects received via the watch
+          // this sink simply sends any updated RC objects received via the watch
           // on to all watchers
-          
-          watch.events run Iteratee.foreach { rcUpdateEvent =>
-              rcWatching.get(rc.name).foreach { _.watchers.foreach { _ ! rcUpdateEvent._object } }  
+          val rcUpdateSink = Sink.foreach[K8SWatchEvent[ReplicationController]] { rcUpdateEvent =>
+            rcWatching.get(rc.name).foreach { _.watchers.foreach { _ ! rcUpdateEvent._object } }
+          }
+          val run = watchFut map { watch =>
+            watch.runWith(rcUpdateSink)
           }
         }
       }
@@ -119,9 +124,6 @@ class KubernetesProxyActor extends Actor with ActorLogging {
     }
     
     case Close => {
-      rcWatching foreach { case (_, watching) => 
-        watching.watch.terminate
-      }
       k8s.close
       System.out.println("Closed skuber client")
       sender ! Closed
@@ -129,4 +131,4 @@ class KubernetesProxyActor extends Actor with ActorLogging {
   }  
 }
 
-case class Watching(watch: K8SWatch[K8SWatchEvent[ReplicationController]], watchers: Set[ActorRef])
+case class Watching(watch: Future[Source[K8SWatchEvent[ReplicationController], _]], watchers: Set[ActorRef])

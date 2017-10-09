@@ -1,10 +1,12 @@
 package skuber.examples.fluent
 
 import skuber._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import skuber.json.format._
+
+import scala.concurrent.Future
+
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
   
 /**
  * @author David O'Riordan
@@ -13,7 +15,12 @@ import skuber.json.format._
  * various Kubernetes resources.
  * After running the example you can run 'kubect get rc' and 'kubectl get services' to 
  * verify the requested resources have all been created.
- * 
+ *
+ * IMPORTANT NOTES:
+  * (1) This creates a lot of pods wihich consume a lot of memory in total - so pods are likely to fail to schedule
+  * if you haven't much memory on your cluster (e.g. a small minikube cluster)
+  * (2) Some of the pod templates use node selectors so created pods will fail to schedule unless your cluster
+  * has the applicable labels (you can use `kubectl` to set the labels on the node(s))
  */
 object FluentExamples extends App {
   
@@ -37,7 +44,11 @@ object FluentExamples extends App {
   val testExternalSelector = Map(testLabel, testExternalZoneLabel)
   val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
   val prodExternalSelector = Map(prodLabel, prodExternalZoneLabel)
-  
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+
   val k8s = k8sInit
   
   val depl = deployNginxServices
@@ -112,7 +123,7 @@ object FluentExamples extends App {
     // the right zone
     
     val testCPU = 1 // 1 KCU 
-    val testMem = "0.5Gi" // 0.5GiB (gigibytes) 
+    val testMem = "0.2Gi" // 0.5GiB (gigibytes)
     
     val testContainer=
       Container(name="nginx-test", image="nginx")

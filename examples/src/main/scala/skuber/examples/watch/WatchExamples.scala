@@ -2,23 +2,32 @@ package skuber.examples.watch
 
 import skuber._
 import skuber.json.format._
-  
-import scala.concurrent.ExecutionContext.Implicits.global
 
-import play.api.libs.iteratee.Iteratee
+import skuber.K8SWatchEvent
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
+
+import scala.concurrent.Future
 
 /**
  * @author David O'Riordan
  */
 object WatchExamples {
-  
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+
   def  watchFrontEndScaling = {
      val k8s = k8sInit    
      val frontendFetch = k8s get[ReplicationController] "frontend"
      frontendFetch onSuccess { case frontend =>
        val frontendWatch = k8s watch frontend
-       frontendWatch.events |>>> Iteratee.foreach { frontendEvent => println("Current frontend replicas: " + frontendEvent._object.status.get.replicas) }
-     }     
+       val sink = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
+         println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
+       }
+     }
      Thread.sleep(30000) // watch for some time before closing the session
      k8s close
   }
@@ -33,10 +42,10 @@ object WatchExamples {
      val currPodList = k8s list[PodList]()
      
      currPodList onSuccess { case pods =>
-       val latestPodVersion = pods.metadata.map { _.resourceVersion } 
-       val podWatch = k8s watchAll[Pod](sinceResourceVersion=latestPodVersion) 
-       
-       podWatch.events |>>> Iteratee.foreach { podEvent => 
+       val latestPodVersion = pods.metadata.map { _.resourceVersion }
+       val podWatch = k8s watchAll[Pod](sinceResourceVersion=latestPodVersion)
+
+       val sink = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
          val pod = podEvent._object
          val phase = pod.status flatMap { _.phase }
          println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))    

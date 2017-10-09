@@ -1,12 +1,12 @@
 package skuber.examples.scale
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+
 import skuber._
 import skuber.autoscaling.HorizontalPodAutoscaler
 import skuber.json.format._
 import skuber.ext._
-import skuber.json.ext.format._
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * @author David O'Riordan
@@ -21,8 +21,12 @@ object ScaleExamples extends App {
     val nginxSelector  = Map("example" -> "scale")
     val nginxContainer = Container("nginx",image="nginx").exposePort(80)
     val nginxController= ReplicationController("nginx-scale-example",nginxContainer,nginxSelector).withReplicas(5)
-   
-    import scala.concurrent.ExecutionContext.Implicits.global
+
+
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    implicit val dispatcher = system.dispatcher
+
     val k8s = k8sInit
   
     println("Creating nginx replication controller")

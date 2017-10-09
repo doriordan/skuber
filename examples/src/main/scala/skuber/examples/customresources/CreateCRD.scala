@@ -4,8 +4,8 @@ import skuber.{k8sInit,K8SException}
 import skuber.ResourceSpecification.Scope
 import skuber.apiextensions.CustomResourceDefinition
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 
 import scala.util.{Success, Failure}
 
@@ -31,6 +31,10 @@ object CreateCRD extends App {
     kind = "ServiceSupport",
     shortNames = "sup" :: Nil)
 
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+
   val k8s = k8sInit
 
   val saveCRDs = for {
@@ -49,6 +53,11 @@ object CreateCRD extends App {
 
   def save(crd: CustomResourceDefinition) = {
     k8s create (crd) recoverWith {
+      case notFound: K8SException if notFound.status.code.contains(404) => {
+        // probably due to running against pre v1.7 cluster where CRDs don't exist as a resource kind
+        System.err.println("Unable to create CRD - please check that your k8s cluster is at v1.7 or above")
+        throw notFound
+      }
       case alreadyExists: K8SException if alreadyExists.status.code.contains(409) =>
         // update needs to use the rcurrent resource version of existing resource in order to be accepted by k8s
         k8s get[CustomResourceDefinition] (crd.name) flatMap { existing =>

@@ -4,8 +4,10 @@ import skuber._
 import skuber.ext.Deployment
 import skuber.json.ext.format._
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * @author David O'Riordan
@@ -25,7 +27,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * the deployment update is being processed.
  */
 object DeploymentExamples extends App {
- 
+
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+
   val k8s = k8sInit
   
   val deployment = deployNginx("1.7.9") 
@@ -104,7 +111,7 @@ object DeploymentExamples extends App {
   def updateNginx(version: String): Future[Deployment] = {
     
     val updatedContainer = Container("nginx",image="nginx:" + version).exposePort(80)
-    val currentDeployment = k8s get[Deployment] "nginx-deployment"
+    val currentDeployment = k8s get[Deployment]("ginx-deployment")
     
     currentDeployment flatMap { nginxDeployment =>
         val updatedDeployment = nginxDeployment.updateContainer(updatedContainer)

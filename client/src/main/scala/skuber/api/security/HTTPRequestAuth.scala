@@ -1,10 +1,7 @@
 package skuber.api.security
 
-import javax.net.ssl.SSLContext
-import javax.net.ssl.{TrustManager,X509TrustManager, X509ExtendedTrustManager};
-import java.security.cert.X509Certificate;
-import play.api.libs.ws.{WSRequest,WSAuthScheme}
-
+import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials, OAuth2BearerToken}
 import skuber.api.client.Context
 
 /**
@@ -30,11 +27,11 @@ object HTTPRequestAuth {
     }
   }
   
-  def addAuth(request: WSRequest, auth: RequestAuth) : WSRequest = {
+  def addAuth(request: HttpRequest, auth: RequestAuth) : HttpRequest = {
       auth match {
         case NoAuth => request
-        case BasicAuth(user, password) => request.withAuth(user,password,WSAuthScheme.BASIC)
-        case Token(token) => request.withHeaders("Authorization" -> ("BEARER " + token))       
+        case BasicAuth(user, password) => request.addHeader(Authorization(BasicHttpCredentials(user,password)))
+        case Token(token) => request.addHeader(Authorization(OAuth2BearerToken(token)))
       }
   }   
 }

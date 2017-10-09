@@ -228,10 +228,17 @@ package object skuber {
   type K8SRequestContext = skuber.api.client.RequestContext
   type K8SException = skuber.api.client.K8SException
   val K8SConfiguration = skuber.api.Configuration
-  type K8SWatch[O] = skuber.api.Watch[O] 
   type K8SWatchEvent[I <: ObjectResource] = skuber.api.client.WatchEvent[I]
-  
-  def k8sInit(implicit executionContext: ExecutionContext)  = skuber.api.client.init
-  def k8sInit(config: skuber.api.Configuration)(implicit executionContext : ExecutionContext) = skuber.api.client.init(config)
+
+  import akka.actor.ActorSystem
+  import akka.stream.ActorMaterializer
+  def k8sInit(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer)  =
+  {
+    skuber.api.client.init
+  }
+  def k8sInit(config: skuber.api.Configuration)(
+    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) = {
+    skuber.api.client.init(config)
+  }
       
 }

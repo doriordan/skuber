@@ -3,6 +3,8 @@ package skuber.examples.ingress
 import java.io.Serializable
 import java.net.HttpURLConnection
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import skuber._
 import skuber.ext.{Ingress, ReplicaSet}
 
@@ -12,6 +14,8 @@ import scala.annotation.tailrec
 
 import skuber.json.format._
 import skuber.json.ext.format._
+
+import scala.concurrent.Future
 
 /**
   * @author David O'Riordan
@@ -235,8 +239,9 @@ object NginxIngress extends App {
 
   def run = {
 
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.Future
+    implicit val system = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+    implicit val dispatcher = system.dispatcher
 
     implicit val k8s = k8sInit
 
