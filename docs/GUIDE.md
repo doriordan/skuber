@@ -206,15 +206,15 @@ Kubernetes supports the ability for API clients to watch events on specified res
     implicit val dispatcher = system.dispatcher
 
     object WatchExamples {
-      val k8s = k8sInit    
-      val frontendFetch = k8s get[ReplicationController] "frontend"
-      frontendFetch onSuccess { case frontend =>
-        val frontendWatch = k8s watch frontend
-        val sink = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
-          println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
-        }
-       }
+      val k8s = k8sInit
+      val frontendEventSink = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
+        println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
       }
+      for {
+        frontendController: ReplicationController <- k8s.get[ReplicationController]("frontend")
+        frontendWatch: Source[WatchEvent[ReplicationController], _] <- k8s.watch(frontendController)
+        result <- frontendWatch.runWith(frontendEventSink)
+      } yield result
       // ...
     }
 
