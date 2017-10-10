@@ -201,24 +201,25 @@ Kubernetes supports the ability for API clients to watch events on specified res
     import akka.stream.ActorMaterializer
     import akka.stream.scaladsl.Sink
     
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    implicit val dispatcher = system.dispatcher
 
     object WatchExamples {
+      implicit val system = ActorSystem()
+      implicit val materializer = ActorMaterializer()
+      implicit val dispatcher = system.dispatcher
       val k8s = k8sInit
-      val frontendEventSink = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
+
+      val frontendReplicaCountMonitor = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
         println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
       }
       for {
-        frontendController: ReplicationController <- k8s.get[ReplicationController]("frontend")
-        frontendWatch: Source[WatchEvent[ReplicationController], _] <- k8s.watch(frontendController)
-        result <- frontendWatch.runWith(frontendEventSink)
-      } yield result
+        frontendRC <- k8s.get[ReplicationController]("frontend")
+        frontendRCWatch <- k8s.watch(frontendRC)
+        done <- frontendRCWatch.runWith(frontendReplicaCountMonitor)
+      } yield done
       // ...
     }
 
-To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](https://kubernetes.io/docs/tutorials/kubernetes-basics/scale-interactive/) commands to set different replica counts on the frontend - for example:
+The above example creates a Watch on the frontend replication controller, and feeds the resulting events into an Akka sink that simply prints out the replica count from the current version of the controller as included in each event. To test the above code, call the watchFrontendScaling method to create the watch and then separately run a number of [kubectl scale](https://kubernetes.io/docs/tutorials/kubernetes-basics/scale-interactive/) commands to set different replica counts on the frontend - for example:
 
      kubectl scale --replicas=1 rc frontend
      
@@ -226,35 +227,34 @@ To test the above code, call the watchFrontendScaling method to create the watch
 
      kubectl scale --replicas=0 rc frontend
 
-You should see updated statuses being printed out by the Iteratee as the scaling progresses.
+You should see updated replica counts being printed out by the sink as the scaling progresses.
 
 The [reactive guestbook](../examples/src/main/scala/skuber/examples/guestbook) example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
 
 Additionally you can watch all events related to a specific kind - for example the following can be found in the same example:
 
     def watchPodPhases = {
-      val k8s = k8sInit    
-
-      // watch only current events - i.e. exclude historic ones  - 
-      // by specifying the resource version returned with the latest pod list     
-
-      val currPodList = k8s list[PodList]()
-     
-      currPodList onSuccess { case pods =>
-        val latestPodVersion = pods.metadata.map { _.resourceVersion } 
-        val podWatch = k8s watchAll[Pod](sinceResourceVersion=latestPodVersion) 
-   
-        val sink = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
+      // ...
+    
+      val podPhaseMonitor = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
         val pod = podEvent._object
         val phase = pod.status flatMap { _.phase }
-        println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))    
-      }     
+        println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
+      }
+
+      for {
+        currPodList <- k8s.list[PodList]()
+        latestPodVersion = currPodList.metadata.map { _.resourceVersion }
+        currPodsWatch <- k8s.watchAll[Pod](sinceResourceVersion = latestPodVersion) // ignore historic events
+        done <- currPodsWatch.runWith(podPhaseMonitor)
+      } yield done
+
       // ...
     }
 
 The watch can be demonstrated by calling `watchPodPhases` to start watching all pods, then in the background run the reactive guestbook example: you should see events being reported as guestbook pods are deleted, created and modified during the run.
 
-Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored - this is probably what you want. 
+Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored. This is foften what you want, but sometimes - especially where events are being used to update important state in your application - you want to make sure you don't miss any events, even in the case where your watch has been restarted. In this case you can keep a record of the latest resource version processed in a database of some sort and then iif/when when the watch gets recreated you can specify that resource version in the API call to create the watch,
 
 ### Extensions API Group
 
