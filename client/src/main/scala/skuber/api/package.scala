@@ -80,11 +80,12 @@ package object client {
       val ADDED,MODIFIED,DELETED,ERROR = Value
    }
 
-   class RequestContext(requestMaker: (Uri, HttpMethod)  => HttpRequest,
-                        clusterServer: String,
+   class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
+                        val requestInvoker: HttpRequest => Future[HttpResponse],
+                        val clusterServer: String,
                         requestAuth: HTTPRequestAuth.RequestAuth,
                         val namespaceName: String,
-                        closeHook: Option[() => Unit] = None)
+                        val closeHook: Option[() => Unit] = None)
                         (implicit val actorSystem: ActorSystem, val actorMaterializer: ActorMaterializer) {
 
      implicit val dispatcher = actorSystem.dispatcher
@@ -94,7 +95,7 @@ package object client {
      private[skuber] def invoke(request: HttpRequest): Future[HttpResponse] = {
        if (closed)
          throw new IllegalStateException("Request context has been closed")
-       Http().singleRequest(request)
+       requestInvoker(request)
      }
 
      private[skuber] def buildRequest[T <: TypeMeta](
@@ -445,7 +446,8 @@ package object client {
     }
 
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
+    val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
 
-    new RequestContext(requestMaker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, closeHook)
   }
 }
