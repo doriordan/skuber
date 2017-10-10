@@ -2,9 +2,6 @@
 import java.net.URL
 import java.util.Date
 
-import ch.qos.logback.core.property.ResourceExistsPropertyDefiner
-import play.api.libs.openid.Errors.AUTH_CANCEL
-
 import scala.collection.immutable.HashMap
 import scala.language.implicitConversions
 import scala.concurrent.ExecutionContext
