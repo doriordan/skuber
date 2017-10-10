@@ -38,7 +38,7 @@ class WatchSpec extends Specification {
 {"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12804","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":0,"observedGeneration":2}}}
 """
     val bytesSource = Source.single(ByteString(eventsAsStr))
-    val watchEventSource = Watch.bytesSourceToWatchEventSource[ReplicationController](bytesSource, 1000)
+    val watchEventSource: Source[WatchEvent[ReplicationController], _] = Watch.bytesSourceToWatchEventSource[ReplicationController](bytesSource, 1000)
 
     val eventSink = Sink.seq[WatchEvent[ReplicationController]]
     val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
