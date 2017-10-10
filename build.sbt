@@ -1,25 +1,27 @@
 
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
-val playws = "com.typesafe.play" %% "play-ws" % "2.4.8"
-val playtest = "com.typesafe.play" %% "play-test" % "2.4.8"
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.12.4"
-val specs2 = "org.specs2" %% "specs2-core" % "3.7"
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
-val commonsIO = "commons-io" % "commons-io" % "2.4"
-val playIterateesExtra = "com.typesafe.play.extras" %% "iteratees-extras" % "1.5.0"
-val mockws = "de.leanovate.play-mockws" %% "play-mockws" % "2.4.2"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.13.5"
+val specs2 = "org.specs2" %% "specs2-core" % "3.9.5"
 
-val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.5.6"
-val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.6"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
+val commonsIO = "commons-io" % "commons-io" % "2.5"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
+val sl4j = "org.slf4j" % "slf4j-api" % "1.7.25"
+
+// the client API request/response handing uses Akka Http 
+// This also brings in the transitive dependencies on Akka actors and streams
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
+
+// the Json formatters are based on Play Json
+val playJson = "com.typesafe.play" %% "play-json" % "2.6.6"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "1.7.1-RC2"
+version in ThisBuild := "2.0.0-RC1"
 
 // NOTE: not the long-term planned profile name or organization
 sonatypeProfileName := "io.github.doriordan"
@@ -41,7 +43,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.github.doriordan",
-  scalaVersion := "2.11.8",
+  scalaVersion := "2.12.3",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -54,7 +56,7 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaActor, akkaHttp, akkaStream,snakeYaml,playws, commonsIO,scalaCheck % Test,specs2 % Test, mockws % Test, playtest % Test).
+  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, sl4j, scalaCheck % Test,specs2 % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 

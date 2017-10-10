@@ -313,7 +313,7 @@ package object format {
   
   implicit val hostPathFormat: Format[HostPath] = Json.format[HostPath]
   implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
-  implicit val secretFormat: Format[Secret] = Json.format[Secret]
+  implicit val volumeSecretFormat: Format[skuber.Volume.Secret] = Json.format[skuber.Volume.Secret]
   implicit val gitFormat: Format[GitRepo] = Json.format[GitRepo]
 
   implicit val objectFieldSelectorFormat: Format[ObjectFieldSelector] = (
@@ -396,7 +396,7 @@ package object format {
 
    implicit val volumeSourceReads: Reads[Source] = (
      (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
-     (JsPath \ "secret").read[Secret].map(x => x: Source) |
+     (JsPath \ "secret").read[skuber.Volume.Secret].map(x => x: Source) |
      (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
      (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
@@ -418,7 +418,7 @@ package object format {
      source => source match {
        case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
-       case secr: Secret => (JsPath \ "secret").write[Secret](secretFormat).writes(secr)
+       case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
        case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
        case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
@@ -662,12 +662,11 @@ package object format {
       .inmap(_.map({case (k,v) => k -> Base64.decodeBase64(v.getBytes)}),
         (map: Map[String, Array[Byte]]) => map.map({case (k,v) => k -> Base64.encodeBase64String(v)}))
 
-  import skuber.Secret
-  implicit val secretFmt: Format[Secret] = (
+  implicit val secretFmt: Format[skuber.Secret] = (
     objFormat and
     (JsPath \ "data").formatMaybeEmptyByteArrayMap and
     (JsPath \ "type").formatMaybeEmptyString()
-  )(Secret.apply _, unlift(Secret.unapply))
+  )(skuber.Secret.apply _, unlift(skuber.Secret.unapply))
   
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType) 
         
@@ -715,7 +714,7 @@ package object format {
   implicit val persVolClaimListFmt: Format[PersistentVolumeClaimList] = ListResourceFormat[PersistentVolumeClaim]
   implicit val svcAcctListFmt: Format[ServiceAccountList] = ListResourceFormat[ServiceAccount]
   implicit val resQuotaListFmt: Format[ResourceQuotaList] = ListResourceFormat[Resource.Quota]
-  implicit val secretListFmt: Format[SecretList] = ListResourceFormat[Secret]
+  implicit val secretListFmt: Format[SecretList] = ListResourceFormat[skuber.Secret]
   implicit val limitRangeListFmt: Format[LimitRangeList] = ListResourceFormat[LimitRange]
 
   case class SelMatchExpression(
