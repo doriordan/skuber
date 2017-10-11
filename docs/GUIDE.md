@@ -93,7 +93,7 @@ These are the basic steps to use the Skuber API:
 
 - Import the API definitions from the appropriate package(s)
 - Import the implicit JSON formatters from the appropriate package(s). The API uses these to read/write the request and response data.
-- Declare some additional Akka implicit values as shown below (this is basically to configure the Akka HTTP client which Skuber uses under the hood)
+- Declare some additional Akka implicit values as shown below (this is basically to configure the Akka HTTP client which Skuber v2 uses under the hood)
 - Create a request context by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
 - Invoke the required requests using the context.
 - The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
@@ -192,7 +192,7 @@ The `Status` class is defined as follows:
 
 ### Reactive Watch API
 
-Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client. Skuber now uses Akka streams for this (instead of Play iteratees as used in the Skuber v1.x releases), so the `watch[O]` API calls return `Future[Source[O]]` objects which can then be plugged into Akka flows.
+Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client. Skuber v2 now uses Akka streams for this (instead of Play iteratees as used in the Skuber v1.x releases), so the `watch[O]` API calls return `Future[Source[O]]` objects which can then be plugged into Akka flows.
 
     import skuber._
     import skuber.json.format._
