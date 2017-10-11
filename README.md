@@ -50,8 +50,8 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
       case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
     }
 
-    k8s.close // this prevents any more request being sent by the client
-    system.termimate // this closes the connection resources etc.
+    k8s.close // this prevents any more requests being sent by the client
+    system.terminate // this closes the connection resources etc.
 
 
 ## Prerequisites
