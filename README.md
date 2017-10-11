@@ -21,13 +21,7 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
 
     import skuber._
     import skuber.json.format._
-    import akka.actor.ActorSystem
-    import akka.stream.ActorMaterializer
-    
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    implicit val dispatcher = system.dispatcher
-
+  
     val nginxSelector  = Map("app" -> "nginx")
     val nginxContainer = Container("nginx",image="nginx").exposePort(80)
     val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
