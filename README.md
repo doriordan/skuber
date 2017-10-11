@@ -68,11 +68,11 @@ Skuber v2 is new and not officially released, but you can use the latest release
 
 Note: the v2.0 release candidate is currently only published for Scala 2.12, but it is planned to cross-publish for Scala 2.11 as well.
 
-As v2 is new it has not yet been extensively tested.  You may instead use Skuber v1.x, which is built on the mature Skuber v1 codebase that has been quite thoroughly tested against multiple versions of Kubernetes:
+You may instead use Skuber v1.x, which is built on the mature Skuber v1 codebase that has been quite thoroughly tested against multiple versions of Kubernetes:
 
      libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC5" // RC5 is quite stable and well tested
 	
-However Skuber v1.x is only available for Scala 2.11. Skuber v2 is the strategic version going forward and is recommended for any new project.
+However Skuber v1.x is only available for Scala 2.11. Skuber v2 is the strategic version going forward and is recommended for any new project. Although parts of Skuber have been rewritten for v2 (mainly to migrate its underlying HTTP client from Play WS to Akka HTTP), and v2 has not yet been extensively tested against different versions of Kubernetes, most of the code and API has been taken over unchanged from the mature and well-tested v1 codebase so should be stable.
 
 ## Building
 
