@@ -63,17 +63,17 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-Note skuber v2.0 is new, and has not yet been extensively tested. It is not officially released, but you can use the latest release candidate. It is available on Maven Central so just add it to your library dependencies e,g, in `sbt`:
+Skuber v2 is new and not officially released, but you can use the latest release candidate. It is available on Maven Central so just add it to your library dependencies e,g, in `sbt`:
 
     libraryDependencies += "io.github.doriordan" % "skuber_2.12" % "2.0.0-RC1"
 
 Note: the v2.0 release candidate is currently only published for Scala 2.12, but it is planned to cross-publish for Scala 2.11 as well.
 
-Note skuber v2.0 is new, and has not yet been extensively tested.  You may instead use Skuber v1.x, which is built on the mature Skuber v1 codebase that has been quite thoroughly tested against multiple versions of Kubernetes:
+As v2 is new it has not yet been extensively tested.  You may instead use Skuber v1.x, which is built on the mature Skuber v1 codebase that has been quite thoroughly tested against multiple versions of Kubernetes:
 
      libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC5" // RC5 is quite stable and well tested
 	
-However Skuber v1.x is only available for Scala 2.11, and Skuber v2 is the strategic version going forward.
+However Skuber v1.x is only available for Scala 2.11. Skuber v2 is the strategic version going forward and is recommended for any new project.
 
 ## Roadmap
 
