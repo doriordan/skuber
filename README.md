@@ -31,7 +31,7 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
     	.withSelector(nginxSelector)
     	.exposeOnNodePort(30001 -> 80) 
  
-    // Some standard Akka implicits that are required by the skuber client API
+    // Some standard Akka implicits that are required by the skuber v2 client API
     import akka.actor.ActorSystem
     import akka.stream.ActorMaterializer
     implicit val system = ActorSystem()
