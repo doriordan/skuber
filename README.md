@@ -62,19 +62,17 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-* note: this section needs updating *
+Skuber v2.0 has not yet been officially released, but you can use the latest release candidate. It is available on Maven Central so just add it to your library dependencies e,g, in `sbt`:
 
-You can include the current Skuber release in your application by adding the following to your `sbt` project:
+    libraryDependencies += "io.github.doriordan" % "skuber_2.12" % "2.0.0-RC1"
 
-    resolvers += Resolver.url(
-      "bintray-skuber",
-      url("http://dl.bintray.com/oriordan/skuber"))(
-      Resolver.ivyStylePatterns)
+Note: the v2.0 release candidate is currently only published for Scala 2.12, but it is planned to cross-publish for Scala 2.11 as well.
 
-    libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
+The latest Skuber v1.x release can be added instead as follows:
 
-The current release has been built for Scala 2.11 - other Scala language versions such as 2.12 will be supported in future.
-The current release version is 1.3.0, which was released for Kubernetes 1.3 so does not support a few recent features of Kubernetes that have since been added to the Skuber master branch.
+     libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC5
+	
+Skuber v1.x is only available for Scala 2.11.
 
 ## Building
 
