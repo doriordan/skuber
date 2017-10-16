@@ -4,7 +4,8 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 
 ## Features
 
-- Comprehensive set of case classes for representing core and extended Kubernetes resource kinds
+- Comprehensive support for Kubernetes API model represented as Scala case classes
+- Support for core, extensions and other Kubernetes API groups
 - Full support for converting resources between the case class and standard JSON representations 
 - Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
@@ -65,6 +66,10 @@ You can include the current Skuber release in your application by adding the fol
 The current release has been built for Scala 2.11 - other Scala language versions such as 2.12 will be supported in future.
 The current release version is 1.3.0, which was released for Kubernetes 1.3 so does not support a few recent features of Kubernetes that have since been added to the Skuber master branch.
 
+## Roadmap
+
+Release 2.0 of Skuber is in progress and an early release candidate is available. Release 2.0 refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12. Full details on the [release branch](https://github.com/doriordan/skuber/tree/release_2.0).
+
 ## Building
 
 Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
@@ -103,11 +108,7 @@ The quickest way to get started with Skuber:
 
 For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
 
-## Status
 
-The coverage of the core Kubernetes API functionality by Skuber is comprehensive.
-
-Support of non-core API group functionality is pretty extensive, in particular of the more popular/important features. Deployment, ReplicaSet, StatefulSet, HorizontalPodAutoscaler,Ingress, DaemonSet, Job, CronJob, CustomResourceDefinition and RBAC (Role/RoleBinding/ClusterRole/ClusterRoleBinding) are all currently supported on the master branch. Support for other newer Kubernetes features is being added all the time.
 
 ## License
 
