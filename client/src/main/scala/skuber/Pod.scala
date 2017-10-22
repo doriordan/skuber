@@ -123,6 +123,10 @@ object Pod {
          val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addContainer(container)
          this.copy(spec=Some(newPodSpec))
        }
+       def addInitContainer(container: Container): Spec = {
+         val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addInitContainer(container)
+         this.copy(spec=Some(newPodSpec))
+       }
        def withPodSpec(spec: Pod.Spec): Spec = this.copy(spec=Some(spec))
      }       
      object Spec {
