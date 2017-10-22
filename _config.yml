@@ -1,1 +1,21 @@
-theme: jekyll-theme-slate
+title: Skuber 
+description: >- 
+  The Skuber project provides support for Kubernetes in Scala. 
+baseurl: "" 
+url: "http://skuber.io" # the base hostname & protocol for your site, e.g. http://example.com
+
+# Build settings
+markdown: kramdown
+theme: jekyll-theme-architect
+
+# Exclude from processing.
+# The following items will not be processed, by default. Create a custom list
+# to override the default setting.
+# exclude:
+#   - Gemfile
+#   - Gemfile.lock
+#   - node_modules
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/
