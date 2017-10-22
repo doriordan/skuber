@@ -1,6 +1,6 @@
-title: Skuber 
+title: Skuber
 description: >- 
-  The Skuber project provides support for Kubernetes in Scala. 
+  The Skuber (Scala and Kubernetes) project helps you build software for the Kubernetes platform in Scala     
 baseurl: "" 
 url: "http://skuber.io" # the base hostname & protocol for your site, e.g. http://example.com
 
