@@ -32,7 +32,7 @@ object Pod {
     restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
     terminationGracePeriodSeconds: Option[Int] = None,
     activeDeadlineSeconds: Option[Int] = None,
-    dnsPolicy: DNSPolicy.DNSPolicy = Default,
+    dnsPolicy: DNSPolicy.DNSPolicy = ClusterFirst,
     nodeSelector: Map[String, String] = Map(),
     serviceAccountName: String ="",
     nodeName: String = "",

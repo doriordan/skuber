@@ -499,7 +499,7 @@ package object format {
       (JsPath \ "restartPolicy").formatEnum(RestartPolicy, Some(RestartPolicy.Always)) and
       (JsPath \ "terminationGracePeriodSeconds").formatNullable[Int] and
       (JsPath \ "activeDeadlineSeconds").formatNullable[Int] and
-      (JsPath \ "dnsPolicy").formatEnum(DNSPolicy, Some(DNSPolicy.Default)) and
+      (JsPath \ "dnsPolicy").formatEnum(DNSPolicy, Some(DNSPolicy.ClusterFirst)) and
       (JsPath \ "nodeSelector").formatMaybeEmptyMap[String] and
       (JsPath \ "serviceAccountName").formatMaybeEmptyString() and
       (JsPath \ "nodeName").formatMaybeEmptyString() and
