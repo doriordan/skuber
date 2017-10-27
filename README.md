@@ -64,7 +64,7 @@ You need Java 8 to run Skuber.
 
 Skuber v2 is new and not officially released, but you can use the latest release candidate. It is available on Maven Central so just add it to your library dependencies e,g, in `sbt`:
 
-    libraryDependencies += "io.github.doriordan" % "skuber_2.12" % "2.0.0-RC1"
+    libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC1"
 
 Note: the v2.0 release candidate is currently only published for Scala 2.12, but it is planned to cross-publish for Scala 2.11 as well.
 
