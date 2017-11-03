@@ -92,8 +92,8 @@ package object skuber {
     override val items: List[K]) extends KList[K]
   {
     def resourceVersion=metadata.map(_.resourceVersion).getOrElse("")
+    def itemNames: String = items.map { k => k.name } mkString(",")
   }
-
 
   implicit def toList[I <: KListItem](resource: KList[I]): List[I] = resource.items
 

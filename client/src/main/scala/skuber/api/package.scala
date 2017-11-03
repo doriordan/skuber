@@ -1,6 +1,7 @@
 package skuber.api
 
 import java.net.URL
+import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -20,8 +21,8 @@ import skuber.json.format.apiobj._
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import skuber.api.client.Status
-import skuber.json
+
+import scala.sys.SystemProperties
 
 /**
  * @author David O'Riordan
@@ -29,6 +30,7 @@ import skuber.json
 package object client {
 
   val log: Logger = LoggerFactory.getLogger("skuber.api")
+  val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
   type PathOrData = Either[String,Array[Byte]]
@@ -80,21 +82,53 @@ package object client {
       val ADDED,MODIFIED,DELETED,ERROR = Value
    }
 
+   private def loggingEnabled(logEventType: String, fallback: Boolean) : Boolean= {
+     sysProps.get(s"skuber.log.$logEventType").map(_ => true).getOrElse(fallback)
+   }
+
+   // This class offers a fine-grained choice over events to be logged by the API (applicable only if INFO level is enabled)
+   case class LoggingConfig(
+     logConfiguration: Boolean=loggingEnabled("config", true), // outputs configuration on initialisation)
+     logRequestBasic: Boolean=loggingEnabled("request", true), // logs method and URL for request
+     logRequestBasicMetadata: Boolean=loggingEnabled("request.metadata", false), // logs key resource metadata information if available
+     logRequestFullObjectResource: Boolean=loggingEnabled("request.object.full", false), // outputs full object resource if available
+     logResponseBasic: Boolean=loggingEnabled("response", true), // logs basic response info (status code)
+     logResponseBasicMetadata: Boolean=loggingEnabled("response.metadata", false), // logs some basic metadata from the returned resource, if available
+     logResponseFullObjectResource: Boolean=loggingEnabled("response.object.full", false), // outputs full received object resource, if available
+     logResponseListSize: Boolean=loggingEnabled("response.list.size", false), // logs size of any returned list resource
+     logResponseListNames: Boolean=loggingEnabled("response.list.names", false), // logs list of names of items in any returned list resource
+     logResponseFullListResource: Boolean= loggingEnabled("response.list.full", false), // outputs full contained object resources in list resources
+   )
+
+   trait LoggingContext {
+     def output: String
+   }
+   case class RequestLoggingContext(val requestId: String) extends LoggingContext {
+     def output=s"{ reqId=$requestId} }"
+   }
+   object RequestLoggingContext {
+     def apply(): RequestLoggingContext=new RequestLoggingContext(UUID.randomUUID.toString)
+   }
+
    class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
                         val requestInvoker: HttpRequest => Future[HttpResponse],
                         val clusterServer: String,
                         requestAuth: HTTPRequestAuth.RequestAuth,
                         val namespaceName: String,
-                        val closeHook: Option[() => Unit] = None)
-                        (implicit val actorSystem: ActorSystem, val actorMaterializer: ActorMaterializer) {
+                        val logConfig: LoggingConfig,
+                        val closeHook: Option[() => Unit])
+      (implicit val actorSystem: ActorSystem, val actorMaterializer: ActorMaterializer) {
 
      implicit val dispatcher = actorSystem.dispatcher
 
-     var closed = false
+     private var isClosed = false
 
-     private[skuber] def invoke(request: HttpRequest): Future[HttpResponse] = {
-       if (closed)
+     private[skuber] def invoke(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = {
+       if (isClosed) {
+         logError("Attempt was made to invoke request on closed API request context")
          throw new IllegalStateException("Request context has been closed")
+       }
+       logDebug(s"Invoking request: $request")
        requestInvoker(request)
      }
 
@@ -141,18 +175,87 @@ package object client {
        HTTPRequestAuth.addAuth(req, requestAuth)
      }
 
-     private[skuber] def logRequest(request: HttpRequest) = {
-       if (log.isInfoEnabled()) {
-         val info = s"${request.method.value} ${request.uri.toString}"
-         log.info(s"[Skuber making request: $info]")
+     private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) =
+     {
+       if (log.isInfoEnabled && enabledLogEvent) {
+         log.info(s"[ ${lc.output} - ${msg}]")
        }
      }
 
-     private[skuber] def sendRequestAndUnmarshalResponse[O](httpRequest: HttpRequest)(implicit fmt: Format[O]): Future[O] = {
-       logRequest(httpRequest)
+     private[skuber] def logInfoOpt(enabledLogEvent: Boolean, msgOpt: => Option[String])(implicit lc: LoggingContext) =
+     {
+       if (log.isInfoEnabled && enabledLogEvent) {
+         msgOpt foreach { msg =>
+           log.info(s"[ ${lc.output} - ${msg}]")
+         }
+       }
+     }
+
+     private[skuber] def logError(msg: String)(implicit lc: LoggingContext) =
+     {
+       log.error(s"[ ${lc.output} - $msg ]")
+     }
+
+     private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
+     {
+       log.error(s"[ ${lc.output} - $msg ]", ex)
+     }
+
+     private[skuber] def logDebug(msg : => String)(implicit lc: LoggingContext) = {
+       if (log.isDebugEnabled)
+         log.debug(s"[ ${lc.output} - $msg ]")
+     }
+
+     private[skuber] def logRequest[O <: ObjectResource](request: HttpRequest, resourceToSend: Option[O] = None)(implicit lc: LoggingContext) = {
+       logInfo(logConfig.logRequestBasic, s"About to make request: ${request.method.value} ${request.uri.toString}")
+       logInfoOpt(logConfig.logRequestBasicMetadata, resourceToSend.flatMap[String] { resource: ObjectResource =>
+           val name = resource.name
+           val version = resource.metadata.resourceVersion
+           request.method match {
+             case HttpMethods.PUT | HttpMethods.PATCH => Some(s"Requesting update of resource: { name:$name, version:$version ... }")
+             case HttpMethods.POST => Some(s"Requesting creation of resource: { name: $name ...}")
+             case _ => None
+           }
+         }
+       )
+       logInfoOpt(logConfig.logRequestFullObjectResource, resourceToSend.map { resource => s" Marshal and send: ${resource.toString}"})
+     }
+
+     private[skuber] def logResponse[O <: ObjectResource](response: HttpResponse, resourceReceived: Option[O] = None)(implicit lc: LoggingContext) =
+     {
+       logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
+       logInfoOpt(logConfig.logResponseBasicMetadata, resourceReceived.map { resource =>
+           s" resource: { kind:${resource.kind} name:${resource.name} version:${resource.metadata.resourceVersion} ... }"
+         }
+       )
+       logInfoOpt(logConfig.logResponseFullObjectResource, resourceReceived.map { resource =>s" received and parsed: ${resource.toString}"})
+     }
+
+     private[skuber] def logListResult[L <: ListResource[_]](result: L)(implicit lc: LoggingContext) =
+     {
+       logInfo(logConfig.logResponseBasicMetadata,s"received list resource of kind ${result.kind}")
+       logInfo(logConfig.logResponseListSize,s"number of items in received list resource: ${result.items.size}")
+       logInfo(logConfig.logResponseListNames, s"received ${result.kind} contains item(s): ${result.itemNames}]")
+       logInfo(logConfig.logResponseFullListResource, s" Unamrshalled list resource: ${result.toString}")
+     }
+
+     private[skuber] def makeRequestReturningObjectResource[O <: ObjectResource](httpRequest: HttpRequest)(
+       implicit fmt: Format[O], lc: LoggingContext): Future[O] =
+     {
        for {
          httpResponse <- invoke(httpRequest)
          result <- toKubernetesResponse[O](httpResponse)
+         _ = logResponse(httpResponse, Some(result))
+       } yield result
+     }
+
+     private[skuber] def makeRequestReturningListResource[L <: ListResource[_]](httpRequest: HttpRequest)(
+       implicit fmt: Format[L], lc: LoggingContext): Future[L] =
+     {
+       for {
+         httpResponse <- invoke(httpRequest)
+         result <- toKubernetesResponse[L](httpResponse)
+         _ = logListResult(result)
        } yield result
      }
 
@@ -160,7 +263,9 @@ package object client {
        * Modify the specified K8S resource using a given HTTP method. The modified resource is returned.
        * The create, update and partiallyUpdate methods all call this, just passing different HTTP methods
        */
-     private[skuber] def modify[O <: ObjectResource](method: HttpMethod)(obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+     private[skuber] def modify[O <: ObjectResource](method: HttpMethod)(obj: O)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+     {
        // if this is a POST we don't include the resource name in the URL
        val nameComponent: Option[String] = method match {
          case HttpMethods.POST => None
@@ -170,29 +275,37 @@ package object client {
      }
 
      private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
-       implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] =
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
        val marshal = Marshal(obj)
        for {
          requestEntity <- marshal.to[RequestEntity]
          httpRequest = buildRequest(method, rd, nameComponent).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-         newOrUpdatedResource <- sendRequestAndUnmarshalResponse[O](httpRequest)
+         _ = logRequest(httpRequest, Some(obj))
+         newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
        } yield newOrUpdatedResource
      }
 
-     def create[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+     def create[O <: ObjectResource](obj: O)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[O] =
+     {
        modify(HttpMethods.POST)(obj)
      }
 
-     def update[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+     def update[O <: ObjectResource](obj: O)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[O] =
+     {
        modify(HttpMethods.PUT)(obj)
      }
 
-     def partiallyUpdate[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+     def partiallyUpdate[O <: ObjectResource](obj: O)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[O] =
+     {
        modify(HttpMethods.PATCH)(obj)
      }
 
-     def getNamespaceNames: Future[List[String]] = {
+     def getNamespaceNames(implicit lc: LoggingContext=RequestLoggingContext()): Future[List[String]] =
+     {
        list[NamespaceList].map { namespaceList =>
          val namespaces = namespaceList.items
          namespaces.map(_.name)
@@ -207,12 +320,14 @@ package object client {
      * which supports the feature requested in issue #20
       */
      def listByNamespace[L <: ListResource[_]]()
-         (implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[Map[String, L]] = {
+         (implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[Map[String, L]] =
+     {
        listByNamespace[L](rd)
      }
 
      private def listByNamespace[L <: ListResource[_]](rd: ResourceDefinition[_])
-         (implicit fmt: Format[L]): Future[Map[String, L]] = {
+         (implicit fmt: Format[L],lc: LoggingContext): Future[Map[String, L]] =
+     {
        val nsNamesFut: Future[List[String]] = getNamespaceNames
        val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { nsNames: List[String] =>
          Future.sequence(nsNames map { (nsName: String) =>
@@ -228,34 +343,51 @@ package object client {
       * List all objects of given kind in the specified namespace on the cluster
       */
      def listInNamespace[L <: ListResource[_]](theNamespace: String)
-         (implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] = {
+         (implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
        listInNamespace[L](theNamespace, rd)
      }
 
      private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])
-         (implicit fmt: Format[L]): Future[L] = {
+         (implicit fmt: Format[L], lc: LoggingContext): Future[L] =
+     {
        val req = buildRequest(HttpMethods.GET, rd, None, namespace = theNamespace)
-       sendRequestAndUnmarshalResponse[L](req)
+       logRequest(req)
+       makeRequestReturningListResource[L](req)
      }
 
      /*
       * List in current namespace, selecting objects of given kind and with labels matching given selector
       */
-     def list[L <: ListResource[_]]()(implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] = _list[L](rd, None)
+     def list[L <: ListResource[_]]()(implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] =
+     {
+       _list[L](rd, None)
+     }
 
-     def list[L <: ListResource[_]](labelSelector: LabelSelector)(implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] =
+     def list[L <: ListResource[_]](labelSelector: LabelSelector)(
+       implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] =
+     {
        _list[L](rd, Some(labelSelector))
+     }
 
-     private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])
-         (implicit fmt: Format[L]): Future[L] = {
+     private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
+       implicit fmt: Format[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
        val queryOpt = maybeLabelSelector map { ls =>
          Uri.Query("labelSelector" -> ls.toString)
        }
+       if (log.isDebugEnabled()) {
+         val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
+         log.debug(s"[List request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
+       }
        val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt)
-       sendRequestAndUnmarshalResponse[L](req)
+       logRequest(req)
+       makeRequestReturningListResource[L](req)
      }
 
-     def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Option[O]] = {
+     def getOption[O <: ObjectResource](name: String)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Future[Option[O]] =
+     {
        _get[O](name) map { result =>
          Some(result)
        } recover {
@@ -263,23 +395,28 @@ package object client {
        }
      }
 
-     def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+     def get[O <: ObjectResource](name: String)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Future[O] = {
        _get[O](name)
      }
 
      def getInNamespace[O <: ObjectResource](name: String, namespace: String)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[O] =
+     {
        _get[O](name, namespace)
      }
 
      private[api] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[O] = {
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+     {
        val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
-       sendRequestAndUnmarshalResponse[O](req)
+       logRequest(req)
+       makeRequestReturningObjectResource[O](req)
      }
 
      def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = 0)(
-       implicit rd: ResourceDefinition[O]): Future[Unit] = {
+       implicit rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[Unit] =
+     {
        val options = DeleteOptions(gracePeriodSeconds = gracePeriodSeconds)
        import skuber.json.format.apiobj.deleteOptionsWrite
        val marshalledOptions = Marshal(options)
@@ -289,6 +426,8 @@ package object client {
          _ = logRequest(request)
          response <- invoke(request)
          _ <- checkResponseStatus(response)
+         _ <- ignoreResponseBody(response)
+         _ = logResponse(response)
        } yield ()
      }
 
@@ -302,70 +441,93 @@ package object client {
      // The methods return Play Framework enumerators that will reactively emit a stream of updated
      // values of the watched resources.
      def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Source[WatchEvent[O], _]] =
+       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Future[Source[WatchEvent[O], _]] =
      {
        Watch.events(this, name, sinceResourceVersion, bufSize)
      }
 
      // watch events on all objects of specified kind in current namespace
      def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Source[WatchEvent[O], _]] =
+       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Future[Source[WatchEvent[O], _]] =
      {
        Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
      }
 
      // get API versions supported by the cluster
-     def getServerAPIVersions: Future[List[String]] = {
+     def getServerAPIVersions(implicit lc: LoggingContext=RequestLoggingContext()): Future[List[String]] = {
        val url = clusterServer + "/api"
        val noAuthReq = requestMaker(Uri(url), HttpMethods.GET)
        val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
-       log.info("[Skuber Request: method=GET, resource=api/, description=APIVersions]")
+       logRequest(request)
        for {
          response <- invoke(request)
          apiVersionResource <- toKubernetesResponse[APIVersions](response)
+         _ = logResponse(response)
        } yield (apiVersionResource.versions)
      }
 
-     def close: Unit = {
-       closed = true
+     def close: Unit =
+     {
+       isClosed = true
        closeHook map {
          _ ()
        } // invoke the specified close hook if specified
      }
 
-     private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T]): Future[T] = {
+     private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
+     {
        val statusOptFut = checkResponseStatus(response)
        statusOptFut flatMap { statusOpt =>
          statusOpt match {
-           case Some(status) => throw new K8SException(status)
-           case None => Unmarshal(response).to[T]
+           case Some(status) =>
+             throw new K8SException(status)
+           case None =>
+             try {
+               Unmarshal(response).to[T]
+             }
+             catch {
+               case ex: Exception =>
+                 logError("Unable to unmarshal resource from response", ex)
+                 throw new K8SException(Status(message=Some("Error unmarshalling resource from response"), details=Some(ex.getMessage)))
+             }
          }
        }
      }
 
      // check for non-OK status, returning (in a Future) some Status object if not ok or otherwise None
-     private[skuber] def checkResponseStatus(response: HttpResponse): Future[Option[Status]] = {
+     private[skuber] def checkResponseStatus(response: HttpResponse)(implicit lc: LoggingContext): Future[Option[Status]] =
+     {
        response.status.intValue match {
          case code if code < 300 =>
-           if (log.isDebugEnabled())
-             log.debug(s"[Skuber response: status = $code]")
            Future.successful(None)
          case code =>
            // a non-success or unexpected status returned - we should normally have a Status in the response body
            val statusFut: Future[Status] = Unmarshal(response).to[Status]
            statusFut map { status =>
              if (log.isInfoEnabled)
-               log.info(s"[Skuber Response: Status returned for non-ok response = $status")
+               log.info(s"[Response: non-ok status returned - $status")
              Some(status)
            } recover { case ex =>
              if (log.isErrorEnabled)
-               log.error(s"[Skuber response: could not read Status for non-ok response, exception : ${ex.getMessage}]")
+               log.error(s"[Response: could not read Status for non-ok response, exception : ${ex.getMessage}]")
              Some(Status(
                message = Some("Unexpected exception trying to unmarshal Kubernetes Status response due to non-ok response code"),
                details = Some(ex.getMessage)
              ))
            }
        }
+     }
+
+     /**
+       * Discards the response
+       * This is for requests (e.g. delete) for which we normally have no interest in the response body, but Akka Http
+       * requires us to drain it anyway
+       * (see https://doc.akka.io/docs/akka-http/current/scala/http/implications-of-streaming-http-entity.html)
+       * @param response the Http Response that we need to drain
+       * @return A Future[Unit] that will be set to Success or Failure depending on outcome of draining
+       */
+     private def ignoreResponseBody(response: HttpResponse): Future[Unit] = {
+         response.discardEntityBytes().future.map(done => ())
      }
    }
 
@@ -374,9 +536,9 @@ package object client {
     apiVersion: String = "v1",
     kind: String = "Status",
     metadata: ListMeta = ListMeta(),
-    status: Option[String] =None,
-    message: Option[String]=None,
-    reason: Option[String]=None,
+    status: Option[String] = None,
+    message: Option[String]= None,
+    reason: Option[String] = None,
     details: Option[Any] = None,
     code: Option[Int] = None  // HTTP status code
   )
@@ -395,10 +557,9 @@ package object client {
     Configuration().useContext(context)
   }
 
-  def init()(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): RequestContext =
+  def init()(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): RequestContext =
   {
-    // Initialising without explicit Configuration.
+    // Initialising without explicit Kubernetes Configuration.
     // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
     // If SKUBERCONFIG value matches:
     // - Empty / Not Set:  Configure to connect via default localhost URL
@@ -413,26 +574,35 @@ package object client {
     // required key/cert data for TLS connections must be installed in the applicable Java keystore/truststore.
     //
     val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
-    val skuberUrlEnv = sys.env.get("SKUBER_URL")
+    val kubeConfigEnv = sys.env.get("KUBECONFIG")
+
+    import java.nio.file.Paths
     val config : Configuration = skuberConfigEnv match {
       case Some(conf) if conf == "file" =>  Configuration.parseKubeconfigFile().get
       case Some(fileUrl) =>
-        val path = java.nio.file.Paths.get(new URL(fileUrl).toURI)
+        val path = Paths.get(new URL(fileUrl).toURI)
         Configuration.parseKubeconfigFile(path).get
-      case None => buildBaseConfigForURL(skuberUrlEnv)
+      case None =>
+        kubeConfigEnv.map { kc =>
+          Configuration.parseKubeconfigFile(Paths.get(kc))
+        }.getOrElse(
+          Configuration.parseKubeconfigFile()
+        ).get
     }
     init(config)
   }
 
   def init(config: Configuration)(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): RequestContext =
-  {
-    init(config.currentContext)
-  }
-
-  def init(k8sContext: Context, closeHook: Option[() => Unit] = None)(
     implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) : RequestContext =
   {
+    init(config.currentContext, LoggingConfig(), None)
+  }
+
+  def init(k8sContext: Context, logConfig: LoggingConfig,  closeHook: Option[() => Unit]=None)(
+    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) : RequestContext =
+  {
+    if (logConfig.logConfiguration)
+      log.info("Using following context for connecting to Kubernetes cluster: {}", k8sContext)
     val sslContext = TLS.establishSSLContext(k8sContext)
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     sslContext foreach { ssl =>
@@ -448,6 +618,6 @@ package object client {
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
     val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, logConfig, closeHook)
   }
 }

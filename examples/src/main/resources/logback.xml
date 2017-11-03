@@ -7,9 +7,8 @@
     </encoder>
   </appender>
 
-  <logger name="skuber.api" level="ERROR"/>
-  <logger name="com.ning.http.client" level="ERROR" />
-  <logger name="play.api.libs.ws" level="ERROR" />
+  <logger name="skuber.api" level="INFO"/>
+  <logger name="akka" level="ERROR" />
   
   <root level="ERROR">
     <appender-ref ref="STDOUT" />
