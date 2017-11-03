@@ -63,9 +63,11 @@ object DeploymentExamples extends App {
       updateNginx("1.9.1") onComplete {
         case scala.util.Success(_) =>
           println("Update successfully requested - use'kubectl describe deployments' to monitor progress")
+          system.terminate()
           System.exit(0)
         case scala.util.Failure(ex) =>
           ex.printStackTrace()
+          system.terminate()
           System.exit(1)
       }   
   }
@@ -73,6 +75,7 @@ object DeploymentExamples extends App {
   deployment onFailure {
     case ex =>
       ex.printStackTrace()
+      system.terminate()
       System.exit(1)
   }
   
@@ -90,9 +93,7 @@ object DeploymentExamples extends App {
     val nginxDeployment = Deployment("nginx-deployment")
       .withReplicas(desiredCount)
       .withTemplate(nginxTemplate)
-    
-    val k8s = k8sInit
-  
+
     println("Creating nginx deployment")
     val createdDeplFut = k8s create nginxDeployment
    
@@ -111,7 +112,7 @@ object DeploymentExamples extends App {
   def updateNginx(version: String): Future[Deployment] = {
     
     val updatedContainer = Container("nginx",image="nginx:" + version).exposePort(80)
-    val currentDeployment = k8s get[Deployment]("ginx-deployment")
+    val currentDeployment = k8s get[Deployment]("nginx-deployment")
     
     currentDeployment flatMap { nginxDeployment =>
         val updatedDeployment = nginxDeployment.updateContainer(updatedContainer)

@@ -47,16 +47,18 @@ package object ext {
 
   class ExtensionsGroupAPI(val context: K8SRequestContext)
   {
-    private[this] def getScale[O <: ObjectResource](objName: String)(implicit rd: ResourceDefinition[O]) : Future[Scale] =
+    private[this] def getScale[O <: ObjectResource](objName: String)(
+      implicit rd: ResourceDefinition[O], lc: LoggingContext) : Future[Scale] =
     {
       val req = context.buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
-      context.sendRequestAndUnmarshalResponse[Scale](req)
+      context.logRequest(req)
+      context.makeRequestReturningObjectResource[Scale](req)
     }
 
     private[this] def scale[O <: ObjectResource](
       apiVersion: String,
       objName: String,
-      count: Int)(implicit rd: ResourceDefinition[O]): Future[Scale] =
+      count: Int)(implicit rd: ResourceDefinition[O], lc:LoggingContext): Future[Scale] =
     {
       val scale = Scale(
         apiVersion = apiVersion,
@@ -70,7 +72,8 @@ package object ext {
         httpRequest = context
               .buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
               .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-        scaledResource <- context.sendRequestAndUnmarshalResponse[Scale](httpRequest)
+        _ = context.logRequest(httpRequest)
+        scaledResource <- context.makeRequestReturningObjectResource[Scale](httpRequest)
       } yield scaledResource
     }
 
@@ -78,7 +81,7 @@ package object ext {
      * Modify the specified replica count for a replication controller, returning a Future with its
      * updated Scale subresource
      */
-    def scale(rc: ReplicationController, count: Int): Future[Scale] = 
+    def scale(rc: ReplicationController, count: Int): Future[Scale] =
       scaleReplicationController(rc.name, count)
      
     /*
@@ -92,40 +95,40 @@ package object ext {
      * Modify the specified replica count for a named replication controller, returning a Future with its
      * updated Scale subresource
      */
-    def scaleReplicationController(name: String, count: Int): Future[Scale] =
+    def scaleReplicationController(name: String, count: Int)(implicit lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
       scale[ReplicationController]("autoscaling/v1", name, count)
 
     /*
     * Modify the specified replica count for a named replica set, returning a Future with its
     * updated Scale subresource
     */
-    def scaleReplicaSet(name: String, count: Int): Future[Scale] =
+    def scaleReplicaSet(name: String, count: Int)(implicit lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
       scale[ReplicaSet]("extensions/v1beta1", name, count)
 
     /*
      * Modify the specified replica count for a named Deployment, returning a Future with its
      * updated Scale subresource
      */     
-    def scaleDeployment(name: String, count: Int): Future[Scale] =
+    def scaleDeployment(name: String, count: Int)(implicit lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
       scale[skuber.apps.Deployment]("apps/v1beta1", name, count)
       
     /*
      * Fetch the Scale subresource of a named Deployment
      * @returns a future containing the retrieved Scale subresource
      */
-    def getDeploymentScale(objName: String) = getScale[skuber.apps.Deployment](objName)
+    def getDeploymentScale(objName: String)(implicit lc:LoggingContext=RequestLoggingContext()) = getScale[skuber.apps.Deployment](objName)
     
     /*
      * Fetch the Scale subresource of a named Replication Controller
      * @returns a future containing the retrieved Scale subresource
      */
-    def getReplicationControllerScale(objName: String) = getScale[ReplicationController](objName)
+    def getReplicationControllerScale(objName: String)(implicit lc:LoggingContext=RequestLoggingContext()) = getScale[ReplicationController](objName)
 
     /*
      * Fetch the Scale subresource of a named Replication Controller
      * @returns a future containing the retrieved Scale subresource
      */
-    def getReplicaSetScale(objName: String) = getScale[ReplicaSet](objName)
+    def getReplicaSetScale(objName: String)(implicit lc:LoggingContext=RequestLoggingContext()) = getScale[ReplicaSet](objName)
 
   }
   

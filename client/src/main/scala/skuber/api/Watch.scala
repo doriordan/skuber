@@ -4,7 +4,7 @@ package skuber.api
 import akka.http.scaladsl.model.HttpMethods
 import skuber.{ObjectResource, ResourceDefinition}
 import skuber.json.format.apiobj.watchEventFormat
-import skuber.api.client.{K8SException, RequestContext, Status, WatchEvent}
+import skuber.api.client.{K8SException, RequestContext, Status, WatchEvent, LoggingContext}
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.model._
@@ -38,18 +38,14 @@ object Watch {
     * @tparam O
     * @return
     */
-  def events[O <: ObjectResource](
-    context: RequestContext,
-    name: String,
-    sinceResourceVersion: Option[String] = None,
-    bufSize: Int)(implicit format: Format[O], rd: ResourceDefinition[O]) : Future[Source[WatchEvent[O], _]] =
+  def events[O <: ObjectResource](context: RequestContext, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int)(
+    implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
-    if (log.isDebugEnabled)
-      log.debug(s"[Skuber Watch on resource $name of kind ${rd.spec.names.kind} : creating...")
+    context.logInfo(context.logConfig.logRequestBasic, "creating watch on resource $name of kind ${rd.spec.names.kind}")
 
     val maybeResourceVersionQuery = sinceResourceVersion map { version => Uri.Query("resourceVersion" -> version) }
     val request = context.buildRequest(HttpMethods.GET, rd, Some(name), query = maybeResourceVersionQuery, watch = true)
-
+    context.logRequest(request)
     val responseFut = context.invoke(request)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
@@ -64,17 +60,14 @@ object Watch {
     * @tparam O
     * @return a Future which will eventually return a Source of events
     */
-  def eventsOnKind[O <: ObjectResource](
-    context: RequestContext,
-    sinceResourceVersion: Option[String] = None,
-    bufSize: Int)(implicit format: Format[O], rd: ResourceDefinition[O]) : Future[Source[WatchEvent[O], _]] =
+  def eventsOnKind[O <: ObjectResource](context: RequestContext, sinceResourceVersion: Option[String] = None, bufSize: Int)(
+    implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
-    if (log.isDebugEnabled)
-      log.debug(s"[Skuber watch on kind ${rd.spec.names.kind} : creating...")
+    context.logInfo(context.logConfig.logRequestBasic, s"creating skuber watch on kind ${rd.spec.names.kind}")
 
     val maybeResourceVersionQuery = sinceResourceVersion map { v => Uri.Query("resourceVersion" -> v) }
     val request = context.buildRequest(HttpMethods.GET, rd, None, watch=true)
-
+    context.logRequest(request)
     val responseFut = context.invoke(request)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
@@ -88,14 +81,13 @@ object Watch {
     * @tparam O the Kubernetes kind of each events object
     * @return a Future which will eventually return a Source of events
     */
-  private def toFutureWatchEventSource[O <: ObjectResource](
-    context: RequestContext,
-    eventStreamResponseFut: Future[HttpResponse],
-    bufSize: Int)(implicit format: Format[O]): Future[Source[WatchEvent[O], _]] =
+  private def toFutureWatchEventSource[O <: ObjectResource](context: RequestContext, eventStreamResponseFut: Future[HttpResponse], bufSize: Int)(
+    implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     implicit val system = context.actorSystem
     implicit val mat = context.actorMaterializer
 
+    eventStreamResponseFut foreach { context.logResponse(_) }
     eventStreamResponseFut.map { eventStreamResponse =>
       bytesSourceToWatchEventSource(eventStreamResponse.entity.dataBytes, bufSize)
     }
@@ -104,9 +96,8 @@ object Watch {
   /**
     * Convert a source of bytes to a source of watch events of type O
     */
-  private[api] def bytesSourceToWatchEventSource[O <: ObjectResource](
-    bytesSource: Source[ByteString, _],
-    bufSize: Int)(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer, format: Format[O]): Source[WatchEvent[O], _] =
+  private[api] def bytesSourceToWatchEventSource[O <: ObjectResource](bytesSource: Source[ByteString, _], bufSize: Int)(
+    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer, format: Format[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     import skuber.json.format.apiobj.watchEventFormat
 
@@ -118,15 +109,8 @@ object Watch {
           val singleEventJson = Json.parse(singleEventBytes.utf8String)
           val validatedEvent = singleEventJson.validate[WatchEvent[O]](watchEventFormat[O])
           validatedEvent match {
-            case JsSuccess(value, _) => {
-              if (log.isDebugEnabled)
-                log.debug("[Skuber Watch : successfully parsed watched object : " + value + "]")
-              value
-            }
-            case JsError(e) => {
-              log.error("[Skuber Watch: Json parsing error - " + e + "]")
-              throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(e.toString)))
-            }
+            case JsSuccess(value, _) => value
+            case JsError(e) => throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(s"${lc.output} - ${e.toString}")))
           }
         }
   }
