@@ -17,6 +17,7 @@ import play.api.libs.json.{Format, Reads}
 import skuber._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.format._
+import scala.util.{Success, Failure}
 import skuber.json.format.apiobj._
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import org.slf4j.Logger
@@ -128,8 +129,13 @@ package object client {
          logError("Attempt was made to invoke request on closed API request context")
          throw new IllegalStateException("Request context has been closed")
        }
-       logDebug(s"Invoking request: $request")
-       requestInvoker(request)
+       logInfo(logConfig.logRequestBasic, s"about to send HTTP request: ${request.method.value} ${request.uri.toString}")
+       val responseFut = requestInvoker(request)
+       responseFut onComplete {
+         case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
+         case Failure(ex) => logWarn("HTTP request resulted in an unexpected exception",ex)
+       }
+       responseFut
      }
 
      private[skuber] def buildRequest[T <: TypeMeta](
@@ -191,9 +197,19 @@ package object client {
        }
      }
 
+     private[skuber] def logWarn(msg: String)(implicit lc: LoggingContext) =
+     {
+       log.error(s"[ ${lc.output} - $msg ]")
+     }
+
      private[skuber] def logError(msg: String)(implicit lc: LoggingContext) =
      {
        log.error(s"[ ${lc.output} - $msg ]")
+     }
+
+     private[skuber] def logWarn(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
+     {
+       log.warn(s"[ ${lc.output} - $msg ]", ex)
      }
 
      private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
@@ -206,32 +222,27 @@ package object client {
          log.debug(s"[ ${lc.output} - $msg ]")
      }
 
-     private[skuber] def logRequest[O <: ObjectResource](request: HttpRequest, resourceToSend: Option[O] = None)(implicit lc: LoggingContext) = {
-       logInfo(logConfig.logRequestBasic, s"About to make request: ${request.method.value} ${request.uri.toString}")
-       logInfoOpt(logConfig.logRequestBasicMetadata, resourceToSend.flatMap[String] { resource: ObjectResource =>
+     private[skuber] def logRequestObjectDetails[O <: ObjectResource](method: HttpMethod,resource: O)(implicit lc: LoggingContext) = {
+       logInfoOpt(logConfig.logRequestBasicMetadata, {
            val name = resource.name
            val version = resource.metadata.resourceVersion
-           request.method match {
+           method match {
              case HttpMethods.PUT | HttpMethods.PATCH => Some(s"Requesting update of resource: { name:$name, version:$version ... }")
              case HttpMethods.POST => Some(s"Requesting creation of resource: { name: $name ...}")
              case _ => None
            }
          }
        )
-       logInfoOpt(logConfig.logRequestFullObjectResource, resourceToSend.map { resource => s" Marshal and send: ${resource.toString}"})
+       logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${resource.toString}")
      }
 
-     private[skuber] def logResponse[O <: ObjectResource](response: HttpResponse, resourceReceived: Option[O] = None)(implicit lc: LoggingContext) =
+     private[skuber] def logReceivedObjectDetails[O <: ObjectResource](resource: O)(implicit lc: LoggingContext) =
      {
-       logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
-       logInfoOpt(logConfig.logResponseBasicMetadata, resourceReceived.map { resource =>
-           s" resource: { kind:${resource.kind} name:${resource.name} version:${resource.metadata.resourceVersion} ... }"
-         }
-       )
-       logInfoOpt(logConfig.logResponseFullObjectResource, resourceReceived.map { resource =>s" received and parsed: ${resource.toString}"})
+       logInfo(logConfig.logResponseBasicMetadata, s" resource: { kind:${resource.kind} name:${resource.name} version:${resource.metadata.resourceVersion} ... }")
+       logInfo(logConfig.logResponseFullObjectResource, s" received and parsed: ${resource.toString}")
      }
 
-     private[skuber] def logListResult[L <: ListResource[_]](result: L)(implicit lc: LoggingContext) =
+     private[skuber] def logReceivedListDetails[L <: ListResource[_]](result: L)(implicit lc: LoggingContext) =
      {
        logInfo(logConfig.logResponseBasicMetadata,s"received list resource of kind ${result.kind}")
        logInfo(logConfig.logResponseListSize,s"number of items in received list resource: ${result.items.size}")
@@ -245,7 +256,7 @@ package object client {
        for {
          httpResponse <- invoke(httpRequest)
          result <- toKubernetesResponse[O](httpResponse)
-         _ = logResponse(httpResponse, Some(result))
+         _ = logReceivedObjectDetails(result)
        } yield result
      }
 
@@ -255,7 +266,7 @@ package object client {
        for {
          httpResponse <- invoke(httpRequest)
          result <- toKubernetesResponse[L](httpResponse)
-         _ = logListResult(result)
+         _ = logReceivedListDetails(result)
        } yield result
      }
 
@@ -281,7 +292,6 @@ package object client {
        for {
          requestEntity <- marshal.to[RequestEntity]
          httpRequest = buildRequest(method, rd, nameComponent).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-         _ = logRequest(httpRequest, Some(obj))
          newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
        } yield newOrUpdatedResource
      }
@@ -352,7 +362,6 @@ package object client {
          (implicit fmt: Format[L], lc: LoggingContext): Future[L] =
      {
        val req = buildRequest(HttpMethods.GET, rd, None, namespace = theNamespace)
-       logRequest(req)
        makeRequestReturningListResource[L](req)
      }
 
@@ -378,10 +387,9 @@ package object client {
        }
        if (log.isDebugEnabled()) {
          val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
-         log.debug(s"[List request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
+         logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
        }
        val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt)
-       logRequest(req)
        makeRequestReturningListResource[L](req)
      }
 
@@ -410,7 +418,6 @@ package object client {
        implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
        val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
-       logRequest(req)
        makeRequestReturningObjectResource[O](req)
      }
 
@@ -423,11 +430,9 @@ package object client {
        for {
          requestEntity <- marshalledOptions.to[RequestEntity]
          request = buildRequest(HttpMethods.DELETE, rd, Some(name)).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-         _ = logRequest(request)
          response <- invoke(request)
          _ <- checkResponseStatus(response)
          _ <- ignoreResponseBody(response)
-         _ = logResponse(response)
        } yield ()
      }
 
@@ -458,11 +463,9 @@ package object client {
        val url = clusterServer + "/api"
        val noAuthReq = requestMaker(Uri(url), HttpMethods.GET)
        val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
-       logRequest(request)
        for {
          response <- invoke(request)
          apiVersionResource <- toKubernetesResponse[APIVersions](response)
-         _ = logResponse(response)
        } yield (apiVersionResource.versions)
      }
 
@@ -559,30 +562,34 @@ package object client {
 
   def init()(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): RequestContext =
   {
-    // Initialising without explicit Kubernetes Configuration.
-    // The K8S Configuration applied will be determined by the the environment variable 'SKUBERCONFIG'.
-    // If SKUBERCONFIG value matches:
-    // - Empty / Not Set:  Configure to connect via default localhost URL
-    // -
-    // - "file" : Configure from kubeconfig file at default location (~/.kube/config)
-    // - "file://<path>: Configure from the kubeconfig file at the specified location
-    // Further the base server URL if kubectl proxy is determined by SKUBERPROXY - or just
-    // 'http://localhost:8080' if not set.
-    // Note that the configurations that use the kubectl proxy assumes default namespace context, and delegates auth etc.
-    // to the proxy.
-    // If configured to use  a kubeconfig file note that any certificate/key data in the file will be ignored - any
-    // required key/cert data for TLS connections must be installed in the applicable Java keystore/truststore.
+    // Initialising without explicit Kubernetes Configuration. This will try to load config from a standard kubeconfig file,
+    // the location of which is determined by one of these environment variables(s):
+    // If SKUBER_CONFIG is set, then it tries to load config based on the path set e.g.
+    // `SKUBER_CONFIG=file:///etc/kubeconfig` will load config from that /etc/kubeconfig  on the file system
+    // Note: `SKUBER_CONFIG=file` is a special case: it will load config from the default kubeconfig path `$HOME/.kube/config`
+    // Note: `SKUBER_CONFIG=proxy` is also special: it configures skuber to connect via localhost:8080
+    // If SKUBER_CONFIG is not set then it falls back to standard Kubernetes environment variable KUBECONFIG
+    // If neither of these is set, then it tries to load from the default kubeconfig path `$HOME/.kube/config`
+    //
+    // (Note the default behaviour in the absence of SKUBER_CONFIG env variable has changed in version 2: in versions 1.x
+    // KUBECONFIG was not used, instead skuber fell back to connecting to the cluster via localhost:8080, suitable for
+    // cases where you are using a locally running kubectl proxy (`kubectl proxy -p 8080`). If required you can reinstate that
+    // behaviour simply by calling `init(Configuration.localProxyDefault)', or setting SKUBER_CONFIG to 'proxy'.
+    // The changes in release 2.x aligns the default behaviour more closely with those of other Kubernetes API clients
+    // and tools, so is likely to be less surprising to new users of skuber.)
     //
     val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
     val kubeConfigEnv = sys.env.get("KUBECONFIG")
 
     import java.nio.file.Paths
     val config : Configuration = skuberConfigEnv match {
-      case Some(conf) if conf == "file" =>  Configuration.parseKubeconfigFile().get
+      case Some(conf) if conf == "file" =>  Configuration.parseKubeconfigFile().get // default kubeconfig location
+      case Some(conf) if conf == "proxy" => Configuration.useLocalProxyDefault
       case Some(fileUrl) =>
         val path = Paths.get(new URL(fileUrl).toURI)
         Configuration.parseKubeconfigFile(path).get
       case None =>
+        // try KUBECONFIG - if that is not set then use default kubeconfig location
         kubeConfigEnv.map { kc =>
           Configuration.parseKubeconfigFile(Paths.get(kc))
         }.getOrElse(
