@@ -45,7 +45,6 @@ object Watch {
 
     val maybeResourceVersionQuery = sinceResourceVersion map { version => Uri.Query("resourceVersion" -> version) }
     val request = context.buildRequest(HttpMethods.GET, rd, Some(name), query = maybeResourceVersionQuery, watch = true)
-    context.logRequest(request)
     val responseFut = context.invoke(request)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
@@ -67,7 +66,6 @@ object Watch {
 
     val maybeResourceVersionQuery = sinceResourceVersion map { v => Uri.Query("resourceVersion" -> v) }
     val request = context.buildRequest(HttpMethods.GET, rd, None, watch=true)
-    context.logRequest(request)
     val responseFut = context.invoke(request)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
@@ -87,7 +85,6 @@ object Watch {
     implicit val system = context.actorSystem
     implicit val mat = context.actorMaterializer
 
-    eventStreamResponseFut foreach { context.logResponse(_) }
     eventStreamResponseFut.map { eventStreamResponse =>
       bytesSourceToWatchEventSource(eventStreamResponse.entity.dataBytes, bufSize)
     }

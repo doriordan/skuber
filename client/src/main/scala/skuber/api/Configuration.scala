@@ -26,11 +26,22 @@ case class Configuration(
 
 object Configuration {
 
-    // default config is suitable for use with kubectl proxy running on localhost:8001
-    lazy val default = Configuration(
+    // local proxy default config is suitable for use with kubectl proxy running on localhost:8080
+    lazy val useLocalProxyDefault = Configuration(
         clusters = Map("default" -> Cluster()),
         contexts= Map("default" -> Context()),
         currentContext = Context())
+
+    // config to use a local proxy running on a specified port
+    def useLocalProxyOnPort(port: Int) = Configuration(
+      clusters = Map("default" -> Cluster(server=s"http://localhost${port.toString}")),
+      contexts= Map("default" -> Context()),
+      currentContext = Context())
+
+    def connectsTo(serverAddress: String) = Configuration(
+      clusters = Map("default" -> Cluster(server=serverAddress)),
+      contexts= Map("default" -> Context()),
+      currentContext = Context())
 
     /**
      * Parse a kubeconfig file to get a K8S Configuration object for the API.

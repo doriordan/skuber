@@ -51,7 +51,6 @@ package object ext {
       implicit rd: ResourceDefinition[O], lc: LoggingContext) : Future[Scale] =
     {
       val req = context.buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
-      context.logRequest(req)
       context.makeRequestReturningObjectResource[Scale](req)
     }
 
@@ -72,7 +71,6 @@ package object ext {
         httpRequest = context
               .buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
               .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-        _ = context.logRequest(httpRequest)
         scaledResource <- context.makeRequestReturningObjectResource[Scale](httpRequest)
       } yield scaledResource
     }
