@@ -495,6 +495,7 @@ package object format {
   
   implicit val podSpecFormat: Format[Pod.Spec] = (
       (JsPath \ "containers").format[List[Container]] and
+      (JsPath \ "initContainers").formatMaybeEmptyList[Container] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
       (JsPath \ "restartPolicy").formatEnum(RestartPolicy, Some(RestartPolicy.Always)) and
       (JsPath \ "terminationGracePeriodSeconds").formatNullable[Int] and
