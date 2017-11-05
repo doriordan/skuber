@@ -308,12 +308,6 @@ package object client {
        modify(HttpMethods.PUT)(obj)
      }
 
-     def partiallyUpdate[O <: ObjectResource](obj: O)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[O] =
-     {
-       modify(HttpMethods.PATCH)(obj)
-     }
-
      def getNamespaceNames(implicit lc: LoggingContext=RequestLoggingContext()): Future[List[String]] =
      {
        list[NamespaceList].map { namespaceList =>
@@ -366,15 +360,19 @@ package object client {
      }
 
      /*
-      * List in current namespace, selecting objects of given kind and with labels matching given selector
+      * List objects of specific resource kind in current namespace
       */
-     def list[L <: ListResource[_]]()(implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] =
+     def list[L <: ListResource[_]]()(
+       implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
        _list[L](rd, None)
      }
 
-     def list[L <: ListResource[_]](labelSelector: LabelSelector)(
-       implicit fmt: Format[L], rd: ResourceDefinition[L]): Future[L] =
+     /*
+      * Retrieve the list of objects of given type in the current namespace that match the supplied label selector
+      */
+     def listSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
+       implicit fmt: Format[L], rd: ResourceDefinition[L],lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
        _list[L](rd, Some(labelSelector))
      }
@@ -562,39 +560,42 @@ package object client {
 
   def init()(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): RequestContext =
   {
-    // Initialising without explicit Kubernetes Configuration. This will try to load config from a standard kubeconfig file,
-    // the location of which is determined by one of these environment variables(s):
-    // If SKUBER_CONFIG is set, then it tries to load config based on the path set e.g.
-    // `SKUBER_CONFIG=file:///etc/kubeconfig` will load config from that /etc/kubeconfig  on the file system
+    // Initialising without explicit Kubernetes Configuration.  If SKUBER_URL environment variable is set then it
+    // is assumed to point to a kubectl proxy running at the URL specified so we configure to use that, otherwise if not set
+    // then we try to configure from a kubeconfig file located as follows:
+    //
+    // If SKUBER_CONFIG is set, then use the path specified e.g.
+    // `SKUBER_CONFIG=file:///etc/kubeconfig` will load config from the file `/etc/kubeconfig`
     // Note: `SKUBER_CONFIG=file` is a special case: it will load config from the default kubeconfig path `$HOME/.kube/config`
     // Note: `SKUBER_CONFIG=proxy` is also special: it configures skuber to connect via localhost:8080
-    // If SKUBER_CONFIG is not set then it falls back to standard Kubernetes environment variable KUBECONFIG
-    // If neither of these is set, then it tries to load from the default kubeconfig path `$HOME/.kube/config`
+    // If SKUBER_CONFIG is also not set, then we next fallback to the standard Kubernetes environment variable KUBECONFIG
+    // If neither of these is set, then finally it tries the standard kubeconfig file location `$HOME/.kube/config` before
+    // giving up and throwing an exception
     //
-    // (Note the default behaviour in the absence of SKUBER_CONFIG env variable has changed in version 2: in versions 1.x
-    // KUBECONFIG was not used, instead skuber fell back to connecting to the cluster via localhost:8080, suitable for
-    // cases where you are using a locally running kubectl proxy (`kubectl proxy -p 8080`). If required you can reinstate that
-    // behaviour simply by calling `init(Configuration.localProxyDefault)', or setting SKUBER_CONFIG to 'proxy'.
-    // The changes in release 2.x aligns the default behaviour more closely with those of other Kubernetes API clients
-    // and tools, so is likely to be less surprising to new users of skuber.)
-    //
-    val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
-    val kubeConfigEnv = sys.env.get("KUBECONFIG")
 
     import java.nio.file.Paths
-    val config : Configuration = skuberConfigEnv match {
-      case Some(conf) if conf == "file" =>  Configuration.parseKubeconfigFile().get // default kubeconfig location
-      case Some(conf) if conf == "proxy" => Configuration.useLocalProxyDefault
-      case Some(fileUrl) =>
-        val path = Paths.get(new URL(fileUrl).toURI)
-        Configuration.parseKubeconfigFile(path).get
+
+    val skuberUrlOverride= sys.env.get("SKUBER_URL")
+
+    val config: Configuration = skuberUrlOverride match {
+      case Some(url) => Configuration.useProxyAt(url)
       case None =>
-        // try KUBECONFIG - if that is not set then use default kubeconfig location
-        kubeConfigEnv.map { kc =>
-          Configuration.parseKubeconfigFile(Paths.get(kc))
-        }.getOrElse(
-          Configuration.parseKubeconfigFile()
-        ).get
+        val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
+        val kubeConfigEnv = sys.env.get("KUBECONFIG")
+        skuberConfigEnv match {
+          case Some(conf) if conf == "file" => Configuration.parseKubeconfigFile().get // default kubeconfig location
+          case Some(conf) if conf == "proxy" => Configuration.useLocalProxyDefault
+          case Some(fileUrl) =>
+            val path = Paths.get(new URL(fileUrl).toURI)
+            Configuration.parseKubeconfigFile(path).get
+          case None =>
+            // try KUBECONFIG - if that is not set then use default kubeconfig location
+            kubeConfigEnv.map { kc =>
+              Configuration.parseKubeconfigFile(Paths.get(kc))
+            }.getOrElse(
+              Configuration.parseKubeconfigFile()
+            ).get
+        }
     }
     init(config)
   }

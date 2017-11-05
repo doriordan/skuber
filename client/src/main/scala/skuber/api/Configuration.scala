@@ -22,6 +22,9 @@ case class Configuration(
       def withCluster(name:String, cluster: Cluster) = this.copy(clusters = this.clusters + (name -> cluster))
       def withContext(name: String, context: Context) = this.copy(contexts = this.contexts + (name -> context))
       def useContext(context: Context) = this.copy(currentContext=context)
+      def setCurrentNamespace(namespaceName: String) =
+        this.copy(currentContext=this.currentContext.copy(namespace=Namespace.forName(namespaceName)))
+
 }
 
 object Configuration {
@@ -38,12 +41,13 @@ object Configuration {
       contexts= Map("default" -> Context()),
       currentContext = Context())
 
-    def connectsTo(serverAddress: String) = Configuration(
-      clusters = Map("default" -> Cluster(server=serverAddress)),
+    // config to use a proxy at specified address
+    def useProxyAt(proxyAddress: String) = Configuration(
+      clusters = Map("default" -> Cluster(server=proxyAddress)),
       contexts= Map("default" -> Context()),
       currentContext = Context())
 
-    /**
+  /**
      * Parse a kubeconfig file to get a K8S Configuration object for the API.
      *
      * See https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md
