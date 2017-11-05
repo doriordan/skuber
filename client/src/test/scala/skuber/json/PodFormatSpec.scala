@@ -1,22 +1,18 @@
 package skuber.json
 
-import org.specs2.mutable.Specification // for unit-style testing
+import org.specs2.mutable.Specification
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
 import org.specs2.execute.Success
 
 import scala.math.BigInt
 import scala.io.Source
-
 import java.util.Calendar
 import java.net.URL
 
 import skuber._
-import format._;
-
+import format._
 import play.api.libs.json._
-
-
 
 /**
  * @author David O'Riordan
@@ -355,7 +351,99 @@ import Pod._
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
       myPod mustEqual readPod
     }
-    
+
+    "a pod with nodeAffinity can be read and written as json" >> {
+      import Affinity.NodeAffinity
+      import Affinity.Operator
+      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+
+      val podJsonSource = Source.fromURL(getClass.getResource("/examplePodWithNodeAffinity.json"))
+      val podJsonStr = podJsonSource.mkString
+
+      val myPod = Json.parse(podJsonStr).as[Pod]
+      myPod.spec.get.affinity must beSome(Affinity(
+        nodeAffinity = Some(NodeAffinity(
+          requiredDuringSchedulingIgnoredDuringExecution = Some(
+            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", Operator.In, List("e2e-az1", "e2e-az2"))
+          ),
+          preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
+            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", Operator.In, List("another-node-label-value"))
+          )
+        ))
+      ))
+      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
+      myPod mustEqual readPod
+    }
+
+    "NodeAffinity be properly read and written as json" >> {
+      import Affinity.NodeAffinity
+      import Affinity.Operator
+      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+
+      val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinity.json"))
+      val affinityJsonStr = affinityJsonSource.mkString
+
+      val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
+      myAffinity must_== Affinity(
+        nodeAffinity = Some(NodeAffinity(
+          requiredDuringSchedulingIgnoredDuringExecution = Some(
+            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", Operator.In, List("e2e-az1", "e2e-az2"))
+          ),
+          preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
+            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", Operator.In, List("another-node-label-value"))
+          )
+        ))
+      )
+      val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
+      myAffinity mustEqual readAffinity
+    }
+
+    "NodeAffinity without preferences be properly read and written as json" >> {
+      import Affinity.NodeAffinity
+      import Affinity.Operator
+      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+
+      val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoPreferences.json"))
+      val affinityJsonStr = affinityJsonSource.mkString
+
+      val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
+      myAffinity must_== Affinity(
+        nodeAffinity = Some(NodeAffinity(
+          requiredDuringSchedulingIgnoredDuringExecution = Some(
+            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", Operator.In, List("e2e-az1", "e2e-az2"))
+          ),
+          preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms()
+        ))
+      )
+      val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
+      myAffinity mustEqual readAffinity
+    }
+
+    "NodeAffinity without requirements be properly read and written as json" >> {
+      import Affinity.NodeAffinity
+      import Affinity.Operator
+      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+
+      val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
+      val affinityJsonStr = affinityJsonSource.mkString
+
+      val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
+      myAffinity must_== Affinity(
+        nodeAffinity = Some(NodeAffinity(
+          requiredDuringSchedulingIgnoredDuringExecution = None,
+          preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
+            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", Operator.In, List("another-node-label-value"))
+          )
+        ))
+      )
+      val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
+      myAffinity mustEqual readAffinity
+    }
+
     "a complex podlist can be read and written as json" >> {
       val podListJsonSource = Source.fromURL(getClass.getResource("/examplePodList.json"))
       val podListJsonStr = podListJsonSource.mkString
@@ -365,6 +453,7 @@ import Pod._
       myPods.metadata.get.resourceVersion mustEqual "977"
       myPods.items.length mustEqual 22
       myPods.items(21).status.get.containerStatuses.exists( cs => cs.name.equals("grafana")) mustEqual true
+
        // write and read back in again, compare
       val readPods = Json.fromJson[PodList](Json.toJson(myPods)).get 
       myPods mustEqual readPods

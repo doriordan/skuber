@@ -491,7 +491,34 @@ package object format {
       (JsPath \ "spec").formatNullable[Pod.Spec] and
       (JsPath \ "status").formatNullable[Pod.Status]
     ) (Pod.apply _, unlift(Pod.unapply))  
-    
+
+
+  implicit val nodeAffinityOperatorFormat: Format[Pod.Affinity.Operator.Operator] = Format(enumReads(Pod.Affinity.Operator), enumWrites)
+
+  implicit val matchExpressionFormat: Format[Pod.Affinity.MatchExpression] = (
+    (JsPath \ "key").formatMaybeEmptyString() and
+      (JsPath \ "operator").formatEnum(Pod.Affinity.Operator) and
+      (JsPath \ "values").formatMaybeEmptyList[String]
+    )(Pod.Affinity.MatchExpression.apply _, unlift(Pod.Affinity.MatchExpression.unapply))
+
+  implicit val nodeSelectorTermFormat: Format[Pod.Affinity.NodeSelectorTerm] = (
+    (JsPath \ "matchExpressions").format[Pod.Affinity.MatchExpressions].inmap(matchExpressions => Pod.Affinity.NodeSelectorTerm(matchExpressions), (nst: Pod.Affinity.NodeSelectorTerm) => nst.matchExpressions)
+    )
+
+  implicit val requiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] = (
+    (JsPath \ "nodeSelectorTerms").format[Pod.Affinity.NodeSelectorTerms].inmap(
+      nodeSelectorTerms => Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms),
+      (rdside: Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms)
+    )
+
+  implicit lazy val preferredSchedulingTermFormat : Format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm] = Json.format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
+
+  implicit lazy val nodeAffinityFormat : Format[Pod.Affinity.NodeAffinity] = (
+    (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatNullable[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] and
+      (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
+  )(Pod.Affinity.NodeAffinity.apply _, unlift(Pod.Affinity.NodeAffinity.unapply))
+
+  implicit lazy val affinityFormat : Format[Pod.Affinity] = Json.format[Pod.Affinity]
   
   implicit val podSpecFormat: Format[Pod.Spec] = (
       (JsPath \ "containers").format[List[Container]] and
@@ -505,7 +532,8 @@ package object format {
       (JsPath \ "serviceAccountName").formatMaybeEmptyString() and
       (JsPath \ "nodeName").formatMaybeEmptyString() and
       (JsPath \ "hostNetwork").formatMaybeEmptyBoolean() and
-      (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference]
+      (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
+      (JsPath \ "affinity").formatNullable[Pod.Affinity]
     )(Pod.Spec.apply _, unlift(Pod.Spec.unapply))
     
   implicit val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
