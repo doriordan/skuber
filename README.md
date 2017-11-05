@@ -1,4 +1,3 @@
-# NOTE: This branch (for release 2.0 of skuber) is a work in progress!
 
 # Skuber
 
@@ -78,6 +77,10 @@ However Skuber v1.x is only available for Scala 2.11. Skuber v2 is the strategic
 ## Roadmap
 
 Release 2.0 of Skuber is in progress and an early release candidate is available. Release 2.0 refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12. Full details on the [release branch](https://github.com/doriordan/skuber/tree/release_2.0).
+
+## Migrating to release 2.0
+
+If you have a Skuber client using release 1.x and want to move to release 2, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
 
 ## Building
 

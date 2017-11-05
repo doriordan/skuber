@@ -1,24 +1,24 @@
 ## Configuration
 
-While the default configuration of Skuber clients - which assumes the Kubernetes cluster API server is reachable at `http://localhost:8080` - might work well for local development and "kicking the tyres", you will typically need to customise it for other environments.
+By default the configuration Skuber uses to connect to the Kubernetes cluster depends on the setting of various environment variables as follows.
 
 ### Cluster URL
 
-In some simpler cases it might be sufficient to simply override the address used by a client to connect to the cluster API server (or to a [kubectl proxy](https://kubernetes.io/docs/user-guide/kubectl/v1.6/#proxy) for the cluster).
+If proxying via a [kubectl proxy](https://kubernetes.io/docs/user-guide/kubectl/v1.6/#proxy) then you can configure Skuber to connect through that proxy by setting the SKUBER_URL environment variable to point at it e.g.
 
-This can be done by setting the environment variable **SKUBER_URL** e.g. 
+    export SKUBER_URL=http://locahost:8001
 
-    export SKUBER_URL=http://kubernetes:8001
+If the cluster URL is set this way, then the SKUBER_CONFIG and KUBECONFIG environment variables below are ignored by Skuber.
 
 ### Kubeconfig file
 
-For shared / secured clusters (such as normally occur in production environments), clients should be configured using a [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
+If not using a `kubectl proxy` then most clients clients will be configured using a [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
 
 - Authentication credentials - [see below](#security).
 - [Namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) - this allows the client to read/write Kubernetes resources in different cluster namespaces just by changing runtime configuration, which supports partitioning by team / organization.
 - Cluster address - i.e the URL to which the client connects to communicate with the Kubernetes API server. This can be either a non-TLS (http) or TLS (https) URL.
 
-To configure Skuber to use a specific kubeconfig file, set the **SKUBER_CONFIG** environment variable to the location of the config file e.g.
+To configure Skuber to use a specific kubeconfig file, set the `SKUBER_CONFIG` or`KUBECONFIG` environment variable to the location of the config file e.g.
 
     export SKUBER_CONFIG=file:///home/kubernetes/.kube/config
  
@@ -27,6 +27,10 @@ Setting this variable as follows:
     export SKUBER_CONFIG=file
 
 will instruct the client to get its configuration for a Kubeconfig file in the default location (`$HOME/.kube/config`).
+
+If SKUBER_CONFIG environment variable is not set then the fallback is to get the kubeconfig location from the standard Kubernetes / kubectl KUBECONFIG variable.
+
+If none of these environment variables are set then the kubeconfig file is loaded from its default location.
 
 The use of the kubeconfig format means that `kubectl` can be used to modify configuration settings for Skuber clients, without requiring direct editing of the configuration file - and this is the recommended approach.
 
