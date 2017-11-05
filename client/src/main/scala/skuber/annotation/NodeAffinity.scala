@@ -4,6 +4,9 @@ import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
 
 /**
   * Created by Cory Klein on 2/22/17.
+  *
+  * 2017-10-05: per https://github.com/kubernetes/kubernetes/issues/44339, node affinity via annotation is not supported by default in
+  * Kubernetes 1.6 or later. It should be set directly in the Pod.Spec (see PodFormatSpec for an example)
   */
 case class NodeAffinity(
                     requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
