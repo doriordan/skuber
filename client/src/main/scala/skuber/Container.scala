@@ -70,11 +70,13 @@ case class Container(
   def withHttpLivenessProbe(
     path: String,
     port: NameablePort = 80,
-    initialDelaySeconds:Int = 0,
-    timeoutSeconds:Int = 0,
+    initialDelaySeconds: Int = 0,
+    timeoutSeconds: Int = 0,
+    successThreshold: Int = 1,
+    failureThreshold: Int = 3,
     schema: String = "HTTP") = {
     val handler = HTTPGetAction(port = port, path = path, schema = schema)
-    val probe = Probe(handler, initialDelaySeconds, timeoutSeconds)
+    val probe = Probe(handler, initialDelaySeconds, timeoutSeconds, successThreshold, failureThreshold)
     withLivenessProbe(probe)
   }
   def withReadinessProbe(probe:Probe) =
@@ -84,9 +86,11 @@ case class Container(
     port: NameablePort = 80,
     initialDelaySeconds:Int = 0,
     timeoutSeconds:Int = 0,
+    successThreshold: Int = 1,
+    failureThreshold: Int = 3,
     schema: String = "HTTP") = {
     val handler = HTTPGetAction(port = port, path = path, schema = schema)
-    val probe = Probe(handler, initialDelaySeconds, timeoutSeconds)
+    val probe = Probe(handler, initialDelaySeconds, timeoutSeconds, successThreshold, failureThreshold)
     withReadinessProbe(probe)
   }
 

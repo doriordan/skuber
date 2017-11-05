@@ -197,7 +197,9 @@ package object skuber {
   // TCP endpoint - health check succeeds if can connect to it
   case class TCPSocketAction(port: NameablePort) extends Handler
   
-  case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0)
+  case class Probe(action: Handler, initialDelaySeconds: Int = 0, timeoutSeconds: Int = 0,
+                   successThreshold: Int = 1, failureThreshold: Int = 3)
+
   case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None) 
   
   case class WatchedEvent(eventType: WatchedEventType.Value, eventObject: ObjectResource)
