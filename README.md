@@ -68,7 +68,7 @@ New users are recommended to use version 2.0, which will shortly supersede versi
 
 Skuber version 2.0 is largely compatible with version 1.7.1, but refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12.
 
-There is release candidate of version 2.0 available, and it is planned to formally release it before the end of 2017. You can use the latest release candidate (for Scala 2.12) by adding to your build:
+There is a release candidate of version 2.0 available, and it is planned to formally release it before the end of 2017. You can use the latest release candidate (for Scala 2.12) by adding to your build:
 
     libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC2"
     
