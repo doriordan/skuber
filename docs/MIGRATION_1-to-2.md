@@ -20,7 +20,7 @@ val k8s = skuber.k8sInit
 
 ```
 
-The advantage of this change is flexibility - the client now has more control over the http client used by Skuber, through configuring the actor system and managing its lifecycle explicitly. For example, this now allows mutiple Skuber request contexts to be created by the application (for example to target different namespaces on the same cluster) while still sharing the same actor system and therefore potentially the same underlying connection pool.
+The advantage of this change is flexibility - the client now has more control over the http client used by Skuber, through configuring the actor system and managing its lifecycle explicitly. For example, this now allows multiple Skuber request contexts to be created by the application (for example to target different namespaces on the same cluster) while still sharing the same actor system and therefore potentially the same underlying connection pool.
 
 ## Termination
 
