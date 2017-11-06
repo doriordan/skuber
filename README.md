@@ -52,7 +52,7 @@ A Kubernetes cluster is needed at runtime, The client has been tested against va
 
 You need Java 8 to run Skuber.
 
-## Release
+## Current Release
 
 The most up-to-date stable version is 1.7.1, which you can add to your build using:
 
@@ -62,17 +62,19 @@ Although that release is labelled as a release candidate (RC6), is is considered
 
 Note Skuber v1.x is only available for Scala 2.11. If you need Scala 2.12 support then you must use v2.0. 
 
-## Roadmap
+## Version 2
 
-Release v2.0 of Skuber is in progress and an early release candidate is available. Skuber v2.0 is largely compatible with release 1.7.1, but refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12. It is planned to officially release Skuber v2.0 before the end of 2017. New projects should look to adopt this rather than v1.7.1 if that fits their timeframes as it will be better supported with new features and for changes in new versions of Kubernetes going forward. More details and updated docs (including a migration guide for v1.x users) on the [release branch](https://github.com/doriordan/skuber/tree/release_2.0).
+New users are recommended to use version 2.0, which will shortly supersede version 1.7.1 as the latest stable release.
 
-You can test drive the current release 2.0 candidate (for Scala 2.12) by adding to your build:
+Skuber version 2.0 is largely compatible with version 1.7.1, but refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12.
 
-    libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC1"
+There is release candidate of version 2.0 available, and it is planned to formally release it before the end of 2017. You can use the latest release candidate (for Scala 2.12) by adding to your build:
+
+    libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC2"
     
-(Note that the organisation setting for the release has changed from "io.github.doriordan" to "io.skuber" going forward)
+You can also build it directly from the [release_2.0 branch](https://github.com/doriordan/skuber/tree/release_2.0), which also has updated documentation.
 
-However for significant evaluation it is currently recommended just to build from the latest release_2.0 branch commit, as it contains a couple of important fixes and enhancements that will be released as RC2 shortly.
+Current Skuber v1.x users should check out the [migration guide](https://github.com/doriordan/skuber/blob/release_2.0/docs/MIGRATION_1-to-2.md) - migration should be pretty straightforward in most cases.
 
 ## Building
 
