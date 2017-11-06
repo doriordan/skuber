@@ -54,21 +54,25 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-You can include the current Skuber release in your application by adding the following to your `sbt` project:
+The most up-to-date stable version is 1.7.1, which you can add to your build using:
 
-    resolvers += Resolver.url(
-      "bintray-skuber",
-      url("http://dl.bintray.com/oriordan/skuber"))(
-      Resolver.ivyStylePatterns)
+     libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC6"
+	
+Although that release is labelled as a release candidate (RC6), is is considered stable and only minor changes are likely before it becomes an official release.
 
-    libraryDependencies += "io.doriordan" %% "skuber" % "1.3.0"
-
-The current release has been built for Scala 2.11 - other Scala language versions such as 2.12 will be supported in future.
-The current release version is 1.3.0, which was released for Kubernetes 1.3 so does not support a few recent features of Kubernetes that have since been added to the Skuber master branch.
+Note Skuber v1.x is only available for Scala 2.11. If you need Scala 2.12 support then you must use v2.0. 
 
 ## Roadmap
 
-Release 2.0 of Skuber is in progress and an early release candidate is available. Release 2.0 refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12. Full details on the [release branch](https://github.com/doriordan/skuber/tree/release_2.0).
+Release v2.0 of Skuber is in progress and an early release candidate is available. Skuber v2.0 is largely compatible with release 1.7.1, but refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12. It is planned to officially release Skuber v2.0 before the end of 2017. New projects should look to adopt this rather than v1.7.1 if that fits their timeframes as it will be better supported with new features and for changes in new versions of Kubernetes going forward. More details and updated docs (including a migration guide for v1.x users) on the [release branch](https://github.com/doriordan/skuber/tree/release_2.0).
+
+You can test drive the current release 2.0 candidate (for Scala 2.12) by adding to your build:
+
+    libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC1"
+    
+(Note that the organisation setting for the release has changed from "io.github.doriordan" to "io.skuber" going forward)
+
+However for significant evaluation it is currently recommended just to build from the latest release_2.0 branch commit, as it contains a couple of important fixes and enhancements that will be released as RC2 shortly.
 
 ## Building
 
