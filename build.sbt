@@ -19,10 +19,9 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "1.7.1-RC2"
+version in ThisBuild := "1.7.1"
 
-// NOTE: not the long-term planned profile name or organization
-sonatypeProfileName := "io.github.doriordan"
+sonatypeProfileName := "io.skuber"
 
 publishMavenStyle in ThisBuild := true
 
@@ -40,7 +39,7 @@ scmInfo in ThisBuild := Some(
 developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan", email="doriordan@gmail.com", url=url("https://github.com/doriordan")))
 
 lazy val commonSettings = Seq(
-  organization := "io.github.doriordan",
+  organization := "io.skuber",
   scalaVersion := "2.11.8",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"

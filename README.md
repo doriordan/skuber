@@ -56,15 +56,13 @@ You need Java 8 to run Skuber.
 
 The most up-to-date stable version is 1.7.1, which you can add to your build using:
 
-     libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC6"
-	
-Although that release is labelled as a release candidate (RC6), is is considered stable and only minor changes are likely before it becomes an official release.
+     libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
 
 Note Skuber v1.x is only available for Scala 2.11. If you need Scala 2.12 support then you must use v2.0. 
 
 ## Version 2
 
-New users are recommended to use version 2.0, which will shortly supersede version 1.7.1 as the latest stable release.
+New users are recommended to use version 2.0, which will shortly supersede version 1.7.1 as the strategically supported version of Skuber. 
 
 Skuber version 2.0 is largely compatible with version 1.7.1, but refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12.
 
