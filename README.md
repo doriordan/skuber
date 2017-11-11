@@ -62,21 +62,13 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-Skuber v2 is new and not officially released, but you can use the latest release candidate. It is available on Maven Central so just add it to your library dependencies e,g, in `sbt`:
+There is a release candidate of version 2.0 available, and it is planned to formally release it before the end of 2017. You can use the latest release candidate (for Scala 2.12) by adding to your build:
 
-    libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC1"
+    libraryDependencies += "io.skuber" % "skuber_2.12" % "2.0.0-RC2"    
 
-Note: the v2.0 release candidate is currently only published for Scala 2.12, but it is planned to cross-publish for Scala 2.11 as well.
+Meanwhile existing users can continue to use the latest v1.x release:
 
-You may instead use Skuber v1.x, which is built on the mature Skuber v1 codebase that has been quite thoroughly tested against multiple versions of Kubernetes:
-
-     libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC5" // RC5 is quite stable and well tested
-	
-However Skuber v1.x is only available for Scala 2.11. Skuber v2 is the strategic version going forward and is recommended for any new project. Although parts of Skuber have been rewritten for v2 (mainly to migrate its underlying HTTP client from Play WS to Akka HTTP), and v2 has not yet been extensively tested against different versions of Kubernetes, most of the code and API has been taken over unchanged from the mature and well-tested v1 codebase so should be stable.
-
-## Roadmap
-
-Release 2.0 of Skuber is in progress and an early release candidate is available. Release 2.0 refactors Skuber internals to use Akka Http instead of Play 2.4 as its http client, and brings support for Scala 2.12. Full details on the [release branch](https://github.com/doriordan/skuber/tree/release_2.0).
+     libraryDependencies += "io.github.doriordan" % "skuber_2.11" % "1.7.1-RC6"
 
 ## Migrating to release 2.0
 
