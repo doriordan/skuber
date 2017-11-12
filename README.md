@@ -78,6 +78,8 @@ If you have a Skuber client using release 1.x and want to move to the strategic 
 
 Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
 
+Note that the master branch has now been updated with the changes for Skuber v2 - if you want to use Skuber v1.x than build from the release_1.x branch instead.
+
 ## Quick Start
 
 The quickest way to get started with Skuber:
