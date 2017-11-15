@@ -98,7 +98,7 @@ package object client {
      logResponseFullObjectResource: Boolean=loggingEnabled("response.object.full", false), // outputs full received object resource, if available
      logResponseListSize: Boolean=loggingEnabled("response.list.size", false), // logs size of any returned list resource
      logResponseListNames: Boolean=loggingEnabled("response.list.names", false), // logs list of names of items in any returned list resource
-     logResponseFullListResource: Boolean= loggingEnabled("response.list.full", false), // outputs full contained object resources in list resources
+     logResponseFullListResource: Boolean= loggingEnabled("response.list.full", false) // outputs full contained object resources in list resources
    )
 
    trait LoggingContext {
