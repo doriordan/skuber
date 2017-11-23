@@ -42,7 +42,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  scalaVersion := "2.12.3",
+  crossScalaVersions := Seq("2.11.12", "2.12.4"),
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
