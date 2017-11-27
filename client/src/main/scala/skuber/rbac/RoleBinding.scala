@@ -15,7 +15,7 @@ case class RoleBinding(
 ) extends ObjectResource
 
 object RoleBinding {
-  implicit val roleDef = new ResourceDefinition[Role] {
+  implicit val roleDef = new ResourceDefinition[RoleBinding] {
     def spec = NonCoreResourceSpecification (
       group=Some("rbac.authorization.k8s.io"),
       version="v1beta1",
