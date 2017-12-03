@@ -804,6 +804,12 @@ package object format {
         _.map(otwSelectorToLabelSelector),
         selOpt => selOpt.map(labelSelToOtwSelector)
       )
+
+    def formatLabelSelector: OFormat[LabelSelector] =
+      path.format[OnTheWireSelector].inmap[LabelSelector](
+        otwSelectorToLabelSelector(_),
+        labelSelToOtwSelector(_)
+    )
   }
 
   implicit def jsPath2LabelSelFormat(path: JsPath) = new LabelSelectorFormat(path)
