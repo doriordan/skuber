@@ -8,6 +8,7 @@ import skuber.json.format.{objFormat,enumFormatMethods, intOrStringFormat, jsPat
 
 /**
   * @author David O'Riordan
+  *         This supports NetworkPolicy on Kubernetes V1.7+ (earlier beta version of this resource type not supported)
   */
 case class NetworkPolicy(
   val kind: String ="NetworkPolicy",
@@ -22,14 +23,18 @@ case class NetworkPolicy(
   def withSpec(spec: NetworkPolicy.Spec) = this.copy(spec=Some(spec))
 
   def selectAllPods=this.copy(spec=spec.map(s => s.copy(podSelector=LabelSelector())).orElse(specSelectingAllPods))
-  def applyIngressPolicy=fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(policyTypes=List("Ingress"))))
-  def applyEgressPolicy=fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(policyTypes=List("Egress"))))
-  def allowIngress(ingressRule: NetworkPolicy.IngressRule) =
-    fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(ingress=ingressRule::s.ingress)))
-  def allowEgress(egressRule: NetworkPolicy.EgressRule) =
-    fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(egress=egressRule::s.egress)))
   def selectPods(podSelector: LabelSelector) =
     this.copy(spec=spec.map(s=>s.copy(podSelector=podSelector)).orElse(Some(NetworkPolicy.Spec(podSelector=podSelector))))
+
+  def allowIngress(ingressRule: NetworkPolicy.IngressRule) =
+    fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(ingress=ingressRule::s.ingress)))
+
+  // Note: policy types and egress only supported on v1.8+
+  def applyIngressPolicy=fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(policyTypes="Ingress" :: s.policyTypes)))
+  def applyEgressPolicy=fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(policyTypes="Egress" :: s.policyTypes)))
+  def allowEgress(egressRule: NetworkPolicy.EgressRule) =
+    fallbackToSelectingAllPods.copy(spec=spec.map(s=>s.copy(egress=egressRule::s.egress))
+ )
 }
 
 object NetworkPolicy {
@@ -37,7 +42,7 @@ object NetworkPolicy {
   def apply(name: String): NetworkPolicy = NetworkPolicy(metadata=ObjectMeta(name=name))
   def named(name: String) = apply(name)
 
-  // Some potentially useful default network policies...
+  // Some potentially useful default network policies (as written for v1.8+)
 
   /*
    * selects all pods and applies an ingress policy with no ingress rules, which denies any ingress to any pod
