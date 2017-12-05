@@ -364,6 +364,10 @@ Contains the `Role`,`RoleBinding`,`ClusterRole` and `ClusterRoleBinding` kinds -
 
 Currently supports one kind - the `CustomResourceDefinition` kind introduced in Kubernetes V1.7 (as successor to the now deprecated `Third Party Resources` kind, which is not supported in Skuber). 
 
+***networking***
+
+Supports NetworkPolicy kind (for Kubernertes v1.7 and above)
+
 [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) are a powerful feature which enable Kubernetes clients to define and use their own custom resources to be treated in the same way as built-in kinds. They are useful for building custom controllers and other advanced use cases. See the `customresources` example in the `examples` sub-project to see how you can define custom resources that are first-class citizens in the Skuber API.
 
 
