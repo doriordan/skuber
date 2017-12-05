@@ -366,7 +366,7 @@ Currently supports one kind - the `CustomResourceDefinition` kind introduced in 
 
 ***networking***
 
-Supports NetworkPolicy kind (for Kubernertes v1.7 and above)
+Supports `NetworkPolicy` resources (for Kubernetes v1.7 and above) - see Kubernetes [Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) documentation.
 
 [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) are a powerful feature which enable Kubernetes clients to define and use their own custom resources to be treated in the same way as built-in kinds. They are useful for building custom controllers and other advanced use cases. See the `customresources` example in the `examples` sub-project to see how you can define custom resources that are first-class citizens in the Skuber API.
 
