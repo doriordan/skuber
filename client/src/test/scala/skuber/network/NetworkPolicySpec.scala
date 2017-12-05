@@ -58,7 +58,7 @@ class NetworkPolicySpec extends Specification {
       |  ],
       |  "ingress": [
       |    {
-      |      "from": {
+      |      "from": [{
       |        "ipBlock" : {
       |          "cidr: "172.17.0.0/16"
       |          "except": ["172.17.1.0/24"]
@@ -73,7 +73,7 @@ class NetworkPolicySpec extends Specification {
       |              "role": "frontend"
       |            }
       |          }
-      |        }
+      |        }],
       |      "ports": [
       |        {
       |          "protocol": "TCP"
@@ -84,15 +84,15 @@ class NetworkPolicySpec extends Specification {
       |  ]
       |  "egress": [
       |    {
-      |      "to": {
+      |      "to": [{
       |        "ipBlock": {
       |          "cidr": "10.0.0.0/24"
       |        }
-      |      }
-      |      "ports": {
+      |      }],
+      |      "ports": [{
       |        "protocol": "TCP",
       |        "port": 5978
-      |      }
+      |      }]
       |    }
       |  ]
       |}
@@ -101,7 +101,8 @@ class NetworkPolicySpec extends Specification {
 
   "A NetworkPolicy object can be written to Json and read back again" >> {
     val json=Json.toJson(networkPolicyExample)
+    val jsonStr = json.toString
     val examplePolicy=Json.fromJson[NetworkPolicy](json).get
-    examplePolicy.name mustEqual "test-network-policy"
+    examplePolicy mustEqual networkPolicyExample
   }
 }
