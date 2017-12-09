@@ -290,7 +290,10 @@ package object format {
   implicit val probeFormat : Format[Probe] = (
     JsPath.format[Handler] and
     (JsPath \ "initialDelaySeconds").formatMaybeEmptyInt() and
-    (JsPath \ "timeoutSeconds").formatMaybeEmptyInt()
+    (JsPath \ "timeoutSeconds").formatMaybeEmptyInt() and
+    (JsPath \ "periodSeconds").formatNullable[Int] and
+    (JsPath \ "successTreshold").formatNullable[Int] and
+    (JsPath \ "failureThreshold").formatNullable[Int]
   )(Probe.apply _, unlift(Probe.unapply))
   
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]

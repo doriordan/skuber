@@ -41,6 +41,14 @@ import Pod._
       myPod mustEqual readPod
     }
     "this can be done for a Pod with a more complex spec" >> {
+      val readyProbe=Probe(
+        action=HTTPGetAction(new URL("http://10.145.15.67:8100/ping")),
+        timeoutSeconds = 10,
+        initialDelaySeconds = 30,
+        periodSeconds = Some(5),
+        successThreshold = None,
+        failureThreshold = Some(100)
+      )
       val cntrs=List(Container("myContainer", "myImage"),
                      Container(name="myContainer2", 
                                image = "myImage2", 
@@ -51,7 +59,7 @@ import Pod._
                                resources=Some(Resource.Requirements(limits=Map("cpu" -> "0.1"))),  
                                volumeMounts=List(Volume.Mount("mnt1","/mt1"), 
                                                  Volume.Mount("mnt2","/mt2", readOnly = true)),
-                               readinessProbe=Some(Probe(HTTPGetAction(new URL("http://10.145.15.67:8100/ping")))),
+                               readinessProbe=Some(readyProbe),
                                lifecycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
                                securityContext=Some(Security.Context(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
                               )
