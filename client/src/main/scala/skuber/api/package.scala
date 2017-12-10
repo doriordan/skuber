@@ -54,6 +54,8 @@ package object client {
    case class AuthInfo(
      clientCertificate: Option[PathOrData] = None,
      clientKey: Option[PathOrData] = None,
+     // 'jwt' supports an oidc id token per https://kubernetes.io/docs/admin/authentication/#option-1---oidc-authenticator
+     // - but does not yet support token refresh
      jwt: Option[String] = None,
      token: Option[String] = None,
      userName: Option[String] = None,
