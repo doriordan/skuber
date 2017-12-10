@@ -54,6 +54,7 @@ package object client {
    case class AuthInfo(
      clientCertificate: Option[PathOrData] = None,
      clientKey: Option[PathOrData] = None,
+     jwt: Option[String] = None,
      token: Option[String] = None,
      userName: Option[String] = None,
      password: Option[String] = None
@@ -68,6 +69,7 @@ package object client {
          case Left(certPath: String) => "clientKey=" + certPath + " "
          case Right(_: Array[Byte]) => "clientKey=<PEM masked> "
        }).getOrElse("")
+       result ++= jwt.map("jwt="+_.replaceAll(".","*")+" ").getOrElse("")
        result ++= token.map("token="+_.replaceAll(".","*")+" ").getOrElse("")
        result ++= userName.map("userName="+_+" ").getOrElse("")
        result ++= password.map("password="+_.replaceAll(".","*")+" ").getOrElse("")

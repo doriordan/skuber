@@ -2,13 +2,13 @@ package skuber.api
 
 import client._
 import skuber.Namespace
-import scala.util.{Try,Success,Failure}
+
+import scala.util.{Failure, Success, Try}
 import java.io.{File, FileInputStream}
 
 import scala.collection.JavaConverters._
 import org.yaml.snakeyaml.Yaml
-
-import java.util.Base64
+import java.util.{Base64, Collections}
 
 /**
  * @author David O'Riordan
@@ -118,6 +118,7 @@ object Configuration {
         def topLevelYamlToK8SConfigMap[K8SConfigKind](kind: String, toK8SConfig: YamlMap=> K8SConfigKind) =
           topLevelList(kind + "s").asScala.map(item => name(item) -> toK8SConfig(child(item, kind))).toMap
 
+
         def toK8SCluster(clusterConfig: YamlMap) =
           Cluster(
             apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
@@ -128,13 +129,19 @@ object Configuration {
 
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster _)
 
-        def toK8SAuthInfo(userConfig:YamlMap) =
-          AuthInfo(
-            clientCertificate=pathOrDataValueAt(userConfig, "client-certificate","client-certificate-data"),
-            clientKey=pathOrDataValueAt(userConfig, "client-key","client-key-data"),
-            token=optionalValueAt(userConfig, "token"),
-            userName=optionalValueAt(userConfig, "username"),
-            password=optionalValueAt(userConfig, "password"))
+        def toK8SAuthInfo(userConfig:YamlMap):AuthInfo = AuthInfo(
+          clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data"),
+          clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data"),
+          jwt = userConfig.containsKey("auth-provider") match {
+            case true => val authProvider = child(userConfig,"auth-provider"); authProvider.containsKey("config") match {
+              case true => val config = child(authProvider,"config"); optionalValueAt(config,"id-token")
+              case false => None
+            }
+            case false => None
+          },
+          token = optionalValueAt(userConfig, "token"),
+          userName = optionalValueAt(userConfig, "username"),
+          password = optionalValueAt(userConfig, "password"))
 
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo _)
 
