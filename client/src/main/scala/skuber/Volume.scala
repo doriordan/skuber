@@ -13,12 +13,15 @@ object Volume {
 
   case class GitRepo(
       repository: String,
-      revision: Option[String] = None)
+      revision: Option[String] = None,
+      directory: Option[String] = None)
     extends Source
 
   case class Secret(
       secretName: String,
-      items: Option[List[KeyToPath]] = None)
+      items: Option[List[KeyToPath]] = None,
+      defaultMode:Option[Int] = None,
+      optional: Option[Boolean] = None)
     extends Source
 
   case class DownwardApiVolumeSource(
@@ -28,7 +31,9 @@ object Volume {
 
   case class ConfigMapVolumeSource(
       name: String,
-      items: List[KeyToPath] = List())
+      items: List[KeyToPath] = List(),
+      defaultMode: Option[Int] = None,
+      optional: Option[Boolean]=None)
     extends Source
 
   case class PersistentVolumeClaimRef(
@@ -37,13 +42,15 @@ object Volume {
     extends Source
 
   case class EmptyDir(
-      medium: StorageMedium = DefaultStorageMedium)
+      medium: StorageMedium = DefaultStorageMedium,
+      sizeLimit: Option[Resource.Quantity] = None)
     extends Source
 
   sealed trait PersistentSource extends Source
 
   case class HostPath(
-      path: String)
+      path: String,
+      `type`: Option[String] = None)
     extends PersistentSource
 
   case class GCEPersistentDisk(
@@ -84,8 +91,9 @@ object Volume {
     extends PersistentSource
 
   case class ISCSI(
-      targetPortal: String, 
-      iqn: String, 
+      targetPortal: String,
+      iqn: String,
+      portals: List[String] = List(),
       lun: Int = 0, 
       fsType: String = "ext4", 
       readOnly: Boolean = false) 

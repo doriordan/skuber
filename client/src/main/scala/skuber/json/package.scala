@@ -332,9 +332,11 @@ package object format {
       (JsPath \ "items").formatMaybeEmptyList[DownwardApiVolumeFile]
     )(DownwardApiVolumeSource.apply _, unlift(DownwardApiVolumeSource.unapply))
 
-  implicit val configMapFormat: Format[ConfigMapVolumeSource] = (
+  implicit val configMapVolFormat: Format[ConfigMapVolumeSource] = (
       (JsPath \ "name").format[String] and
-      (JsPath \ "items").formatMaybeEmptyList[KeyToPath]
+      (JsPath \ "items").formatMaybeEmptyList[KeyToPath] and
+      (JsPath \ "defaultMode").formatNullable[Int] and
+      (JsPath \ "optional").formatNullable[Boolean]
     )(ConfigMapVolumeSource.apply _, unlift(ConfigMapVolumeSource.unapply))
 
   implicit  val gceFormat: Format[GCEPersistentDisk] = (
@@ -377,6 +379,7 @@ package object format {
    implicit val iscsiFormat: Format[ISCSI] = (
      (JsPath \ "targetPortal").format[String] and
      (JsPath \ "iqn").format[String] and
+     (JsPath \ "portals").formatMaybeEmptyList[String] and
      (JsPath \ "lun").format[Int] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
@@ -422,7 +425,7 @@ package object format {
        case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
        case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
-       case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapFormat).writes(cfgMp)
+       case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
        case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
        case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc) 
