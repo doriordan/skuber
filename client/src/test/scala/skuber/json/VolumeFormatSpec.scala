@@ -22,7 +22,7 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       readVol.source match { 
-        case Volume.EmptyDir(medium) => medium mustEqual Volume.DefaultStorageMedium
+        case Volume.EmptyDir(medium,_) => medium mustEqual Volume.DefaultStorageMedium
         case _ => Failure("not an emptyDir!")
       }
       readVol.source mustEqual Volume.EmptyDir()
@@ -34,7 +34,7 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       readVol.source match { 
-        case Volume.HostPath(path) => path mustEqual "myHostPath"
+        case Volume.HostPath(path,_) => path mustEqual "myHostPath"
         case _ => Failure("not a hostpath!")
       }
       readVol.source mustEqual Volume.HostPath("myHostPath")
@@ -46,7 +46,7 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       readVol.source match { 
-        case Volume.Secret(secretName, _) => secretName mustEqual "mySecretName"
+        case Volume.Secret(secretName, _,_, _) => secretName mustEqual "mySecretName"
         case _ => Failure("not a secret!")
       }
       readVol.source mustEqual Volume.Secret("mySecretName")
@@ -58,7 +58,7 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       readVol.source match { 
-        case Volume.GitRepo(repoURL, revision) => repoURL mustEqual "git://host/mygitrepo"
+        case Volume.GitRepo(repoURL, revision, _) => repoURL mustEqual "git://host/mygitrepo"
         case _ => Failure("not a git repo!")
       }
       readVol.source mustEqual Volume.GitRepo("git://host/mygitrepo", None)
@@ -68,7 +68,7 @@ class VolumeReadWriteSpec extends Specification {
       val readVol2 = Json.fromJson[Volume](myVolJson2).get
       readVol2.name mustEqual "myVol2"
       readVol2.source match { 
-        case Volume.GitRepo(repoURL, revision) => 
+        case Volume.GitRepo(repoURL, revision, _) =>
           repoURL mustEqual "git://host/mygitrepo2"
           revision mustEqual Some("abdcef457677")   
         case _ => Failure("not a git repo!") 
