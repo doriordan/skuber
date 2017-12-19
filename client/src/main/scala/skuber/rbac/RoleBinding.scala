@@ -15,17 +15,19 @@ case class RoleBinding(
 ) extends ObjectResource
 
 object RoleBinding {
-  implicit val roleDef = new ResourceDefinition[RoleBinding] {
-    def spec = NonCoreResourceSpecification (
-      group=Some("rbac.authorization.k8s.io"),
-      version="v1beta1",
-      scope = Scope.Namespaced,
-      names=Names(
-        plural = "rolebindings",
-        singular = "rolebinding",
-        kind = "RoleBinding",
-        shortNames = Nil
-      )
+
+  def specification = NonCoreResourceSpecification (
+    group=Some("rbac.authorization.k8s.io"),
+    version="v1beta1",
+    scope = Scope.Namespaced,
+    names=Names(
+      plural = "rolebindings",
+      singular = "rolebinding",
+      kind = "RoleBinding",
+      shortNames = Nil
     )
-  }
+  )
+
+  implicit val roleDef = new ResourceDefinition[RoleBinding] { def spec = specification }
+  implicit val roleListDef = new ResourceDefinition[RoleBindingList] { def spec = specification }
 }
