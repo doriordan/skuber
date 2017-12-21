@@ -4,6 +4,7 @@ import java.net.URL
 import java.util.UUID
 
 import akka.actor.ActorSystem
+import akka.event.Logging
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.ConnectionContext
 import akka.http.scaladsl.model._
@@ -17,11 +18,10 @@ import play.api.libs.json.{Format, Reads}
 import skuber._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.format._
-import scala.util.{Success, Failure}
+
+import scala.util.{Failure, Success}
 import skuber.json.format.apiobj._
 import skuber.json.PlayJsonSupportForAkkaHttp._
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import scala.sys.SystemProperties
 
@@ -30,7 +30,6 @@ import scala.sys.SystemProperties
  */
 package object client {
 
-  val log: Logger = LoggerFactory.getLogger("skuber.api")
   val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
@@ -124,6 +123,8 @@ package object client {
                         val closeHook: Option[() => Unit])
       (implicit val actorSystem: ActorSystem, val actorMaterializer: ActorMaterializer) {
 
+     val log = Logging.getLogger(actorSystem, "skuber.api")
+
      implicit val dispatcher = actorSystem.dispatcher
 
      private var isClosed = false
@@ -137,7 +138,7 @@ package object client {
        val responseFut = requestInvoker(request)
        responseFut onComplete {
          case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
-         case Failure(ex) => logWarn("HTTP request resulted in an unexpected exception",ex)
+         case Failure(ex) => logError("HTTP request resulted in an unexpected exception",ex)
        }
        responseFut
      }
@@ -209,11 +210,6 @@ package object client {
      private[skuber] def logError(msg: String)(implicit lc: LoggingContext) =
      {
        log.error(s"[ ${lc.output} - $msg ]")
-     }
-
-     private[skuber] def logWarn(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
-     {
-       log.warn(s"[ ${lc.output} - $msg ]", ex)
      }
 
      private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
@@ -387,7 +383,7 @@ package object client {
        val queryOpt = maybeLabelSelector map { ls =>
          Uri.Query("labelSelector" -> ls.toString)
        }
-       if (log.isDebugEnabled()) {
+       if (log.isDebugEnabled) {
          val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
          logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
        }
@@ -613,8 +609,10 @@ package object client {
   def init(k8sContext: Context, logConfig: LoggingConfig,  closeHook: Option[() => Unit]=None)(
     implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) : RequestContext =
   {
-    if (logConfig.logConfiguration)
+    if (logConfig.logConfiguration) {
+      val log = Logging.getLogger(actorSystem, "skuber.api")
       log.info("Using following context for connecting to Kubernetes cluster: {}", k8sContext)
+    }
     val sslContext = TLS.establishSSLContext(k8sContext)
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     sslContext foreach { ssl =>
