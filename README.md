@@ -62,7 +62,7 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-You can use the latest iv2.0 release (for Scala 2.11 or 2.12) by adding to your build:
+You can use the latest v2.0 release (for Scala 2.11 or 2.12) by adding to your build:
 
     libraryDependencies += "io.skuber" %% "skuber" % "2.0.0"    
 
