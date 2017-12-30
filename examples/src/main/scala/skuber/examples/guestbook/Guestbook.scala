@@ -21,20 +21,23 @@ object Guestbook extends App {
     result match {
       case GuestbookActor.DeployedSuccessfully => {
         System.out.println("\n*** Deployment of Guestbook application to Kubernetes completed successfully!")
-        System.out.println("Waiting 5 seconds to allow skuber client to close...")
-        Thread.sleep(5000)
-        System.exit(0)
+        sys.terminate().foreach { f =>
+          System.exit(0)
+        }
       }
       case GuestbookActor.DeploymentFailed(ex) => {
         System.err.println("\n!!! Deployment of Guestbook application failed: " + ex)
-        System.out.println("Waiting 5 seconds to allow skuber client to close...")
-        Thread.sleep(5000)
-        System.exit(1)
+        sys.terminate().foreach { f =>
+          System.exit(0)
+        }
       }
     }  
   }
-  deploymentResult onFailure { 
-    case ex => System.err.println("Unexpected error deploying Guestbook: " + ex)
-    System.exit(-1)
+  deploymentResult.failed.foreach {
+    case ex =>
+      System.err.println("Unexpected error deploying Guestbook: " + ex)
+      sys.terminate().foreach { f =>
+        System.exit(1)
+      }
   }
 }

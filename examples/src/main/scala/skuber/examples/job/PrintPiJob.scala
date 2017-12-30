@@ -35,9 +35,15 @@ object PrintPiJob extends App {
     case Success(job) =>
       System.out.println("Job successfully created on the cluster")
       k8s.close
+      system.terminate().foreach { f =>
+        System.exit(0)
+      }
     case Failure(ex) =>
       System.err.println("Failed to create job: " + ex)
       k8s.close
+      system.terminate().foreach { f =>
+        System.exit(1)
+      }
   }
   // The job can be tracked using 'kubectl get pods' to get the name of the pod running the job (starts with "pi-")
   // and then when the pod terminates use "kubectl logs <pod name>" to see the printed pi result
