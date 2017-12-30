@@ -32,9 +32,6 @@ import akka.util.ByteString
 import play.api.libs.json.{ JsError, JsValue, Json, Reads, Writes }
 import scala.collection.immutable.Seq
 
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-
 /**
   * Automatic to and from JSON marshalling/unmarshalling using an in-scope *play-json* protocol.
   */
@@ -45,7 +42,6 @@ object PlayJsonSupportForAkkaHttp extends PlayJsonSupportForAkkaHttp {
       JsError.toJson(error).toString()
   }
 
-  override val log: Logger = LoggerFactory.getLogger("skuber.api")
 }
 
 /**
@@ -53,8 +49,6 @@ object PlayJsonSupportForAkkaHttp extends PlayJsonSupportForAkkaHttp {
   */
 trait PlayJsonSupportForAkkaHttp {
   import PlayJsonSupportForAkkaHttp._
-
-   val log: Logger
 
   def unmarshallerContentTypes: Seq[ContentTypeRange] =
     List(`application/json`)
@@ -85,19 +79,10 @@ trait PlayJsonSupportForAkkaHttp {
             )
           }
     jsonStringUnmarshaller.map { data =>
-      if (log.isDebugEnabled) {
-        log.debug(s"[Skuber reading: $data]")
-      }
       read(Json.parse(data))
     }
   }
 
-  val logMarshalled: String => String = { marshalled =>
-    if(log.isDebugEnabled) {
-      log.debug(s"[Skuber writing; $marshalled")
-    }
-    marshalled
-  }
   /**
     * `A` => HTTP entity
     *
@@ -108,5 +93,5 @@ trait PlayJsonSupportForAkkaHttp {
     implicit writes: Writes[A],
     printer: JsValue => String = Json.prettyPrint
   ): ToEntityMarshaller[A] =
-    jsonStringMarshaller.compose(logMarshalled).compose(printer).compose(writes.writes)
+    jsonStringMarshaller.compose(printer).compose(writes.writes)
 }

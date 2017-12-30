@@ -14,7 +14,6 @@ import play.api.libs.json.{Format, JsError, JsSuccess, Json}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.slf4j.LoggerFactory
 
 import scala.language.postfixOps
 
@@ -25,8 +24,6 @@ import scala.language.postfixOps
  */
 object Watch {
   
-  val log = LoggerFactory.getLogger("skuber.api")
-
   /**
     * Get a source of events on a specific Kubernetes resource
     * @param context the applicable request context

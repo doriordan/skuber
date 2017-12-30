@@ -7,7 +7,6 @@ val specs2 = "org.specs2" %% "specs2-core" % "3.9.5"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.5"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
-val sl4j = "org.slf4j" % "slf4j-api" % "1.7.25"
 
 // the client API request/response handing uses Akka Http 
 // This also brings in the transitive dependencies on Akka actors and streams
@@ -55,7 +54,7 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, sl4j, scalaCheck % Test,specs2 % Test).
+  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, scalaCheck % Test,specs2 % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 
