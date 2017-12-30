@@ -37,8 +37,7 @@ object DeploymentExamples extends App {
   
   val deployment = deployNginx("1.7.9") 
   
-  deployment onSuccess {
-    case depl => 
+  deployment.foreach { depl =>
        
       // Wait for initial deployment to complete before updating it.
       // NOTE: Kubernetes v1.1 Deployment status subresource does not seem to be reliably populated
@@ -63,17 +62,18 @@ object DeploymentExamples extends App {
       updateNginx("1.9.1") onComplete {
         case scala.util.Success(_) =>
           println("Update successfully requested - use'kubectl describe deployments' to monitor progress")
-          system.terminate()
-          System.exit(0)
+          system.terminate().foreach { f =>
+            System.exit(0)
+          }
         case scala.util.Failure(ex) =>
           ex.printStackTrace()
-          system.terminate()
-          System.exit(1)
+          system.terminate().map { f =>
+            System.exit(1)
+          }
       }   
   }
   
-  deployment onFailure {
-    case ex =>
+  deployment.failed.foreach { ex =>
       ex.printStackTrace()
       system.terminate()
       System.exit(1)

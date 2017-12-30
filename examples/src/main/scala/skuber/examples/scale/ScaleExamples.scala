@@ -73,7 +73,12 @@ object ScaleExamples extends App {
             "\n, message= " + k8sex.status.message.getOrElse("<>"))
       case ex: Exception => ex.printStackTrace
     }
-    autoScale onComplete { case _ => k8s.close }
+    autoScale onComplete { case _ =>
+      k8s.close
+      system.terminate().foreach { f =>
+        System.exit(0)
+      }
+    }
   }
   scaleNginxController
 }
