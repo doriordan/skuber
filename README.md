@@ -62,15 +62,15 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-There is a release candidate of version 2.0 available, and it is planned to formally release it before the end of 2017. You can use the latest release candidate (for Scala 2.11 or 2.12) by adding to your build:
+You can use the latest iv2.0 release (for Scala 2.11 or 2.12) by adding to your build:
 
-    libraryDependencies += "io.skuber" %% "skuber" % "2.0.0-RC2"    
+    libraryDependencies += "io.skuber" %% "skuber" % "2.0.0"    
 
 Meanwhile existing users can continue to use the latest (and possibly final, with exception of important fixes) v1.x release, which is available only on Scala 2.11:
 
      libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
 
-## Migrating to release 2.0
+## Migrating to release v2
 
 If you have a Skuber client using release 1.x and want to move to the strategic version 2 release, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
 
