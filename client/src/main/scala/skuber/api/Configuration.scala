@@ -29,23 +29,37 @@ case class Configuration(
 
 object Configuration {
 
-    // local proxy default config is suitable for use with kubectl proxy running on localhost:8080
-    lazy val useLocalProxyDefault = Configuration(
-        clusters = Map("default" -> Cluster()),
-        contexts= Map("default" -> Context()),
-        currentContext = Context())
+  // local proxy default config is suitable for use with kubectl proxy running on localhost:8080
+  lazy val useLocalProxyDefault = {
+    val defaultCluster=Cluster()
+    val defaultContext=Context(cluster=defaultCluster)
+    Configuration(
+      clusters = Map("default" -> defaultCluster),
+      contexts= Map("default" -> defaultContext),
+      currentContext = defaultContext)
+  }
 
-    // config to use a local proxy running on a specified port
-    def useLocalProxyOnPort(port: Int) = Configuration(
-      clusters = Map("default" -> Cluster(server=s"http://localhost${port.toString}")),
-      contexts= Map("default" -> Context()),
-      currentContext = Context())
+  // config to use a local proxy running on a specified port
+  def useLocalProxyOnPort(port: Int) = {
+    val clusterAddress=s"http://localhost:${port.toString}"
+    val defaultCluster=Cluster(server = clusterAddress)
+    val defaultContext=Context(cluster=defaultCluster)
+    Configuration(
+      clusters = Map("default" -> defaultCluster),
+      contexts= Map("default" -> defaultContext),
+      currentContext = defaultContext)
+  }
 
-    // config to use a proxy at specified address
-    def useProxyAt(proxyAddress: String) = Configuration(
-      clusters = Map("default" -> Cluster(server=proxyAddress)),
-      contexts= Map("default" -> Context()),
-      currentContext = Context())
+  // config to use a proxy at specified address
+  def useProxyAt(proxyAddress: String) = {
+    val clusterAddress=proxyAddress
+    val defaultCluster=Cluster(server = clusterAddress)
+    val defaultContext=Context(cluster=defaultCluster)
+    Configuration(
+      clusters = Map("default" -> defaultCluster),
+      contexts= Map("default" -> defaultContext),
+      currentContext = defaultContext)
+  }
 
   /**
      * Parse a kubeconfig file to get a K8S Configuration object for the API.
