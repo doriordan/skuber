@@ -46,7 +46,7 @@ A combination of generic Scala case class features and Skuber-defined fluent API
     val prodContainer=Container(name="nginx-prod", image="nginx").
                           limitCPU(prodCPU).
                           limitMemory(prodMem).
-                          port(80)
+                          exposePort(80)
     
     val internalProdPodSpec=Pod.Spec(containers=List(prodContainer), 
                                      nodeSelector=Map(prodInternalZoneLabel))     
@@ -278,7 +278,7 @@ The following example emulates that described [here](http://kubernetes.io/docs/u
 Initial creation of the deployment:
 
     val nginxLabel = "app" -> "nginx"
-    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
+    val nginxContainer = Container("nginx",image="nginx:1.7.9").exposePort(80)
     
     val nginxTemplate = Pod.Template.Spec
       .named("nginx")
@@ -297,7 +297,7 @@ Use `kubectl get deployments` to see the status of the newly created Deployment,
 
 Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
 
-    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
+    val newContainer = Container("nginx",image="nginx:1.9.1").exposePort(80)
     val existingDeployment = k8s get[Deployment] "nginx-deployment"
     val updatedDeployment = existingDeployment.updateContainer(newContainer)
     k8s update updatedDeployment 
