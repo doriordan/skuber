@@ -434,7 +434,6 @@ package object client {
        val marshalledOptions = Marshal(options)
        for {
          requestEntity <- marshalledOptions.to[RequestEntity]
-         _ = println(s"DELETE OPTIONS => $requestEntity")
          request = buildRequest(HttpMethods.DELETE, rd, Some(name)).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
          response <- invoke(request)
          _ <- checkResponseStatus(response)
