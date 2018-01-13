@@ -15,7 +15,7 @@ import akka.stream.scaladsl.Source
 
 import scala.concurrent.{ExecutionContext, Future}
 import play.api.libs.json.{Format, Reads}
-import skuber._
+import skuber.{ObjectResource, _}
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.format._
 
@@ -288,6 +288,7 @@ package object client {
      private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
        implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
+       logRequestObjectDetails(method, obj)
        val marshal = Marshal(obj)
        for {
          requestEntity <- marshal.to[RequestEntity]
@@ -419,11 +420,17 @@ package object client {
        makeRequestReturningObjectResource[O](req)
      }
 
-     def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = 0)(
+     def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1)(
        implicit rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[Unit] =
      {
-       val options = DeleteOptions(gracePeriodSeconds = gracePeriodSeconds)
-       import skuber.json.format.apiobj.deleteOptionsWrite
+       val grace=if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
+       val options = DeleteOptions(gracePeriodSeconds = grace)
+       deleteWithOptions[O](name, options)
+     }
+
+     def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions)(
+       implicit rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[Unit] =
+     {
        val marshalledOptions = Marshal(options)
        for {
          requestEntity <- marshalledOptions.to[RequestEntity]
@@ -433,6 +440,7 @@ package object client {
          _ <- ignoreResponseBody(response)
        } yield ()
      }
+
 
      def watch[O <: ObjectResource](obj: O)(
        implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Source[WatchEvent[O], _]] =
@@ -545,12 +553,6 @@ package object client {
   )
 
   class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
-
-  // Delete options are passed with a Delete request
-  case class DeleteOptions(
-    apiVersion: String = "v1",
-    kind: String = "DeleteOptions",
-    gracePeriodSeconds: Int = 0)
 
   private def buildBaseConfigForURL(url: Option[String]) = {
     val cluster = Cluster(server=url.getOrElse(defaultApiServerURL))

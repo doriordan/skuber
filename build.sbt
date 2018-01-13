@@ -12,6 +12,10 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
 // This also brings in the transitive dependencies on Akka actors and streams
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
 
+// Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
+val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.4.19"
+val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
+
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.6.6"
 
@@ -59,7 +63,8 @@ lazy val skuberSettings = Seq(
 )
 
 lazy val examplesSettings = Seq(
-  name := "skuber-examples"
+  name := "skuber-examples",
+  libraryDependencies ++= Seq(akkaSlf4j, logback)
 )
 
 // by default run the guestbook example when executing a fat examples JAR

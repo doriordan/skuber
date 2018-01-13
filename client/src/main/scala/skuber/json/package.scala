@@ -820,6 +820,17 @@ package object format {
 
   implicit def jsPath2LabelSelFormat(path: JsPath) = new LabelSelectorFormat(path)
 
+  implicit val precondFmt: Format[Preconditions] =
+    (JsPath \ "uid").formatMaybeEmptyString().inmap(u => Preconditions(u), p => p.uid)
+
+  implicit val deleteOptionsFmt: Format[DeleteOptions] = (
+    (JsPath \ "apiVersion").formatMaybeEmptyString() and
+    (JsPath \ "kind").formatMaybeEmptyString() and
+    (JsPath \ "gracePeriodSeconds").formatNullable[Int] and
+    (JsPath \ "preconditions").formatNullable[Preconditions] and
+    (JsPath \ "propagationPlicy").formatNullableEnum(DeletePropagation)
+  )(DeleteOptions.apply _, unlift(DeleteOptions.unapply))
+
   // formatters for API 'supporting' types i.e. non resource types such as status and watch events 
   object apiobj {
      
@@ -836,13 +847,7 @@ package object format {
       (JsPath \ "details").readNullable[JsValue].map(ov => ov.map( x => x:Any)) and
       (JsPath \ "code").readNullable[Int]
     )(Status.apply _)      
-   
-    implicit val deleteOptionsWrite: Writes[DeleteOptions] = (
-      (JsPath \ "apiVersion").formatMaybeEmptyString() and 
-      (JsPath \ "kind").formatMaybeEmptyString() and 
-      (JsPath \ "gracePeriodSeconds").formatMaybeEmptyInt()
-    )(DeleteOptions.apply _, unlift(DeleteOptions.unapply))     
-    
+
     def watchEventFormat[T <: ObjectResource](implicit objfmt: Format[T]) : Format[WatchEvent[T]] = (
       (JsPath \ "type").formatEnum(EventType) and
       (JsPath \ "object").format[T]
