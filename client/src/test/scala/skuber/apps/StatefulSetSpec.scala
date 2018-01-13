@@ -20,7 +20,7 @@ class StatefulSetSpec extends Specification {
       .withServiceName("nginx-service")
       .withTemplate(template)
       .withVolumeClaimTemplate(PersistentVolumeClaim("hello"))
-    stateSet.spec.get.template mustEqual Some(template)
+    stateSet.spec.get.template mustEqual template
     stateSet.spec.get.serviceName mustEqual Some("nginx-service")
     stateSet.spec.get.replicas must beSome(200)
     stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
@@ -111,8 +111,8 @@ class StatefulSetSpec extends Specification {
     stateSet.spec.get.replicas must beSome(3)
     stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
     stateSet.spec.get.serviceName.get mustEqual "nginx-service"
-    stateSet.spec.get.template.get.metadata.labels mustEqual Map("app" -> "nginx")
-    stateSet.spec.get.template.get.spec.get.containers.length mustEqual 1
+    stateSet.spec.get.template.metadata.labels mustEqual Map("app" -> "nginx")
+    stateSet.spec.get.template.spec.get.containers.length mustEqual 1
     stateSet.spec.get.selector.get.requirements.size mustEqual 4
     stateSet.spec.get.selector.get.requirements.find(r => (r.key == "env")) mustEqual Some("env" isNotIn List("dev"))
     stateSet.spec.get.selector.get.requirements.find(r => (r.key == "domain")) mustEqual Some("domain" is "www.example.com")

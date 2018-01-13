@@ -1,5 +1,6 @@
 
 import java.net.URL
+import java.time.temporal.ValueRange
 import java.util.Date
 
 import scala.collection.immutable.HashMap
@@ -222,6 +223,20 @@ package object skuber {
     type Protocol = Value
     val TCP, UDP = Value
   }
+
+  // Delete options are (optionally) passed with a Delete request
+  object DeletePropagation extends Enumeration {
+    type DeletePropagation = Value
+    val Orphan, Background, Foreground = Value
+  }
+
+  case class Preconditions(uid: String="")
+  case class DeleteOptions(
+    apiVersion: String = "v1",
+    kind: String = "DeleteOptions",
+    gracePeriodSeconds: Option[Int] = None,
+    preconditions: Option[Preconditions] = None,
+    propagationPolicy: Option[DeletePropagation.Value] = None)
 
 
   // aliases, references and delegates that enable using the API for many use cases without 

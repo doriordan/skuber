@@ -124,10 +124,7 @@ object Pod {
 
       type PreferredSchedulingTerms = List[PreferredSchedulingTerm]
       def PreferredSchedulingTerms(xs: PreferredSchedulingTerm*) = List(xs: _*)
-
-
     }
-
   }
 
   case class Status(

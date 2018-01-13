@@ -7,7 +7,8 @@ import skuber.json.ext.format._
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
 
 /**
  * @author David O'Riordan
@@ -28,6 +29,7 @@ import scala.concurrent.Future
  */
 object DeploymentExamples extends App {
 
+  val nginxDeploymentName="nginx-deployment"
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -62,6 +64,13 @@ object DeploymentExamples extends App {
       updateNginx("1.9.1") onComplete {
         case scala.util.Success(_) =>
           println("Update successfully requested - use'kubectl describe deployments' to monitor progress")
+          println("(Waiting two minutes before deleting nginx deployment)")
+          Thread.sleep(120000)
+          println("Deleting deployment, including its owned resources")
+          val deleteOptions=DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))
+          val deleteFut=k8s.deleteWithOptions[Deployment](nginxDeploymentName, deleteOptions)
+          Await.ready(deleteFut, 30 seconds)
+          println("DSuccessfully completed, exiting")
           system.terminate().foreach { f =>
             System.exit(0)
           }
@@ -90,7 +99,7 @@ object DeploymentExamples extends App {
       .addLabel(nginxLabel)
         
     val desiredCount = 5  
-    val nginxDeployment = Deployment("nginx-deployment")
+    val nginxDeployment = Deployment(nginxDeploymentName)
       .withReplicas(desiredCount)
       .withTemplate(nginxTemplate)
 
