@@ -828,7 +828,7 @@ package object format {
     (JsPath \ "kind").formatMaybeEmptyString() and
     (JsPath \ "gracePeriodSeconds").formatNullable[Int] and
     (JsPath \ "preconditions").formatNullable[Preconditions] and
-    (JsPath \ "propagationPlicy").formatNullableEnum(DeletePropagation)
+    (JsPath \ "propagationPolicy").formatNullableEnum(DeletePropagation)
   )(DeleteOptions.apply _, unlift(DeleteOptions.unapply))
 
   // formatters for API 'supporting' types i.e. non resource types such as status and watch events 
