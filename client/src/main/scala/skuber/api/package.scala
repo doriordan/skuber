@@ -1,6 +1,6 @@
 package skuber.api
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.SystemProperties
 import scala.util.{Failure, Success}
 
@@ -9,14 +9,14 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
+import com.typesafe.config.ConfigFactory
 import play.api.libs.json.{Format, Reads}
-
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format._
@@ -105,7 +105,7 @@ package object client {
    trait LoggingContext {
      def output: String
    }
-   case class RequestLoggingContext(val requestId: String) extends LoggingContext {
+   case class RequestLoggingContext(requestId: String) extends LoggingContext {
      def output=s"{ reqId=$requestId} }"
    }
    object RequestLoggingContext {
@@ -115,15 +115,13 @@ package object client {
    class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
                         val requestInvoker: HttpRequest => Future[HttpResponse],
                         val clusterServer: String,
-                        requestAuth: HTTPRequestAuth.RequestAuth,
+                        val requestAuth: HTTPRequestAuth.RequestAuth,
                         val namespaceName: String,
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
-      (implicit val actorSystem: ActorSystem, val materializer: Materializer) {
+      (implicit val actorSystem: ActorSystem, val materializer: Materializer, val executionContext: ExecutionContext) {
 
      val log = Logging.getLogger(actorSystem, "skuber.api")
-
-     implicit val dispatcher = actorSystem.dispatcher
 
      private var isClosed = false
 
@@ -470,13 +468,13 @@ package object client {
        for {
          response <- invoke(request)
          apiVersionResource <- toKubernetesResponse[APIVersions](response)
-       } yield (apiVersionResource.versions)
+       } yield apiVersionResource.versions
      }
 
      def close: Unit =
      {
        isClosed = true
-       closeHook map {
+       closeHook foreach {
          _ ()
        } // invoke the specified close hook if specified
      }
@@ -484,20 +482,18 @@ package object client {
      private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
      {
        val statusOptFut = checkResponseStatus(response)
-       statusOptFut flatMap { statusOpt =>
-         statusOpt match {
-           case Some(status) =>
-             throw new K8SException(status)
-           case None =>
-             try {
-               Unmarshal(response).to[T]
-             }
-             catch {
-               case ex: Exception =>
-                 logError("Unable to unmarshal resource from response", ex)
-                 throw new K8SException(Status(message=Some("Error unmarshalling resource from response"), details=Some(ex.getMessage)))
-             }
-         }
+       statusOptFut flatMap {
+         case Some(status) =>
+           throw new K8SException(status)
+         case None =>
+           try {
+             Unmarshal(response).to[T]
+           }
+           catch {
+             case ex: Exception =>
+               logError("Unable to unmarshal resource from response", ex)
+               throw new K8SException(Status(message = Some("Error unmarshalling resource from response"), details = Some(ex.getMessage)))
+           }
        }
      }
 
@@ -558,8 +554,7 @@ package object client {
     Configuration().useContext(context)
   }
 
-  def init()(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext =
-  {
+  def init()(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     // Initialising without explicit Kubernetes Configuration.  If SKUBER_URL environment variable is set then it
     // is assumed to point to a kubectl proxy running at the URL specified so we configure to use that, otherwise if not set
     // then we try to configure from a kubeconfig file located as follows:
@@ -601,18 +596,27 @@ package object client {
   }
 
   def init(config: Configuration)(
-    implicit actorSystem: ActorSystem, materializer: Materializer) : RequestContext =
+    implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext =
   {
     init(config.currentContext, LoggingConfig(), None)
   }
 
-  def init(k8sContext: Context, logConfig: LoggingConfig,  closeHook: Option[() => Unit]=None)(
-    implicit actorSystem: ActorSystem, materializer: Materializer) : RequestContext =
+  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None)(
+    implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext =
   {
+    val libConfig = ConfigFactory.load()
+    implicit val executionContext: ExecutionContext =
+      if (libConfig.getIsNull("skuber.akka.dispatcher") || libConfig.getString("skuber.akka.dispatcher").isEmpty) {
+        actorSystem.dispatcher
+      } else {
+        actorSystem.dispatchers.lookup(libConfig.getString("skuber.akka.dispatcher"))
+      }
+
     if (logConfig.logConfiguration) {
       val log = Logging.getLogger(actorSystem, "skuber.api")
       log.info("Using following context for connecting to Kubernetes cluster: {}", k8sContext)
     }
+
     val sslContext = TLS.establishSSLContext(k8sContext)
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     sslContext foreach { ssl =>
@@ -628,6 +632,6 @@ package object client {
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
     val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, logConfig, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth, theNamespaceName, logConfig, closeHook)
   }
 }
