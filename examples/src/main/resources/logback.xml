@@ -8,9 +8,9 @@
   </appender>
 
   <logger name="skuber.api" level="INFO"/>
-  <logger name="akka" level="DEBUG" />
+  <logger name="akka" level="INFO" />
   
-  <root level="DEBUG">
+  <root level="INFO">
     <appender-ref ref="STDOUT" />
   </root>
 </configuration>

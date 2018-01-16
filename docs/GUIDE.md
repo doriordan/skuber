@@ -397,3 +397,5 @@ Normally it is likely that configuration will be via a kubeconfig file. However 
 The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. 
 
 The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
+
+Additionally a Typesafe Config object can optionally be passed programmatically as a second parameter to the initialisation call - currently this only supports specifying your own Akka dispatcher (execution context for the Akka http client request processingi by Skuber) 
