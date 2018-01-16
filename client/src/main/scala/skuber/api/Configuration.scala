@@ -1,14 +1,13 @@
 package skuber.api
 
-import client._
-import skuber.Namespace
-
-import scala.util.{Failure, Success, Try}
-import java.io.{File, FileInputStream}
-
 import scala.collection.JavaConverters._
+import scala.util.Try
+
+import java.util.Base64
+
 import org.yaml.snakeyaml.Yaml
-import java.util.{Base64, Collections}
+import skuber.Namespace
+import skuber.api.client._
 
 /**
  * @author David O'Riordan
@@ -70,7 +69,7 @@ object Configuration {
      * However note that the merging functionality described at the link above is not implemented
      * in the Skuber library.
     **/
-    import java.nio.file.{Path,Paths,Files}
+    import java.nio.file.{Files, Path, Paths}
     def parseKubeconfigFile(path: Path = Paths.get(System.getProperty("user.home"),".kube", "config")) : Try[Configuration] = {
       Try {
         val kubeconfigDir: Path = path.getParent

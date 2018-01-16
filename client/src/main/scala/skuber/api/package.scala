@@ -15,7 +15,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads}
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
@@ -548,12 +548,6 @@ package object client {
 
   class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
 
-  private def buildBaseConfigForURL(url: Option[String]) = {
-    val cluster = Cluster(server=url.getOrElse(defaultApiServerURL))
-    val context = Context(cluster=cluster)
-    Configuration().useContext(context)
-  }
-
   def init()(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     // Initialising without explicit Kubernetes Configuration.  If SKUBER_URL environment variable is set then it
     // is assumed to point to a kubectl proxy running at the URL specified so we configure to use that, otherwise if not set
@@ -567,49 +561,35 @@ package object client {
     // If neither of these is set, then finally it tries the standard kubeconfig file location `$HOME/.kube/config` before
     // giving up and throwing an exception
     //
-
-    import java.nio.file.Paths
-
-    val skuberUrlOverride= sys.env.get("SKUBER_URL")
-
-    val config: Configuration = skuberUrlOverride match {
-      case Some(url) => Configuration.useProxyAt(url)
-      case None =>
-        val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
-        val kubeConfigEnv = sys.env.get("KUBECONFIG")
-        skuberConfigEnv match {
-          case Some(conf) if conf == "file" => Configuration.parseKubeconfigFile().get // default kubeconfig location
-          case Some(conf) if conf == "proxy" => Configuration.useLocalProxyDefault
-          case Some(fileUrl) =>
-            val path = Paths.get(new URL(fileUrl).toURI)
-            Configuration.parseKubeconfigFile(path).get
-          case None =>
-            // try KUBECONFIG - if that is not set then use default kubeconfig location
-            kubeConfigEnv.map { kc =>
-              Configuration.parseKubeconfigFile(Paths.get(kc))
-            }.getOrElse(
-              Configuration.parseKubeconfigFile()
-            ).get
-        }
-    }
-    init(config)
+    init(defaultK8sConfig, defaultAppConfig)
   }
 
-  def init(config: Configuration)(
-    implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext =
-  {
-    init(config.currentContext, LoggingConfig(), None)
+  def init(config: Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(config.currentContext, LoggingConfig(), None, defaultAppConfig)
   }
 
-  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None)(
-    implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext =
-  {
-    val libConfig = ConfigFactory.load()
+  def init(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(defaultK8sConfig.currentContext, LoggingConfig(), None, appConfig)
+  }
+
+  def init(config: Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(config.currentContext, LoggingConfig(), None, appConfig)
+  }
+
+  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None)
+      (implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(k8sContext, logConfig, closeHook, defaultAppConfig)
+  }
+
+  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
+      (implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    appConfig.checkValid(ConfigFactory.defaultReference(), "skuber")
+
     implicit val executionContext: ExecutionContext =
-      if (libConfig.getIsNull("skuber.akka.dispatcher") || libConfig.getString("skuber.akka.dispatcher").isEmpty) {
+      if (appConfig.getIsNull("skuber.akka.dispatcher") || appConfig.getString("skuber.akka.dispatcher").isEmpty) {
         actorSystem.dispatcher
       } else {
-        actorSystem.dispatchers.lookup(libConfig.getString("skuber.akka.dispatcher"))
+        actorSystem.dispatchers.lookup(appConfig.getString("skuber.akka.dispatcher"))
       }
 
     if (logConfig.logConfiguration) {
@@ -634,4 +614,35 @@ package object client {
 
     new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth, theNamespaceName, logConfig, closeHook)
   }
+
+  private def defaultK8sConfig: Configuration = {
+    import java.nio.file.Paths
+
+    val skuberUrlOverride = sys.env.get("SKUBER_URL")
+    skuberUrlOverride match {
+      case Some(url) =>
+        Configuration.useProxyAt(url)
+      case None =>
+        val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
+        skuberConfigEnv match {
+          case Some(conf) if conf == "file" =>
+            Configuration.parseKubeconfigFile().get // default kubeconfig location
+          case Some(conf) if conf == "proxy" =>
+            Configuration.useLocalProxyDefault
+          case Some(fileUrl) =>
+            val path = Paths.get(new URL(fileUrl).toURI)
+            Configuration.parseKubeconfigFile(path).get
+          case None =>
+            // try KUBECONFIG - if that is not set then use default kubeconfig location
+            val kubeConfigEnv = sys.env.get("KUBECONFIG")
+            kubeConfigEnv.map { kc =>
+              Configuration.parseKubeconfigFile(Paths.get(kc))
+            }.getOrElse(
+              Configuration.parseKubeconfigFile()
+            ).get
+        }
+    }
+  }
+
+  private def defaultAppConfig: Config = ConfigFactory.load()
 }

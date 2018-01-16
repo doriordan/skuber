@@ -4,6 +4,8 @@ import scala.language.implicitConversions
 import java.net.URL
 
 import akka.stream.Materializer
+import com.typesafe.config.Config
+import skuber.api.client.RequestContext
 
 /*
  * Represents core types and aliases 
@@ -249,13 +251,32 @@ package object skuber {
 
   import akka.actor.ActorSystem
 
-  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer)  =
-  {
+  /**
+    * Initialise Skuber using default Kubernetes and application configuration.
+    */
+  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     skuber.api.client.init
   }
-  def k8sInit(config: skuber.api.Configuration)(
-    implicit actorSystem: ActorSystem, materializer: Materializer) = {
+
+  /**
+    * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
+    */
+  def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     skuber.api.client.init(config)
   }
-      
+
+  /**
+    * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
+    */
+  def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    skuber.api.client.init(appConfig)
+  }
+
+  /**
+    * Initialise Skuber using the specified Kubernetes and application configuration.
+    */
+  def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer)
+      : RequestContext = {
+    skuber.api.client.init(config, appConfig)
+  }
 }
