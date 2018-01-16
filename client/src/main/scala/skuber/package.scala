@@ -1,11 +1,9 @@
 
-import java.net.URL
-import java.time.temporal.ValueRange
-import java.util.Date
-
-import scala.collection.immutable.HashMap
 import scala.language.implicitConversions
-import scala.concurrent.ExecutionContext
+
+import java.net.URL
+
+import akka.stream.Materializer
 
 /*
  * Represents core types and aliases 
@@ -250,13 +248,13 @@ package object skuber {
   type K8SWatchEvent[I <: ObjectResource] = skuber.api.client.WatchEvent[I]
 
   import akka.actor.ActorSystem
-  import akka.stream.ActorMaterializer
-  def k8sInit(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer)  =
+
+  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer)  =
   {
     skuber.api.client.init
   }
   def k8sInit(config: skuber.api.Configuration)(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) = {
+    implicit actorSystem: ActorSystem, materializer: Materializer) = {
     skuber.api.client.init(config)
   }
       
