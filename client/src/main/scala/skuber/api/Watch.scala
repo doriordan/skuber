@@ -1,21 +1,19 @@
 package skuber.api
 
 
-import akka.http.scaladsl.model.HttpMethods
-import skuber.{ObjectResource, ResourceDefinition}
-import skuber.json.format.apiobj.watchEventFormat
-import skuber.api.client.{K8SException, RequestContext, Status, WatchEvent, LoggingContext}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.language.postfixOps
+
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import akka.http.scaladsl.model._
-import akka.util.ByteString
+import akka.http.scaladsl.model.{HttpMethods, _}
+import akka.stream.Materializer
 import akka.stream.scaladsl.{JsonFraming, Source}
+import akka.util.ByteString
 import play.api.libs.json.{Format, JsError, JsSuccess, Json}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import scala.language.postfixOps
+import skuber.api.client._
+import skuber.{ObjectResource, ResourceDefinition}
 
 /**
  * @author David O'Riordan
@@ -80,7 +78,7 @@ object Watch {
     implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     implicit val system = context.actorSystem
-    implicit val mat = context.actorMaterializer
+    implicit val mat = context.materializer
 
     eventStreamResponseFut.map { eventStreamResponse =>
       bytesSourceToWatchEventSource(eventStreamResponse.entity.dataBytes, bufSize)
@@ -91,7 +89,7 @@ object Watch {
     * Convert a source of bytes to a source of watch events of type O
     */
   private[api] def bytesSourceToWatchEventSource[O <: ObjectResource](bytesSource: Source[ByteString, _], bufSize: Int)(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer, format: Format[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+    implicit actorSystem: ActorSystem, materializer: Materializer, format: Format[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     import skuber.json.format.apiobj.watchEventFormat
 
