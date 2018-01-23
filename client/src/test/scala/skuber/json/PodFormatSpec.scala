@@ -362,7 +362,7 @@ import Pod._
 
     "a pod with nodeAffinity can be read and written as json" >> {
       import Affinity.NodeAffinity
-      import Affinity.Operator
+      import Affinity.NodeSelectorOperator
       import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
@@ -373,10 +373,10 @@ import Pod._
       myPod.spec.get.affinity must beSome(Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = Some(
-            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", Operator.In, List("e2e-az1", "e2e-az2"))
+            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
           ),
           preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
-            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", Operator.In, List("another-node-label-value"))
+            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
           )
         ))
       ))
@@ -386,7 +386,7 @@ import Pod._
 
     "NodeAffinity be properly read and written as json" >> {
       import Affinity.NodeAffinity
-      import Affinity.Operator
+      import Affinity.NodeSelectorOperator
       import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
@@ -397,10 +397,10 @@ import Pod._
       myAffinity must_== Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = Some(
-            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", Operator.In, List("e2e-az1", "e2e-az2"))
+            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
           ),
           preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
-            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", Operator.In, List("another-node-label-value"))
+            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
           )
         ))
       )
@@ -410,7 +410,7 @@ import Pod._
 
     "NodeAffinity without preferences be properly read and written as json" >> {
       import Affinity.NodeAffinity
-      import Affinity.Operator
+      import Affinity.NodeSelectorOperator
       import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
@@ -421,7 +421,7 @@ import Pod._
       myAffinity must_== Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = Some(
-            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", Operator.In, List("e2e-az1", "e2e-az2"))
+            RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
           ),
           preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms()
         ))
@@ -432,7 +432,7 @@ import Pod._
 
     "NodeAffinity without requirements be properly read and written as json" >> {
       import Affinity.NodeAffinity
-      import Affinity.Operator
+      import Affinity.NodeSelectorOperator
       import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
@@ -444,7 +444,7 @@ import Pod._
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = None,
           preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
-            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", Operator.In, List("another-node-label-value"))
+            PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
           )
         ))
       )
