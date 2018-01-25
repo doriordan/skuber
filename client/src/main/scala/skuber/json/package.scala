@@ -92,10 +92,10 @@ package object format {
   implicit def enumFormatMethods(path: JsPath)  = new EnumFormatter(path)
 
   case class SelMatchExpression(
-                                 key: String,
-                                 operator: String = "Exists",
-                                 values: Option[List[String]] = None
-                               )
+    key: String,
+    operator: String = "Exists",
+    values: Option[List[String]] = None
+  )
   implicit val selMatchExpressionFmt = Json.format[SelMatchExpression]
   case class OnTheWireSelector(matchLabels: Option[Map[String,String]]=None, matchExpressions: Option[List[SelMatchExpression]]=None)
 
@@ -133,7 +133,7 @@ package object format {
       case ExistsRequirement(key) => SelMatchExpression(key)
       case NotExistsRequirement(key) => SelMatchExpression(key, "DoesNotExist")
       case IsNotEqualRequirement(key,value) => SelMatchExpression(key, "NotIn", Some(List(value)))
-      case InRequirement(key,values) =>  SelMatchExpression(key, "in", Some(values))
+      case InRequirement(key,values) =>  SelMatchExpression(key, "In", Some(values))
       case NotInRequirement(key,values) =>  SelMatchExpression(key, "NotIn", Some(values))
     }.toList
     val matchExpressions = if(setBased.isEmpty) None else Some(setBased)

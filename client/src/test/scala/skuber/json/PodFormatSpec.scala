@@ -13,6 +13,7 @@ import java.net.URL
 import skuber._
 import format._
 import play.api.libs.json._
+import skuber.apps.StatefulSet
 
 /**
  * @author David O'Riordan
@@ -452,6 +453,27 @@ import Pod._
       myAffinity mustEqual readAffinity
     }
 
+    "PodAffinity can be properly read and written as json" >> {
+      import Affinity.NodeAffinity
+      import Affinity.NodeSelectorOperator
+      import Affinity.{PodAffinity, PodAffinityTerm, WeightedPodAffinityTerm}
+
+      val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
+      val affinityJsonStr = affinityJsonSource.mkString
+
+      val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
+      myAffinity must_== Affinity(
+        nodeAffinity = Some(NodeAffinity(
+          requiredDuringSchedulingIgnoredDuringExecution = None,
+          preferredDuringSchedulingIgnoredDuringExecution = NodeAffinity.PreferredSchedulingTerms(
+            NodeAffinity.PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
+          )
+        ))
+      )
+      val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
+      myAffinity mustEqual readAffinity
+    }
+
     "a complex podlist can be read and written as json" >> {
       val podListJsonSource = Source.fromURL(getClass.getResource("/examplePodList.json"))
       val podListJsonStr = podListJsonSource.mkString
@@ -465,6 +487,40 @@ import Pod._
        // write and read back in again, compare
       val readPods = Json.fromJson[PodList](Json.toJson(myPods)).get 
       myPods mustEqual readPods
+    }
+
+    "a statefulset with pod affinity/anti-affinity can be read and written as json successfully" >> {
+      import skuber.json.apps.format.statefulSetFormat
+      val ssJsonSource=Source.fromURL(getClass.getResource("/exampleStatefulSetWithPodAffinity.json"))
+      val ssJsonStr = ssJsonSource.mkString
+      val ss = Json.parse(ssJsonStr).as[StatefulSet]
+
+      val podAffinity = ss.spec.get.template.spec.get.affinity.get.podAffinity.get
+      podAffinity.preferredDuringSchedulingIgnoredDuringExecution.size mustEqual (0)
+      podAffinity.requiredDuringSchedulingIgnoredDuringExecution.size mustEqual (1)
+      val affinityTerm=podAffinity.requiredDuringSchedulingIgnoredDuringExecution(0)
+      val affinityTermRequirement=affinityTerm.labelSelector.get.requirements.head
+      affinityTermRequirement match {
+        case LabelSelector.InRequirement(_, values) => values mustEqual(List("S1"))
+        case _ => failure("Parsed pod affinity term selector requirement should be of 'In' type")
+      }
+      affinityTermRequirement.key mustEqual "security"
+
+      val podAntiAffinity = ss.spec.get.template.spec.get.affinity.get.podAntiAffinity.get
+      podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution.size mustEqual (1)
+      podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.size mustEqual (0)
+      val antiAffinityTerm=podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution(0).podAffinityTerm
+      val antiAffinityTermRequirement=antiAffinityTerm.labelSelector.get.requirements.head
+      antiAffinityTermRequirement match {
+        case LabelSelector.InRequirement(_, values) => values mustEqual(List("S2"))
+        case _ => failure("Parsed pod affinity term selector requirement should be of 'In' type")
+      }
+      antiAffinityTermRequirement.key mustEqual "security"
+
+      // write and read it back in again and compare
+      val json = Json.toJson(ss)
+      val readSS = Json.fromJson[StatefulSet](json).get
+      readSS mustEqual ss
     }
   }    
 }
