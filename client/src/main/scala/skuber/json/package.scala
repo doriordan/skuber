@@ -91,6 +91,74 @@ package object format {
   }
   implicit def enumFormatMethods(path: JsPath)  = new EnumFormatter(path)
 
+  case class SelMatchExpression(
+    key: String,
+    operator: String = "Exists",
+    values: Option[List[String]] = None
+  )
+  implicit val selMatchExpressionFmt = Json.format[SelMatchExpression]
+  case class OnTheWireSelector(matchLabels: Option[Map[String,String]]=None, matchExpressions: Option[List[SelMatchExpression]]=None)
+
+  import LabelSelector._
+  private def labelSelMatchExprToRequirement(expr: SelMatchExpression): LabelSelector.Requirement = {
+    expr.operator match {
+      case "Exists" => ExistsRequirement(expr.key)
+      case "DoesNotExist" => NotExistsRequirement(expr.key)
+      case "In" => InRequirement(expr.key,expr.values.get)
+      case "NotIn" => NotInRequirement(expr.key, expr.values.get)
+      case other => throw new Exception("unknown label selector expression operator: " + other)
+    }
+  }
+
+  private def otwSelectorToLabelSelector(otws: OnTheWireSelector): LabelSelector = {
+    val equalityBasedReqsOpt: Option[List[IsEqualRequirement]] = otws.matchLabels.map { labelKVMap =>
+      labelKVMap.map(kv => IsEqualRequirement(kv._1, kv._2)).toList
+    }
+    val setBasedReqsOpt: Option[List[Requirement]] = otws.matchExpressions.map { expressions =>
+      expressions map labelSelMatchExprToRequirement
+    }
+    val ebReqs=equalityBasedReqsOpt.getOrElse(List())
+    val sbReqs=setBasedReqsOpt.getOrElse(List())
+    val allReqs = ebReqs ++ sbReqs
+    LabelSelector(allReqs: _*)
+  }
+
+  private def labelSelToOtwSelector(sel: LabelSelector): OnTheWireSelector = {
+    val eqBased = sel.requirements.collect {
+      case IsEqualRequirement(key,value) => (key,value)
+    }.toMap
+    val matchLabels=if (eqBased.isEmpty) None else Some(eqBased)
+
+    val setBased = sel.requirements.collect {
+      case ExistsRequirement(key) => SelMatchExpression(key)
+      case NotExistsRequirement(key) => SelMatchExpression(key, "DoesNotExist")
+      case IsNotEqualRequirement(key,value) => SelMatchExpression(key, "NotIn", Some(List(value)))
+      case InRequirement(key,values) =>  SelMatchExpression(key, "In", Some(values))
+      case NotInRequirement(key,values) =>  SelMatchExpression(key, "NotIn", Some(values))
+    }.toList
+    val matchExpressions = if(setBased.isEmpty) None else Some(setBased)
+
+    OnTheWireSelector(matchLabels = matchLabels, matchExpressions = matchExpressions)
+  }
+
+  implicit val otwsFormat = Json.format[OnTheWireSelector]
+
+  class LabelSelectorFormat(path: JsPath) {
+    def formatNullableLabelSelector: OFormat[Option[LabelSelector]] =
+      path.formatNullable[OnTheWireSelector].inmap[Option[LabelSelector]](
+        _.map(otwSelectorToLabelSelector),
+        selOpt => selOpt.map(labelSelToOtwSelector)
+      )
+
+    def formatLabelSelector: OFormat[LabelSelector] =
+      path.format[OnTheWireSelector].inmap[LabelSelector](
+        otwSelectorToLabelSelector(_),
+        labelSelToOtwSelector(_)
+      )
+  }
+
+  implicit def jsPath2LabelSelFormat(path: JsPath) = new LabelSelectorFormat(path)
+
   // formatting of the Kubernetes types
   
   implicit lazy val objFormat =
@@ -499,11 +567,11 @@ package object format {
     ) (Pod.apply _, unlift(Pod.unapply))  
 
 
-  implicit val nodeAffinityOperatorFormat: Format[Pod.Affinity.Operator.Operator] = Format(enumReads(Pod.Affinity.Operator), enumWrites)
+  implicit val nodeAffinityOperatorFormat: Format[Pod.Affinity.NodeSelectorOperator.Operator] = Format(enumReads(Pod.Affinity.NodeSelectorOperator), enumWrites)
 
-  implicit val matchExpressionFormat: Format[Pod.Affinity.MatchExpression] = (
+  implicit val nodeMatchExpressionFormat: Format[Pod.Affinity.MatchExpression] = (
     (JsPath \ "key").formatMaybeEmptyString() and
-      (JsPath \ "operator").formatEnum(Pod.Affinity.Operator) and
+      (JsPath \ "operator").formatEnum(Pod.Affinity.NodeSelectorOperator) and
       (JsPath \ "values").formatMaybeEmptyList[String]
     )(Pod.Affinity.MatchExpression.apply _, unlift(Pod.Affinity.MatchExpression.unapply))
 
@@ -511,18 +579,37 @@ package object format {
     (JsPath \ "matchExpressions").format[Pod.Affinity.MatchExpressions].inmap(matchExpressions => Pod.Affinity.NodeSelectorTerm(matchExpressions), (nst: Pod.Affinity.NodeSelectorTerm) => nst.matchExpressions)
     )
 
-  implicit val requiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] = (
+  implicit val nodeRequiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] = (
     (JsPath \ "nodeSelectorTerms").format[Pod.Affinity.NodeSelectorTerms].inmap(
       nodeSelectorTerms => Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms),
       (rdside: Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms)
     )
 
-  implicit lazy val preferredSchedulingTermFormat : Format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm] = Json.format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
+  implicit lazy val nodePreferredSchedulingTermFormat : Format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm] = Json.format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
 
   implicit lazy val nodeAffinityFormat : Format[Pod.Affinity.NodeAffinity] = (
     (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatNullable[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] and
-      (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
+    (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
   )(Pod.Affinity.NodeAffinity.apply _, unlift(Pod.Affinity.NodeAffinity.unapply))
+
+  implicit lazy val podAffinityTermFormat: Format[Pod.Affinity.PodAffinityTerm] = (
+    (JsPath \ "labelSelector").formatNullableLabelSelector and
+    (JsPath \ "namespaces").formatMaybeEmptyList[String] and
+    (JsPath \ "topologyKey").format[String]
+  )(Pod.Affinity.PodAffinityTerm.apply _, unlift(Pod.Affinity.PodAffinityTerm.unapply))
+
+  implicit lazy val weightedPodAffinityTermFmt: Format[Pod.Affinity.WeightedPodAffinityTerm] = Json.format[Pod.Affinity.WeightedPodAffinityTerm]
+
+  implicit lazy val podAffinityFormat: Format[Pod.Affinity.PodAffinity] = (
+    (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.PodAffinityTerm] and
+    (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.WeightedPodAffinityTerm]
+  )(Pod.Affinity.PodAffinity.apply _, unlift(Pod.Affinity.PodAffinity.unapply))
+
+  implicit lazy val podAntiAffinityFormat: Format[Pod.Affinity.PodAntiAffinity] = (
+    (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.PodAffinityTerm] and
+    (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.WeightedPodAffinityTerm]
+  )(Pod.Affinity.PodAntiAffinity.apply _, unlift(Pod.Affinity.PodAntiAffinity.unapply))
+
 
   implicit lazy val affinityFormat : Format[Pod.Affinity] = Json.format[Pod.Affinity]
   
@@ -751,74 +838,6 @@ package object format {
   implicit val resQuotaListFmt: Format[ResourceQuotaList] = ListResourceFormat[Resource.Quota]
   implicit val secretListFmt: Format[SecretList] = ListResourceFormat[skuber.Secret]
   implicit val limitRangeListFmt: Format[LimitRangeList] = ListResourceFormat[LimitRange]
-
-  case class SelMatchExpression(
-    key: String,
-    operator: String = "Exists",
-    values: Option[List[String]] = None
-  )
-  implicit val selMatchExpressionFmt = Json.format[SelMatchExpression]
-  case class OnTheWireSelector(matchLabels: Option[Map[String,String]]=None, matchExpressions: Option[List[SelMatchExpression]]=None)
-
-  import LabelSelector._
-  private def labelSelMatchExprToRequirement(expr: SelMatchExpression): LabelSelector.Requirement = {
-    expr.operator match {
-      case "Exists" => ExistsRequirement(expr.key)
-      case "DoesNotExist" => NotExistsRequirement(expr.key)
-      case "In" => InRequirement(expr.key,expr.values.get)
-      case "NotIn" => NotInRequirement(expr.key, expr.values.get)
-      case other => throw new Exception("unknown label selector expression operator: " + other)
-    }
-  }
-
-  private def otwSelectorToLabelSelector(otws: OnTheWireSelector): LabelSelector = {
-      val equalityBasedReqsOpt: Option[List[IsEqualRequirement]] = otws.matchLabels.map { labelKVMap =>
-        labelKVMap.map(kv => IsEqualRequirement(kv._1, kv._2)).toList
-      }
-      val setBasedReqsOpt: Option[List[Requirement]] = otws.matchExpressions.map { expressions =>
-        expressions map labelSelMatchExprToRequirement
-        }
-      val ebReqs=equalityBasedReqsOpt.getOrElse(List())
-      val sbReqs=setBasedReqsOpt.getOrElse(List())
-      val allReqs = ebReqs ++ sbReqs
-      LabelSelector(allReqs: _*)
-  }
-
-  private def labelSelToOtwSelector(sel: LabelSelector): OnTheWireSelector = {
-    val eqBased = sel.requirements.collect {
-      case IsEqualRequirement(key,value) => (key,value)
-    }.toMap
-    val matchLabels=if (eqBased.isEmpty) None else Some(eqBased)
-
-    val setBased = sel.requirements.collect {
-      case ExistsRequirement(key) => SelMatchExpression(key)
-      case NotExistsRequirement(key) => SelMatchExpression(key, "DoesNotExist")
-      case IsNotEqualRequirement(key,value) => SelMatchExpression(key, "NotIn", Some(List(value)))
-      case InRequirement(key,values) =>  SelMatchExpression(key, "in", Some(values))
-      case NotInRequirement(key,values) =>  SelMatchExpression(key, "NotIn", Some(values))
-    }.toList
-    val matchExpressions = if(setBased.isEmpty) None else Some(setBased)
-
-    OnTheWireSelector(matchLabels = matchLabels, matchExpressions = matchExpressions)
-  }
-
-  implicit val otwsFormat = Json.format[OnTheWireSelector]
-
-  class LabelSelectorFormat(path: JsPath) {
-    def formatNullableLabelSelector: OFormat[Option[LabelSelector]] =
-      path.formatNullable[OnTheWireSelector].inmap[Option[LabelSelector]](
-        _.map(otwSelectorToLabelSelector),
-        selOpt => selOpt.map(labelSelToOtwSelector)
-      )
-
-    def formatLabelSelector: OFormat[LabelSelector] =
-      path.format[OnTheWireSelector].inmap[LabelSelector](
-        otwSelectorToLabelSelector(_),
-        labelSelToOtwSelector(_)
-    )
-  }
-
-  implicit def jsPath2LabelSelFormat(path: JsPath) = new LabelSelectorFormat(path)
 
   implicit val precondFmt: Format[Preconditions] =
     (JsPath \ "uid").formatMaybeEmptyString().inmap(u => Preconditions(u), p => p.uid)
