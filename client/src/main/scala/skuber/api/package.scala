@@ -460,6 +460,34 @@ package object client {
        Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
      }
 
+     // Operations on scale subresource
+     // Only exists for certain resource kinds like RC, RS, Deployment, StatefulSet, so these are marked out
+     // by implementing the Scale.SubresourceSpec trait implicitly
+
+     def getScale[O <: ObjectResource](objName: String)(
+       implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext=RequestLoggingContext()) : Future[Scale] =
+     {
+       val req = buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
+       makeRequestReturningObjectResource[Scale](req)
+     }
+
+     def scale[O <: ObjectResource](objName: String, count: Int)(
+       implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
+     {
+       val scale = Scale(
+         apiVersion = sc.apiVersion,
+         metadata = ObjectMeta(name = objName, namespace = namespaceName),
+         spec = Scale.Spec(replicas = count)
+       )
+       implicit val dispatcher=actorSystem.dispatcher
+       val marshal = Marshal(scale)
+       for {
+         requestEntity <- marshal.to[RequestEntity]
+         httpRequest = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale")).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
+       } yield scaledResource
+     }
+
      // get API versions supported by the cluster
      def getServerAPIVersions(implicit lc: LoggingContext=RequestLoggingContext()): Future[List[String]] = {
        val url = clusterServer + "/api"

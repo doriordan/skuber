@@ -4,6 +4,7 @@ package skuber.ext
  * @author David O'Riordan
  */
 
+import skuber.Scale
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{Container, IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ListResource, ResourceDefinition}
 
@@ -73,8 +74,10 @@ object Deployment {
       shortNames = List("deploy")
     )
   )
+
   implicit val deployDef: ResourceDefinition[Deployment] = new ResourceDefinition[Deployment] { def spec=specification }
   implicit val deployListDef: ResourceDefinition[ListResource[Deployment]] =  new ResourceDefinition[ListResource[Deployment]] { def spec=specification }
+  implicit val scDef = new Scale.SubresourceSpec[Deployment] { override def apiVersion = "apps/v1beta2" }
 
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
   

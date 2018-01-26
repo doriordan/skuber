@@ -1,26 +1,29 @@
 package skuber.apps
 
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.ext.extensionsAPIVersion
-import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod, ResourceDefinition, Timestamp}
+import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod, ResourceDefinition, Scale, Timestamp}
 
 /**
   * Created by hollinwilkins on 4/5/17.
   */
 case class StatefulSet(override val kind: String ="StatefulSet",
-                       override val apiVersion: String = extensionsAPIVersion,
+                       override val apiVersion: String = appsAPIVersion,
                        metadata: ObjectMeta,
                        spec:  Option[StatefulSet.Spec] = None,
-                       status:  Option[StatefulSet.Status] = None) extends ObjectResource {
+                       status:  Option[StatefulSet.Status] = None) extends ObjectResource
+{
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 
   lazy val copySpec = this.spec.getOrElse(new StatefulSet.Spec(template = Pod.Template.Spec()))
+  private val rollingUpdateStrategy = StatefulSet.UpdateStrategy(`type`=StatefulSet.UpdateStrategyType.RollingUpdate, None)
+  private def rollingUpdateStrategy(partition: Int)=
+    StatefulSet.UpdateStrategy(`type`=StatefulSet.UpdateStrategyType.RollingUpdate,Some(StatefulSet.RollingUpdateStrategy(partition)))
 
   def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
   def withServiceName(serviceName: String) = this.copy(spec=Some(copySpec.copy(serviceName=Some(serviceName))))
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=template)))
   def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
-
+  def withRollingUpdateStrategyPartition(partition:Int) = this.copy(spec=Some(copySpec.copy(updateStrategy = Some(rollingUpdateStrategy(partition)))))
   def withVolumeClaimTemplate(claim: PersistentVolumeClaim) = {
     val spec = copySpec.withVolumeClaimTemplate(claim)
     this.copy(spec=Some(spec))
@@ -42,9 +45,9 @@ object StatefulSet {
   )
   implicit val stsDef = new ResourceDefinition[StatefulSet] { def spec=specification }
   implicit val stsListDef = new ResourceDefinition[StatefulSetList] { def spec=specification }
+  implicit val scDef = new Scale.SubresourceSpec[StatefulSet] { override def apiVersion = "apps/v1beta1"}
 
-  def apply(name: String): StatefulSet =
-    StatefulSet(metadata=ObjectMeta(name=name))
+  def apply(name: String): StatefulSet = StatefulSet(metadata=ObjectMeta(name=name))
 
   object PodManagementPolicyType extends Enumeration {
     type PodManagementPolicyType = Value
