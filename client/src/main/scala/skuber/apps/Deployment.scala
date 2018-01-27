@@ -71,7 +71,7 @@ object Deployment {
   )
   implicit val deployDef = new ResourceDefinition[Deployment] { def spec=specification }
   implicit val deployListDef =  new ResourceDefinition[DeploymentList] { def spec=specification }
-  implicit val scDef = new Scale.SubresourceSpec[Deployment] { override def apiVersion = "apps/v1beta2"}
+  implicit val scDef = new Scale.SubresourceSpec[Deployment] { override def apiVersion = "apps/v1beta1"}
 
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
   

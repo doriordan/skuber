@@ -28,7 +28,6 @@ class StatefulSetSpec extends Specification {
     stateSet.status mustEqual None
   }
 
-
   "A StatefulSet object can be written to Json and then read back again successfully" >> {
     val container=Container(name="example",image="example")
     val template=Pod.Template.Spec.named("example").addContainer(container)

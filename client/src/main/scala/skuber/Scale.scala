@@ -26,6 +26,7 @@ object Scale {
   object Spec {
     implicit val scaleSpecFormat: Format[Scale.Spec] = Json.format[Scale.Spec]
   }
+
   case class Status(
     replicas: Int = 0,
     selector: Option[String] = None,

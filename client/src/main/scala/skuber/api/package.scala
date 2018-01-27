@@ -461,8 +461,8 @@ package object client {
      }
 
      // Operations on scale subresource
-     // Only exists for certain resource kinds like RC, RS, Deployment, StatefulSet, so these are marked out
-     // by implementing the Scale.SubresourceSpec trait implicitly
+     // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types
+     // define an implicit Scale.SubresourceSpec, which is required to be passed to these methods.
 
      def getScale[O <: ObjectResource](objName: String)(
        implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext=RequestLoggingContext()) : Future[Scale] =
