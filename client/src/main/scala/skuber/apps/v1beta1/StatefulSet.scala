@@ -1,4 +1,4 @@
-package skuber.apps
+package skuber.apps.v1beta1
 
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod, ResourceDefinition, Scale, Timestamp}
