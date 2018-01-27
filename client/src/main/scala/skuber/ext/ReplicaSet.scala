@@ -76,6 +76,7 @@ object ReplicaSet {
   )
   implicit val rsDef = new ResourceDefinition[ReplicaSet] { def spec=specification }
   implicit val rsListDef = new ResourceDefinition[ReplicaSetList] { def spec=specification }
+  implicit val scDef = new Scale.SubresourceSpec[ReplicaSet] { override def apiVersion: String = "extensions/v1beta1"}
 
   def apply(name: String) : ReplicaSet = ReplicaSet(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: ReplicaSet.Spec) : ReplicaSet =

@@ -8,6 +8,11 @@ import skuber.json.format.objectMetaFormat
 
 /**
  * @author David O'Riordan
+ * Note: this supports the original "autoscaling/v1" version of HPAS , which has CPU utilisation
+ * as a target metric.
+ * Support for the newer "v2beta1" version , introduced in k8s v1.6 and which supports memory
+ * and custom metrics, is not yet done
+ *
  */
 case class HorizontalPodAutoscaler(
   	val kind: String ="HorizontalPodAutoscaler",

@@ -37,7 +37,8 @@ case class Service(
     else
       updated
   }
-    
+
+  def isHeadless = this.copy(spec=Some(copySpec.copy(clusterIP = "None")))
   def withClusterIP(ip: String) = this.copy(spec = Some(copySpec.copy(clusterIP = ip)))
   def withType(_type: Service.Type.Value) = this.copy(spec = Some(copySpec.copy(_type = _type)))
   def withLoadBalancerType = withType(Service.Type.LoadBalancer)

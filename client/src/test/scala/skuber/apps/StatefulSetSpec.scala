@@ -28,7 +28,6 @@ class StatefulSetSpec extends Specification {
     stateSet.status mustEqual None
   }
 
-
   "A StatefulSet object can be written to Json and then read back again successfully" >> {
     val container=Container(name="example",image="example")
     val template=Pod.Template.Spec.named("example").addContainer(container)
@@ -74,7 +73,7 @@ class StatefulSetSpec extends Specification {
     stateSet.spec.get.selector.get.requirements.find(r => (r.key == "env")) mustEqual Some("env" isNotIn List("dev"))
     stateSet.spec.get.selector.get.requirements.find(r => (r.key == "domain")) mustEqual Some("domain" is "www.example.com")
 
-    // write and read back in again, should be unchanged 
+    // write and read back in again, should be unchanged
     val json = Json.toJson(stateSet)
     val readSS = Json.fromJson[StatefulSet](json).get
     readSS mustEqual stateSet

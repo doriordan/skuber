@@ -1,15 +1,13 @@
-package skuber.apps
+package skuber.apps.v1beta1
 
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, PersistentVolumeClaim, Pod, ResourceDefinition, Scale, Timestamp}
 
 /**
   * Created by hollinwilkins on 4/5/17.
-  * The api version of this StatefulSet type is v1beta2, which is for use with k8s 1.8+.
-  * For earlier versions of k8s, use skuber.apps.v1beta1.StatefulSet
   */
 case class StatefulSet(override val kind: String ="StatefulSet",
-                       override val apiVersion: String = "apps/v1beta2", // correct at k8s 1.8
+                       override val apiVersion: String = "apps/v1beta1", // correct at k8s 1.7
                        metadata: ObjectMeta,
                        spec:  Option[StatefulSet.Spec] = None,
                        status:  Option[StatefulSet.Status] = None) extends ObjectResource
@@ -36,7 +34,7 @@ object StatefulSet {
 
   val specification=NonCoreResourceSpecification (
     group=Some("apps"),
-    version="v1beta2", // version as at k8s v1.8
+    version="v1beta1", // version as at k8s v1.7
     scope = Scope.Namespaced,
     names=Names(
       plural = "statefulsets",
@@ -47,7 +45,6 @@ object StatefulSet {
   )
   implicit val stsDef = new ResourceDefinition[StatefulSet] { def spec=specification }
   implicit val stsListDef = new ResourceDefinition[StatefulSetList] { def spec=specification }
-  implicit val scDef = new Scale.SubresourceSpec[StatefulSet] { override def apiVersion = "apps/v1beta2"}
 
   def apply(name: String): StatefulSet = StatefulSet(metadata=ObjectMeta(name=name))
 
