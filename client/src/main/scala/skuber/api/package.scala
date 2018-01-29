@@ -3,18 +3,20 @@ package skuber.api
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.SystemProperties
 import scala.util.{Failure, Success}
-
 import java.net.URL
 import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.marshalling.{Marshal, Marshaller, Marshalling}
+import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads}
 import skuber.api.security.{HTTPRequestAuth, TLS}
@@ -35,7 +37,12 @@ package object client {
 
    // K8S client API classes
    val defaultApiServerURL = "http://localhost:8080"
-   case class Cluster(
+
+  // Patch content type(s)
+  val `application/merge-patch+json`: MediaType.WithFixedCharset =
+    MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
+
+  case class Cluster(
      apiVersion: String = "v1",
      server: String = defaultApiServerURL,
      insecureSkipTLSVerify: Boolean = false,
@@ -486,6 +493,24 @@ package object client {
          httpRequest = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale")).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
          scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
        } yield scaledResource
+     }
+
+     /**
+      * Perform a Json merge patch on a resource
+      * The patch is passed a String type which should contain the JSON patch formatted per https://tools.ietf.org/html/rfc7386
+      * It is a Strin type insstead of a some JSON object in order to allow clients to use their own favourite JSON library to create the
+      * patch, or alternatively simply manually craft the JSON and insert it into a String.  Also patches are generally expected to be
+      * relatively small, so storing the whole patch in memory should not be problematic.
+      *
+      * @param obj The resource to update with the patch
+      * @param patch A string containing the patch (it is the responsibility of the client to ensure it conforms to https://tools.ietf.org/html/rfc7386)
+      */
+     def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(
+       implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext=RequestLoggingContext()): Future[O] =
+     {
+       val patchRequestEntity = HttpEntity.Strict(`application/merge-patch+json`, ByteString(patch))
+       val httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(obj.name)).withEntity(patchRequestEntity)
+       makeRequestReturningObjectResource[O](httpRequest)
      }
 
      // get API versions supported by the cluster
