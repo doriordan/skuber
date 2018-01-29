@@ -160,9 +160,16 @@ Delete a Kubernetes object:
     val rmFut = k8s delete[ReplicationController] "guestbook"
     rmFut onSuccess { case _ => println("Controller removed") }
 
-There is also a `deleteWithOptions` call that enables options such as propagation policy to be passed with a Delete operation.
+(There is also a `deleteWithOptions` call that enables options such as propagation policy to be passed with a Delete operation.)
 
-Note: There is no support yet for the Kubernetes API [PATCH operations](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#patch-operations)
+Patch a Kubernetes object using a [JSON merge patch](https://tools.ietf.org/html/rfc7386):
+    
+    val patchStr="""{ "spec": { "replicas" : 1 } }""" 
+    val stsFut = k8s.jsonMergePatch(myStatefulSet, patchStr)
+
+See also the `PatchExamples` example.
+ 
+Note: There is no patch support yet for the other two (`json patch` and `strategic merge patch`) [strategies](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#patch-operations)
 
 ### Error Handling
 

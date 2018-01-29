@@ -498,12 +498,14 @@ package object client {
      /**
       * Perform a Json merge patch on a resource
       * The patch is passed a String type which should contain the JSON patch formatted per https://tools.ietf.org/html/rfc7386
-      * It is a Strin type insstead of a some JSON object in order to allow clients to use their own favourite JSON library to create the
-      * patch, or alternatively simply manually craft the JSON and insert it into a String.  Also patches are generally expected to be
+      * It is a String type instead of a JSON object in order to allow clients to use their own favourite JSON library to create the
+      * patch, or alternatively to simply manually craft the JSON and insert it into a String.  Also patches are generally expected to be
       * relatively small, so storing the whole patch in memory should not be problematic.
-      *
+      * It is thus the responsibility of the client to ensure that the `patch` parameter contains a valid JSON merge patch entity for the
+      * targetted Kubernetes resource `obj`
       * @param obj The resource to update with the patch
-      * @param patch A string containing the patch (it is the responsibility of the client to ensure it conforms to https://tools.ietf.org/html/rfc7386)
+      * @param patch A string containing the JSON patch entity
+      * @return The patched resource (in a Future)
       */
      def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(
        implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext=RequestLoggingContext()): Future[O] =
