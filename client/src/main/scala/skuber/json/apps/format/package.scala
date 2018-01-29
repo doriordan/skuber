@@ -46,35 +46,5 @@ package object format {
     (JsPath \ "status").formatNullable[Deployment.Status]
   )(Deployment.apply _, unlift(Deployment.unapply))
 
-  // Stateful set formatters
-  implicit val statefulSetPodPcyMgmtFmt: Format[StatefulSet.PodManagementPolicyType.PodManagementPolicyType] = Format(enumReads(StatefulSet.PodManagementPolicyType, StatefulSet.PodManagementPolicyType.OrderedReady), enumWrites)
-  implicit val statefulSetRollUp: Format[StatefulSet.RollingUpdateStrategy] = Json.format[StatefulSet.RollingUpdateStrategy]
-  implicit val statefulSetUpdStrFmt: Format[StatefulSet.UpdateStrategy] = (
-    (JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType, Some(StatefulSet.UpdateStrategyType.RollingUpdate)) and
-    (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]
-  )(StatefulSet.UpdateStrategy.apply _,unlift(StatefulSet.UpdateStrategy.unapply))
-
-
-  implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = (
-    (JsPath \ "replicas").formatNullable[Int] and
-    (JsPath \ "serviceName").formatNullable[String] and
-    (JsPath \ "selector").formatNullableLabelSelector and
-    (JsPath \ "template").format[Pod.Template.Spec] and
-    (JsPath \ "volumeClaimTemplates").formatMaybeEmptyList[PersistentVolumeClaim] and
-    (JsPath \ "podManagmentPolicy").formatNullableEnum(StatefulSet.PodManagementPolicyType) and
-    (JsPath \ "updateStrategy").formatNullable[StatefulSet.UpdateStrategy] and
-    (JsPath \ "revisionHistoryLimit").formatNullable[Int]
-  )(StatefulSet.Spec.apply _, unlift(StatefulSet.Spec.unapply))
-
-  implicit val statefulSetCondFmt: Format[StatefulSet.Condition] = Json.format[StatefulSet.Condition]
-  implicit val statefulSetStatusFmt: Format[StatefulSet.Status] = Json.format[StatefulSet.Status]
-
-  implicit lazy val statefulSetFormat: Format[StatefulSet] = (
-    objFormat and
-      (JsPath \ "spec").formatNullable[StatefulSet.Spec] and
-      (JsPath \ "status").formatNullable[StatefulSet.Status]
-    ) (StatefulSet.apply _, unlift(StatefulSet.unapply))
-
-  implicit val statefulSetListFormat: Format[StatefulSetList] = ListResourceFormat[StatefulSet]
   implicit val deployListFormat: Format[DeploymentList] = ListResourceFormat[Deployment]
 }

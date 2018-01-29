@@ -490,7 +490,6 @@ import Pod._
     }
 
     "a statefulset with pod affinity/anti-affinity can be read and written as json successfully" >> {
-      import skuber.json.apps.format.statefulSetFormat
       val ssJsonSource=Source.fromURL(getClass.getResource("/exampleStatefulSetWithPodAffinity.json"))
       val ssJsonStr = ssJsonSource.mkString
       val ss = Json.parse(ssJsonStr).as[StatefulSet]
