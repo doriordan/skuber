@@ -1,8 +1,6 @@
 package skuber
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import org.scalatest.{AsyncFlatSpec, Matchers}
+import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.ext.Deployment
 import skuber.json.ext.format._
@@ -10,43 +8,54 @@ import scala.concurrent.duration._
 
 import scala.concurrent.Future
 
-class DeploymentSpec extends AsyncFlatSpec with Eventually with Matchers {
-  implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
-  implicit val dispatcher = system.dispatcher
-
-  val k8s = k8sInit
-
-  val nginxDeploymentName = java.util.UUID.randomUUID().toString
-
+class DeploymentSpec extends K8SFixture with Eventually with Matchers {
+  val nginxDeploymentName: String = java.util.UUID.randomUUID().toString
 
   behavior of "Deployment"
 
-  val createDeploymentFuture = createNginxDeployment(nginxDeploymentName)
-
-  it should "create and eventually delete a deployment" in {
-    createDeploymentFuture flatMap { d =>
+  it should "create a deployment" in { k8s =>
+    k8s.create(getNginxDeployment(nginxDeploymentName, "1.7.9")) map { d =>
       assert(d.name == nginxDeploymentName)
-      deleteNginxDeployment(nginxDeploymentName).map { _ =>
-        eventually(timeout(3 seconds), interval(3 seconds)) {
-          val f: Future[Deployment] = k8s.get[Deployment](nginxDeploymentName)
-          ScalaFutures.whenReady(f.failed) { e =>
-            e shouldBe a[K8SException]
+    }
+  }
+
+  it should "get the newly created deployment" in { k8s =>
+    k8s.get[Deployment](nginxDeploymentName) map { d =>
+      assert(d.name == nginxDeploymentName)
+    }
+  }
+
+  it should "upgrade the newly created deployment" in { k8s =>
+    k8s.get[Deployment](nginxDeploymentName).flatMap { d =>
+      val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
+      k8s.update(updatedDeployment).flatMap { _ =>
+        eventually(timeout(15 seconds), interval(15 seconds)) {
+          k8s.get[Deployment](nginxDeploymentName).map { ud =>
+            ud.status.fold(fail) { s =>
+              s.updatedReplicas shouldBe 1
+            }
           }
         }
       }
     }
   }
 
-  def createNginxDeployment(name: String): Future[Deployment] = {
-    val nginxContainer = Container(name = "nginx", image="nginx").exposePort(80)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    val nginxDeployment = Deployment(name).withTemplate(nginxTemplate)
-
-    k8s.create(nginxDeployment)
+  it should "delete a deployment" in { k8s =>
+    k8s.delete[Deployment](nginxDeploymentName).map { _ =>
+      eventually(timeout(3 seconds), interval(3 seconds)) {
+        val f: Future[Deployment] = k8s.get[Deployment](nginxDeploymentName)
+        ScalaFutures.whenReady(f.failed) { e =>
+          e shouldBe a[K8SException]
+        }
+      }
+    }
   }
 
-  def deleteNginxDeployment(name: String): Future[Unit] = {
-    k8s.delete[Deployment](name)
+  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
+
+  def getNginxDeployment(name: String, version: String): Deployment = {
+    val nginxContainer = getNginxContainer(version)
+    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
+    Deployment(name).withTemplate(nginxTemplate)
   }
 }
