@@ -14,11 +14,11 @@ case class Secret(
     val `type`: String = "")
   extends ObjectResource  {
   
-    def add(key: String, is: InputStream) : Unit = {
+    def add(key: String, is: InputStream) : Secret = {
        val bytes = IOUtils.toByteArray(is)
        add(key, bytes) 
     }
-    def add(key: String, bytes: Array[Byte]) : Unit =
+    def add(key: String, bytes: Array[Byte]): Secret =
       this.copy(data = data + (key -> bytes))
 } 
 
