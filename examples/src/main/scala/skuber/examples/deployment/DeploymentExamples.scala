@@ -7,7 +7,8 @@ import skuber.json.ext.format._
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
 
 /**
  * @author David O'Riordan
@@ -28,6 +29,7 @@ import scala.concurrent.Future
  */
 object DeploymentExamples extends App {
 
+  val nginxDeploymentName="nginx-deployment"
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -37,8 +39,7 @@ object DeploymentExamples extends App {
   
   val deployment = deployNginx("1.7.9") 
   
-  deployment onSuccess {
-    case depl => 
+  deployment.foreach { depl =>
        
       // Wait for initial deployment to complete before updating it.
       // NOTE: Kubernetes v1.1 Deployment status subresource does not seem to be reliably populated
@@ -63,17 +64,25 @@ object DeploymentExamples extends App {
       updateNginx("1.9.1") onComplete {
         case scala.util.Success(_) =>
           println("Update successfully requested - use'kubectl describe deployments' to monitor progress")
-          system.terminate()
-          System.exit(0)
+          println("(Waiting two minutes before deleting nginx deployment)")
+          Thread.sleep(120000)
+          println("Deleting deployment, including its owned resources")
+          val deleteOptions=DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))
+          val deleteFut=k8s.deleteWithOptions[Deployment](nginxDeploymentName, deleteOptions)
+          Await.ready(deleteFut, 30 seconds)
+          println("DSuccessfully completed, exiting")
+          system.terminate().foreach { f =>
+            System.exit(0)
+          }
         case scala.util.Failure(ex) =>
           ex.printStackTrace()
-          system.terminate()
-          System.exit(1)
+          system.terminate().map { f =>
+            System.exit(1)
+          }
       }   
   }
   
-  deployment onFailure {
-    case ex =>
+  deployment.failed.foreach { ex =>
       ex.printStackTrace()
       system.terminate()
       System.exit(1)
@@ -90,7 +99,7 @@ object DeploymentExamples extends App {
       .addLabel(nginxLabel)
         
     val desiredCount = 5  
-    val nginxDeployment = Deployment("nginx-deployment")
+    val nginxDeployment = Deployment(nginxDeploymentName)
       .withReplicas(desiredCount)
       .withTemplate(nginxTemplate)
 

@@ -46,7 +46,7 @@ A combination of generic Scala case class features and Skuber-defined fluent API
     val prodContainer=Container(name="nginx-prod", image="nginx").
                           limitCPU(prodCPU).
                           limitMemory(prodMem).
-                          port(80)
+                          exposePort(80)
     
     val internalProdPodSpec=Pod.Spec(containers=List(prodContainer), 
                                      nodeSelector=Map(prodInternalZoneLabel))     
@@ -160,7 +160,16 @@ Delete a Kubernetes object:
     val rmFut = k8s delete[ReplicationController] "guestbook"
     rmFut onSuccess { case _ => println("Controller removed") }
 
-Note: There is no support yet for the Kubernetes API [PATCH operations](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#patch-operations)
+(There is also a `deleteWithOptions` call that enables options such as propagation policy to be passed with a Delete operation.)
+
+Patch a Kubernetes object using a [JSON merge patch](https://tools.ietf.org/html/rfc7386):
+    
+    val patchStr="""{ "spec": { "replicas" : 1 } }""" 
+    val stsFut = k8s.jsonMergePatch(myStatefulSet, patchStr)
+
+See also the `PatchExamples` example.
+ 
+Note: There is no patch support yet for the other two (`json patch` and `strategic merge patch`) [strategies](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#patch-operations)
 
 ### Error Handling
 
@@ -278,7 +287,7 @@ The following example emulates that described [here](http://kubernetes.io/docs/u
 Initial creation of the deployment:
 
     val nginxLabel = "app" -> "nginx"
-    val nginxContainer = Container("nginx",image="nginx:1.7.9").port(80)
+    val nginxContainer = Container("nginx",image="nginx:1.7.9").exposePort(80)
     
     val nginxTemplate = Pod.Template.Spec
       .named("nginx")
@@ -297,7 +306,7 @@ Use `kubectl get deployments` to see the status of the newly created Deployment,
 
 Later an update can be posted - in this example the nginx version will be updated to 1.9.1:
 
-    val newContainer = Container("nginx",image="nginx:1.9.1").port(80)
+    val newContainer = Container("nginx",image="nginx:1.9.1").exposePort(80)
     val existingDeployment = k8s get[Deployment] "nginx-deployment"
     val updatedDeployment = existingDeployment.updateContainer(newContainer)
     k8s update updatedDeployment 
@@ -395,3 +404,5 @@ Normally it is likely that configuration will be via a kubeconfig file. However 
 The configuration object has the same information as a kubeconfig file - in fact, the kubeconfig file is deserialised into a K8SConfiguration object. 
 
 The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
+
+Additionally a Typesafe Config object can optionally be passed programmatically as a second parameter to the initialisation call - currently this only supports specifying your own Akka dispatcher (execution context for the Akka http client request processingi by Skuber) 

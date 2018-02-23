@@ -1,19 +1,17 @@
-package skuber.apps
+package skuber.apps.v1beta1
 
-import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
+import skuber.ResourceSpecification.{Names, Scope}
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
-import skuber.json.format._ // reuse some core skuber json formatters
+import skuber.json.format._
 
 /**
   * Created by hollinwilkins on 4/5/17.
-  * The api version of this StatefulSet type is v1beta2, which is for use with k8s 1.8+.
-  * For earlier versions of k8s, use skuber.apps.v1beta1.StatefulSet
   */
 case class StatefulSet(override val kind: String ="StatefulSet",
-                       override val apiVersion: String = "apps/v1beta2", // correct at k8s 1.8
+                       override val apiVersion: String = "apps/v1beta1", // correct at k8s 1.7
                        metadata: ObjectMeta,
                        spec:  Option[StatefulSet.Spec] = None,
                        status:  Option[StatefulSet.Status] = None) extends ObjectResource
@@ -40,7 +38,7 @@ object StatefulSet {
 
   val specification=NonCoreResourceSpecification (
     group=Some("apps"),
-    version="v1beta2", // version as at k8s v1.8
+    version="v1beta1", // version as at k8s v1.7
     scope = Scope.Namespaced,
     names=Names(
       plural = "statefulsets",
@@ -51,7 +49,6 @@ object StatefulSet {
   )
   implicit val stsDef = new ResourceDefinition[StatefulSet] { def spec=specification }
   implicit val stsListDef = new ResourceDefinition[StatefulSetList] { def spec=specification }
-  implicit val scDef = new Scale.SubresourceSpec[StatefulSet] { override def apiVersion = "apps/v1beta2"}
 
   def apply(name: String): StatefulSet = StatefulSet(metadata=ObjectMeta(name=name))
 
@@ -91,14 +88,14 @@ object StatefulSet {
                     collisionCount: Option[Int],
                     conditions: Option[List[Condition]])
 
-  // json formatters
-
+  // Stateful set formatters
   implicit val statefulSetPodPcyMgmtFmt: Format[StatefulSet.PodManagementPolicyType.PodManagementPolicyType] = Format(enumReads(StatefulSet.PodManagementPolicyType, StatefulSet.PodManagementPolicyType.OrderedReady), enumWrites)
   implicit val statefulSetRollUp: Format[StatefulSet.RollingUpdateStrategy] = Json.format[StatefulSet.RollingUpdateStrategy]
   implicit val statefulSetUpdStrFmt: Format[StatefulSet.UpdateStrategy] = (
       (JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType, Some(StatefulSet.UpdateStrategyType.RollingUpdate)) and
           (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]
       )(StatefulSet.UpdateStrategy.apply _,unlift(StatefulSet.UpdateStrategy.unapply))
+
 
   implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = (
       (JsPath \ "replicas").formatNullable[Int] and
@@ -115,10 +112,10 @@ object StatefulSet {
   implicit val statefulSetStatusFmt: Format[StatefulSet.Status] = Json.format[StatefulSet.Status]
 
   implicit lazy val statefulSetFormat: Format[StatefulSet] = (
-    objFormat and
-      (JsPath \ "spec").formatNullable[StatefulSet.Spec] and
-      (JsPath \ "status").formatNullable[StatefulSet.Status]
-    ) (StatefulSet.apply _, unlift(StatefulSet.unapply))
+      objFormat and
+          (JsPath \ "spec").formatNullable[StatefulSet.Spec] and
+          (JsPath \ "status").formatNullable[StatefulSet.Status]
+      ) (StatefulSet.apply _, unlift(StatefulSet.unapply))
 
   implicit val statefulSetListFormat: Format[StatefulSetList] = ListResourceFormat[StatefulSet]
 }

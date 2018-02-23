@@ -1,10 +1,11 @@
 
-import java.net.URL
-import java.util.Date
-
-import scala.collection.immutable.HashMap
 import scala.language.implicitConversions
-import scala.concurrent.ExecutionContext
+
+import java.net.URL
+
+import akka.stream.Materializer
+import com.typesafe.config.Config
+import skuber.api.client.RequestContext
 
 /*
  * Represents core types and aliases 
@@ -223,6 +224,20 @@ package object skuber {
     val TCP, UDP = Value
   }
 
+  // Delete options are (optionally) passed with a Delete request
+  object DeletePropagation extends Enumeration {
+    type DeletePropagation = Value
+    val Orphan, Background, Foreground = Value
+  }
+
+  case class Preconditions(uid: String="")
+  case class DeleteOptions(
+    apiVersion: String = "v1",
+    kind: String = "DeleteOptions",
+    gracePeriodSeconds: Option[Int] = None,
+    preconditions: Option[Preconditions] = None,
+    propagationPolicy: Option[DeletePropagation.Value] = None)
+
 
   // aliases, references and delegates that enable using the API for many use cases without 
   // having to import anything from the skuber.api package
@@ -235,14 +250,33 @@ package object skuber {
   type K8SWatchEvent[I <: ObjectResource] = skuber.api.client.WatchEvent[I]
 
   import akka.actor.ActorSystem
-  import akka.stream.ActorMaterializer
-  def k8sInit(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer)  =
-  {
+
+  /**
+    * Initialise Skuber using default Kubernetes and application configuration.
+    */
+  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     skuber.api.client.init
   }
-  def k8sInit(config: skuber.api.Configuration)(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) = {
+
+  /**
+    * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
+    */
+  def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     skuber.api.client.init(config)
   }
-      
+
+  /**
+    * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
+    */
+  def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    skuber.api.client.init(appConfig)
+  }
+
+  /**
+    * Initialise Skuber using the specified Kubernetes and application configuration.
+    */
+  def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer)
+      : RequestContext = {
+    skuber.api.client.init(config, appConfig)
+  }
 }

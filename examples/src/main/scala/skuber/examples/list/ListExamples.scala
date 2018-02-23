@@ -72,4 +72,7 @@ object ListExamples extends App {
   Await.ready(printAllPods, 30 seconds)
 
   k8s.close
+  system.terminate().foreach { f =>
+    System.exit(0)
+  }
 }

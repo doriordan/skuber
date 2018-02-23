@@ -92,7 +92,9 @@ A `skuber.api.client.LoggingConfig` object is now associated with each Skuber re
 
 A `LoggingConfig` object can be passed explicitly to the init() call, or alternatively different log events can be enabled by setting associated system parameters.
 
+## Miscellaneous
 
+- From version 2.0.1, the `template` field in a StatefulSet spec has been made mandatory so is no longer an `Option` type, this minor change was a fix to reflect the actual Kubernetes API rules for the field.
 
 
 

@@ -1,0 +1,98 @@
+{
+  "apiVersion": "apps/v1beta1",
+  "kind": "StatefulSet",
+  "metadata": {
+    "name": "nginx-stateset"
+  },
+  "spec": {
+    "replicas": 7,
+    "serviceName": "nginx-service",
+    "updateStrategy": {
+      "type": "RollingUpdate",
+      "rollingUpdate" : {
+        "partition": 5
+      }
+    },
+    "selector": {
+      "matchLabels" : {
+        "domain": "www.example.com",
+        "proxies": "microservices"
+      },
+      "matchExpressions": [
+        {"key": "env", "operator": "NotIn", "values": ["dev"]},
+        {"key": "tier","operator": "In", "values": ["frontend"]}
+      ]
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "domain": "www.example.com",
+          "proxies": "microservices"
+        }
+      },
+      "spec": {
+        "terminationGracePeriodSeconds": 100,
+        "containers": [
+          {
+            "imagePullPolicy": "Always",
+            "name": "nginx",
+            "image": "nginx:1.7.9",
+            "ports": [
+              {
+                "containerPort": 80
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              }
+            },
+            "securityContext": {
+              "capabilities": {
+                "add": ["IPC_LOCK"]
+              }
+            },
+            "volumeMounts": [
+              {
+                "name": "nginx",
+                "mountPath" : "/usr/share/nginx/html"
+              }
+            ],
+            "lifecycle": {
+              "preStop": {
+                "exec": {
+                  "command": ["/bin/sh", "-c", "PID=$(pidof java) && kill $PID && while ps -p $PID > /dev/null; do sleep 1; done"]
+                }
+              }
+            },
+            "readinessProbe": {
+              "exec": {
+                "command": ["/bin/sh", "-c", "./ready.sh"]
+              },
+              "initialDelaySeconds": 15,
+              "timeoutSeconds": 5
+            }
+          }
+        ]
+      }
+    },
+    "volumeClaimTemplates": [
+      {
+        "metadata": { "name": "nginx" },
+        "spec": {
+          "accessModes": ["ReadWriteOnce"],
+          "resources": {
+            "requests": {
+              "capacity": "1Gi"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,36 +1,35 @@
 package skuber.api
 
+import scala.concurrent.{ExecutionContext, Future}
+import scala.sys.SystemProperties
+import scala.util.{Failure, Success}
 import java.net.URL
 import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.ConnectionContext
+import akka.event.Logging
+import akka.http.scaladsl.marshalling.{Marshal, Marshaller, Marshalling}
+import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.stream.Materializer
 import akka.stream.scaladsl.Source
-
-import scala.concurrent.{ExecutionContext, Future}
+import akka.util.ByteString
+import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads}
-import skuber._
 import skuber.api.security.{HTTPRequestAuth, TLS}
-import skuber.json.format._
-import scala.util.{Success, Failure}
-import skuber.json.format.apiobj._
 import skuber.json.PlayJsonSupportForAkkaHttp._
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-
-import scala.sys.SystemProperties
+import skuber.json.format._
+import skuber.json.format.apiobj._
+import skuber.{ObjectResource, _}
 
 /**
  * @author David O'Riordan
  */
 package object client {
 
-  val log: Logger = LoggerFactory.getLogger("skuber.api")
   val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
@@ -38,7 +37,12 @@ package object client {
 
    // K8S client API classes
    val defaultApiServerURL = "http://localhost:8080"
-   case class Cluster(
+
+  // Patch content type(s)
+  val `application/merge-patch+json`: MediaType.WithFixedCharset =
+    MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
+
+  case class Cluster(
      apiVersion: String = "v1",
      server: String = defaultApiServerURL,
      insecureSkipTLSVerify: Boolean = false,
@@ -108,7 +112,7 @@ package object client {
    trait LoggingContext {
      def output: String
    }
-   case class RequestLoggingContext(val requestId: String) extends LoggingContext {
+   case class RequestLoggingContext(requestId: String) extends LoggingContext {
      def output=s"{ reqId=$requestId} }"
    }
    object RequestLoggingContext {
@@ -118,13 +122,13 @@ package object client {
    class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
                         val requestInvoker: HttpRequest => Future[HttpResponse],
                         val clusterServer: String,
-                        requestAuth: HTTPRequestAuth.RequestAuth,
+                        val requestAuth: HTTPRequestAuth.RequestAuth,
                         val namespaceName: String,
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
-      (implicit val actorSystem: ActorSystem, val actorMaterializer: ActorMaterializer) {
+      (implicit val actorSystem: ActorSystem, val materializer: Materializer, val executionContext: ExecutionContext) {
 
-     implicit val dispatcher = actorSystem.dispatcher
+     val log = Logging.getLogger(actorSystem, "skuber.api")
 
      private var isClosed = false
 
@@ -137,7 +141,7 @@ package object client {
        val responseFut = requestInvoker(request)
        responseFut onComplete {
          case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
-         case Failure(ex) => logWarn("HTTP request resulted in an unexpected exception",ex)
+         case Failure(ex) => logError("HTTP request resulted in an unexpected exception",ex)
        }
        responseFut
      }
@@ -209,11 +213,6 @@ package object client {
      private[skuber] def logError(msg: String)(implicit lc: LoggingContext) =
      {
        log.error(s"[ ${lc.output} - $msg ]")
-     }
-
-     private[skuber] def logWarn(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
-     {
-       log.warn(s"[ ${lc.output} - $msg ]", ex)
      }
 
      private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
@@ -292,6 +291,7 @@ package object client {
      private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
        implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
+       logRequestObjectDetails(method, obj)
        val marshal = Marshal(obj)
        for {
          requestEntity <- marshal.to[RequestEntity]
@@ -387,7 +387,7 @@ package object client {
        val queryOpt = maybeLabelSelector map { ls =>
          Uri.Query("labelSelector" -> ls.toString)
        }
-       if (log.isDebugEnabled()) {
+       if (log.isDebugEnabled) {
          val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
          logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
        }
@@ -423,11 +423,17 @@ package object client {
        makeRequestReturningObjectResource[O](req)
      }
 
-     def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = 0)(
+     def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1)(
        implicit rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[Unit] =
      {
-       val options = DeleteOptions(gracePeriodSeconds = gracePeriodSeconds)
-       import skuber.json.format.apiobj.deleteOptionsWrite
+       val grace=if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
+       val options = DeleteOptions(gracePeriodSeconds = grace)
+       deleteWithOptions[O](name, options)
+     }
+
+     def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions)(
+       implicit rd: ResourceDefinition[O], lc: LoggingContext=RequestLoggingContext()): Future[Unit] =
+     {
        val marshalledOptions = Marshal(options)
        for {
          requestEntity <- marshalledOptions.to[RequestEntity]
@@ -437,6 +443,7 @@ package object client {
          _ <- ignoreResponseBody(response)
        } yield ()
      }
+
 
      def watch[O <: ObjectResource](obj: O)(
        implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Source[WatchEvent[O], _]] =
@@ -460,6 +467,54 @@ package object client {
        Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
      }
 
+     // Operations on scale subresource
+     // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types
+     // define an implicit Scale.SubresourceSpec, which is required to be passed to these methods.
+
+     def getScale[O <: ObjectResource](objName: String)(
+       implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext=RequestLoggingContext()) : Future[Scale] =
+     {
+       val req = buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
+       makeRequestReturningObjectResource[Scale](req)
+     }
+
+     def scale[O <: ObjectResource](objName: String, count: Int)(
+       implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
+     {
+       val scale = Scale(
+         apiVersion = sc.apiVersion,
+         metadata = ObjectMeta(name = objName, namespace = namespaceName),
+         spec = Scale.Spec(replicas = count)
+       )
+       implicit val dispatcher=actorSystem.dispatcher
+       val marshal = Marshal(scale)
+       for {
+         requestEntity <- marshal.to[RequestEntity]
+         httpRequest = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale")).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
+       } yield scaledResource
+     }
+
+     /**
+      * Perform a Json merge patch on a resource
+      * The patch is passed a String type which should contain the JSON patch formatted per https://tools.ietf.org/html/rfc7386
+      * It is a String type instead of a JSON object in order to allow clients to use their own favourite JSON library to create the
+      * patch, or alternatively to simply manually craft the JSON and insert it into a String.  Also patches are generally expected to be
+      * relatively small, so storing the whole patch in memory should not be problematic.
+      * It is thus the responsibility of the client to ensure that the `patch` parameter contains a valid JSON merge patch entity for the
+      * targetted Kubernetes resource `obj`
+      * @param obj The resource to update with the patch
+      * @param patch A string containing the JSON patch entity
+      * @return The patched resource (in a Future)
+      */
+     def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(
+       implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext=RequestLoggingContext()): Future[O] =
+     {
+       val patchRequestEntity = HttpEntity.Strict(`application/merge-patch+json`, ByteString(patch))
+       val httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(obj.name)).withEntity(patchRequestEntity)
+       makeRequestReturningObjectResource[O](httpRequest)
+     }
+
      // get API versions supported by the cluster
      def getServerAPIVersions(implicit lc: LoggingContext=RequestLoggingContext()): Future[List[String]] = {
        val url = clusterServer + "/api"
@@ -468,13 +523,13 @@ package object client {
        for {
          response <- invoke(request)
          apiVersionResource <- toKubernetesResponse[APIVersions](response)
-       } yield (apiVersionResource.versions)
+       } yield apiVersionResource.versions
      }
 
      def close: Unit =
      {
        isClosed = true
-       closeHook map {
+       closeHook foreach {
          _ ()
        } // invoke the specified close hook if specified
      }
@@ -482,20 +537,18 @@ package object client {
      private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
      {
        val statusOptFut = checkResponseStatus(response)
-       statusOptFut flatMap { statusOpt =>
-         statusOpt match {
-           case Some(status) =>
-             throw new K8SException(status)
-           case None =>
-             try {
-               Unmarshal(response).to[T]
-             }
-             catch {
-               case ex: Exception =>
-                 logError("Unable to unmarshal resource from response", ex)
-                 throw new K8SException(Status(message=Some("Error unmarshalling resource from response"), details=Some(ex.getMessage)))
-             }
-         }
+       statusOptFut flatMap {
+         case Some(status) =>
+           throw new K8SException(status)
+         case None =>
+           try {
+             Unmarshal(response).to[T]
+           }
+           catch {
+             case ex: Exception =>
+               logError("Unable to unmarshal resource from response", ex)
+               throw new K8SException(Status(message = Some("Error unmarshalling resource from response"), details = Some(ex.getMessage)))
+           }
        }
      }
 
@@ -550,20 +603,7 @@ package object client {
 
   class K8SException(val status: Status) extends RuntimeException (status.toString) // we throw this when we receive a non-OK response
 
-  // Delete options are passed with a Delete request
-  case class DeleteOptions(
-    apiVersion: String = "v1",
-    kind: String = "DeleteOptions",
-    gracePeriodSeconds: Int = 0)
-
-  private def buildBaseConfigForURL(url: Option[String]) = {
-    val cluster = Cluster(server=url.getOrElse(defaultApiServerURL))
-    val context = Context(cluster=cluster)
-    Configuration().useContext(context)
-  }
-
-  def init()(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): RequestContext =
-  {
+  def init()(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
     // Initialising without explicit Kubernetes Configuration.  If SKUBER_URL environment variable is set then it
     // is assumed to point to a kubectl proxy running at the URL specified so we configure to use that, otherwise if not set
     // then we try to configure from a kubeconfig file located as follows:
@@ -576,45 +616,42 @@ package object client {
     // If neither of these is set, then finally it tries the standard kubeconfig file location `$HOME/.kube/config` before
     // giving up and throwing an exception
     //
-
-    import java.nio.file.Paths
-
-    val skuberUrlOverride= sys.env.get("SKUBER_URL")
-
-    val config: Configuration = skuberUrlOverride match {
-      case Some(url) => Configuration.useProxyAt(url)
-      case None =>
-        val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
-        val kubeConfigEnv = sys.env.get("KUBECONFIG")
-        skuberConfigEnv match {
-          case Some(conf) if conf == "file" => Configuration.parseKubeconfigFile().get // default kubeconfig location
-          case Some(conf) if conf == "proxy" => Configuration.useLocalProxyDefault
-          case Some(fileUrl) =>
-            val path = Paths.get(new URL(fileUrl).toURI)
-            Configuration.parseKubeconfigFile(path).get
-          case None =>
-            // try KUBECONFIG - if that is not set then use default kubeconfig location
-            kubeConfigEnv.map { kc =>
-              Configuration.parseKubeconfigFile(Paths.get(kc))
-            }.getOrElse(
-              Configuration.parseKubeconfigFile()
-            ).get
-        }
-    }
-    init(config)
+    init(defaultK8sConfig, defaultAppConfig)
   }
 
-  def init(config: Configuration)(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) : RequestContext =
-  {
-    init(config.currentContext, LoggingConfig(), None)
+  def init(config: Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(config.currentContext, LoggingConfig(), None, defaultAppConfig)
   }
 
-  def init(k8sContext: Context, logConfig: LoggingConfig,  closeHook: Option[() => Unit]=None)(
-    implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer) : RequestContext =
-  {
-    if (logConfig.logConfiguration)
+  def init(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(defaultK8sConfig.currentContext, LoggingConfig(), None, appConfig)
+  }
+
+  def init(config: Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(config.currentContext, LoggingConfig(), None, appConfig)
+  }
+
+  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None)
+      (implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    init(k8sContext, logConfig, closeHook, defaultAppConfig)
+  }
+
+  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
+      (implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+    appConfig.checkValid(ConfigFactory.defaultReference(), "skuber")
+
+    implicit val executionContext: ExecutionContext =
+      if (appConfig.getIsNull("skuber.akka.dispatcher") || appConfig.getString("skuber.akka.dispatcher").isEmpty) {
+        actorSystem.dispatcher
+      } else {
+        actorSystem.dispatchers.lookup(appConfig.getString("skuber.akka.dispatcher"))
+      }
+
+    if (logConfig.logConfiguration) {
+      val log = Logging.getLogger(actorSystem, "skuber.api")
       log.info("Using following context for connecting to Kubernetes cluster: {}", k8sContext)
+    }
+
     val sslContext = TLS.establishSSLContext(k8sContext)
     val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     sslContext foreach { ssl =>
@@ -630,6 +667,37 @@ package object client {
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
     val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth,theNamespaceName, logConfig, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth, theNamespaceName, logConfig, closeHook)
   }
+
+  private def defaultK8sConfig: Configuration = {
+    import java.nio.file.Paths
+
+    val skuberUrlOverride = sys.env.get("SKUBER_URL")
+    skuberUrlOverride match {
+      case Some(url) =>
+        Configuration.useProxyAt(url)
+      case None =>
+        val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
+        skuberConfigEnv match {
+          case Some(conf) if conf == "file" =>
+            Configuration.parseKubeconfigFile().get // default kubeconfig location
+          case Some(conf) if conf == "proxy" =>
+            Configuration.useLocalProxyDefault
+          case Some(fileUrl) =>
+            val path = Paths.get(new URL(fileUrl).toURI)
+            Configuration.parseKubeconfigFile(path).get
+          case None =>
+            // try KUBECONFIG - if that is not set then use default kubeconfig location
+            val kubeConfigEnv = sys.env.get("KUBECONFIG")
+            kubeConfigEnv.map { kc =>
+              Configuration.parseKubeconfigFile(Paths.get(kc))
+            }.getOrElse(
+              Configuration.parseKubeconfigFile()
+            ).get
+        }
+    }
+  }
+
+  private def defaultAppConfig: Config = ConfigFactory.load()
 }

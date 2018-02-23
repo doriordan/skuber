@@ -1,10 +1,5 @@
 package skuber
 
-import java.util.Date
-
-import skuber.Pod.Affinity.Operator
-import skuber.annotation.NodeAffinity
-
 /**
  * @author David O'Riordan
  */
@@ -69,16 +64,20 @@ object Pod {
     val Pending, Running, Succeeded, Failed, Unknown = Value
   }
 
-  case class Affinity(nodeAffinity: Option[Affinity.NodeAffinity] = None)
+  case class Affinity(
+
+    nodeAffinity: Option[Affinity.NodeAffinity] = None,
+    podAffinity: Option[Affinity.PodAffinity] = None,
+    podAntiAffinity: Option[Affinity.PodAntiAffinity] = None)
 
   case object Affinity {
 
-    object Operator extends Enumeration {
+    object NodeSelectorOperator extends Enumeration {
       type Operator = Value
       val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
     }
 
-    case class MatchExpression(key: String, operator: Operator.Value, values: List[String])
+    case class MatchExpression(key: String, operator: NodeSelectorOperator.Value, values: List[String])
     type MatchExpressions = List[MatchExpression]
     def MatchExpressions(xs: MatchExpression*) = List(xs: _*)
 
@@ -95,7 +94,7 @@ object Pod {
 
       case object RequiredDuringSchedulingIgnoredDuringExecution {
 
-        def requiredQuery(key: String, operator: Operator.Value, values: List[String]): RequiredDuringSchedulingIgnoredDuringExecution = {
+        def requiredQuery(key: String, operator: NodeSelectorOperator.Value, values: List[String]): RequiredDuringSchedulingIgnoredDuringExecution = {
           RequiredDuringSchedulingIgnoredDuringExecution(
             NodeSelectorTerms(
               NodeSelectorTerm(
@@ -112,7 +111,7 @@ object Pod {
       case class PreferredSchedulingTerm(preference: NodeSelectorTerm, weight: Int)
 
       object PreferredSchedulingTerm {
-        def preferredQuery(weight: Int, key: String, operator: Operator.Value, values: List[String]): PreferredSchedulingTerm = {
+        def preferredQuery(weight: Int, key: String, operator: NodeSelectorOperator.Value, values: List[String]): PreferredSchedulingTerm = {
           PreferredSchedulingTerm(
             preference = NodeSelectorTerm(
               MatchExpressions(MatchExpression(key, operator, values))
@@ -124,10 +123,17 @@ object Pod {
 
       type PreferredSchedulingTerms = List[PreferredSchedulingTerm]
       def PreferredSchedulingTerms(xs: PreferredSchedulingTerm*) = List(xs: _*)
-
-
     }
+    case class PodAffinity(
+      requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm]=Nil,
+      preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm]=Nil)
 
+    case class PodAntiAffinity(
+      requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm]=Nil,
+      preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm]=Nil)
+
+    case class PodAffinityTerm(labelSelector: Option[LabelSelector]=None,namespaces: List[String]=Nil, topologyKey: String)
+    case class WeightedPodAffinityTerm(weight: Int, podAffinityTerm: PodAffinityTerm)
   }
 
   case class Status(

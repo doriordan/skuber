@@ -3,15 +3,19 @@ resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.13.5"
 val specs2 = "org.specs2" %% "specs2-core" % "3.9.5"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.0.4"
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.5"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
-val sl4j = "org.slf4j" % "slf4j-api" % "1.7.25"
 
 // the client API request/response handing uses Akka Http 
 // This also brings in the transitive dependencies on Akka actors and streams
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
+
+// Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
+val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.4.19"
+val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.6.6"
@@ -21,7 +25,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "2.0.0-RC2"
+version in ThisBuild := "2.0.4"
 
 sonatypeProfileName := "io.skuber"
 
@@ -55,12 +59,13 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, sl4j, scalaCheck % Test,specs2 % Test).
+  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, scalaCheck % Test,specs2 % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
-  name := "skuber-examples"
+  name := "skuber-examples",
+  libraryDependencies ++= Seq(akkaSlf4j, logback)
 )
 
 // by default run the guestbook example when executing a fat examples JAR
@@ -75,8 +80,13 @@ lazy val root = (project in file("."))
   .aggregate(skuber, examples)
 
 lazy val skuber= (project in file("client"))
-  .settings(commonSettings: _*)
-  .settings(skuberSettings: _*)
+  .configs(IntegrationTest)
+  .settings(
+    commonSettings,
+    skuberSettings,
+    Defaults.itSettings,
+    libraryDependencies += scalaTest % "it"
+  )
 
 lazy val examples = (project in file("examples"))
   .settings(commonSettings: _*)

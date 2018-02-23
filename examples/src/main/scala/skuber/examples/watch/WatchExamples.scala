@@ -56,6 +56,8 @@ object WatchExamples {
 
     Thread.sleep(30000) // watch for some time before closing the session
     k8s.close
-    system.terminate
+    system.terminate().foreach { f =>
+      System.exit(0)
+    }
   }
 }
