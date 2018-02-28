@@ -1,13 +1,16 @@
 package skuber.api
 
+import java.io.File
+
 import scala.collection.JavaConverters._
 import scala.util.Try
-
 import java.util.Base64
 
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
 import skuber.api.client._
+
+import scala.io.Source
 
 /**
  * @author David O'Riordan
@@ -29,7 +32,7 @@ case class Configuration(
 object Configuration {
 
   // local proxy default config is suitable for use with kubectl proxy running on localhost:8080
-  lazy val useLocalProxyDefault = {
+  lazy val useLocalProxyDefault: Configuration = {
     val defaultCluster=Cluster()
     val defaultContext=Context(cluster=defaultCluster)
     Configuration(
@@ -39,7 +42,7 @@ object Configuration {
   }
 
   // config to use a local proxy running on a specified port
-  def useLocalProxyOnPort(port: Int) = {
+  def useLocalProxyOnPort(port: Int): Configuration = {
     val clusterAddress=s"http://localhost:${port.toString}"
     val defaultCluster=Cluster(server = clusterAddress)
     val defaultContext=Context(cluster=defaultCluster)
@@ -50,7 +53,7 @@ object Configuration {
   }
 
   // config to use a proxy at specified address
-  def useProxyAt(proxyAddress: String) = {
+  def useProxyAt(proxyAddress: String): Configuration = {
     val clusterAddress=proxyAddress
     val defaultCluster=Cluster(server = clusterAddress)
     val defaultContext=Context(cluster=defaultCluster)
@@ -173,4 +176,32 @@ object Configuration {
         Configuration(k8sClusterMap, k8sContextMap, currentContext, k8sAuthInfoMap)
       }
     }
+
+  /**
+    * Uses the configuration from a running pod, mounted in /var/run/secrets/kubernetes.io/serviceaccount
+    *
+    * Code mostly from https://github.com/agemooij
+    */
+  lazy val useRunningPod: Try[Configuration] = Try {
+    val rootK8sFolder = "/var/run/secrets/kubernetes.io/serviceaccount"
+    val tokenFile = new File(rootK8sFolder + "/token")
+    val namespaceFile = new File(rootK8sFolder + "/namespace")
+
+    def fileContents(f: File): String = Source.fromFile(f, "UTF-8").getLines().mkString("\n")
+
+    val cluster = Cluster(
+      server = "https://kubernetes.default",
+      certificateAuthority = Some(Left(rootK8sFolder + "/ca.crt"))
+    )
+
+    val authInfo = AuthInfo(token = Some(fileContents(tokenFile)))
+    val namespace = Namespace.forName(fileContents(namespaceFile))
+    val context = Context(cluster, authInfo, namespace)
+
+    Configuration(
+      clusters = Map("default" -> cluster),
+      contexts = Map("default" -> context),
+      currentContext = context
+    )
+  }
 }
