@@ -693,9 +693,9 @@ package object client {
             kubeConfigEnv.map { kc =>
               Configuration.parseKubeconfigFile(Paths.get(kc))
             }.getOrElse {
-              //Try to get config from a running pod -
+              // Try to get config from a running pod
               // if that is not set then use default kubeconfig location
-              Configuration.useRunningPod.flatMap(_ =>
+              Configuration.useRunningPod.orElse(
                 Configuration.parseKubeconfigFile()
               )
             }.get
