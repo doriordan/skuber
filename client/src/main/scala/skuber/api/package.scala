@@ -688,13 +688,17 @@ package object client {
             val path = Paths.get(new URL(fileUrl).toURI)
             Configuration.parseKubeconfigFile(path).get
           case None =>
-            // try KUBECONFIG - if that is not set then use default kubeconfig location
+            // try KUBECONFIG
             val kubeConfigEnv = sys.env.get("KUBECONFIG")
             kubeConfigEnv.map { kc =>
               Configuration.parseKubeconfigFile(Paths.get(kc))
-            }.getOrElse(
-              Configuration.parseKubeconfigFile()
-            ).get
+            }.getOrElse {
+              // Try to get config from a running pod
+              // if that is not set then use default kubeconfig location
+              Configuration.useRunningPod.orElse(
+                Configuration.parseKubeconfigFile()
+              )
+            }.get
         }
     }
   }
