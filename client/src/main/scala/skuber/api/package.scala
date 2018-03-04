@@ -8,10 +8,8 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.http.scaladsl.marshalling.{Marshal, Marshaller, Marshalling}
-import akka.http.scaladsl.model.MediaTypes.`application/json`
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.Materializer
@@ -30,16 +28,16 @@ import skuber.{ObjectResource, _}
  */
 package object client {
 
-  val sysProps = new SystemProperties
+  final val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
   type PathOrData = Either[String,Array[Byte]]
 
    // K8S client API classes
-   val defaultApiServerURL = "http://localhost:8080"
+   final val defaultApiServerURL = "http://localhost:8080"
 
   // Patch content type(s)
-  val `application/merge-patch+json`: MediaType.WithFixedCharset =
+  final val `application/merge-patch+json`: MediaType.WithFixedCharset =
     MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
 
   case class Cluster(
@@ -51,11 +49,66 @@ package object client {
 
    case class Context(
      cluster: Cluster = Cluster(),
-     authInfo: AuthInfo = AuthInfo(),
+     authInfo: AuthInfo = NoAuth,
      namespace: Namespace = Namespace.default
    )
 
-   case class AuthInfo(
+   sealed trait AuthInfo
+
+   object NoAuth extends AuthInfo {
+     override def toString: String = "NoAuth"
+   }
+
+   final case class BasicAuth(userName: String, password: String) extends AuthInfo {
+     override def toString: String = s"${getClass.getSimpleName}(userName=$userName,password=<redacted>)"
+   }
+
+   final case class TokenAuth(token: String) extends AuthInfo {
+     override def toString: String = s"${getClass.getSimpleName}(token=<redacted>)"
+   }
+
+   final case class CertAuth(clientCertificate: PathOrData, clientKey: PathOrData, user: Option[String]) extends AuthInfo {
+     override def toString: String = StringBuilder.newBuilder
+       .append(getClass.getSimpleName)
+       .append("(")
+       .append {
+         clientCertificate match {
+           case Left(certPath: String) => "clientCertificate=" + certPath + " "
+           case Right(_) => "clientCertificate=<PEM masked> "
+         }
+       }
+       .append {
+         clientKey match {
+           case Left(certPath: String) => "clientKey=" + certPath + " "
+           case Right(_) => "clientKey=<PEM masked> "
+         }
+       }
+       .append("userName=")
+       .append(user.getOrElse(""))
+       .append(" )")
+       .mkString
+   }
+
+   sealed trait AuthProviderAuth extends AuthInfo {
+     def name: String
+   }
+
+   // 'jwt' supports an oidc id token per https://kubernetes.io/docs/admin/authentication/#option-1---oidc-authenticator
+   // - but does not yet support token refresh
+   final case class OidcAuth(idToken: String) extends AuthProviderAuth {
+     override val name = "oidc"
+
+     override def toString = """OidcAuth(idToken=<redacted>)"""
+   }
+
+   final case class GcpAuth(accessToken: String) extends AuthProviderAuth {
+     override val name = "gcp"
+
+     override def toString =
+       """GcpAuth(accessToken=<redacted>)""".stripMargin
+   }
+
+   case class AuthInfo1(
      clientCertificate: Option[PathOrData] = None,
      clientKey: Option[PathOrData] = None,
      // 'jwt' supports an oidc id token per https://kubernetes.io/docs/admin/authentication/#option-1---oidc-authenticator
@@ -122,7 +175,7 @@ package object client {
    class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
                         val requestInvoker: HttpRequest => Future[HttpResponse],
                         val clusterServer: String,
-                        val requestAuth: HTTPRequestAuth.RequestAuth,
+                        val requestAuth: AuthInfo,
                         val namespaceName: String,
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
@@ -653,7 +706,6 @@ package object client {
     }
 
     val sslContext = TLS.establishSSLContext(k8sContext)
-    val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     sslContext foreach { ssl =>
       val httpsContext = ConnectionContext.https(ssl, None,Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")), None, None)
       Http().setDefaultClientHttpsContext(httpsContext)
@@ -667,7 +719,7 @@ package object client {
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
     val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth, theNamespaceName, logConfig, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, logConfig, closeHook)
   }
 
   private def defaultK8sConfig: Configuration = {

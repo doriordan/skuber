@@ -1,7 +1,7 @@
 package skuber.model
 
 import org.specs2.mutable.Specification
-import skuber.api.client.AuthInfo
+import skuber.api.client._
 
 
 /**
@@ -13,25 +13,37 @@ class AuthSpec extends Specification {
   
   // Auth
   "Auth toString works when empty" >> {
-    AuthInfo().toString mustEqual "AuthInfo()"
+    NoAuth.toString mustEqual "NoAuth"
   }
 
-  "Auth toString masks cert, key, token, and password" >> {
-    val auth = AuthInfo(
-      clientCertificate = Option(Right("secretPem".getBytes)),
-      clientKey = Option(Right("secretKey".getBytes)),
-      token = Option("secretToken"),
-      password = Option("goodPassword"))
-    auth.toString mustEqual "AuthInfo(clientCertificate=<PEM masked> clientKey=<PEM masked> token=*********** password=************ )"
-  }
-
-  "Auth toString doesn't mask username, certPath, keyPath" >> {
-    val auth = AuthInfo(
-      clientCertificate = Option(Left("certPath")),
-      clientKey = Option(Left("keyPath")),
-      userName = Option("aUser")
+  "CertAuth toString masks cert, key but not user" >> {
+    val auth = CertAuth(
+      clientCertificate = Right("secretPem".getBytes),
+      clientKey = Right("secretKey".getBytes),
+      user = Some("someUser")
     )
-    auth.toString mustEqual "AuthInfo(clientCertificate=certPath clientKey=keyPath userName=aUser )"
+    auth.toString mustEqual "CertAuth(clientCertificate=<PEM masked> clientKey=<PEM masked> userName=someUser )"
+  }
+
+  "CertAuth toString doesn't mask username, certPath, keyPath" >> {
+    val auth = CertAuth(
+      clientCertificate = Left("certPath"),
+      clientKey = Left("keyPath"),
+      user = Option("aUser")
+    )
+    auth.toString mustEqual "CertAuth(clientCertificate=certPath clientKey=keyPath userName=aUser )"
+  }
+
+  "TokenAuth toString masks token" >> {
+    TokenAuth("myToken").toString mustEqual "TokenAuth(token=<redacted>)"
+  }
+
+  "GcpAuth toString masks accessToken" >> {
+    GcpAuth(accessToken = "MyAccessToken").toString mustEqual "GcpAuth(accessToken=<redacted>)"
+  }
+
+  "OidcAuth toString masks idToken" >> {
+    OidcAuth(idToken = "MyToken").toString mustEqual "OidcAuth(idToken=<redacted>)"
   }
 
 }

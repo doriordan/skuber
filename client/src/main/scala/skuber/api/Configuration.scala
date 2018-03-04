@@ -143,23 +143,59 @@ object Configuration {
             certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data"))
 
 
-        val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster _)
+        val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster)
 
-        def toK8SAuthInfo(userConfig:YamlMap):AuthInfo = AuthInfo(
-          clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data"),
-          clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data"),
-          jwt = userConfig.containsKey("auth-provider") match {
-            case true => val authProvider = child(userConfig,"auth-provider"); authProvider.containsKey("config") match {
-              case true => val config = child(authProvider,"config"); optionalValueAt(config,"id-token")
-              case false => None
+        def toK8SAuthInfo(userConfig:YamlMap): AuthInfo = {
+
+          def authProviderRead(authProvider: YamlMap): Option[AuthProviderAuth] = {
+            val config = child(authProvider, "config")
+            name(authProvider).toLowerCase match {
+              case "oidc" =>
+                Some(OidcAuth(idToken = valueAt(config, "id-token")))
+              case "gcp" =>
+                Some(GcpAuth(accessToken = valueAt(config, "access-token")))
+              case _ => None
             }
-            case false => None
-          },
-          token = optionalValueAt(userConfig, "token"),
-          userName = optionalValueAt(userConfig, "username"),
-          password = optionalValueAt(userConfig, "password"))
+          }
 
-        val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo _)
+          val maybeAtuh = optionalValueAt[YamlMap](userConfig, "auth-provider") match {
+            case Some(authProvider) => authProviderRead(authProvider)
+            case None =>
+              val clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data")
+              val clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data")
+              val jwt = userConfig.containsKey("auth-provider") match {
+                case true => val authProvider = child(userConfig, "auth-provider");
+                  authProvider.containsKey("config") match {
+                    case true => val config = child(authProvider, "config"); optionalValueAt(config, "id-token")
+                    case false => None
+                  }
+                case false => None
+              }
+
+              val token = optionalValueAt(userConfig, "token")
+
+              val userName = optionalValueAt(userConfig, "username")
+              val password = optionalValueAt(userConfig, "password")
+
+              (
+                for {
+                  u <- userName
+                  p <- password
+                } yield BasicAuth(u, p)
+                ).orElse {
+                token.map(TokenAuth.apply)
+              }.orElse {
+                jwt.map(TokenAuth.apply)
+              }.orElse {
+                for {
+                  cert <- clientCertificate
+                  key <- clientKey
+                } yield CertAuth(cert, key, userName)
+              }
+          }
+          maybeAtuh.getOrElse(NoAuth)
+        }
+        val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
         def toK8SContext(contextConfig: YamlMap) = {
           val cluster=contextConfig.asScala.get("cluster").flatMap(clusterName => k8sClusterMap.get(clusterName.asInstanceOf[String])).get
@@ -194,7 +230,7 @@ object Configuration {
       certificateAuthority = Some(Left(rootK8sFolder + "/ca.crt"))
     )
 
-    val authInfo = AuthInfo(token = Some(fileContents(tokenFile)))
+    val authInfo = TokenAuth(fileContents(tokenFile))
     val namespace = Namespace.forName(fileContents(namespaceFile))
     val context = Context(cluster, authInfo, namespace)
 
