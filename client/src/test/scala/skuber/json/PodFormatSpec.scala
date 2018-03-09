@@ -14,6 +14,7 @@ import skuber._
 import format._
 import play.api.libs.json._
 import skuber.apps.StatefulSet
+import skuber.Toleration.ExistsToleration
 
 /**
  * @author David O'Riordan
@@ -227,6 +228,10 @@ import Pod._
             ],
             "restartPolicy": "Always",
             "dnsPolicy": "Default",
+            "tolerations": [{
+              "key": "localhost.domain/url",
+              "operator": "Exists"
+            }],
             "serviceAccount": "default",
             "nodeName": "10.245.1.5"
           },
@@ -302,7 +307,8 @@ import Pod._
       
       myPod.spec.get.dnsPolicy mustEqual DNSPolicy.Default
       myPod.spec.get.restartPolicy mustEqual RestartPolicy.Always
-      
+      myPod.spec.get.tolerations mustEqual List(ExistsToleration("localhost.domain/url"))
+
       val vols = myPod.spec.get.volumes
       vols.length mustEqual 2
       vols(0) mustEqual Volume("dns-token",Volume.Secret("token-system-dns"))

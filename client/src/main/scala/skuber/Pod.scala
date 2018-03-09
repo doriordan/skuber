@@ -37,7 +37,8 @@ object Pod {
     nodeName: String = "",
     hostNetwork: Boolean = false,
     imagePullSecrets: List[LocalObjectReference] = List(),
-    affinity: Option[Affinity] = None) {
+    affinity: Option[Affinity] = None,
+    tolerations: List[Toleration] = List()) {
      
     // a few convenience methods for fluently building out a pod spec
     def addContainer(c: Container) = { this.copy(containers = c :: containers) }

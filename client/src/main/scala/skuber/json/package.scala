@@ -1,13 +1,13 @@
 package skuber.json
 
 import scala.language.implicitConversions
-
 import java.time._
 import java.time.format._
 
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import skuber.Toleration.{EqualToleration, ExistsToleration, TolerationEffect}
 import skuber._
 
 /**
@@ -230,7 +230,69 @@ package object format {
   )(Security.Capabilities.apply _, unlift(Security.Capabilities.unapply))
  
   implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
- 
+
+
+  implicit val tolerationEffectFmt: Format[Toleration.TolerationEffect] = new Format[Toleration.TolerationEffect] {
+
+    import Toleration.Effects._
+
+    override def reads(json: JsValue): JsResult[Toleration.TolerationEffect] = json match {
+      case JsString(value) => value match {
+        case NoSchedule.name => JsSuccess(NoSchedule)
+        case PreferNoSchedule.name => JsSuccess(PreferNoSchedule)
+        case name => JsError(s"Unknown toleration effect '$name'")
+      }
+      case _ => JsError(s"Toleration effect should be a string")
+    }
+
+    override def writes(effect: Toleration.TolerationEffect): JsValue = effect match {
+      case NoSchedule => JsString(NoSchedule.name)
+      case PreferNoSchedule => JsString(PreferNoSchedule.name)
+    }
+  }
+
+  implicit val tolerationFmt: Format[Toleration] = new Format[Toleration] {
+
+    override def reads(json: JsValue): JsResult[Toleration] = json match {
+      case JsObject(fields) if fields.contains("operator") =>
+
+        val key = fields("key").as[String]
+        val effect: Option[TolerationEffect] = fields.get("effect").flatMap{
+          case JsNull => None
+          case e @ _ => Some(e.as[TolerationEffect])
+        }
+
+        fields("operator") match {
+          case JsString("Equal") =>
+            val value = fields("value").as[String]
+            JsSuccess(EqualToleration(key, value, effect))
+          case JsString("Exists") => JsSuccess(ExistsToleration(key, effect))
+          case operator => JsError(s"Unknown operator '$operator'")
+        }
+
+      case _ => JsError(s"Unknown toleration")
+    }
+
+    //import play.api.libs.json._
+
+    override def writes(toleration: Toleration): JsValue = toleration match {
+
+      case EqualToleration(key, value, effect) => Json.obj(
+        "key" -> key,
+        "value" -> value,
+        "operator" -> "Equal",
+        "effect" -> Json.toJson(effect)
+      )
+
+      case ExistsToleration(key, effect) => Json.obj(
+        "key" -> key,
+        "operator" -> "Exists",
+        "effect" -> Json.toJson(effect)
+      )
+    }
+  }
+
+
   implicit val envVarFldRefFmt: Format[EnvVar.FieldRef] = (
     (JsPath \ "fieldPath").format[String] and
     (JsPath \ "apiVersion").formatMaybeEmptyString()
@@ -626,7 +688,8 @@ package object format {
       (JsPath \ "nodeName").formatMaybeEmptyString() and
       (JsPath \ "hostNetwork").formatMaybeEmptyBoolean() and
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
-      (JsPath \ "affinity").formatNullable[Pod.Affinity]
+      (JsPath \ "affinity").formatNullable[Pod.Affinity] and
+      (JsPath \ "tolerations").formatMaybeEmptyList[Toleration]
     )(Pod.Spec.apply _, unlift(Pod.Spec.unapply))
     
   implicit val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
