@@ -204,5 +204,23 @@ object Pod {
      object Spec {
        def named(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
      }
-   } 
+  }
+
+  sealed trait Toleration
+  case class EqualToleration(key: String, value: String,
+                              effect: Option[TolerationEffect] = None) extends Toleration
+  case class ExistsToleration(key: String,
+                               effect: Option[TolerationEffect] = None) extends Toleration
+
+  sealed trait TolerationEffect {
+    val name: String
+  }
+  object TolerationEffect {
+    case object NoSchedule extends TolerationEffect {
+      override val name: String = "NoSchedule"
+    }
+    case object PreferNoSchedule extends TolerationEffect {
+      override val name: String = "PreferNoSchedule"
+    }
+  }
 }

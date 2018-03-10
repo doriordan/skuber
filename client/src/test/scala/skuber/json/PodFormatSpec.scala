@@ -14,7 +14,7 @@ import skuber._
 import format._
 import play.api.libs.json._
 import skuber.apps.StatefulSet
-import skuber.Toleration.ExistsToleration
+import skuber.Pod.ExistsToleration
 
 /**
  * @author David O'Riordan
