@@ -140,7 +140,8 @@ object Configuration {
             apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
             server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
             insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)),
-            certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data"))
+            certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data")
+          )
 
 
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster)
@@ -158,42 +159,26 @@ object Configuration {
             }
           }
 
-          val maybeAtuh = optionalValueAt[YamlMap](userConfig, "auth-provider") match {
+          val maybeAuth = optionalValueAt[YamlMap](userConfig, "auth-provider") match {
             case Some(authProvider) => authProviderRead(authProvider)
             case None =>
               val clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data")
               val clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data")
-              val jwt = userConfig.containsKey("auth-provider") match {
-                case true => val authProvider = child(userConfig, "auth-provider");
-                  authProvider.containsKey("config") match {
-                    case true => val config = child(authProvider, "config"); optionalValueAt(config, "id-token")
-                    case false => None
-                  }
-                case false => None
-              }
 
-              val token = optionalValueAt(userConfig, "token")
+              val token = optionalValueAt[String](userConfig, "token")
 
-              val userName = optionalValueAt(userConfig, "username")
-              val password = optionalValueAt(userConfig, "password")
+              val userName = optionalValueAt[String](userConfig, "username")
+              val password = optionalValueAt[String](userConfig, "password")
 
-              (
-                for {
-                  u <- userName
-                  p <- password
-                } yield BasicAuth(u, p)
-                ).orElse {
-                token.map(TokenAuth.apply)
-              }.orElse {
-                jwt.map(TokenAuth.apply)
-              }.orElse {
-                for {
-                  cert <- clientCertificate
-                  key <- clientKey
-                } yield CertAuth(cert, key, userName)
+              (userName, password, token, clientCertificate, clientKey) match {
+                case (Some(u), Some(p), _, _, _) => Some(BasicAuth(u, p))
+                case (_, _, Some(t), _, _) => Some(TokenAuth(t))
+                case (u, _, _, Some(cert), Some(key)) => Some(CertAuth(cert, key, u))
+                case _ => None
               }
           }
-          maybeAtuh.getOrElse(NoAuth)
+
+          maybeAuth.getOrElse(NoAuth)
         }
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
