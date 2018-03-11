@@ -41,8 +41,8 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   }
 
   it should "delete a deployment" in { k8s =>
-    k8s.delete[Deployment](nginxDeploymentName).map { _ =>
-      eventually(timeout(3 seconds), interval(3 seconds)) {
+    k8s.deleteWithOptions[Deployment](nginxDeploymentName, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).map { _ =>
+      eventually(timeout(300 seconds), interval(3 seconds)) {
         val f: Future[Deployment] = k8s.get[Deployment](nginxDeploymentName)
         ScalaFutures.whenReady(f.failed) { e =>
           e shouldBe a[K8SException]
