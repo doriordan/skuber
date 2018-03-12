@@ -545,9 +545,12 @@ package object format {
    
   implicit val podStatusCondFormat : Format[Pod.Condition] = (
       (JsPath \ "type").format[String] and
-      (JsPath \ "status").format[String]
+      (JsPath \ "status").formatMaybeEmptyString() and
+      (JsPath \ "reason").formatNullable[String] and
+      (JsPath \ "message").formatNullable[String] and
+      (JsPath \ "lastProbeTime").formatNullable[Timestamp] and
+      (JsPath \ "lastTransitionTime").formatNullable[Timestamp]
     )(Pod.Condition.apply _, unlift(Pod.Condition.unapply))
-     
   
   implicit val podStatusFormat: Format[Pod.Status] = (
       (JsPath \ "phase").formatNullableEnum(Pod.Phase) and

@@ -31,18 +31,31 @@ class PodSpec extends K8SFixture with Eventually with Matchers {
     }
   }
 
-  it should "get the status of newly created pod and container" in { k8s =>
-    k8s.get[Pod](nginxPodName).map { p =>
-      val nginxCont = for {
-        podStatus <- p.status
-        nginxContainerStatus = podStatus.containerStatuses(0)
-        nginxContName = nginxContainerStatus.name
-        nginxContStatus <- nginxContainerStatus.state
-      } yield (nginxContName, nginxContStatus)
-      nginxCont.map { case (name, status) =>
-        println(s"Container ${name} has status ${status}")
+  it should "check for newly created pod and container to be ready" in { k8s =>
+    eventually(timeout(100 seconds), interval(3 seconds)) {
+      val retrievePod=k8s.get[Pod](nginxPodName)
+      val podRetrieved=Await.ready(retrievePod, 2 seconds).value.get
+      val podStatus=podRetrieved.get.status.get
+      val nginxContainerStatus = podStatus.containerStatuses(0)
+      podStatus.phase should contain(Pod.Phase.Running)
+      nginxContainerStatus.name should be("nginx")
+      nginxContainerStatus.state.get shouldBe a[Container.Running]
+      val isUnschedulable=podStatus.conditions.exists { c =>
+        c._type=="PodScheduled" && c.status=="False" && c.reason==Some("Unschedulable")
       }
-      assert(nginxCont.isDefined)
+      val isScheduled=podStatus.conditions.exists { c =>
+        c._type=="PodScheduled" && c.status=="True"
+      }
+      val isInitialised=podStatus.conditions.exists { c =>
+        c._type=="Initialized" && c.status=="True"
+      }
+      val isReady=podStatus.conditions.exists { c =>
+        c._type=="Ready" && c.status=="True"
+      }
+      assert(!isUnschedulable)
+      assert(isScheduled)
+      assert(isInitialised)
+      assert(isReady)
     }
   }
 
