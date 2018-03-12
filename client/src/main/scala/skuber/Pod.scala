@@ -146,7 +146,13 @@ object Pod {
     startTime: Option[Timestamp] = None,
     containerStatuses: List[Container.Status] = Nil)
 
-  case class Condition(_type : String="Ready", status: String)
+  case class Condition(
+    _type : String="Ready",
+    status: String,
+    reason: Option[String]=None,
+    message: Option[String]=None,
+    lastProbeTime: Option[Timestamp]=None,
+    lastTransitionTime: Option[Timestamp]=None)
  
   case class Template(
     val kind: String ="PodTemplate",
