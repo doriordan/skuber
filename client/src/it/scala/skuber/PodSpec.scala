@@ -1,10 +1,14 @@
 package skuber
 
 import org.scalatest.Matchers
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.concurrent.Eventually
 import skuber.json.format._
 
 import scala.concurrent.duration._
+import scala.concurrent.Await
+import scala.util.{Success,Failure}
+
+import akka.event.Logging
 
 import akka.stream.scaladsl.Sink
 
@@ -36,7 +40,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers {
         nginxContStatus <- nginxContainerStatus.state
       } yield (nginxContName, nginxContStatus)
       nginxCont.map { case (name, status) =>
-        println(s"Containe ${name} has status ${status}")
+        println(s"Container ${name} has status ${status}")
       }
       assert(nginxCont.isDefined)
     }
@@ -44,10 +48,15 @@ class PodSpec extends K8SFixture with Eventually with Matchers {
 
   it should "delete a pod" in { k8s =>
     k8s.delete[Pod](nginxPodName).map { _ =>
-      eventually(timeout(300 seconds), interval(3 seconds)) {
-        val f: Future[Pod] = k8s.get[Pod](nginxPodName)
-        ScalaFutures.whenReady(f.failed) { e =>
-          e shouldBe a[K8SException]
+      eventually(timeout(100 seconds), interval(3 seconds)) {
+        val retrievePod = k8s.get[Pod](nginxPodName)
+        val podRetrieved=Await.ready(retrievePod, 2 seconds).value.get
+        podRetrieved match {
+          case s: Success[_] => assert(false)
+          case Failure(ex) => ex match {
+              case ex: K8SException if ex.status.code.contains(404) => assert(true)
+              case _ => assert(false)
+            }
         }
       }
     }

@@ -4,9 +4,10 @@ import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.ext.Deployment
 import skuber.json.ext.format._
-import scala.concurrent.duration._
 
-import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   val nginxDeploymentName: String = java.util.UUID.randomUUID().toString
@@ -29,11 +30,10 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
     k8s.get[Deployment](nginxDeploymentName).flatMap { d =>
       val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
       k8s.update(updatedDeployment).flatMap { _ =>
-        eventually(timeout(15 seconds), interval(15 seconds)) {
-          k8s.get[Deployment](nginxDeploymentName).map { ud =>
-            ud.status.fold(fail) { s =>
-              s.updatedReplicas shouldBe 1
-            }
+        eventually(timeout(200 seconds), interval(5 seconds)) {
+          val retrieveDeployment=k8s.get[Deployment](nginxDeploymentName)
+          ScalaFutures.whenReady(retrieveDeployment, timeout(2 seconds), interval(1 second)) { deployment =>
+            deployment.status.get.updatedReplicas shouldBe 1
           }
         }
       }
@@ -42,10 +42,15 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
 
   it should "delete a deployment" in { k8s =>
     k8s.deleteWithOptions[Deployment](nginxDeploymentName, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).map { _ =>
-      eventually(timeout(300 seconds), interval(3 seconds)) {
-        val f: Future[Deployment] = k8s.get[Deployment](nginxDeploymentName)
-        ScalaFutures.whenReady(f.failed) { e =>
-          e shouldBe a[K8SException]
+      eventually(timeout(200 seconds), interval(3 seconds)) {
+        val retrieveDeployment = k8s.get[Deployment](nginxDeploymentName)
+        val deploymentRetrieved=Await.ready(retrieveDeployment, 2 seconds).value.get
+        deploymentRetrieved match {
+          case s: Success[_] => assert(false)
+          case Failure(ex) => ex match {
+            case ex: K8SException if ex.status.code.contains(404) => assert(true)
+            case _ => assert(false)
+          }
         }
       }
     }
