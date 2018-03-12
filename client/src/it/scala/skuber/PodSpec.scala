@@ -52,7 +52,6 @@ class PodSpec extends K8SFixture with Eventually with Matchers {
       val isReady=podStatus.conditions.exists { c =>
         c._type=="Ready" && c.status=="True"
       }
-      assert(!isUnschedulable)
       assert(isScheduled)
       assert(isInitialised)
       assert(isReady)
