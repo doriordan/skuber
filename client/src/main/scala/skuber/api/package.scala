@@ -4,6 +4,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.SystemProperties
 import scala.util.{Failure, Success}
 import java.net.URL
+import java.time.Instant
 import java.util.UUID
 
 import akka.actor.ActorSystem
@@ -16,12 +17,14 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-import play.api.libs.json.{Format, Reads}
+import play.api.libs.json._ // JSON library
+import play.api.libs.json.Reads._ // Custom validation helpers
+import play.api.libs.functional.syntax._ // Combinator syntax
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format._
 import skuber.json.format.apiobj._
-import skuber.{ObjectResource, _}
+import skuber._
 
 /**
  * @author David O'Riordan
@@ -55,6 +58,10 @@ package object client {
 
    sealed trait AuthInfo
 
+   sealed trait AccessTokenAuth extends AuthInfo {
+     def accessToken: String
+   }
+
    object NoAuth extends AuthInfo {
      override def toString: String = "NoAuth"
    }
@@ -63,7 +70,10 @@ package object client {
      override def toString: String = s"${getClass.getSimpleName}(userName=$userName,password=<redacted>)"
    }
 
-   final case class TokenAuth(token: String) extends AuthInfo {
+   final case class TokenAuth(token: String) extends AccessTokenAuth {
+
+     override def accessToken: String = token
+
      override def toString: String = s"${getClass.getSimpleName}(token=<redacted>)"
    }
 
@@ -89,7 +99,7 @@ package object client {
        .mkString
    }
 
-   sealed trait AuthProviderAuth extends AuthInfo {
+   sealed trait AuthProviderAuth extends AccessTokenAuth {
      def name: String
    }
 
@@ -98,14 +108,59 @@ package object client {
    final case class OidcAuth(idToken: String) extends AuthProviderAuth {
      override val name = "oidc"
 
+     override def accessToken: String = idToken
+
      override def toString = """OidcAuth(idToken=<redacted>)"""
    }
 
-   final case class GcpAuth(accessToken: String) extends AuthProviderAuth {
+   final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderAuth {
      override val name = "gcp"
+
+     @volatile private var refresh: GcpRefresh = new GcpRefresh(config.accessToken, config.expiry)
+
+     def refreshGcpToken(): GcpRefresh = {
+       val output = config.cmd.execute()
+       Json.parse(output).as[GcpRefresh]
+     }
+
+     def accessToken: String = this.synchronized {
+       if(refresh.expired)
+         refresh = refreshGcpToken()
+
+       refresh.accessToken
+     }
 
      override def toString =
        """GcpAuth(accessToken=<redacted>)""".stripMargin
+   }
+
+   final private[client] case class GcpRefresh(accessToken: String, expiry: Instant) {
+     def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
+   }
+
+  private[client] object GcpRefresh {
+    implicit val gcpRefreshReads: Reads[GcpRefresh] = (
+      (JsPath \ "credential" \ "access_token").read[String] and
+      (JsPath \ "credential" \ "token_expiry").read[Instant]
+    )(GcpRefresh.apply _)
+  }
+
+   final case class GcpConfiguration(accessToken: String, expiry: Instant, cmd: GcpCommand)
+
+   final case class GcpCommand(cmd: String, args: String) {
+     import scala.sys.process._
+     def execute(): String = s"$cmd $args".!!
+   }
+
+   object GcpAuth {
+     def apply(accessToken: String, expiry: Instant, cmdPath: String, cmdArgs: String): GcpAuth =
+       new GcpAuth(
+         GcpConfiguration(
+           accessToken = accessToken,
+           expiry = expiry,
+           GcpCommand(cmdPath, cmdArgs)
+         )
+       )
    }
 
    // for use with the Watch command

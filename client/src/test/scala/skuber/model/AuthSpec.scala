@@ -1,5 +1,7 @@
 package skuber.model
 
+import java.time.Instant
+
 import org.specs2.mutable.Specification
 import skuber.api.client._
 
@@ -39,7 +41,8 @@ class AuthSpec extends Specification {
   }
 
   "GcpAuth toString masks accessToken" >> {
-    GcpAuth(accessToken = "MyAccessToken").toString mustEqual "GcpAuth(accessToken=<redacted>)"
+    GcpAuth(accessToken = "MyAccessToken", expiry = Instant.now, cmdPath = "gcp", cmdArgs = "").toString mustEqual
+      "GcpAuth(accessToken=<redacted>)"
   }
 
   "OidcAuth toString masks idToken" >> {

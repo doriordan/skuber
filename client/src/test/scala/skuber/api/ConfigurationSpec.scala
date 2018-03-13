@@ -3,6 +3,7 @@ package skuber.api
 import skuber._
 import org.specs2.mutable.Specification
 import java.nio.file.Paths
+import java.time.Instant
 
 import skuber.api.client._
 
@@ -87,7 +88,8 @@ users:
     val blueUser = TokenAuth("blue-token")
     val greenUser = CertAuth(clientCertificate = Left("path/to/my/client/cert"), clientKey = Left("path/to/my/client/key"), user = None)
     val jwtUser= OidcAuth(idToken = "jwt-token")
-    val gcpUser = GcpAuth(accessToken = "myAccessToken")
+    val gcpUser = GcpAuth(accessToken = "myAccessToken", expiry = Instant.parse("2018-03-04T14:08:18Z"),
+      cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
     val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser)
 
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))

@@ -4,7 +4,7 @@ import java.io.File
 
 import scala.collection.JavaConverters._
 import scala.util.Try
-import java.util.Base64
+import java.util.{Base64, Date}
 
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
@@ -85,7 +85,7 @@ object Configuration {
 
     def parseKubeconfigStream(is: java.io.InputStream, kubeconfigDir: Option[Path] = None) : Try[Configuration]= {
 
-      type YamlMap= java.util.Map[String, Object]
+      type YamlMap = java.util.Map[String, Object]
       type TopLevelYamlList = java.util.List[YamlMap]
 
       Try {
@@ -154,7 +154,14 @@ object Configuration {
               case "oidc" =>
                 Some(OidcAuth(idToken = valueAt(config, "id-token")))
               case "gcp" =>
-                Some(GcpAuth(accessToken = valueAt(config, "access-token")))
+                Some(
+                  GcpAuth(
+                    accessToken = valueAt(config, "access-token"),
+                    expiry = valueAt[Date](config, "expiry").toInstant,
+                    cmdPath = valueAt(config, "cmd-path"),
+                    cmdArgs = valueAt(config, "cmd-args")
+                  )
+                )
               case _ => None
             }
           }

@@ -13,9 +13,7 @@ object HTTPRequestAuth {
     auth match {
       case NoAuth | _: CertAuth => request
       case BasicAuth(user, password) => request.addHeader(Authorization(BasicHttpCredentials(user,password)))
-      case TokenAuth(token) => request.addHeader(Authorization(OAuth2BearerToken(token)))
-      case OidcAuth(idToken) => request.addHeader(Authorization(OAuth2BearerToken(idToken)))
-      case GcpAuth(accessToken) => request.addHeader(Authorization(OAuth2BearerToken(accessToken)))
+      case auth: AccessTokenAuth => request.addHeader(Authorization(OAuth2BearerToken(auth.accessToken)))
     }
   }   
 }
