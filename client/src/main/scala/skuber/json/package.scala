@@ -1,7 +1,6 @@
 package skuber.json
 
 import scala.language.implicitConversions
-
 import java.time._
 import java.time.format._
 
@@ -230,7 +229,67 @@ package object format {
   )(Security.Capabilities.apply _, unlift(Security.Capabilities.unapply))
  
   implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
- 
+
+
+  implicit val tolerationEffectFmt: Format[Pod.TolerationEffect] = new Format[Pod.TolerationEffect] {
+
+    import Pod.TolerationEffect._
+
+    override def reads(json: JsValue): JsResult[Pod.TolerationEffect] = json match {
+      case JsString(value) => value match {
+        case NoSchedule.name => JsSuccess(NoSchedule)
+        case PreferNoSchedule.name => JsSuccess(PreferNoSchedule)
+        case name => JsError(s"Unknown toleration effect '$name'")
+      }
+      case _ => JsError(s"Toleration effect should be a string")
+    }
+
+    override def writes(effect: Pod.TolerationEffect): JsValue = effect match {
+      case NoSchedule => JsString(NoSchedule.name)
+      case PreferNoSchedule => JsString(PreferNoSchedule.name)
+    }
+  }
+
+  implicit val tolerationFmt: Format[Pod.Toleration] = new Format[Pod.Toleration] {
+
+    override def reads(json: JsValue): JsResult[Pod.Toleration] = json match {
+      case JsObject(fields) if fields.contains("operator") =>
+
+        val key = fields("key").as[String]
+        val effect: Option[Pod.TolerationEffect] = fields.get("effect").flatMap{
+          case JsNull => None
+          case e @ _ => Some(e.as[Pod.TolerationEffect])
+        }
+
+        fields("operator") match {
+          case JsString("Equal") =>
+            val value = fields("value").as[String]
+            JsSuccess(Pod.EqualToleration(key, value, effect))
+          case JsString("Exists") => JsSuccess(Pod.ExistsToleration(key, effect))
+          case operator => JsError(s"Unknown operator '$operator'")
+        }
+
+      case _ => JsError(s"Unknown toleration")
+    }
+
+    override def writes(toleration: Pod.Toleration): JsValue = toleration match {
+
+      case Pod.EqualToleration(key, value, effect) => Json.obj(
+        "key" -> key,
+        "value" -> value,
+        "operator" -> "Equal",
+        "effect" -> Json.toJson(effect)
+      )
+
+      case Pod.ExistsToleration(key, effect) => Json.obj(
+        "key" -> key,
+        "operator" -> "Exists",
+        "effect" -> Json.toJson(effect)
+      )
+    }
+  }
+
+
   implicit val envVarFldRefFmt: Format[EnvVar.FieldRef] = (
     (JsPath \ "fieldPath").format[String] and
     (JsPath \ "apiVersion").formatMaybeEmptyString()
@@ -629,7 +688,8 @@ package object format {
       (JsPath \ "nodeName").formatMaybeEmptyString() and
       (JsPath \ "hostNetwork").formatMaybeEmptyBoolean() and
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
-      (JsPath \ "affinity").formatNullable[Pod.Affinity]
+      (JsPath \ "affinity").formatNullable[Pod.Affinity] and
+      (JsPath \ "tolerations").formatMaybeEmptyList[Pod.Toleration]
     )(Pod.Spec.apply _, unlift(Pod.Spec.unapply))
     
   implicit val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
