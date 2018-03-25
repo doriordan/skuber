@@ -2,12 +2,10 @@ package skuber.api
 
 import skuber._
 import org.specs2.mutable.Specification
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
-import org.specs2.execute.Success
 import java.nio.file.Paths
+import java.time.Instant
 
-import skuber.api.client.PathOrData
+import skuber.api.client._
 
 /**
  * @author David O'Riordan
@@ -63,6 +61,17 @@ users:
         idp-issuer-url: https://xyz/identity
         refresh-token: refresh
       name: oidc
+- name: gke-user
+  user:
+    auth-provider:
+      config:
+        access-token: myAccessToken
+        cmd-args: config config-helper --format=json
+        cmd-path: /home/user/google-cloud-sdk/bin/gcloud
+        expiry: 2018-03-04T14:08:18Z
+        expiry-key: '{.credential.token_expiry}'
+        token-key: '{.credential.access_token}'
+      name: gcp
 """
   "An example kubeconfig file can be parsed correctly" >> {
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
@@ -76,10 +85,12 @@ users:
     val pigCluster=K8SCluster("v1", "https://pig.org:443", true)
     val clusters=Map("cow-cluster" -> cowCluster,"horse-cluster"->horseCluster,"pig-cluster"->pigCluster)
     
-    val blueUser=K8SAuthInfo(token=Some("blue-token"))
-    val greenUser=K8SAuthInfo(clientCertificate=Some(Left("path/to/my/client/cert")), clientKey=Some(Left("path/to/my/client/key")))
-    val jwtUser=K8SAuthInfo(jwt = Some("jwt-token"))
-    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser)
+    val blueUser = TokenAuth("blue-token")
+    val greenUser = CertAuth(clientCertificate = Left("path/to/my/client/cert"), clientKey = Left("path/to/my/client/key"), user = None)
+    val jwtUser= OidcAuth(idToken = "jwt-token")
+    val gcpUser = GcpAuth(accessToken = "myAccessToken", expiry = Instant.parse("2018-03-04T14:08:18Z"),
+      cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
+    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser)
 
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
     val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))
@@ -105,6 +116,7 @@ users:
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
     val k8sConfig = K8SConfiguration.parseKubeconfigStream(is, Some(Paths.get("/top/level/path")))
     val parsedFromStringConfig = k8sConfig.get
-    parsedFromStringConfig.users("green-user").clientCertificate.get mustEqual Left("/top/level/path/path/to/my/client/cert")
+    val clientCertificate = parsedFromStringConfig.users("green-user").asInstanceOf[CertAuth].clientCertificate
+    clientCertificate mustEqual Left("/top/level/path/path/to/my/client/cert")
   }
 }

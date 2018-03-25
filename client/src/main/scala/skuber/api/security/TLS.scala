@@ -5,7 +5,7 @@ import javax.net.ssl._
 import java.security.cert.X509Certificate
 import java.security.SecureRandom
 
-import skuber.api.client.{Context, PathOrData}
+import skuber.api.client.{AuthInfo, CertAuth, Context, PathOrData}
 
 /**
  * @author David O'Riordan
@@ -16,7 +16,7 @@ object TLS {
   // it always trusts the server i.e. skips verifying the server cert for a TLS connection
   object InsecureSkipTLSVerifyTrustManager extends X509ExtendedTrustManager
   {
-    def getAcceptedIssuers() = Array[X509Certificate]()
+    def getAcceptedIssuers = Array.empty[X509Certificate]
     def checkClientTrusted(certs: Array[X509Certificate], authType: String) : Unit = {}
     def checkServerTrusted(certs: Array[X509Certificate], authType: String) : Unit = {}
     def checkClientTrusted(certs: Array[X509Certificate], s: String, socket: Socket): Unit = {}
@@ -45,13 +45,10 @@ object TLS {
      val skipTLSVerify = k8sContext.cluster.insecureSkipTLSVerify
      val clusterCertConfig = k8sContext.cluster.certificateAuthority
      val trustManagers = getTrustManagers(skipTLSVerify,clusterCertConfig) 
-          
-     val clientCert = k8sContext.authInfo.clientCertificate
-     val clientKey = k8sContext.authInfo.clientKey
-     val user = k8sContext.authInfo.userName
-     val keyManagers = getKeyManagers(user, clientCert, clientKey)
+
+     val keyManagers = getKeyManagers(k8sContext.authInfo)
      
-     sslContext.init(keyManagers.getOrElse(null), trustManagers.getOrElse(null),  new SecureRandom())
+     sslContext.init(keyManagers.orNull, trustManagers.orNull, new SecureRandom())
      sslContext
    }
    
@@ -67,16 +64,16 @@ object TLS {
            tmf.getTrustManagers
        }
   
-   private def getKeyManagers(user: Option[String], clientCert: Option[PathOrData], clientKey: Option[PathOrData]) : Option[Array[KeyManager]] = 
-     if (clientCert.isDefined && clientKey.isDefined) {
-       val certs = SecurityHelper.getCertificates(clientCert.get)
-       val key = SecurityHelper.getPrivateKey(clientKey.get)
-       val keyStore = SecurityHelper.createKeyStore(user.getOrElse("skuber"), certs, key)
-       val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-       kmf.init(keyStore, "changeit".toCharArray)
-       Some(kmf.getKeyManagers)
+   private def getKeyManagers(authInfo: AuthInfo) : Option[Array[KeyManager]] =
+     authInfo match {
+       case CertAuth(clientCert, clientKey, userName) =>
+         val certs = SecurityHelper.getCertificates(clientCert)
+         val key = SecurityHelper.getPrivateKey(clientKey)
+         val keyStore = SecurityHelper.createKeyStore(userName.getOrElse("skuber"), certs, key)
+         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
+         kmf.init(keyStore, "changeit".toCharArray)
+         Some(kmf.getKeyManagers)
+       case _ => None
      }
-     else
-       None
        
 }

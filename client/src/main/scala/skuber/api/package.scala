@@ -4,42 +4,43 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.SystemProperties
 import scala.util.{Failure, Success}
 import java.net.URL
+import java.time.Instant
 import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.http.scaladsl.marshalling.{Marshal, Marshaller, Marshalling}
-import akka.http.scaladsl.model.MediaTypes.`application/json`
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-import play.api.libs.json.{Format, Reads}
+import play.api.libs.json._ // JSON library
+import play.api.libs.json.Reads._ // Custom validation helpers
+import play.api.libs.functional.syntax._ // Combinator syntax
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format._
 import skuber.json.format.apiobj._
-import skuber.{ObjectResource, _}
+import skuber._
 
 /**
  * @author David O'Riordan
  */
 package object client {
 
-  val sysProps = new SystemProperties
+  final val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
   type PathOrData = Either[String,Array[Byte]]
 
    // K8S client API classes
-   val defaultApiServerURL = "http://localhost:8080"
+   final val defaultApiServerURL = "http://localhost:8080"
 
   // Patch content type(s)
-  val `application/merge-patch+json`: MediaType.WithFixedCharset =
+  final val `application/merge-patch+json`: MediaType.WithFixedCharset =
     MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
 
   case class Cluster(
@@ -51,37 +52,115 @@ package object client {
 
    case class Context(
      cluster: Cluster = Cluster(),
-     authInfo: AuthInfo = AuthInfo(),
+     authInfo: AuthInfo = NoAuth,
      namespace: Namespace = Namespace.default
    )
 
-   case class AuthInfo(
-     clientCertificate: Option[PathOrData] = None,
-     clientKey: Option[PathOrData] = None,
-     // 'jwt' supports an oidc id token per https://kubernetes.io/docs/admin/authentication/#option-1---oidc-authenticator
-     // - but does not yet support token refresh
-     jwt: Option[String] = None,
-     token: Option[String] = None,
-     userName: Option[String] = None,
-     password: Option[String] = None
-   ) {
-     override def toString : String = {
-       var result = new StringBuilder("AuthInfo(")
-       result ++= clientCertificate.map({
-         case Left(certPath: String) => "clientCertificate=" + certPath + " "
-         case Right(_: Array[Byte]) => "clientCertificate=<PEM masked> "
-       }).getOrElse("")
-       result ++= clientKey.map({
-         case Left(certPath: String) => "clientKey=" + certPath + " "
-         case Right(_: Array[Byte]) => "clientKey=<PEM masked> "
-       }).getOrElse("")
-       result ++= jwt.map("jwt="+_.replaceAll(".","*")+" ").getOrElse("")
-       result ++= token.map("token="+_.replaceAll(".","*")+" ").getOrElse("")
-       result ++= userName.map("userName="+_+" ").getOrElse("")
-       result ++= password.map("password="+_.replaceAll(".","*")+" ").getOrElse("")
-       result ++=")"
-       result.toString()
+   sealed trait AuthInfo
+
+   sealed trait AccessTokenAuth extends AuthInfo {
+     def accessToken: String
+   }
+
+   object NoAuth extends AuthInfo {
+     override def toString: String = "NoAuth"
+   }
+
+   final case class BasicAuth(userName: String, password: String) extends AuthInfo {
+     override def toString: String = s"${getClass.getSimpleName}(userName=$userName,password=<redacted>)"
+   }
+
+   final case class TokenAuth(token: String) extends AccessTokenAuth {
+
+     override def accessToken: String = token
+
+     override def toString: String = s"${getClass.getSimpleName}(token=<redacted>)"
+   }
+
+   final case class CertAuth(clientCertificate: PathOrData, clientKey: PathOrData, user: Option[String]) extends AuthInfo {
+     override def toString: String = StringBuilder.newBuilder
+       .append(getClass.getSimpleName)
+       .append("(")
+       .append {
+         clientCertificate match {
+           case Left(certPath: String) => "clientCertificate=" + certPath + " "
+           case Right(_) => "clientCertificate=<PEM masked> "
+         }
+       }
+       .append {
+         clientKey match {
+           case Left(certPath: String) => "clientKey=" + certPath + " "
+           case Right(_) => "clientKey=<PEM masked> "
+         }
+       }
+       .append("userName=")
+       .append(user.getOrElse(""))
+       .append(" )")
+       .mkString
+   }
+
+   sealed trait AuthProviderAuth extends AccessTokenAuth {
+     def name: String
+   }
+
+   // 'jwt' supports an oidc id token per https://kubernetes.io/docs/admin/authentication/#option-1---oidc-authenticator
+   // - but does not yet support token refresh
+   final case class OidcAuth(idToken: String) extends AuthProviderAuth {
+     override val name = "oidc"
+
+     override def accessToken: String = idToken
+
+     override def toString = """OidcAuth(idToken=<redacted>)"""
+   }
+
+   final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderAuth {
+     override val name = "gcp"
+
+     @volatile private var refresh: GcpRefresh = new GcpRefresh(config.accessToken, config.expiry)
+
+     def refreshGcpToken(): GcpRefresh = {
+       val output = config.cmd.execute()
+       Json.parse(output).as[GcpRefresh]
      }
+
+     def accessToken: String = this.synchronized {
+       if(refresh.expired)
+         refresh = refreshGcpToken()
+
+       refresh.accessToken
+     }
+
+     override def toString =
+       """GcpAuth(accessToken=<redacted>)""".stripMargin
+   }
+
+   final private[client] case class GcpRefresh(accessToken: String, expiry: Instant) {
+     def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
+   }
+
+  private[client] object GcpRefresh {
+    implicit val gcpRefreshReads: Reads[GcpRefresh] = (
+      (JsPath \ "credential" \ "access_token").read[String] and
+      (JsPath \ "credential" \ "token_expiry").read[Instant]
+    )(GcpRefresh.apply _)
+  }
+
+   final case class GcpConfiguration(accessToken: String, expiry: Instant, cmd: GcpCommand)
+
+   final case class GcpCommand(cmd: String, args: String) {
+     import scala.sys.process._
+     def execute(): String = s"$cmd $args".!!
+   }
+
+   object GcpAuth {
+     def apply(accessToken: String, expiry: Instant, cmdPath: String, cmdArgs: String): GcpAuth =
+       new GcpAuth(
+         GcpConfiguration(
+           accessToken = accessToken,
+           expiry = expiry,
+           GcpCommand(cmdPath, cmdArgs)
+         )
+       )
    }
 
    // for use with the Watch command
@@ -122,7 +201,7 @@ package object client {
    class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
                         val requestInvoker: HttpRequest => Future[HttpResponse],
                         val clusterServer: String,
-                        val requestAuth: HTTPRequestAuth.RequestAuth,
+                        val requestAuth: AuthInfo,
                         val namespaceName: String,
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
@@ -653,7 +732,6 @@ package object client {
     }
 
     val sslContext = TLS.establishSSLContext(k8sContext)
-    val theRequestAuth = HTTPRequestAuth.establishRequestAuth(k8sContext)
     sslContext foreach { ssl =>
       val httpsContext = ConnectionContext.https(ssl, None,Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")), None, None)
       Http().setDefaultClientHttpsContext(httpsContext)
@@ -667,7 +745,7 @@ package object client {
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
     val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, theRequestAuth, theNamespaceName, logConfig, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, logConfig, closeHook)
   }
 
   private def defaultK8sConfig: Configuration = {

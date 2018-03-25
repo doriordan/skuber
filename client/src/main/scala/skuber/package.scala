@@ -243,7 +243,6 @@ package object skuber {
   // having to import anything from the skuber.api package
   val K8SCluster = skuber.api.client.Cluster
   val K8SContext = skuber.api.client.Context
-  val K8SAuthInfo = skuber.api.client.AuthInfo
   type K8SRequestContext = skuber.api.client.RequestContext
   type K8SException = skuber.api.client.K8SException
   val K8SConfiguration = skuber.api.Configuration
