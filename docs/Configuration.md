@@ -10,6 +10,8 @@ If proxying via a [kubectl proxy](https://kubernetes.io/docs/user-guide/kubectl/
 
 If the cluster URL is set this way, then the SKUBER_CONFIG and KUBECONFIG environment variables below are ignored by Skuber.
 
+Alternatively, you can programmatically configure the proxy details by using one of the [Configuration helper methods](https://github.com/doriordan/skuber/blob/master/client/src/main/scala/skuber/api/Configuration.scala#L32) to construct an appropriate Configuration object to be passed to the `k8sInit` call.
+
 ### Kubeconfig file
 
 If not using a `kubectl proxy` then most clients clients will be configured using a [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
