@@ -14,7 +14,7 @@ Alternatively, you can programmatically configure the proxy details by using one
 
 ### Kubeconfig file
 
-If not using a `kubectl proxy` then most clients clients will be configured using a [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
+If not using a `kubectl proxy` then most clients will be configured using a [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
 
 - Authentication credentials - [see below](#security).
 - [Namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) - this allows the client to read/write Kubernetes resources in different cluster namespaces just by changing runtime configuration, which supports partitioning by team / organization.
@@ -28,7 +28,7 @@ Setting this variable as follows:
 
     export SKUBER_CONFIG=file
 
-will instruct the client to get its configuration for a Kubeconfig file in the default location (`$HOME/.kube/config`).
+will instruct the client to get its configuration for a Kubeconfig file in the default location (`$HOME/.kube/config`), assuming the application uses the default`k8sInit()` method to initialise the Skuber client.
 
 If SKUBER_CONFIG environment variable is not set then the fallback is to get the kubeconfig location from the standard Kubernetes / kubectl KUBECONFIG variable.
 
