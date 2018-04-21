@@ -63,6 +63,8 @@ import Pod._
                                                  Volume.Mount("mnt2","/mt2", readOnly = true)),
                                readinessProbe=Some(readyProbe),
                                lifecycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
+                               terminationMessagePath=Some("/var/log/termination-message"),
+                               terminationMessagePolicy=Some(Container.TerminationMessagePolicy.File),
                                securityContext=Some(Security.Context(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
                               )
                      )
@@ -150,6 +152,7 @@ import Pod._
                   }
                 ],
                 "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
                 "imagePullPolicy": "IfNotPresent"
               },
               {
@@ -317,6 +320,8 @@ import Pod._
       cntrs.length mustEqual 3
       cntrs(0).name mustEqual "etcd"
       cntrs(0).imagePullPolicy mustEqual Container.PullPolicy.IfNotPresent
+      cntrs(0).terminationMessagePath mustEqual Some("/dev/termination-log")
+      cntrs(0).terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.File)
       cntrs(0).resources.get.limits("cpu") mustEqual Resource.Quantity("100m")
       cntrs(0).command.length  mustEqual 7
       
