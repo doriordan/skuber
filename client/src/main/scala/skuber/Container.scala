@@ -20,7 +20,8 @@ case class Container(
     livenessProbe: Option[Probe] = None,
     readinessProbe: Option[Probe] = None,
     lifecycle: Option[Lifecycle] = None,
-    terminationMessagePath: String = "/var/log/termination",
+    terminationMessagePath: Option[String] = None,
+    terminationMessagePolicy: Option[Container.TerminationMessagePolicy.Value] = None,
     imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
     securityContext: Option[Security.Context] = None)
       extends Limitable
@@ -41,7 +42,10 @@ case class Container(
   def withWorkingDir(wd: String) = this.copy(workingDir = Some(wd))
   def withArgs(arg: String*) = this.copy(args = arg.toList)
   def withEntrypoint(cmd: String*) = this.copy(command=cmd.toList)
-  def withTerminationMessagePath(t: String) = this.copy(terminationMessagePath= t)
+
+  def withTerminationMessagePath(path: String) = this.copy(terminationMessagePath = Some(path))
+  def withTerminationMessagePolicy(policy: Container.TerminationMessagePolicy.Value) =
+    this.copy(terminationMessagePolicy = Some(policy))
 
   def limitCPU(cpu: Resource.Quantity) = addResourceLimit(Resource.cpu, cpu)
   def limitMemory(mem: Resource.Quantity) = addResourceLimit(Resource.memory, mem)
@@ -153,5 +157,9 @@ object Container {
       state: Option[State] = None,
       lastState: Option[State] = None,
       containerID: Option[String] = None) 
-      
+
+  object TerminationMessagePolicy extends Enumeration {
+    type TerminationMessagePolicy = Value
+    val File, FallbackToLogsOnError = Value
+  }
 }    

@@ -583,7 +583,10 @@ package object format {
   
    implicit val pullPolicyFormat: Format[Container.PullPolicy.Value] = 
        Format(enumReads(Container.PullPolicy, Container.PullPolicy.IfNotPresent), enumWrites)
-       
+
+  implicit val terminationMessagePolicyFormat: Format[Container.TerminationMessagePolicy.Value] =
+    Format(enumReads(Container.TerminationMessagePolicy, Container.TerminationMessagePolicy.File), enumWrites)
+
   implicit val containerFormat: Format[Container] = (
     (JsPath \ "name").format[String] and
     (JsPath \ "image").format[String] and
@@ -597,7 +600,8 @@ package object format {
     (JsPath \ "livenessProbe").formatNullable[Probe] and
     (JsPath \ "readinessProbe").formatNullable[Probe] and
     (JsPath \ "lifecycle").formatNullable[Lifecycle] and
-    (JsPath \ "terminationMessagePath").formatMaybeEmptyString() and
+    (JsPath \ "terminationMessagePath").formatNullable[String] and
+    (JsPath \ "terminationMessagePolicy").formatNullableEnum(Container.TerminationMessagePolicy)  and
     (JsPath \ "imagePullPolicy").formatEnum(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)) and
     (JsPath \ "securityContext").formatNullable[Security.Context]
   )(Container.apply _, unlift(Container.unapply))
