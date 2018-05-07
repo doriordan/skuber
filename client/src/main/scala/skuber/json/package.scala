@@ -230,7 +230,6 @@ package object format {
  
   implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
 
-
   implicit val tolerationEffectFmt: Format[Pod.TolerationEffect] = new Format[Pod.TolerationEffect] {
 
     import Pod.TolerationEffect._
@@ -298,7 +297,7 @@ package object format {
   implicit val envVarCfgMapRefFmt = Json.format[EnvVar.ConfigMapKeyRef]
   implicit val envVarSecKeyRefFmt = Json.format[EnvVar.SecretKeyRef]
   
-  implicit val envVarValueWrite = Writes[EnvVar.Value] { 
+  implicit val envVarValueWrite = Writes[EnvVar.Value] {
      value => value match {
        case EnvVar.StringValue(str) => (JsPath \ "value").write[String].writes(str)
        case fr: EnvVar.FieldRef => (JsPath \ "valueFrom" \ "fieldRef").write[EnvVar.FieldRef].writes(fr)
@@ -325,7 +324,33 @@ package object format {
   )(EnvVar.apply _)
   
   implicit val envVarFormat = Format(envVarReads, envVarWrites)
-    
+
+  implicit val configMapEnvSourceFmt: Format[EnvFromSource.ConfigMapEnvSource] = Json.format[EnvFromSource.ConfigMapEnvSource]
+  implicit val secretRefEnvSourceFmt: Format[EnvFromSource.SecretEnvSource] = Json.format[EnvFromSource.SecretEnvSource]
+
+  implicit val envSourceReads: Reads[EnvFromSource.EnvSource] =
+    (JsPath \ "configMapRef").read[EnvFromSource.ConfigMapEnvSource].map(x => x: EnvFromSource.EnvSource) |
+    (JsPath \ "secretRef").read[EnvFromSource.SecretEnvSource].map(x => x: EnvFromSource.EnvSource)
+
+  implicit val envSourceWrite = Writes[EnvFromSource.EnvSource] {
+    value => value match {
+      case c: EnvFromSource.ConfigMapEnvSource => (JsPath \ "configMapRef").write[EnvFromSource.ConfigMapEnvSource].writes(c)
+      case s: EnvFromSource.SecretEnvSource => (JsPath \ "secretRef").write[EnvFromSource.SecretEnvSource].writes(s)
+    }
+  }
+
+  implicit val envFromSourceReads: Reads[EnvFromSource] = (
+    (JsPath \ "prefix").readNullable[String] and
+    JsPath.read[EnvFromSource.EnvSource]
+  )(EnvFromSource.apply _)
+
+  implicit val envFromSourceWrites: Writes[EnvFromSource] = (
+    (JsPath \ "prefix").writeNullable[String] and
+    JsPath.write[EnvFromSource.EnvSource]
+  )(unlift(EnvFromSource.unapply))
+
+  implicit val envFromSourceFmt: Format[EnvFromSource] = Format(envFromSourceReads, envFromSourceWrites)
+
   implicit val quantityFormat = new Format[Resource.Quantity] {
      // Note: validate on read in future?
      def reads(json: JsValue) = 
@@ -430,6 +455,7 @@ package object format {
   implicit val emptyDirReads: Reads[EmptyDir] = {
       (JsPath \ "medium").readNullable[String].map {
         case Some(med) if med == "Memory" => EmptyDir(MemoryStorageMedium)
+        case Some(med) if med == "HugePages" => EmptyDir(HugePagesStorageMedium)
         case _ => EmptyDir(DefaultStorageMedium)
       }
   }  
@@ -437,6 +463,7 @@ package object format {
     ed => ed.medium match {
       case DefaultStorageMedium => (JsPath \ "medium").write[String].writes("")
       case MemoryStorageMedium => (JsPath \ "medium").write[String].writes("Memory")
+      case HugePagesStorageMedium => (JsPath \ "medium").write[String].writes("HugePages")
     }
   }  
   implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
@@ -573,15 +600,20 @@ package object format {
    implicit val volumeFormat: Format[Volume] = Format(volumeReads, volumeWrites)
    
    implicit val persVolSourceFormat: Format[PersistentSource] = Format(persVolumeSourceReads, persVolumeSourceWrites)
-   
+
+
    implicit val volMountFormat: Format[Volume.Mount] = (
      (JsPath \ "name").format[String] and
      (JsPath \ "mountPath").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean() and
-     (JsPath \ "subPath").formatMaybeEmptyString()
+     (JsPath \ "subPath").formatMaybeEmptyString() and
+     (JsPath \ "mountPropagation").formatNullableEnum(Volume.MountPropagationMode)
    )(Volume.Mount.apply _, unlift(Volume.Mount.unapply))
-  
-   implicit val pullPolicyFormat: Format[Container.PullPolicy.Value] = 
+
+
+  implicit val volDeviceFmt: Format[Volume.Device] = Json.format[Volume.Device]
+
+  implicit val pullPolicyFormat: Format[Container.PullPolicy.Value] =
        Format(enumReads(Container.PullPolicy, Container.PullPolicy.IfNotPresent), enumWrites)
 
   implicit val terminationMessagePolicyFormat: Format[Container.TerminationMessagePolicy.Value] =
@@ -603,7 +635,12 @@ package object format {
     (JsPath \ "terminationMessagePath").formatNullable[String] and
     (JsPath \ "terminationMessagePolicy").formatNullableEnum(Container.TerminationMessagePolicy)  and
     (JsPath \ "imagePullPolicy").formatEnum(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)) and
-    (JsPath \ "securityContext").formatNullable[Security.Context]
+    (JsPath \ "securityContext").formatNullable[Security.Context] and
+    (JsPath \ "envFrom").formatMaybeEmptyList[EnvFromSource] and
+    (JsPath \ "stdin").formatNullable[Boolean] and
+    (JsPath \ "stdinOnce").formatNullable[Boolean] and
+    (JsPath \ "tty").formatNullable[Boolean] and
+    (JsPath \ "volumeDevices").formatMaybeEmptyList[Volume.Device]
   )(Container.apply _, unlift(Container.unapply))
    
   implicit val podStatusCondFormat : Format[Pod.Condition] = (
@@ -693,7 +730,8 @@ package object format {
       (JsPath \ "hostNetwork").formatMaybeEmptyBoolean() and
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
       (JsPath \ "affinity").formatNullable[Pod.Affinity] and
-      (JsPath \ "tolerations").formatMaybeEmptyList[Pod.Toleration]
+      (JsPath \ "tolerations").formatMaybeEmptyList[Pod.Toleration] and
+      (JsPath \ "securityContext").formatNullable[Security.Context]
     )(Pod.Spec.apply _, unlift(Pod.Spec.unapply))
     
   implicit val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
