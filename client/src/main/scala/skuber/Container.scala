@@ -23,7 +23,13 @@ case class Container(
     terminationMessagePath: Option[String] = None,
     terminationMessagePolicy: Option[Container.TerminationMessagePolicy.Value] = None,
     imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
-    securityContext: Option[Security.Context] = None)
+    securityContext: Option[Security.Context] = None,
+    envFrom: List[EnvFromSource] = Nil,
+    stdin: Option[Boolean] = None,
+    stdinOnce: Option[Boolean] = None,
+    tty: Option[Boolean] = None,
+    volumeDevices: List[Volume.Device] = Nil
+    )
       extends Limitable
 {
   def exposePort(p: Container.Port) : Container = this.copy(ports=p::this.ports)

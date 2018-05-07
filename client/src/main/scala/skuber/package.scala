@@ -238,7 +238,6 @@ package object skuber {
     preconditions: Option[Preconditions] = None,
     propagationPolicy: Option[DeletePropagation.Value] = None)
 
-
   // aliases, references and delegates that enable using the API for many use cases without 
   // having to import anything from the skuber.api package
   val K8SCluster = skuber.api.client.Cluster

@@ -532,5 +532,27 @@ import Pod._
       val readSS = Json.fromJson[StatefulSet](json).get
       readSS mustEqual ss
     }
-  }    
+  }
+
+  "a pod with a spec that sets many optional fields can be read and written as json successfully" >> {
+    val podJsonSource=Source.fromURL(getClass.getResource("/examplePodExtendedSpec.json"))
+    val podJsonStr = podJsonSource.mkString
+    val pod = Json.parse(podJsonStr).as[Pod]
+
+    val container=pod.spec.get.containers(0)
+    container.terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.FallbackToLogsOnError)
+    container.terminationMessagePath mustEqual Some("/tmp/my-log")
+    val mount=container.volumeMounts(0)
+    mount.mountPropagation mustEqual Some(Volume.MountPropagationMode.HostToContainer)
+    mount.readOnly mustEqual true
+    mount.subPath mustEqual "subpath"
+
+    pod.spec.get.securityContext.get.fsGroup == Some(2000)
+
+    // write and read it back in again and compare
+    val json = Json.toJson(pod)
+    val readPod = Json.fromJson[Pod](json).get
+    readPod mustEqual pod
+  }
+
 }

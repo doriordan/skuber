@@ -106,8 +106,8 @@ object Volume {
   sealed trait StorageMedium
 
   case object DefaultStorageMedium extends StorageMedium
-
   case object MemoryStorageMedium extends StorageMedium
+  case object HugePagesStorageMedium extends StorageMedium
 
   case class DownwardApiVolumeFile(
       fieldRef: ObjectFieldSelector,
@@ -124,9 +124,19 @@ object Volume {
       divisor: Option[Resource.Quantity],
       resource: String)
 
+  object MountPropagationMode extends Enumeration {
+    type MountPropagationMode = Value
+    val HostToContainer, Bidirectional, None = Value
+  }
+
   case class Mount(
       name: String,
       mountPath: String,
       readOnly: Boolean = false,
-      subPath: String = "")
+      subPath: String = "",
+      mountPropagation: Option[MountPropagationMode.Value] = None)
+
+  case class Device(
+      name: String,
+      devicePath: String)
 }
