@@ -36,7 +36,7 @@ object Watch {
   def events[O <: ObjectResource](context: RequestContext, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int)(
     implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
-    context.logInfo(context.logConfig.logRequestBasic, "creating watch on resource $name of kind ${rd.spec.names.kind}")
+    context.logInfo(context.logConfig.logRequestBasic, s"creating watch on resource $name of kind ${rd.spec.names.kind}")
 
     val maybeResourceVersionQuery = sinceResourceVersion map { version => Uri.Query("resourceVersion" -> version) }
     val request = context.buildRequest(HttpMethods.GET, rd, Some(name), query = maybeResourceVersionQuery, watch = true)
