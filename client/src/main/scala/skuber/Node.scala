@@ -39,15 +39,39 @@ object Node {
       podCIDR: String = "",
       providerID: String = "",
       unschedulable: Boolean = false,
-      externalID: String = "")
-      
+      externalID: String = "",
+      taints: List[Taint] = Nil)
+
+  case class Taint(
+    effect: String,
+    key: String,
+    value: String,
+    timeAdded: Option[Timestamp] = None
+  )
+
   case class Status(
       capacity: Resource.ResourceList=Map(),
       phase: Option[Phase.Phase] = None,
       conditions: List[Node.Condition] = List(),
       addresses: List[Node.Address] = List(),
-      nodeInfo: Option[Node.SystemInfo] = None)
-      
+      nodeInfo: Option[Node.SystemInfo] = None,
+      allocatable: Resource.ResourceList=Map(),
+      daemonEndpoints: Option[DaemonEndpoints] = None,
+      images: List[Container.Image] = Nil,
+      volumesInUse: List[String] = Nil,
+      volumesAttached: List[AttachedVolume]
+  )
+
+  case class DaemonEndpoints(
+    kubeletEndpoint: DaemonEndpoint
+  )
+
+  case class DaemonEndpoint(
+    Port: Int
+  )
+
+  case class AttachedVolume(name: String, devicePath: String)
+
   object Phase extends Enumeration {
      type Phase = Value
      val Pending, Running,Terminated = Value

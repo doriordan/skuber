@@ -40,6 +40,7 @@ object Resource {
   val cpu = "cpu"
   val memory="memory"
   val storage="storage"
+  val pods = "pods"
   
   // K8 has a specific format for Resource Quantity type - see
   // https://godoc.org/github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource#Quantity
