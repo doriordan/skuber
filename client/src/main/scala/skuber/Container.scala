@@ -168,4 +168,9 @@ object Container {
     type TerminationMessagePolicy = Value
     val File, FallbackToLogsOnError = Value
   }
+
+  case class Image(
+    names: List[String] = Nil,
+    sizeBytes: Option[Int] = None
+  )
 }    

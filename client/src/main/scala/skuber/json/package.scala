@@ -642,7 +642,12 @@ package object format {
     (JsPath \ "tty").formatNullable[Boolean] and
     (JsPath \ "volumeDevices").formatMaybeEmptyList[Volume.Device]
   )(Container.apply _, unlift(Container.unapply))
-   
+
+  implicit val cntnrImageFmt: Format[Container.Image] = (
+    (JsPath \ "names").formatMaybeEmptyList[String] and
+    (JsPath \ "sizeBytes").formatNullable[Int]
+  )(Container.Image.apply _, unlift(Container.Image.unapply))
+
   implicit val podStatusCondFormat : Format[Pod.Condition] = (
       (JsPath \ "type").format[String] and
       (JsPath \ "status").formatMaybeEmptyString() and
@@ -807,22 +812,34 @@ package object format {
     (JsPath \ "reason").formatNullable[String] and
     (JsPath \ "message").formatNullable[String]
   )(Node.Condition.apply _, unlift(Node.Condition.unapply))
-  
+
+  implicit val nodeDaemEndpFmt: Format[Node.DaemonEndpoint] = Json.format[Node.DaemonEndpoint]
+  implicit val nodeDaemEndpsFmt: Format[Node.DaemonEndpoints] = Json.format[Node.DaemonEndpoints]
+  implicit val nodeAttachedVolFmt: Format[Node.AttachedVolume] = Json.format[Node.AttachedVolume]
+
   implicit val nodeStatusFmt: Format[Node.Status] = (
     (JsPath \ "capacity").formatMaybeEmptyMap[Resource.Quantity] and
     (JsPath \ "phase").formatNullableEnum(Node.Phase) and
     (JsPath \ "conditions").formatMaybeEmptyList[Node.Condition] and
     (JsPath \ "addresses").formatMaybeEmptyList[Node.Address] and
-    (JsPath \ "nodeInfo").formatNullable[Node.SystemInfo]
+    (JsPath \ "nodeInfo").formatNullable[Node.SystemInfo] and
+    (JsPath \ "allocatable").formatMaybeEmptyMap[Resource.Quantity] and
+    (JsPath \ "daemonEndpoints").formatNullable[Node.DaemonEndpoints] and
+    (JsPath \ "images").formatMaybeEmptyList[Container.Image] and
+    (JsPath \ "volumesInUse").formatMaybeEmptyList[String] and
+    (JsPath \ "volumesAttached").formatMaybeEmptyList[Node.AttachedVolume]
   )(Node.Status.apply _, unlift(Node.Status.unapply)) 
-   
+
+  implicit val nodeTaintFmt: Format[Node.Taint] = Json.format[Node.Taint]
+
   implicit val nodeSpecFmt: Format[Node.Spec] =(
     (JsPath \ "podCIDR").formatMaybeEmptyString() and
     (JsPath \ "providerID").formatMaybeEmptyString() and
     (JsPath \ "unschedulable").formatMaybeEmptyBoolean() and
-    (JsPath \ "externalID").formatMaybeEmptyString()
+    (JsPath \ "externalID").formatMaybeEmptyString() and
+    (JsPath \ "taints").formatMaybeEmptyList[Node.Taint]
   )(Node.Spec.apply _, unlift(Node.Spec.unapply))
- 
+
   implicit val nodeFmt: Format[Node] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Node.Spec] and

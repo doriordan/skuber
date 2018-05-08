@@ -1,19 +1,19 @@
 package skuber.json
 
-import org.specs2.mutable.Specification // for unit-style testing
+import org.specs2.mutable.Specification
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
 import org.specs2.execute.Success
 
 import scala.math.BigInt
-
 import java.util.Calendar
 import java.net.URL
 
 import skuber._
 import format._
-
 import play.api.libs.json._
+
+import scala.io.Source
 
 
 
@@ -287,5 +287,23 @@ import Node._
           val readNodes = Json.fromJson[NodeList](Json.toJson(myNodes)).get 
           myNodes mustEqual readNodes
      }
-  } 
-}
+  }
+
+  "a Kubernetes v1.8 minikube node can be read and written as json " >> {
+
+    val nodeJsonSource=Source.fromURL(getClass.getResource("/exampleNode.json"))
+    val nodeJsonStr = nodeJsonSource.mkString
+    val node = Json.parse(nodeJsonStr).as[Node]
+
+    node.status.get.allocatable("cpu") mustEqual Resource.Quantity("2")
+    node.status.get.allocatable("pods") mustEqual Resource.Quantity("110")
+
+    node.spec.get.taints.size mustEqual 1
+    node.spec.get.taints(0).effect mustEqual "NoSchedule"
+    
+    // write and read it back in again and compare
+    val json = Json.toJson(node)
+    val readNode = Json.fromJson[Node](json).get
+    readNode mustEqual node
+  }
+  }
