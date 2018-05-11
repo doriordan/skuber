@@ -15,8 +15,6 @@ import play.api.libs.json._
 
 import scala.io.Source
 
-
-
 /**
  * @author David O'Riordan
  */

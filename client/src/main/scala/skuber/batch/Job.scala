@@ -40,7 +40,8 @@ object Job {
                   activeDeadlineSeconds: Option[Long] = None,
                   selector: Option[LabelSelector] = None,
                   manualSelector: Option[Boolean] = None,
-                  template: Option[Pod.Template.Spec] = None)
+                  template: Option[Pod.Template.Spec] = None,
+                  backoffLimit: Option[Int] = None)
 
   case class Status(conditions: Option[Condition] = None,
                     startTime: Option[Timestamp] = None,
