@@ -8,4 +8,8 @@ target/
 .idea/
 *.sc
 *.launch
+*.s??
+*~
+*.log
+*.txt
 bin/

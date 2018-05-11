@@ -300,10 +300,10 @@ import Node._
 
     node.spec.get.taints.size mustEqual 1
     node.spec.get.taints(0).effect mustEqual "NoSchedule"
-    
+
     // write and read it back in again and compare
     val json = Json.toJson(node)
     val readNode = Json.fromJson[Node](json).get
     readNode mustEqual node
   }
-  }
+}
