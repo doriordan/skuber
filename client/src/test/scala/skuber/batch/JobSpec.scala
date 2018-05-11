@@ -58,7 +58,9 @@ class JobSpec extends Specification {
         |				],
         |				"restartPolicy": "Never"
         |			}
-        |		}
+        |		},
+        |  "backoffLimit": 4,
+        |  "activeDeadlineSeconds": 60
         |	}
         |}
       """.stripMargin
@@ -66,6 +68,8 @@ class JobSpec extends Specification {
     val job = Json.parse(jobJsonStr).as[Job]
     job.kind mustEqual "Job"
     job.name mustEqual "pi"
+    job.spec.get.activeDeadlineSeconds mustEqual Some(60)
+    job.spec.get.backoffLimit mustEqual Some(4)
     val templateSpec: Template.Spec = job.spec.get.template.get
     templateSpec.metadata.name mustEqual "templatename"
     templateSpec.spec.get.restartPolicy mustEqual RestartPolicy.Never
