@@ -230,4 +230,29 @@ object Pod {
       override val name: String = "PreferNoSchedule"
     }
   }
+
+  case class LogQueryParams(
+    containerName: Option[String] = None,
+    follow: Option[Boolean] = None,
+    limitBytes: Option[Int] = None,
+    pretty: Option[Boolean] = None,
+    previous: Option[Boolean] = None,
+    sinceSeconds: Option[Int] = None,
+    tailLines: Option[Int] = None,
+    timestamps: Option[Boolean] = None)
+  {
+   lazy val asOptionalsMap: Map[String, Option[String]] = Map(
+      "containerName" -> containerName,
+      "follow" -> follow.map(_.toString),
+      "limitBytes" -> limitBytes.map(_.toString),
+      "pretty" -> pretty.map(_.toString),
+      "previous" -> previous.map(_.toString),
+      "sinceSeconds" -> sinceSeconds.map(_.toString),
+      "tailLines" -> tailLines.map(_.toString),
+      "timestamps" -> timestamps.map(_.toString))
+
+    lazy val asMap: Map[String, String] = asOptionalsMap.collect {
+      case (key, Some(value)) => key -> value
+    }
+  }
 }

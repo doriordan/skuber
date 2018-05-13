@@ -523,6 +523,23 @@ package object client {
        } yield ()
      }
 
+     def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
+       implicit lc: LoggingContext=RequestLoggingContext()): Future[Source[ByteString, _]] =
+     {
+       val targetNamespace=namespace.getOrElse(this.namespaceName)
+       val queryMap=queryParams.asMap
+       val query: Option[Uri.Query] = if (queryMap.isEmpty) {
+         None
+       } else {
+         Some(Uri.Query(queryMap))
+       }
+       val nameComponent=s"${name}/log"
+       val rd = implicitly[ResourceDefinition[Pod]]
+       val request=buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, false, targetNamespace)
+       invoke(request).map { response =>
+         response.entity.dataBytes
+       }
+     }
 
      def watch[O <: ObjectResource](obj: O)(
        implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Source[WatchEvent[O], _]] =
@@ -748,7 +765,7 @@ package object client {
     new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, logConfig, closeHook)
   }
 
-  private def defaultK8sConfig: Configuration = {
+  def defaultK8sConfig: Configuration = {
     import java.nio.file.Paths
 
     val skuberUrlOverride = sys.env.get("SKUBER_URL")
