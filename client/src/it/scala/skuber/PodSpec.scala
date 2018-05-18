@@ -6,13 +6,13 @@ import skuber.json.format._
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import scala.util.{Success,Failure}
+import scala.util.{Failure, Success, Try}
 
 import akka.event.Logging
+import akka.stream.scaladsl._
+import akka.util.ByteString
 
-import akka.stream.scaladsl.Sink
-
-import scala.concurrent.{Future}
+import scala.concurrent.Future
 
 class PodSpec extends K8SFixture with Eventually with Matchers {
   val nginxPodName: String = java.util.UUID.randomUUID().toString
