@@ -3,7 +3,8 @@ package skuber
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.scalatest.{FutureOutcome, fixture}
-import skuber.api.client.RequestContext
+import skuber.api.client._
+import com.typesafe.config.ConfigFactory
 
 trait K8SFixture extends fixture.AsyncFlatSpec {
 

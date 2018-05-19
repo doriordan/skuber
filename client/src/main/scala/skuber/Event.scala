@@ -7,15 +7,16 @@ import java.util.Date
  */
 case class Event(
   	val kind: String ="Event",
-    val metadata: ObjectMeta,
     override val apiVersion: String = v1,
+    val metadata: ObjectMeta,
     involvedObject: ObjectReference,
     reason: Option[String] = None,
     message: Option[String] = None,
     source: Option[Event.Source] = None,
     firstTimestamp: Option[Timestamp] = None,
     lastTimestamp: Option[Timestamp] = None,
-    count: Option[Int] = None) 
+    count: Option[Int] = None,
+    `type`: Option[String] = None)
   extends ObjectResource
 
 object Event {

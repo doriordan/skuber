@@ -849,8 +849,19 @@ package object format {
   )(Node.apply _, unlift(Node.unapply))
   
   implicit val eventSrcFmt: Format[Event.Source] = Json.format[Event.Source]
-  implicit val eventFmt: Format[Event] = Json.format[Event]
-   
+
+  implicit val eventFmt: Format[Event] = (
+    objFormat and
+    (JsPath \ "involvedObject").format[ObjectReference] and
+    (JsPath \ "reason").formatNullable[String] and
+    (JsPath \ "message").formatNullable[String] and
+    (JsPath \ "source").formatNullable[Event.Source] and
+    (JsPath \ "firstTimestamp").formatNullable[Timestamp] and
+    (JsPath \ "lastTimestamp").formatNullable[Timestamp] and
+    (JsPath \ "count").formatNullable[Int] and
+    (JsPath \ "type").formatNullable[String]
+  )(Event.apply _, unlift(Event.unapply))
+
   implicit val accessModeFmt: Format[PersistentVolume.AccessMode.AccessMode] = Format(enumReads(PersistentVolume.AccessMode), enumWrites)
   implicit val pvolPhaseFmt: Format[PersistentVolume.Phase.Phase] = Format(enumReads(PersistentVolume.Phase), enumWrites)
   implicit val reclaimPolicyFmt: Format[PersistentVolume.ReclaimPolicy.ReclaimPolicy] = Format(enumReads(PersistentVolume.ReclaimPolicy), enumWrites)
@@ -891,7 +902,10 @@ package object format {
     (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
   )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
 
-  implicit val configMapFmt: Format[ConfigMap] = Json.format[ConfigMap]
+  implicit val configMapFmt: Format[ConfigMap] = (
+    objFormat and
+    (JsPath \ "data").formatMaybeEmptyMap[String]
+  )(ConfigMap.apply _, unlift(ConfigMap.unapply))
 
   implicit val svcAccountFmt: Format[ServiceAccount] = (
     objFormat and

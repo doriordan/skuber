@@ -74,6 +74,7 @@ trait PlayJsonSupportForAkkaHttp {
       implicitly[Reads[A]]
           .reads(json)
           .recoverTotal { e =>
+            println(s"e => $e")
             throw RejectionError(
               ValidationRejection(JsError.toJson(e).toString, Some(PlayJsonError(e)))
             )
