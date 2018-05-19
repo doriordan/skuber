@@ -19,13 +19,6 @@ class PodSpec extends K8SFixture with Eventually with Matchers {
 
   behavior of "Pod"
 
-  it should "get event list" in { k8s =>
-    k8s.list[EventList]().map { l =>
-      println(s"events => $l")
-      assert(true)
-    }
-  }
-  /*
   it should "create a pod" in { k8s =>
     k8s.create(getNginxPod(nginxPodName, "1.7.9")) map { p =>
       assert(p.name == nginxPodName)
@@ -88,5 +81,4 @@ class PodSpec extends K8SFixture with Eventually with Matchers {
     val nginxPodSpec = Pod.Spec(containers=List((nginxContainer)))
     Pod.named(nginxPodName).copy(spec=Some(nginxPodSpec))
   }
-  */
 }

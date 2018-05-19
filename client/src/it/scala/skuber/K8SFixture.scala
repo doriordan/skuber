@@ -15,7 +15,7 @@ trait K8SFixture extends fixture.AsyncFlatSpec {
   implicit val dispatcher = system.dispatcher
 
   override def withFixture(test: OneArgAsyncTest): FutureOutcome = {
-    val k8s = init(defaultK8sConfig.currentContext, LoggingConfig(logResponseFullListResource = true), None, ConfigFactory.load())
+    val k8s = k8sInit
     complete {
       withFixture(test.toNoArgAsyncTest(k8s))
     } lastly {
