@@ -229,6 +229,9 @@ object Pod {
     case object PreferNoSchedule extends TolerationEffect {
       override val name: String = "PreferNoSchedule"
     }
+    case object NoExecute extends TolerationEffect {
+      override val name: String = "NoExecute"
+    }
   }
 
   case class LogQueryParams(
