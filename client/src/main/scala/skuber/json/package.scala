@@ -238,6 +238,7 @@ package object format {
       case JsString(value) => value match {
         case NoSchedule.name => JsSuccess(NoSchedule)
         case PreferNoSchedule.name => JsSuccess(PreferNoSchedule)
+        case NoExecute.name => JsSuccess(NoExecute)
         case name => JsError(s"Unknown toleration effect '$name'")
       }
       case _ => JsError(s"Toleration effect should be a string")
@@ -246,6 +247,7 @@ package object format {
     override def writes(effect: Pod.TolerationEffect): JsValue = effect match {
       case NoSchedule => JsString(NoSchedule.name)
       case PreferNoSchedule => JsString(PreferNoSchedule.name)
+      case NoExecute => JsString(NoExecute.name)
     }
   }
 

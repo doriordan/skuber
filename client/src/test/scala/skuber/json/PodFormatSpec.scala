@@ -234,6 +234,12 @@ import Pod._
             "tolerations": [{
               "key": "localhost.domain/url",
               "operator": "Exists"
+            },
+            {
+              "key": "key",
+              "operator": "Equal",
+              "value": "value",
+              "effect": "NoExecute"
             }],
             "serviceAccount": "default",
             "nodeName": "10.245.1.5"
@@ -310,7 +316,9 @@ import Pod._
       
       myPod.spec.get.dnsPolicy mustEqual DNSPolicy.Default
       myPod.spec.get.restartPolicy mustEqual RestartPolicy.Always
-      myPod.spec.get.tolerations mustEqual List(ExistsToleration("localhost.domain/url"))
+      myPod.spec.get.tolerations mustEqual List(
+        ExistsToleration("localhost.domain/url"),
+        EqualToleration("key","value",Some(TolerationEffect.NoExecute)))
 
       val vols = myPod.spec.get.volumes
       vols.length mustEqual 2
