@@ -42,8 +42,8 @@ package object format {
     )(Job.Spec.apply _, unlift(Job.Spec.unapply))
 
   implicit val jobFormat: Format[Job] = (
-      (JsPath \ "kind").format[String] and
-      (JsPath \ "apiVersion").format[String] and
+      (JsPath \ "kind").formatMaybeEmptyString() and
+      (JsPath \ "apiVersion").formatMaybeEmptyString() and
       (JsPath \ "metadata").format[ObjectMeta] and
       (JsPath \ "spec").formatNullable[Job.Spec] and
       (JsPath \ "status").formatNullable[Job.Status]
@@ -59,8 +59,8 @@ package object format {
   )(CronJob.Status.apply _, unlift(CronJob.Status.unapply))
 
   implicit val cronJob: Format[CronJob] = (
-      (JsPath \ "kind").format[String] and
-      (JsPath \ "apiVersion").format[String] and
+      (JsPath \ "kind").formatMaybeEmptyString() and
+      (JsPath \ "apiVersion").formatMaybeEmptyString() and
       (JsPath \ "metadata").format[ObjectMeta] and
       (JsPath \ "spec").formatNullable[CronJob.Spec] and
       (JsPath \ "status").formatNullable[CronJob.Status]
