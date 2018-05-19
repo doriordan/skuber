@@ -19,40 +19,41 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by five nginx replicas.
 
-    import skuber._
-    import skuber.json.format._
-  
-    val nginxSelector  = Map("app" -> "nginx")
-    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
-    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
-    	.withReplicas(5)
-    val nginxService = Service("nginx")
-    	.withSelector(nginxSelector)
-    	.exposeOnNodePort(30001 -> 80) 
- 
-    // Some standard Akka implicits that are required by the skuber v2 client API
-    import akka.actor.ActorSystem
-    import akka.stream.ActorMaterializer
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    implicit val dispatcher = system.dispatcher
-    
-    // Initialise skuber client
-    val k8s = k8sInit
+```scala
+import skuber._
+import skuber.json.format._
 
-    val createOnK8s = for {
-      svc <- k8s create nginxService
-      rc  <- k8s create nginxController
-    } yield (rc,svc)
+val nginxSelector  = Map("app" -> "nginx")
+val nginxContainer = Container("nginx",image="nginx").exposePort(80)
+val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
+    .withReplicas(5)
+val nginxService = Service("nginx")
+    .withSelector(nginxSelector)
+    .exposeOnNodePort(30001 -> 80) 
 
-    createOnK8s onComplete {
-      case Success(_) => System.out.println("Successfully created nginx replication controller & service on Kubernetes cluster")
-      case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
-    }
+// Some standard Akka implicits that are required by the skuber v2 client API
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+implicit val system = ActorSystem()
+implicit val materializer = ActorMaterializer()
+implicit val dispatcher = system.dispatcher
 
-    k8s.close // this prevents any more requests being sent by the client
-    system.terminate // this closes the connection resources etc.
+// Initialise skuber client
+val k8s = k8sInit
 
+val createOnK8s = for {
+  svc <- k8s create nginxService
+  rc  <- k8s create nginxController
+} yield (rc,svc)
+
+createOnK8s onComplete {
+  case Success(_) => System.out.println("Successfully created nginx replication controller & service on Kubernetes cluster")
+  case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
+}
+
+k8s.close // this prevents any more requests being sent by the client
+system.terminate // this closes the connection resources etc.
+```
 
 ## Prerequisites
 
@@ -64,11 +65,15 @@ You need Java 8 to run Skuber.
 
 You can use the latest v2.0 release (for Scala 2.11 or 2.12) by adding to your build:
 
-    libraryDependencies += "io.skuber" %% "skuber" % "2.0.5"    
+```sbt
+libraryDependencies += "io.skuber" %% "skuber" % "2.0.5"    
+```
 
 Meanwhile existing users can continue to use the latest (and possibly final, with exception of important fixes) v1.x release, which is available only on Scala 2.11:
 
-     libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
+```sbt
+libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
+```
 
 ## Migrating to release v2
 
@@ -88,28 +93,30 @@ The quickest way to get started with Skuber:
 
 - Ensure Skuber configures itself from the default Kubeconfig file (`$HOME/.kube/config`) : 
 
-	`export SKUBER_CONFIG=file` 
+    ```bash
+    export SKUBER_CONFIG=file
+    ``` 
 
 - Try one or more of the examples: if you have cloned this repository run `sbt` in the top-level directory to start sbt in interactive mode and then:
 
-```
-    > project examples
+```bash
+> project examples
 
-    > run
-    [warn] Multiple main classes detected.  Run 'show discoveredMainClasses' to see the list
+> run
+[warn] Multiple main classes detected.  Run 'show discoveredMainClasses' to see the list
 
-    Multiple main classes detected, select one to run:
+Multiple main classes detected, select one to run:
     
-     [1] skuber.examples.customresources.CreateCRD
-     [2] skuber.examples.deployment.DeploymentExamples
-     [3] skuber.examples.fluent.FluentExamples
-     [4] skuber.examples.guestbook.Guestbook
-     [5] skuber.examples.ingress.NginxIngress
-     [6] skuber.examples.job.PrintPiJob
-     [7] skuber.examples.list.ListExamples
-     [8] skuber.examples.scale.ScaleExamples
+ [1] skuber.examples.customresources.CreateCRD
+ [2] skuber.examples.deployment.DeploymentExamples
+ [3] skuber.examples.fluent.FluentExamples
+ [4] skuber.examples.guestbook.Guestbook
+ [5] skuber.examples.ingress.NginxIngress
+ [6] skuber.examples.job.PrintPiJob
+ [7] skuber.examples.list.ListExamples
+ [8] skuber.examples.scale.ScaleExamples
 
-    Enter number: 
+Enter number: 
 ```
 
 For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
