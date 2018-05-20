@@ -60,7 +60,7 @@ object Watch {
     context.logInfo(context.logConfig.logRequestBasic, s"creating skuber watch on kind ${rd.spec.names.kind}")
 
     val maybeResourceVersionQuery = sinceResourceVersion map { v => Uri.Query("resourceVersion" -> v) }
-    val request = context.buildRequest(HttpMethods.GET, rd, None, watch=true)
+    val request = context.buildRequest(HttpMethods.GET, rd, None, query = maybeResourceVersionQuery, watch = true)
     val responseFut = context.invoke(request)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
