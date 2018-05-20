@@ -11,14 +11,14 @@ import akka.stream.scaladsl.Sink
 /**
  * @author David O'Riordan
  */
-object WatchExamples {
+object WatchExamples extends App {
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+  implicit val k8s = k8sInit
 
   def  watchFrontEndScaling = {
-
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    implicit val dispatcher = system.dispatcher
-    val k8s = k8sInit
 
     val frontendReplicaCountMonitor = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
       println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
@@ -28,18 +28,9 @@ object WatchExamples {
       frontendRCWatch <- k8s.watch(frontendRC)
       done <- frontendRCWatch.runWith(frontendReplicaCountMonitor)
     } yield done
-
-    Thread.sleep(30000) // watch for some time before closing the session
-    k8s.close
-    system.terminate
   }
   
   def watchPodPhases = {
-
-    implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-    implicit val dispatcher = system.dispatcher
-    val k8s = k8sInit
 
     val podPhaseMonitor = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
       val pod = podEvent._object
@@ -53,11 +44,15 @@ object WatchExamples {
       currPodsWatch <- k8s.watchAll[Pod](sinceResourceVersion = latestPodVersion) // ignore historic events
       done <- currPodsWatch.runWith(podPhaseMonitor)
     } yield done
+  }
 
-    Thread.sleep(30000) // watch for some time before closing the session
-    k8s.close
-    system.terminate().foreach { f =>
-      System.exit(0)
-    }
+  // Note: other examples (e.g. guestbook) need to be running for the following watches to have any events to output
+  watchPodPhases
+  watchFrontEndScaling
+
+  Thread.sleep(30000) // watch for some time before closing the session
+  k8s.close
+  system.terminate().foreach { f =>
+    System.exit(0)
   }
 }
