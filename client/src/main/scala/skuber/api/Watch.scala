@@ -40,7 +40,7 @@ object Watch {
 
     val maybeResourceVersionQuery = sinceResourceVersion map { version => Uri.Query("resourceVersion" -> version) }
     val request = context.buildRequest(HttpMethods.GET, rd, Some(name), query = maybeResourceVersionQuery, watch = true)
-    val responseFut = context.invoke(request)
+    val responseFut = context.invoke(request, true)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
 
@@ -61,7 +61,7 @@ object Watch {
 
     val maybeResourceVersionQuery = sinceResourceVersion map { v => Uri.Query("resourceVersion" -> v) }
     val request = context.buildRequest(HttpMethods.GET, rd, None, query = maybeResourceVersionQuery, watch = true)
-    val responseFut = context.invoke(request)
+    val responseFut = context.invoke(request, true)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
 
