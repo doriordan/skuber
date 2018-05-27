@@ -13,7 +13,7 @@ import akka.stream.scaladsl.Sink
  */
 object WatchExamples extends App {
 
-  implicit val system = ActorSystem()
+  implicit val system = ActorSystem("watch")
   implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
   implicit val k8s = k8sInit
@@ -46,11 +46,11 @@ object WatchExamples extends App {
     } yield done
   }
 
-  // Note: other examples (e.g. guestbook) need to be running for the following watches to have any events to output
+  // Note: run appropriate kubectl commands (like 'run') or an example like gueestbook to see events being output
   watchPodPhases
   watchFrontEndScaling
 
-  Thread.sleep(30000) // watch for some time before closing the session
+  Thread.sleep(1200000) // watch for a lengthy time before closing the session
   k8s.close
   system.terminate().foreach { f =>
     System.exit(0)

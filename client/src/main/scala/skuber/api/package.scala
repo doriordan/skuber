@@ -11,20 +11,23 @@ import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-import play.api.libs.json._ // JSON library
-import play.api.libs.json.Reads._ // Custom validation helpers
-import play.api.libs.functional.syntax._ // Combinator syntax
+import play.api.libs.json._
+import play.api.libs.json.Reads._
+import play.api.libs.functional.syntax._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format._
 import skuber.json.format.apiobj._
 import skuber._
+
+import scala.concurrent.duration.Duration
 
 /**
  * @author David O'Riordan
@@ -199,7 +202,7 @@ package object client {
    }
 
    class RequestContext(val requestMaker: (Uri, HttpMethod)  => HttpRequest,
-                        val requestInvoker: HttpRequest => Future[HttpResponse],
+                        val requestInvoker: (HttpRequest, Boolean) => Future[HttpResponse],
                         val clusterServer: String,
                         val requestAuth: AuthInfo,
                         val namespaceName: String,
@@ -211,13 +214,13 @@ package object client {
 
      private var isClosed = false
 
-     private[skuber] def invoke(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = {
+     private[skuber] def invoke(request: HttpRequest, watch: Boolean = false)(implicit lc: LoggingContext): Future[HttpResponse] = {
        if (isClosed) {
          logError("Attempt was made to invoke request on closed API request context")
          throw new IllegalStateException("Request context has been closed")
        }
        logInfo(logConfig.logRequestBasic, s"about to send HTTP request: ${request.method.value} ${request.uri.toString}")
-       val responseFut = requestInvoker(request)
+       val responseFut = requestInvoker(request, watch)
        responseFut onComplete {
          case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
          case Failure(ex) => logError("HTTP request resulted in an unexpected exception",ex)
@@ -733,15 +736,31 @@ package object client {
   }
 
   def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
-      (implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+      (implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext =
+  {
     appConfig.checkValid(ConfigFactory.defaultReference(), "skuber")
 
-    implicit val executionContext: ExecutionContext =
-      if (appConfig.getIsNull("skuber.akka.dispatcher") || appConfig.getString("skuber.akka.dispatcher").isEmpty) {
-        actorSystem.dispatcher
+    def getSkuberConfig[T](key: String, fromConfig: String => Option[T], default: T): T = {
+      val skuberConfigKey = s"skuber.$key"
+      if (appConfig.getIsNull(skuberConfigKey)) {
+        default
       } else {
-        actorSystem.dispatchers.lookup(appConfig.getString("skuber.akka.dispatcher"))
+        fromConfig(skuberConfigKey) match {
+          case None => default
+          case Some(t) => t
+        }
       }
+    }
+
+    def dispatcherFromConfig(configKey: String): Option[ExecutionContext] = if (appConfig.getString(configKey).isEmpty) {
+      None
+    } else {
+      Some(actorSystem.dispatchers.lookup(appConfig.getString(configKey)))
+    }
+    implicit val dispatcher: ExecutionContext = getSkuberConfig("akka.dispatcher", dispatcherFromConfig, actorSystem.dispatcher)
+
+    def durationFomConfig(configKey: String): Option[Duration] = Some(Duration.fromNanos(appConfig.getDuration(configKey).toNanos))
+    val watchIdleTimeout: Duration = getSkuberConfig("watch.idle-timeout", durationFomConfig, Duration.Inf)
 
     if (logConfig.logConfiguration) {
       val log = Logging.getLogger(actorSystem, "skuber.api")
@@ -760,7 +779,17 @@ package object client {
     }
 
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
-    val requestInvoker = (request: HttpRequest) => Http().singleRequest(request)
+
+    val defaultClientSettings=ConnectionPoolSettings(actorSystem.settings.config)
+    val watchConnectionSettings=defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
+    val watchSettings=defaultClientSettings.copy(connectionSettings = watchConnectionSettings)
+
+    val requestInvoker = (request: HttpRequest, watch: Boolean) => {
+      if (!watch)
+        Http().singleRequest(request)
+      else
+        Http().singleRequest(request, settings = watchSettings)
+    }
 
     new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, logConfig, closeHook)
   }
