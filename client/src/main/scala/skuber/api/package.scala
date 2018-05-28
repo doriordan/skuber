@@ -332,7 +332,7 @@ package object client {
        logInfo(logConfig.logResponseBasicMetadata,s"received list resource of kind ${result.kind}")
        logInfo(logConfig.logResponseListSize,s"number of items in received list resource: ${result.items.size}")
        logInfo(logConfig.logResponseListNames, s"received ${result.kind} contains item(s): ${result.itemNames}]")
-       logInfo(logConfig.logResponseFullListResource, s" Unamrshalled list resource: ${result.toString}")
+       logInfo(logConfig.logResponseFullListResource, s" Unmarshalled list resource: ${result.toString}")
      }
 
      private[skuber] def makeRequestReturningObjectResource[O <: ObjectResource](httpRequest: HttpRequest)(

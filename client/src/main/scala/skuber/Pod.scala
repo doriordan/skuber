@@ -214,10 +214,8 @@ object Pod {
   }
 
   sealed trait Toleration
-  case class EqualToleration(key: String, value: String,
-                              effect: Option[TolerationEffect] = None) extends Toleration
-  case class ExistsToleration(key: String,
-                               effect: Option[TolerationEffect] = None) extends Toleration
+  case class EqualToleration(key: String, value: String, effect: Option[TolerationEffect] = None, tolerationSeconds: Option[Int] = None) extends Toleration
+  case class ExistsToleration(key: Option[String] = None, effect: Option[TolerationEffect] = None, tolerationSeconds: Option[Int] = None) extends Toleration
 
   sealed trait TolerationEffect {
     val name: String
