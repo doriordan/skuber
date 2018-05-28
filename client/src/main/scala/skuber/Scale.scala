@@ -3,7 +3,7 @@ package skuber
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
 import skuber.apps.{Deployment, StatefulSet}
-import skuber.json.format.{maybeEmptyFormatMethods,objectMetaFormat}
+import skuber.json.format.{maybeEmptyFormatMethods,objectMetaFormat, jsPath2LabelSelFormat}
 
 /**
  * @author David O'Riordan
@@ -29,14 +29,14 @@ object Scale {
 
   case class Status(
     replicas: Int = 0,
-    selector: Option[String] = None,
+    selector: Option[LabelSelector] = None,
     targetSelector: Option[String] = None
   )
 
   object Status {
     implicit val scaleStatusFormat: Format[Scale.Status] = (
       (JsPath \ "replicas").formatMaybeEmptyInt() and
-      (JsPath \ "selector").formatNullable[String] and
+      (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "targetSelector").formatNullable[String]
     )(Scale.Status.apply _, unlift(Scale.Status.unapply))
   }
