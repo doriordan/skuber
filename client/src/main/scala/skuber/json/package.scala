@@ -59,7 +59,7 @@ package object format {
   
   // we make the above formatter methods available on JsPath objects via this implicit conversion
   implicit def maybeEmptyFormatMethods(path: JsPath) = new MaybeEmpty(path)
-   
+
   // general formatting for Enumerations - derived from https://gist.github.com/mikesname/5237809
   implicit def enumReads[E <: Enumeration](enum: E) : Reads[E#Value] = new Reads[E#Value] {
     def reads(json: JsValue): JsResult[E#Value] = json match {
@@ -673,7 +673,10 @@ package object format {
       (JsPath \ "hostIP").formatNullable[String] and
       (JsPath \ "podIP").formatNullable[String] and
       (JsPath \ "startTime").formatNullable[Timestamp] and
-      (JsPath \ "containerStatuses").formatMaybeEmptyList[Container.Status]
+      (JsPath \ "containerStatuses").formatMaybeEmptyList[Container.Status] and
+      (JsPath \ "initContainerStatuses").formatMaybeEmptyList[Container.Status] and
+      (JsPath \ "qosClass").formatNullable[String] and
+      (JsPath \ "nominatedNodeName").formatNullable[String]
     )(Pod.Status.apply _, unlift(Pod.Status.unapply))
   
   implicit lazy val podFormat : Format[Pod] = (
@@ -728,8 +731,20 @@ package object format {
 
 
   implicit lazy val affinityFormat : Format[Pod.Affinity] = Json.format[Pod.Affinity]
-  
-  implicit val podSpecFormat: Format[Pod.Spec] = (
+
+  implicit val hostAliasFmt: Format[Pod.HostAlias] = Json.format[Pod.HostAlias]
+  implicit val podDNSConfigOptionFmt: Format[Pod.DNSConfigOption] = Json.format[Pod.DNSConfigOption]
+  implicit val podDNSConfigFmt: Format[Pod.DNSConfig] = (
+      (JsPath \ "nameservers").formatMaybeEmptyList[String] and
+      (JsPath \ "options").formatMaybeEmptyList[Pod.DNSConfigOption] and
+      (JsPath \ "searches").formatMaybeEmptyList[String]
+  )(Pod.DNSConfig.apply _, unlift(Pod.DNSConfig.unapply))
+
+  // the following ugliness is to do with the Kubernetes pod spec schema expanding until it takes over the entire universe,
+  // which has finally necessitated a hack to get around Play Json limitations supporting case classes with > 22 members
+  // (see e.g. https://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5)
+
+  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], skuber.RestartPolicy.Value, Option[Int], Option[Int], skuber.DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[Security.Context])] = (
       (JsPath \ "containers").format[List[Container]] and
       (JsPath \ "initContainers").formatMaybeEmptyList[Container] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
@@ -745,7 +760,55 @@ package object format {
       (JsPath \ "affinity").formatNullable[Pod.Affinity] and
       (JsPath \ "tolerations").formatMaybeEmptyList[Pod.Toleration] and
       (JsPath \ "securityContext").formatNullable[Security.Context]
-    )(Pod.Spec.apply _, unlift(Pod.Spec.unapply))
+     ).tupled
+
+  val podSpecPartTwoFormat: OFormat[(Option[String], List[Pod.HostAlias], Option[Boolean], Option[Boolean], Option[Boolean], Option[Int], Option[String], Option[String], Option[String], Option[Pod.DNSConfig])] = (
+      (JsPath \ "hostname").formatNullable[String] and
+      (JsPath \ "hostAliases").formatMaybeEmptyList[Pod.HostAlias] and
+      (JsPath \ "hostPID").formatNullable[Boolean] and
+      (JsPath \ "hostIPC").formatNullable[Boolean] and
+      (JsPath \ "automountServiceAccountToken").formatNullable[Boolean] and
+      (JsPath \ "priority").formatNullable[Int] and
+      (JsPath \ "priorityClassName").formatNullable[String] and
+      (JsPath \ "schedulerName").formatNullable[String] and
+      (JsPath \ "subdomain").formatNullable[String] and
+      (JsPath \ "dnsConfig").formatNullable[Pod.DNSConfig]
+  ).tupled
+
+  implicit val podSpecFmt: Format[Pod.Spec] = (
+      podSpecPartOneFormat and podSpecPartTwoFormat
+  ).apply({
+    case ((conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, sc), (host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)) =>
+      Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, sc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)
+  }, s =>(
+      ( s.containers,
+        s.initContainers,
+        s.volumes,
+        s.restartPolicy,
+        s.terminationGracePeriodSeconds,
+        s.activeDeadlineSeconds,
+        s.dnsPolicy,
+        s.nodeSelector,
+        s.serviceAccountName,
+        s.nodeName,
+        s.hostNetwork,
+        s.imagePullSecrets,
+        s.affinity,
+        s.tolerations,
+        s.securityContext
+      ),
+      ( s.hostname,
+        s.hostAliases,
+        s.hostPID,
+        s.hostIPC,
+        s.automountServiceAccountToken,
+        s.priority,
+        s.priorityClassName,
+        s.schedulerName,
+        s.subdomain,
+        s.dnsConfig
+      ))
+  )
     
   implicit val podTemplSpecFormat: Format[Pod.Template.Spec] = Json.format[Pod.Template.Spec]
   implicit lazy val podTemplFormat : Format[Pod.Template] = (

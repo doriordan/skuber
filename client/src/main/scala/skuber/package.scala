@@ -212,7 +212,7 @@ package object skuber {
   }
   object DNSPolicy extends Enumeration {
      type DNSPolicy = Value
-     val Default,ClusterFirst = Value
+     val Default,ClusterFirst,ClusterFirstWithHostNet,None = Value
   }
    object RestartPolicy extends Enumeration {
      type RestartPolicy = Value

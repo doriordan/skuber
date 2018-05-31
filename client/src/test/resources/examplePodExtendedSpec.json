@@ -13,11 +13,15 @@
     "serviceAccountName": "my-account",
     "terminationGracePeriodSeconds": 60,
     "hostNetwork": true,
+    "dnsPolicy": "None",
     "imagePullSecrets": [
       {
        "name": "secret"
       }
     ],
+    "priority": 2,
+    "hostname": "abc",
+    "subdomain": "def",
     "containers": [
       {
         "name": "basic",
