@@ -22,8 +22,7 @@ object Pod {
 
   def named(name: String) = Pod(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: Pod.Spec) : Pod = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
-  
-  import DNSPolicy._
+
   case class Spec(
     containers: List[Container] = List(), // should have at least one member
     initContainers: List[Container] = Nil,
@@ -31,7 +30,7 @@ object Pod {
     restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
     terminationGracePeriodSeconds: Option[Int] = None,
     activeDeadlineSeconds: Option[Int] = None,
-    dnsPolicy: DNSPolicy.DNSPolicy = ClusterFirst,
+    dnsPolicy: DNSPolicy.DNSPolicy = DNSPolicy.ClusterFirst,
     nodeSelector: Map[String, String] = Map(),
     serviceAccountName: String ="",
     nodeName: String = "",
@@ -39,7 +38,17 @@ object Pod {
     imagePullSecrets: List[LocalObjectReference] = List(),
     affinity: Option[Affinity] = None,
     tolerations: List[Toleration] = List(),
-    securityContext: Option[Security.Context] = None) {
+    securityContext: Option[Security.Context] = None,
+    hostname: Option[String] = None,
+    hostAliases: List[HostAlias] = Nil,
+    hostPID: Option[Boolean] = None,
+    hostIPC: Option[Boolean] = None,
+    automountServiceAccountToken: Option[Boolean] = None,
+    priority: Option[Int] = None,
+    priorityClassName: Option[String] = None,
+    schedulerName: Option[String] = None,
+    subdomain: Option[String] = None,
+    dnsConfig: Option[DNSConfig] = None) {
      
     // a few convenience methods for fluently building out a pod spec
     def addContainer(c: Container) = { this.copy(containers = c :: containers) }
@@ -138,6 +147,10 @@ object Pod {
     case class WeightedPodAffinityTerm(weight: Int, podAffinityTerm: PodAffinityTerm)
   }
 
+  case class HostAlias(ip: String, hostnames: List[String])
+  case class DNSConfigOption(name: String, value: String)
+  case class DNSConfig(nameservers: List[String] = Nil, options: List[DNSConfigOption] = Nil, searches: List[String] = Nil)
+
   case class Status(
     phase: Option[Phase.Phase] = None,
     conditions: List[Condition] = Nil,
@@ -146,7 +159,10 @@ object Pod {
     hostIP: Option[String] = None,
     podIP: Option[String] = None,
     startTime: Option[Timestamp] = None,
-    containerStatuses: List[Container.Status] = Nil)
+    containerStatuses: List[Container.Status] = Nil,
+    initContainerStatuses: List[Container.Status] = Nil,
+    qosClass: Option[String] = None,
+    nominatedNodeName: Option[String] = None)
 
   case class Condition(
     _type : String="Ready",

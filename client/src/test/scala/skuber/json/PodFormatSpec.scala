@@ -560,7 +560,12 @@ import Pod._
     mount.readOnly mustEqual true
     mount.subPath mustEqual "subpath"
 
-    pod.spec.get.securityContext.get.fsGroup == Some(2000)
+    pod.spec.get.securityContext.get.fsGroup mustEqual Some(2000)
+    pod.spec.get.priority mustEqual Some(2)
+    pod.spec.get.hostname mustEqual Some("abc")
+    pod.spec.get.subdomain mustEqual Some("def")
+    pod.spec.get.dnsPolicy mustEqual DNSPolicy.None
+    pod.spec.get.hostNetwork mustEqual true
 
     // write and read it back in again and compare
     val json = Json.toJson(pod)
