@@ -299,7 +299,7 @@ package object client {
 
      private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
      {
-       log.error(s"[ ${lc.output} - $msg ]", ex)
+       log.error(ex, s"[ ${lc.output} - $msg ]")
      }
 
      private[skuber] def logDebug(msg : => String)(implicit lc: LoggingContext) = {
