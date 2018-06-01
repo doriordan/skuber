@@ -64,7 +64,7 @@ The latter method has now been renamed so the `list` method is no longer overloa
 
 ## partiallyUpdate
 
-The `partiallyUpdate` method has been removed, as it was undocumented and didn't work anyway. In the longer-term, proper `PATCH` support would be nice to have but was not available in 1.x and is not yet available in 2.0.
+The `partiallyUpdate` method has been removed, as it was undocumented and didn't work anyway. Skuber 2 supports a `jsonMergePatch` operation instead, which allows clients to patch resources using the Kubernetes API json merge patch functionality.
 
 ## Configuration
 
