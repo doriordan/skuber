@@ -18,6 +18,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
@@ -769,7 +770,7 @@ package object client {
 
     val sslContext = TLS.establishSSLContext(k8sContext)
     sslContext foreach { ssl =>
-      val httpsContext = ConnectionContext.https(ssl, None,Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")), None, None)
+      val httpsContext = ConnectionContext.https(ssl, Some(AkkaSSLConfig()))
       Http().setDefaultClientHttpsContext(httpsContext)
     }
 
