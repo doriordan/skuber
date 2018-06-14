@@ -9,6 +9,7 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.5"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.59"
+val kubernetesServerMock = "io.fabric8" % "kubernetes-server-mock" % "3.1.12"
 
 // the client API request/response handing uses Akka Http 
 // This also brings in the transitive dependencies on Akka actors and streams
@@ -60,7 +61,7 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, scalaCheck % Test,specs2 % Test).
+  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, scalaCheck % Test,specs2 % Test, kubernetesServerMock % Test, scalaTest % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 
