@@ -2,7 +2,8 @@ package skuber
 
 import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import skuber.apps.v1.Deployment // NOTE: use skuber.ext.Deployment if k8s version < 1.9
+import skuber.LabelSelector.IsEqualRequirement
+import skuber.apps.v1.Deployment
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -58,8 +59,9 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 
   def getNginxDeployment(name: String, version: String): Deployment = {
+    import LabelSelector.dsl._
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate)
+    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
   }
 }

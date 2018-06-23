@@ -24,14 +24,7 @@ case class Deployment(
 
   def withTemplate(template: Pod.Template.Spec) = {
     val updatedSpec = copySpec.copy(template = template)
-    val updated = this.copy(spec = Some(updatedSpec))
-    // copy labels from template into the label selector if the selector is currently empty
-    if (updatedSpec.selector.requirements.isEmpty) {
-      val selectorRequirements = template.metadata.labels.map { case (name, value) => IsEqualRequirement(name, value) }.toSeq
-      val selector = LabelSelector(selectorRequirements: _*)
-      updated.withLabelSelector(selector)
-    } else
-      updated
+    this.copy(spec = Some(updatedSpec))
   }
 
   def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=sel)))
