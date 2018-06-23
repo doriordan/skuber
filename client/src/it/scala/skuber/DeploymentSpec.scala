@@ -2,8 +2,7 @@ package skuber
 
 import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import skuber.ext.Deployment
-import skuber.json.ext.format._
+import skuber.apps.v1.Deployment // NOTE: use skuber.ext.Deployment if k8s version < 1.9
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
