@@ -69,13 +69,13 @@ You need Java 8 to run Skuber.
 
 ## Release
 
-You can use the latest v2.0 release (for Scala 2.11 or 2.12) by adding to your build:
+You can use the latest release (for Scala 2.11 or 2.12) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.0.6"    
+libraryDependencies += "io.skuber" %% "skuber" % "2.0.7"    
 ```
 
-Meanwhile existing users can continue to use the latest (and possibly final, with exception of important fixes) v1.x release, which is available only on Scala 2.11:
+Meanwhile users of skuber v1 can continue to use the latest (and possibly final, with exception of important fixes) v1.x release, which is available only on Scala 2.11:
 
 ```sbt
 libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
@@ -83,13 +83,11 @@ libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
 
 ## Migrating to release v2
 
-If you have a Skuber client using release 1.x and want to move to the strategic version 2 release, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
+If you have a Skuber client using release v1.x and want to move to the strategic version 2 release, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
 
 ## Building
 
 Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
-
-Note that the master branch has now been updated with the changes for Skuber v2 - if you want to use Skuber v1.x than build from the release_1.x branch instead.
 
 ## Quick Start
 
