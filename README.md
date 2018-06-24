@@ -17,18 +17,23 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 ## Example Usage
 
-This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by five nginx replicas.
+This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by a deployment of five nginx replicas.
 
 ```scala
 import skuber._
 import skuber.json.format._
+import skuber.apps.v1.Deployment
+import LabelSelector.dsl._
 
-val nginxSelector  = Map("app" -> "nginx")
-val nginxContainer = Container("nginx",image="nginx").exposePort(80)
-val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
+val nginxSelector  = "app" is "nginx" 
+val nginxContainer = Container(name = "nginx", image = "nginx").exposePort(80) 
+val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
+val nginxDeployment = Deployment(name)
     .withReplicas(5)
+    .withTemplate(nginxTemplate)
+    .withLabelSelector(nginxSelector)
 val nginxService = Service("nginx")
-    .withSelector(nginxSelector)
+    .withSelector("app" -> "nginx")
     .exposeOnNodePort(30001 -> 80) 
 
 // Some standard Akka implicits that are required by the skuber v2 client API
@@ -41,13 +46,14 @@ implicit val dispatcher = system.dispatcher
 // Initialise skuber client
 val k8s = k8sInit
 
+// Create the service and the deployment on the Kubernetes cluster
 val createOnK8s = for {
   svc <- k8s create nginxService
-  rc  <- k8s create nginxController
-} yield (rc,svc)
+  dep  <- k8s create nginxDeployment
+} yield (dep,svc)
 
 createOnK8s onComplete {
-  case Success(_) => System.out.println("Successfully created nginx replication controller & service on Kubernetes cluster")
+  case Success(_) => System.out.println("Successfully created nginx deployment & service on Kubernetes cluster")
   case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
 }
 
@@ -100,13 +106,11 @@ The quickest way to get started with Skuber:
 - Try one or more of the examples: if you have cloned this repository run `sbt` in the top-level directory to start sbt in interactive mode and then:
 
 ```bash
-> project examples
-
-> run
-[warn] Multiple main classes detected.  Run 'show discoveredMainClasses' to see the list
+sbt:root> project examples
+sbt:skuber-examples> run
 
 Multiple main classes detected, select one to run:
-    
+
  [1] skuber.examples.customresources.CreateCRD
  [2] skuber.examples.deployment.DeploymentExamples
  [3] skuber.examples.fluent.FluentExamples
@@ -114,9 +118,12 @@ Multiple main classes detected, select one to run:
  [5] skuber.examples.ingress.NginxIngress
  [6] skuber.examples.job.PrintPiJob
  [7] skuber.examples.list.ListExamples
- [8] skuber.examples.scale.ScaleExamples
+ [8] skuber.examples.patch.PatchExamples
+ [9] skuber.examples.podlogs.PodLogExample
+ [10] skuber.examples.scale.ScaleExamples
+ [11] skuber.examples.watch.WatchExamples
 
-Enter number: 
+Enter number:
 ```
 
 For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
