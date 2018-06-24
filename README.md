@@ -22,13 +22,18 @@ This example creates a nginx service (accessed via port 30001 on each Kubernetes
 ```scala
 import skuber._
 import skuber.json.format._
+import skuber.apps.v1.Deployment
+import LabelSelector.dsl._
 
-val nginxSelector  = Map("app" -> "nginx")
-val nginxContainer = Container("nginx",image="nginx").exposePort(80)
-val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector)
+val nginxSelector  = "app" is "nginx" 
+val nginxContainer = getNginxContainer(version)
+val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
+val nginxDeployment = Deployment(name)
     .withReplicas(5)
+    .withTemplate(nginxTemplate)
+    .withLabelSelector(nginxSelector)
 val nginxService = Service("nginx")
-    .withSelector(nginxSelector)
+    .withSelector("app" -> "nginx")
     .exposeOnNodePort(30001 -> 80) 
 
 // Some standard Akka implicits that are required by the skuber v2 client API
@@ -43,11 +48,11 @@ val k8s = k8sInit
 
 val createOnK8s = for {
   svc <- k8s create nginxService
-  rc  <- k8s create nginxController
-} yield (rc,svc)
+  dep  <- k8s create nginxDeployment
+} yield (dep,svc)
 
 createOnK8s onComplete {
-  case Success(_) => System.out.println("Successfully created nginx replication controller & service on Kubernetes cluster")
+  case Success(_) => System.out.println("Successfully created nginx deployment & service on Kubernetes cluster")
   case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
 }
 
