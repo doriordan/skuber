@@ -85,7 +85,7 @@ Similiarly, subpackages of `skuber.json` contain formatters for non-core API gro
 
 Some of the more recently added subpackages in skuber - for example `apps/v1` - include the Json formatters in the companion objects of the model case classes so there is no need for these types to explicitly import their formatters.
 
-There are many available examples of JSON representations of Kubernetes objects, for example [this file](https://github.com/kubernetes/examples/blob/master/guestbook/frontend-deployment.yaml) specifies a Deployment for the main Kubernetes project Guestbook example. To convert that JSON representation into a Skuber `Deployment` object:
+There are many available examples of Yaml or Json representations of Kubernetes objects, for example [this file](https://github.com/kubernetes/examples/blob/master/guestbook/frontend-deployment.yaml) specifies a Deployment for the main Kubernetes project Guestbook example. To convert that Yaml representation into a Skuber `Deployment` object:
 
 ```scala
 import skuber.apps.v1.Deployment
@@ -93,14 +93,27 @@ import skuber.apps.v1.Deployment
 import play.api.libs.json.Json   
 import scala.io.Source
 
+// NOTE: this is just a generic helper to convert from Yaml to a Json formatted string that can be parsed by skuber
+def yamlToJsonString(yamlStr: String): String = {
+  import com.fasterxml.jackson.databind.ObjectMapper
+  import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+
+  val yamlReader = new ObjectMapper(new YAMLFactory)
+  val obj = yamlReader.readValue(yamlStr, classOf[Object])
+  val jsonWriter = new ObjectMapper()
+  jsonWriter.writeValueAsString(obj)
+}
+
+// Read and parse the deployment in a Skuber model
 val deploymentURL = "https://raw.githubusercontent.com/kubernetes/examples/master/guestbook/frontend-deployment.yaml"
-val deploymentJson = Source.fromURL(deploymentURL).mkString 
-val deployment = Json.parse(deploymentJson).as[Deployment]
+val deploymentYamlStr= Source.fromURL(deploymentURL).mkString 
+val deploymentJsonStr=yamlToJsonString(deploymentYamlStr)
+val deployment = Json.parse(deploymentJsonStr).as[Deployment]
 println("Name: " + deployment.name)
 println("Replicas: " + deployment.spec.flatMap(_.replicas).getOrElse(1))
 ```
 
-Equally it is straightforward to do the reverse and generate a JSON value from a Skuber model object:
+Equally it is straightforward to do the reverse and generate a Play Json value from a Skuber model object:
 
 ```scala
     val json = Json.toJson(deployment)
