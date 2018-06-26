@@ -782,7 +782,7 @@ package object client {
 
     val defaultClientSettings=ConnectionPoolSettings(actorSystem.settings.config)
     val watchConnectionSettings=defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
-    val watchSettings=defaultClientSettings.copy(connectionSettings = watchConnectionSettings)
+    val watchSettings=defaultClientSettings.withConnectionSettings(watchConnectionSettings)
 
     val requestInvoker = (request: HttpRequest, watch: Boolean) => {
       if (!watch)
