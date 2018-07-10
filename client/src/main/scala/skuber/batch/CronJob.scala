@@ -16,7 +16,7 @@ object CronJob {
 
   implicit val cronjobDef = new ResourceDefinition[CronJob] {
     def spec = NonCoreResourceSpecification(
-      group=Some("batch"),
+      apiGroup="batch",
       version="v2alpha1",
       scope = Scope.Namespaced,
       names=Names(

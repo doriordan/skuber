@@ -65,7 +65,7 @@ case class ReplicaSet(
 object ReplicaSet {
 
   val specification=NonCoreResourceSpecification(
-    group = Some("extensions"),
+    apiGroup = "apps",
     version = "v1",
     scope = Scope.Namespaced,
     names = Names(

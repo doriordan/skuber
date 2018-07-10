@@ -50,4 +50,8 @@ object Scale {
   trait SubresourceSpec[O <: ObjectResource] {
     def apiVersion: String // the API version to be set on any Scale subresource of the specific resource type O
   }
+
+  class CustomResourceScaleSubResource[O <: ObjectResource] extends SubresourceSpec[O] {
+    def apiVersion = "autoscaling/v1"
+  }
 }    

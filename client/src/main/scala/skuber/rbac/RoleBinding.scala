@@ -17,7 +17,7 @@ case class RoleBinding(
 object RoleBinding {
 
   def specification = NonCoreResourceSpecification (
-    group=Some("rbac.authorization.k8s.io"),
+    apiGroup="rbac.authorization.k8s.io",
     version="v1beta1",
     scope = Scope.Namespaced,
     names=Names(

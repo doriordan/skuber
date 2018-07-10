@@ -248,7 +248,7 @@ package object client {
          clusterServer,
          rd.spec.apiPathPrefix,
          rd.spec.group,
-         rd.spec.version,
+         rd.spec.defaultVersion,
          watchPathComponent,
          nsPathComponent,
          rd.spec.names.plural,
@@ -668,7 +668,8 @@ package object client {
              if (log.isErrorEnabled)
                log.error(s"[Response: could not read Status for non-ok response, exception : ${ex.getMessage}]")
              Some(Status(
-               message = Some("Unexpected exception trying to unmarshal Kubernetes Status response due to non-ok response code"),
+               code = Some(response.status.intValue),
+               message = Some("Non-ok response and unable to parse Status from response body to get further details"),
                details = Some(ex.getMessage)
              ))
            }

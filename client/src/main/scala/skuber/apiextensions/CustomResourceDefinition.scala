@@ -1,8 +1,9 @@
 package skuber.apiextensions
 
 import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.JsPath
-import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification}
+import play.api.libs.json.{JsObject, JsPath, JsValue}
+import skuber.ResourceSpecification.{ScaleSubResource, Subresources}
+import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
 
 /**
   * @author David O'Riordan
@@ -12,6 +13,7 @@ case class CustomResourceDefinition(
   override val apiVersion: String = "apiextensions.k8s.io/v1beta1",
   val metadata: ObjectMeta,
   spec: CustomResourceDefinition.Spec
+
 ) extends ObjectResource
 
 object CustomResourceDefinition {
@@ -24,13 +26,19 @@ object CustomResourceDefinition {
   type Names=ResourceSpecification.Names
   val Names=ResourceSpecification.Names
 
+  type Version = ResourceSpecification.Version
+
+  type Subresources = ResourceSpecification.Subresources
+  type ScaleSubresource = ResourceSpecification.ScaleSubResource
+
   val crdNames = Names(
     "customresourcedefinitions",
     "customresourcedefinition",
     "CustomResourceDefinition",
     List("crd"))
+
   val specification = NonCoreResourceSpecification(
-    group = Some("apiextensions.k8s.io"),
+    apiGroup = "apiextensions.k8s.io",
     version = "v1beta1",
     scope = Scope.Cluster,
     names = crdNames)
@@ -70,9 +78,22 @@ object CustomResourceDefinition {
     val group=nameParts.tail.mkString(".")
 
     val names=ResourceSpecification.Names(plural=plural,kind=kind,singular=singular.getOrElse(""),shortNames=shortNames)
-    val spec=Spec(group=Some(group),version=version,names=names, scope=scope)
+    val spec=Spec(apiGroup=group,version=version,names=names, scope=scope)
     CustomResourceDefinition(metadata=ObjectMeta(name=name), spec=spec)
   }
+
+  def apply[T <: TypeMeta : ResourceDefinition]: CustomResourceDefinition = {
+    val crdSpec: Spec = try {
+      implicitly[ResourceDefinition[T]].spec.asInstanceOf[Spec]
+    } catch {
+      case ex: ClassCastException =>
+        val msg = "Requires an implicit resource definition that has a NonCoreResourceSpecification"
+        throw new skuber.K8SException(skuber.api.client.Status(message = Some(msg)))
+    }
+    val name=s"${crdSpec.names.plural}.${crdSpec.group.get}"
+    new CustomResourceDefinition(metadata=ObjectMeta(name=name), spec=crdSpec)
+  }
+
   implicit val crdDef = new ResourceDefinition[CustomResourceDefinition] { def spec=specification }
   implicit val crdListDef = new ResourceDefinition[CustomResourceDefinitionList] { def spec=specification }
 
@@ -91,14 +112,35 @@ object CustomResourceDefinition {
       (JsPath \ "plural").format[String] and
       (JsPath \ "singular").format[String] and
       (JsPath \ "kind").format[String] and
-      (JsPath \ "shortNames").formatMaybeEmptyList[String]
+      (JsPath \ "shortNames").formatMaybeEmptyList[String] and
+      (JsPath \ "listKind").formatNullable[String] and
+      (JsPath \ "categories").formatMaybeEmptyList[String]
   )(Names.apply _, unlift(Names.unapply))
 
+  implicit val versionFormat: Format[ResourceSpecification.Version] = (
+    (JsPath \ "name").format[String] and
+    (JsPath \ "served").formatMaybeEmptyBoolean() and
+    (JsPath \ "storage").formatMaybeEmptyBoolean()
+  )(ResourceSpecification.Version.apply _, unlift(ResourceSpecification.Version.unapply))
+
+  implicit val scaleSubresourceFmt: Format[ScaleSubresource] = (
+    (JsPath \ "specReplicasPath").formatNullable[String] and
+    (JsPath \ "statusReplicasPath").formatNullable[String] and
+    (JsPath \ "labelSelectorPath").formatNullable[String]
+  )(ScaleSubResource.apply _, unlift(ScaleSubResource.unapply))
+
+  implicit val subresourcesFmt: Format[Subresources] = (
+    (JsPath \ "status").formatNullable[JsValue].inmap(jsOpt => jsOpt.map(j => j:Any), (anyOpt: Option[Any]) => anyOpt.map((a: Any) => new JsObject(Map()))) and
+    (JsPath \ "scale").formatNullable[ScaleSubresource]
+  )(Subresources.apply _, unlift(Subresources.unapply))
+
   implicit val crdSpecFmt: Format[Spec] = (
-      (JsPath \ "group").formatNullable[String] and
-      (JsPath \ "version").format[String] and
+      (JsPath \ "group").format[String] and
+      (JsPath \ "version").formatNullable[String] and
+      (JsPath \ "versions").formatMaybeEmptyList[Version] and
       (JsPath \ "scope").formatEnum(Scope) and
-      (JsPath \ "names").format[Names]
+      (JsPath \ "names").format[Names] and
+      (JsPath \ "subresources").formatNullable[Subresources]
   )(Spec.apply _, unlift(Spec.unapply))
 
   implicit val crdFmt: Format[CustomResourceDefinition] = (

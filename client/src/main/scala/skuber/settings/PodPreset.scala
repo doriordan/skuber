@@ -29,7 +29,7 @@ object PodPreset {
   // Kubernetes resource specification
 
   val specification = NonCoreResourceSpecification(
-    group = Some("settings.k8s.io"),
+    apiGroup ="settings.k8s.io",
     version = "v1alpha1",
     scope = Scope.Namespaced,
     names = Names(

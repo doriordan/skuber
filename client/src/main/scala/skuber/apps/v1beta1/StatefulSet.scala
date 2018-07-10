@@ -37,7 +37,7 @@ case class StatefulSet(override val kind: String ="StatefulSet",
 object StatefulSet {
 
   val specification=NonCoreResourceSpecification (
-    group=Some("apps"),
+    apiGroup="apps",
     version="v1beta1", // version as at k8s v1.7
     scope = Scope.Namespaced,
     names=Names(
