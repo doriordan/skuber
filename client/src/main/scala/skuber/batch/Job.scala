@@ -20,7 +20,7 @@ case class Job(val kind: String ="Job",
 object Job {
 
   val specification=NonCoreResourceSpecification (
-    group=Some("batch"),
+    apiGroup="batch",
     version="v1",
     scope = Scope.Namespaced,
     names=Names(

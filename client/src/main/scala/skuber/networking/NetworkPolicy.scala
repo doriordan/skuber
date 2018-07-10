@@ -100,7 +100,7 @@ object NetworkPolicy {
   // Kubernetes resource specification
 
   val specification = NonCoreResourceSpecification(
-    group = Some("networking.k8s.io"),
+    apiGroup = "networking.k8s.io",
     version = "v1",
     scope = Scope.Namespaced,
     names = Names(

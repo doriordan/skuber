@@ -33,7 +33,7 @@ case class HorizontalPodAutoscaler(
 object HorizontalPodAutoscaler {
 
   val specification=NonCoreResourceSpecification(
-    group = Some("autoscaling"),
+    apiGroup = "autoscaling",
     version = "v1",
     scope = Scope.Namespaced,
     names = Names(

@@ -173,7 +173,16 @@ package object format {
     (JsPath \ "items").formatMaybeEmptyList[O]
 
   def ListResourceFormat[O <: ObjectResource](implicit f: Format[O]): OFormat[ListResource[O]] = listResourceFormatBuilder[O].apply(ListResource.apply _, unlift(ListResource.unapply))
-  
+
+  implicit val ownerRefFmt: Format[OwnerReference] = (
+    (JsPath \ "apiVersion").formatMaybeEmptyString() and
+    (JsPath \ "kind").formatMaybeEmptyString() and
+    (JsPath \ "name").formatMaybeEmptyString() and
+    (JsPath \ "uid").formatMaybeEmptyString() and
+    (JsPath \ "controller").formatNullable[Boolean] and
+    (JsPath \ "blockOwnerDeletion").formatNullable[Boolean]
+  )(OwnerReference.apply _,unlift((OwnerReference.unapply)))
+
   implicit lazy val objectMetaFormat: Format[ObjectMeta] = (
     (JsPath \ "name").formatMaybeEmptyString() and
     (JsPath \ "generateName").formatMaybeEmptyString() and 
@@ -183,9 +192,13 @@ package object format {
     (JsPath \ "resourceVersion").formatMaybeEmptyString() and
     (JsPath \ "creationTimestamp").formatNullable[Timestamp] and
     (JsPath \ "deletionTimestamp").formatNullable[Timestamp] and
+    (JsPath \ "deletionGracePeriod").formatNullable[Int] and
     (JsPath \ "labels").formatMaybeEmptyMap[String] and
     (JsPath \ "annotations").formatMaybeEmptyMap[String] and
-    (JsPath \ "generation").formatMaybeEmptyInt()
+    (JsPath \ "ownerReferences").formatMaybeEmptyList[OwnerReference] and
+    (JsPath \ "generation").formatMaybeEmptyInt() and
+    (JsPath \ "finalizers").formatNullable[List[String]] and
+    (JsPath \ "clusterName").formatNullable[String]
   )(ObjectMeta.apply _, unlift(ObjectMeta.unapply))
     
   implicit val listMetaFormat: Format[ListMeta] = (

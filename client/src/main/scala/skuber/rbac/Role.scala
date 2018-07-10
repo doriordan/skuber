@@ -16,7 +16,7 @@ case class Role(
 object Role {
   implicit val roleDef = new ResourceDefinition[Role] {
     def spec = NonCoreResourceSpecification (
-      group=Some("rbac.authorization.k8s.io"),
+      apiGroup="rbac.authorization.k8s.io",
       version="v1beta1",
       scope = Scope.Namespaced,
       names=Names(

@@ -54,7 +54,7 @@ case class Ingress(
 object Ingress {
 
   val specification=NonCoreResourceSpecification(
-    group = Some("extensions"),
+    apiGroup = "extensions",
     version = "v1beta1",
     scope = Scope.Namespaced,
     names = Names(

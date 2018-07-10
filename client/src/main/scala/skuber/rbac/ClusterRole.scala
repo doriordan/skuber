@@ -17,7 +17,7 @@ object ClusterRole {
 
   implicit val crDef = new ResourceDefinition[ClusterRole] {
     def spec = NonCoreResourceSpecification (
-      group=Some("rbac.authorization.k8s.io"),
+      apiGroup="rbac.authorization.k8s.io",
       version="v1beta1",
       scope = Scope.Cluster,
       names=Names(

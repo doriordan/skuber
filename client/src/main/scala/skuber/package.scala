@@ -1,14 +1,14 @@
 
 import scala.language.implicitConversions
-
 import java.net.URL
 
 import akka.stream.Materializer
 import com.typesafe.config.Config
-import skuber.api.client.RequestContext
+import skuber.api.client.{RequestContext, Status}
 
 /*
- * Represents core types and aliases 
+ * Represents core types and aliases
+ * In future some of these are likely to be moved to separate files and even packages
  * @author David O'Riordan
  */
 package object skuber {
@@ -31,6 +31,8 @@ package object skuber {
 
   type Timestamp = java.time.ZonedDateTime
 
+  case class OwnerReference(apiVersion:String, kind:String, name: String, uid: String, controller: Option[Boolean], blockOwnerDeletion: Option[Boolean])
+
   case class ObjectMeta(
     name: String = emptyS,
     generateName: String = emptyS,
@@ -40,9 +42,13 @@ package object skuber {
     resourceVersion: String = emptyS,
     creationTimestamp: Option[Timestamp] = None,
     deletionTimestamp: Option[Timestamp] = None,
+    deletionGracePeriodSeconds: Option[Int] = None,
     labels: Map[String, String] = Map(),
     annotations: Map[String, String] = Map(),
-    generation: Int = 0)
+    ownerReferences: List[OwnerReference] = Nil,
+    generation: Int = 0,
+    finalizers: Option[List[String]] = None,
+    clusterName: Option[String] = None)
 
   abstract class ObjectResource extends TypeMeta {
     val metadata: ObjectMeta
@@ -50,14 +56,6 @@ package object skuber {
     def name = metadata.name
     def resourceVersion=metadata.resourceVersion
     def ns = if (metadata.namespace == emptyS) "default" else metadata.namespace
-  }
-
-  // This will be used to associate an implicit API resource definition with each ObjectResource type
-  // (the implicit values are declared in the companion objects of the resource type case classes)
-  // This will allow us to implicitly pass the required spec to construct API requests with each
-  // typed call to the Skuber API
-  trait ResourceDefinition[T <: TypeMeta] {
-    def spec: ResourceSpecification
   }
 
   // This trait is used to edit common fields (currently just metadata) of an object
@@ -119,7 +117,7 @@ package object skuber {
 
   def listResourceFromItems[K <: KListItem](items: List[K])(implicit rd: ResourceDefinition[K]) =
     new ListResource[K](
-      apiVersion = rd.spec.group.map(_ + "/" + rd.spec.version).getOrElse(v1),
+      apiVersion = rd.spec.group.map(_ + "/" + rd.spec.defaultVersion).getOrElse(v1),
       kind = rd.spec.names.kind + "List",
       metadata = None,
       items = items

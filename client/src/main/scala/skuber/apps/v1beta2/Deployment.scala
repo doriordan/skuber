@@ -59,7 +59,7 @@ case class Deployment(
 object Deployment {
 
   val specification=NonCoreResourceSpecification (
-    group=Some("apps"),
+    apiGroup="apps",
     version="v1beta2",
     scope = Scope.Namespaced,
     names=Names(
