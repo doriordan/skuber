@@ -322,7 +322,7 @@ import Pod._
       myPod.spec.get.restartPolicy mustEqual RestartPolicy.Always
       myPod.spec.get.tolerations mustEqual List(
         ExistsToleration(Some("localhost.domain/url")),
-        EqualToleration("key","value",Some(TolerationEffect.NoExecute)),
+        EqualToleration("key",Some("value"),Some(TolerationEffect.NoExecute)),
         ExistsToleration(None, Some(TolerationEffect.NoSchedule), None))
 
       val vols = myPod.spec.get.volumes

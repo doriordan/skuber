@@ -267,7 +267,7 @@ package object format {
   implicit val tolerationFmt: Format[Pod.Toleration] = new Format[Pod.Toleration] {
 
     override def reads(json: JsValue): JsResult[Pod.Toleration] = json match {
-      case JsObject(fields) if fields.contains("operator") =>
+      case JsObject(fields) =>
 
         val tolerationSeconds=fields.get("tolerationSeconds").map(js => js.as[Int])
         val effect: Option[Pod.TolerationEffect] = fields.get("effect").flatMap{
@@ -275,12 +275,12 @@ package object format {
           case e @ _ => Some(e.as[Pod.TolerationEffect])
         }
 
-        fields("operator") match {
-          case JsString("Equal") =>
+        fields.get("operator") match {
+          case Some(JsString("Equal")) | None =>
             val key = fields("key").as[String]
-            val value = fields("value").as[String]
+            val value = fields.get("value").map(js => js.as[String])
             JsSuccess(Pod.EqualToleration(key, value, effect, tolerationSeconds))
-          case JsString("Exists") =>
+          case Some(JsString("Exists"))  =>
             val key = fields.get("key").map(js => js.as[String])
             JsSuccess(Pod.ExistsToleration(key, effect, tolerationSeconds))
           case operator => JsError(s"Unknown operator '$operator'")
@@ -294,7 +294,7 @@ package object format {
       case Pod.EqualToleration(key, value, effect, tolerationSeconds) =>
         val fields: List[(String, JsValue)] =  List(
           Some("key" -> JsString(key)),
-          Some("value" -> JsString(value)),
+          value.map(v => "value" -> JsString(v)),
           Some("operator" -> JsString("Equal")),
           effect.map(e => "effect" -> Json.toJson(e)),
           tolerationSeconds.map(ts => "tolerationSeconds" -> JsNumber(ts))).flatten
