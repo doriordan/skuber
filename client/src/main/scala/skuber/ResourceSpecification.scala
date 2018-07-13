@@ -1,6 +1,5 @@
 package skuber
 
-import skuber.ResourceSpecification.ScaleSubResource
 import skuber.api.client.Status
 
 /**
@@ -47,13 +46,19 @@ object ResourceSpecification {
   case class Version(name: String, served: Boolean = false, storage: Boolean = false)
 
   case class Subresources(
-    status: Option[Any],
-    scale: Option[ScaleSubResource]
-  )
-  case class ScaleSubResource(
-    specReplicasPath: Option[String],
-    scaleReplicasPath: Option[String],
-    labelSelectorPath: Option[String])
+    status: Option[StatusSubresource] = None,
+    scale: Option[ScaleSubresource] = None)
+  {
+    def withStatusSubresource(): Subresources = this.copy(status = Some(StatusSubresource()))
+    def withScaleSubresource(scale: ScaleSubresource): Subresources = this copy(scale = Some(scale))
+  }
+
+  case class ScaleSubresource(
+    specReplicasPath: String,
+    statusReplicasPath: String,
+    labelSelectorPath: Option[String]=None)
+
+  case class StatusSubresource()
 }
 
 case class CoreResourceSpecification(
@@ -134,11 +139,11 @@ case class NonCoreResourceSpecification(
 }
 
 object NonCoreResourceSpecification {
+
   def apply(apiGroup: String, version: String, scope: ResourceSpecification.Scope.Value, names: ResourceSpecification.Names): NonCoreResourceSpecification = {
     val versions = List(ResourceSpecification.Version(name=version, true, true))
     new NonCoreResourceSpecification(apiGroup, Some(version), versions, scope, names, None)
   }
-
 }
 
 
