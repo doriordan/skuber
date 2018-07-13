@@ -393,6 +393,25 @@ package object client {
      {
        modify(HttpMethods.PUT)(obj)
      }
+     
+     def updateStatus[O <: ObjectResource](obj: O)(implicit
+       fmt: Format[O],
+       rd: ResourceDefinition[O],
+       lc: LoggingContext=RequestLoggingContext(),
+       statusEv: HasStatusSubresource[O]): Future[O] =
+     {
+       val statusSubresourcePath=s"${obj.name}/status"
+       modify(HttpMethods.PUT,obj,Some(statusSubresourcePath))
+     }
+
+     def getStatus[O <: ObjectResource](name: String)(implicit
+       fmt: Format[O],
+       rd: ResourceDefinition[O],
+       lc: LoggingContext=RequestLoggingContext(),
+       statusEv: HasStatusSubresource[O]): Future[O] =
+     {
+        _get[O](s"${name}/status")
+     }
 
      def updateStatus[O <: ObjectResource](obj: O)(implicit
        fmt: Format[O],
