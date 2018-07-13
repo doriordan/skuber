@@ -393,7 +393,7 @@ package object client {
      {
        modify(HttpMethods.PUT)(obj)
      }
-     
+
      def updateStatus[O <: ObjectResource](obj: O)(implicit
        fmt: Format[O],
        rd: ResourceDefinition[O],
