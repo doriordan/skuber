@@ -1,8 +1,8 @@
 package skuber.apiextensions
 
 import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.{JsObject, JsPath, JsValue}
-import skuber.ResourceSpecification.{ScaleSubResource, Subresources}
+import play.api.libs.json.{JsPath, JsResult, JsSuccess, JsValue}
+import skuber.ResourceSpecification.StatusSubresource
 import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
 
 /**
@@ -29,7 +29,8 @@ object CustomResourceDefinition {
   type Version = ResourceSpecification.Version
 
   type Subresources = ResourceSpecification.Subresources
-  type ScaleSubresource = ResourceSpecification.ScaleSubResource
+  type ScaleSubresource = ResourceSpecification.ScaleSubresource
+  type StatusSubresource = ResourceSpecification.StatusSubresource
 
   val crdNames = Names(
     "customresourcedefinitions",
@@ -123,16 +124,13 @@ object CustomResourceDefinition {
     (JsPath \ "storage").formatMaybeEmptyBoolean()
   )(ResourceSpecification.Version.apply _, unlift(ResourceSpecification.Version.unapply))
 
-  implicit val scaleSubresourceFmt: Format[ScaleSubresource] = (
-    (JsPath \ "specReplicasPath").formatNullable[String] and
-    (JsPath \ "statusReplicasPath").formatNullable[String] and
-    (JsPath \ "labelSelectorPath").formatNullable[String]
-  )(ScaleSubResource.apply _, unlift(ScaleSubResource.unapply))
+  implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
+  implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
+    override def writes(o: StatusSubresource): JsValue = Json.obj()
 
-  implicit val subresourcesFmt: Format[Subresources] = (
-    (JsPath \ "status").formatNullable[JsValue].inmap(jsOpt => jsOpt.map(j => j:Any), (anyOpt: Option[Any]) => anyOpt.map((a: Any) => new JsObject(Map()))) and
-    (JsPath \ "scale").formatNullable[ScaleSubresource]
-  )(Subresources.apply _, unlift(Subresources.unapply))
+    override def reads(json: JsValue): JsResult[StatusSubresource] = JsSuccess(StatusSubresource())
+  }
+  implicit val subresourcesFmt: Format[Subresources] = Json.format[Subresources]
 
   implicit val crdSpecFmt: Format[Spec] = (
       (JsPath \ "group").format[String] and

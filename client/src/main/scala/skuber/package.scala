@@ -4,6 +4,7 @@ import java.net.URL
 
 import akka.stream.Materializer
 import com.typesafe.config.Config
+import play.api.libs.json.Format
 import skuber.api.client.{RequestContext, Status}
 
 /*
@@ -235,6 +236,11 @@ package object skuber {
     gracePeriodSeconds: Option[Int] = None,
     preconditions: Option[Preconditions] = None,
     propagationPolicy: Option[DeletePropagation.Value] = None)
+
+  // Any object resource type [O <: ObjectResource] that supports a `status` subresource must provide an
+  // implicit value of HasStatusSubresource type to enable the client `status` API methods to be used on
+  // such resources
+  trait HasStatusSubresource[O <: ObjectResource]
 
   // aliases, references and delegates that enable using the API for many use cases without 
   // having to import anything from the skuber.api package

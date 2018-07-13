@@ -42,17 +42,20 @@ object CustomResource {
     spec = spec,
     status = None)
 
-  /*
-   * To indicate that 'scale' subresource is supported for specific custom resource type, the application declares:
-   * implicit val scaling=CustomResource.enableScaling[MySpec,MyStatus]
-   * If no such implicit is provided the compiler won't allow the scale methods on the API to be invoked
-   */
-  def enableScaling[Sp, St] =
-    new Scale.SubresourceSpec[CustomResource[Sp,St]] { override def apiVersion = "autoscaling/v1" }
+  /**
+    * This implicit enables the 'status' methods on the Skuber APi to be called on all CustomResource types
+    * (note: those methods are applied to the status subresource of the custom resource, so for the calls to succeed the status
+    * subresource must be enabled on Kubernetes by setting it on the associated custom resource definition)
+    */
+  implicit def enableStatus[Sp,St]: HasStatusSubresource[CustomResource[Sp,St]] = new HasStatusSubresource[CustomResource[Sp,St]] {}
 
   /*
-   *
+   * To indicate that 'scale' subresource is supported for specific custom resource type, the application declares:
+   * implicit val scaling=CustomResource.enableScaling[T] where T is the speicifc CustomResource type
+   * If no such implicit is provided the compiler won't allow the scale methods on the API to be invoked
    */
+  def enableScaling[O <: ObjectResource] =
+    new Scale.SubresourceSpec[O] { override def apiVersion = "autoscaling/v1" }
 
   /*
    * Generic formatter for custom resource types - this should be appropriate for most use cases, but can be
@@ -64,4 +67,14 @@ object CustomResource {
     (JsPath \ "spec").format[Sp] and
     (JsPath \ "status").formatNullable[St]
   )(CustomResource.apply _, unlift(CustomResource.unapply[Sp,St]))
+
+  /*
+   * Generic formatter required for parsing lists of custom resources - requires an implicit formatter for the corresponding
+   * resource type to be in scope (which is usually just the above method)
+   */
+  implicit def crListFormat[CustomResource[Sp,St] <: ObjectResource, Sp, St](implicit ofmt: Format[CustomResource[Sp,St]]): Format[ListResource[CustomResource[Sp, St]]] = {
+    import skuber.json.format.ListResourceFormat
+    ListResourceFormat[CustomResource[Sp,St]]
+  }
+
 }
