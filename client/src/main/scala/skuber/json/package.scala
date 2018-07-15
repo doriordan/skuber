@@ -7,7 +7,6 @@ import java.time.format._
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import skuber.Pod.Affinity
 import skuber._
 
 /**
@@ -79,23 +78,28 @@ package object format {
   implicit def maybeEmptyFormatMethods(path: JsPath): MaybeEmpty = new MaybeEmpty(path)
 
   // general formatting for Enumerations - derived from https://gist.github.com/mikesname/5237809
-  implicit def enumReads[E <: Enumeration](enum: E): Reads[E#Value] = {
-    case JsString(s) =>
-      try {
-        JsSuccess(enum.withName(s))
-      } catch {
-        case _: NoSuchElementException =>
-          JsError(
-            s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'"
-          )
+  implicit def enumReads[E <: Enumeration](enum: E): Reads[E#Value] = new Reads[E#Value] {
+    def reads(json: JsValue): JsResult[E#Value] = json match {
+      case JsString(s) => {
+        try {
+          JsSuccess(enum.withName(s))
+        } catch {
+          case _: NoSuchElementException =>
+            JsError(
+              s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'"
+            )
+        }
       }
-    case _ => JsError("String value expected")
+      case _ => JsError("String value expected")
+    }
   }
 
   implicit def enumReads[E <: Enumeration](enum: E, default: E#Value): Reads[E#Value] =
     enumReads(enum) or Reads.pure(default)
 
-  implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = (v: E#Value) => JsString(v.toString)
+  implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = new Writes[E#Value] {
+    def writes(v: E#Value): JsValue = JsString(v.toString)
+  }
 
   implicit def enumFormat[E <: Enumeration](enum: E): Format[E#Value] = Format(enumReads(enum), enumWrites)
 
@@ -477,7 +481,7 @@ package object format {
       (JsPath \ "host").formatMaybeEmptyString() and
       (JsPath \ "path").formatMaybeEmptyString() and
       (JsPath \ "scheme").formatMaybeEmptyString()
-  )(HTTPGetAction.apply, unlift(HTTPGetAction.unapply))
+  )(HTTPGetAction.apply _, unlift(HTTPGetAction.unapply))
 
   implicit val tcpSocketActionFormat: Format[TCPSocketAction] = (
     (JsPath \ "port")
@@ -793,7 +797,7 @@ package object format {
   implicit lazy val weightedPodAffinityTermFmt: Format[Pod.Affinity.WeightedPodAffinityTerm] =
     Json.format[Pod.Affinity.WeightedPodAffinityTerm]
 
-  implicit lazy val podAffinityFormat: OFormat[Affinity.PodAffinity] = (
+  implicit lazy val podAffinityFormat: Format[Pod.Affinity.PodAffinity] = (
     (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.PodAffinityTerm] and
       (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution")
         .formatMaybeEmptyList[Pod.Affinity.WeightedPodAffinityTerm]
