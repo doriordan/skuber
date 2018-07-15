@@ -1,5 +1,6 @@
 package skuber.apiextensions
 
+import play.api.libs.functional.syntax.unlift
 import play.api.libs.json._
 import skuber.ResourceSpecification.StatusSubresource
 import skuber.{
@@ -88,7 +89,7 @@ object CustomResourceDefinition {
     val crdSpec: Spec = try {
       implicitly[ResourceDefinition[T]].spec.asInstanceOf[Spec]
     } catch {
-      case _: ClassCastException =>
+      case ex: ClassCastException =>
         val msg = "Requires an implicit resource definition that has a NonCoreResourceSpecification"
         throw new skuber.K8SException(skuber.api.client.Status(message = Some(msg)))
     }
@@ -102,12 +103,15 @@ object CustomResourceDefinition {
   implicit val crdListDef: ResourceDefinition[CustomResourceDefinitionList] =
     new ResourceDefinition[CustomResourceDefinitionList] { def spec: Spec = specification }
 
-  implicit val crdEditor: ObjectEditor[CustomResourceDefinition] =
-    (obj: CustomResourceDefinition, newMetadata: ObjectMeta) => obj.copy(metadata = newMetadata)
+  implicit val crdEditor: ObjectEditor[CustomResourceDefinition] = new ObjectEditor[CustomResourceDefinition] {
+    override def updateMetadata(obj: CustomResourceDefinition, newMetadata: ObjectMeta): CustomResourceDefinition =
+      obj.copy(metadata = newMetadata)
+  }
   // json formatters for sending/receiving CRD resources
 
+  import play.api.libs.json.{ Json, Format }
   import play.api.libs.functional.syntax._
-  import play.api.libs.json.{ Format, Json }
+
   import skuber.json.format.{ enumFormat, enumFormatMethods, maybeEmptyFormatMethods, objectMetaFormat }
 
   implicit val scopeFormat: Format[ResourceSpecification.Scope.Value] = enumFormat(Scope)
