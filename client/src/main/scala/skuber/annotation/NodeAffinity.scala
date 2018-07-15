@@ -1,6 +1,6 @@
 package skuber.annotation
 
-import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
+import skuber.annotation.NodeAffinity.{ MatchExpressions, NodeSelectorTerms }
 
 /**
   * Created by Cory Klein on 2/22/17.
@@ -9,9 +9,13 @@ import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
   * Kubernetes 1.6 or later. It should be set directly in the Pod.Spec (see PodFormatSpec for an example)
   */
 case class NodeAffinity(
-                    requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
-                    preferredDuringSchedulingIgnoredDuringExecution: Option[PreferredDuringSchedulingIgnoredDuringExecution]
-                  )
+    requiredDuringSchedulingIgnoredDuringExecution: Option[
+      RequiredDuringSchedulingIgnoredDuringExecution
+    ],
+    preferredDuringSchedulingIgnoredDuringExecution: Option[
+      PreferredDuringSchedulingIgnoredDuringExecution
+    ]
+)
 
 object NodeAffinity {
   val ANNOTATION_NAME = "scheduler.alpha.kubernetes.io/affinity"
@@ -22,7 +26,11 @@ object NodeAffinity {
   type NodeSelectorTerms = List[NodeSelectorTerm]
   def NodeSelectorTerms(xs: NodeSelectorTerm*) = List(xs: _*)
 
-  def forRequiredQuery(key: String, operator: NodeAffinity.Operator.Value, values: List[String]): NodeAffinity = {
+  def forRequiredQuery(
+      key: String,
+      operator: NodeAffinity.Operator.Value,
+      values: List[String]
+  ): NodeAffinity = {
     NodeAffinity(
       Option(
         RequiredDuringSchedulingIgnoredDuringExecution(
@@ -34,8 +42,9 @@ object NodeAffinity {
             )
           )
         )
-      )
-      , None)
+      ),
+      None
+    )
   }
 
   object Operator extends Enumeration {
@@ -51,4 +60,3 @@ case class PreferredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms: No
 case class NodeSelectorTerm(matchExpressions: MatchExpressions)
 
 case class MatchExpression(key: String, operator: NodeAffinity.Operator.Value, values: List[String])
-

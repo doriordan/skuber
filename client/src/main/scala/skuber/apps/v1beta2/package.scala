@@ -1,6 +1,5 @@
 package skuber.apps
 
-
 import skuber.ListResource
 
 /**

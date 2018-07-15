@@ -18,45 +18,44 @@ package object format {
       (JsPath \ "kind").format[String] and
       (JsPath \ "name").format[String] and
       (JsPath \ "namespace").formatNullable[String]
-    )(Subject.apply _, unlift(Subject.unapply))
+  )(Subject.apply, unlift(Subject.unapply))
 
   implicit val policyRuleFormat: Format[PolicyRule] = (
     (JsPath \ "apiGroups").formatMaybeEmptyList[String] and
-    (JsPath \ "attributeRestrictions").formatNullable[String] and
-    (JsPath \ "nonResourceURLs").formatMaybeEmptyList[String] and
-    (JsPath \ "resourceNames").formatMaybeEmptyList[String] and
-    (JsPath \ "resources").formatMaybeEmptyList[String] and
-    (JsPath \ "verbs").formatMaybeEmptyList[String]
-  )(PolicyRule.apply _, unlift(PolicyRule.unapply))
+      (JsPath \ "attributeRestrictions").formatNullable[String] and
+      (JsPath \ "nonResourceURLs").formatMaybeEmptyList[String] and
+      (JsPath \ "resourceNames").formatMaybeEmptyList[String] and
+      (JsPath \ "resources").formatMaybeEmptyList[String] and
+      (JsPath \ "verbs").formatMaybeEmptyList[String]
+  )(PolicyRule.apply, unlift(PolicyRule.unapply))
 
   implicit val roleFormat: Format[Role] = (
     objFormat and
-    (JsPath \ "rules").formatMaybeEmptyList[PolicyRule]
-  )(Role.apply _, unlift(Role.unapply))
-
+      (JsPath \ "rules").formatMaybeEmptyList[PolicyRule]
+  )(Role.apply, unlift(Role.unapply))
 
   implicit val roleRefFormat: Format[RoleRef] = (
     (JsPath \ "apiGroup").format[String] and
-    (JsPath \ "kind").format[String] and
-    (JsPath \ "name").format[String]
-  )(RoleRef.apply _, unlift(RoleRef.unapply))
+      (JsPath \ "kind").format[String] and
+      (JsPath \ "name").format[String]
+  )(RoleRef.apply, unlift(RoleRef.unapply))
 
   implicit val clusterRoleBindingFormat: Format[ClusterRoleBinding] = (
     objFormat and
       (JsPath \ "roleRef").formatNullable[RoleRef] and
       (JsPath \ "subjects").formatMaybeEmptyList[Subject]
-    )(ClusterRoleBinding.apply _, unlift(ClusterRoleBinding.unapply))
+  )(ClusterRoleBinding.apply, unlift(ClusterRoleBinding.unapply))
 
   implicit val clusterRoleFormat: Format[ClusterRole] = (
     objFormat and
       (JsPath \ "rules").formatMaybeEmptyList[PolicyRule]
-    )(ClusterRole.apply _, unlift(ClusterRole.unapply))
+  )(ClusterRole.apply, unlift(ClusterRole.unapply))
 
   implicit val roleBindingFormat: Format[RoleBinding] = (
     objFormat and
       (JsPath \ "roleRef").format[RoleRef] and
       (JsPath \ "subjects").formatMaybeEmptyList[Subject]
-    )(RoleBinding.apply _, unlift(RoleBinding.unapply))
+  )(RoleBinding.apply, unlift(RoleBinding.unapply))
 
   implicit val roleListFormat: Format[RoleList] = ListResourceFormat[Role]
   implicit val roleBindingListFormat: Format[RoleBindingList] = ListResourceFormat[RoleBinding]

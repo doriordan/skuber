@@ -1,6 +1,6 @@
 package skuber
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{ Format, Json }
 import skuber.apiextensions.CustomResourceDefinition
 
 import scala.reflect.runtime.universe._
@@ -20,8 +20,8 @@ trait ResourceDefinition[T <: TypeMeta] {
 
 object ResourceDefinition {
 
-  def apply[T <: TypeMeta](rspec: ResourceSpecification) = new ResourceDefinition[T] {
-    def spec = rspec
+  def apply[T <: TypeMeta](rspec: ResourceSpecification): ResourceDefinition[T] = new ResourceDefinition[T] {
+    def spec: ResourceSpecification = rspec
   }
 
   /*
@@ -29,21 +29,21 @@ object ResourceDefinition {
    * (such as class name for kind and reverse package name for group) where not specified.
    */
   def apply[T <: TypeMeta](
-    kind: String,
-    group: String,
-    version: String = "v1",
-    singular: Option[String] = None,
-    plural: Option[String] = None,
-    scope: ResourceSpecification.Scope.Value = ResourceSpecification.Scope.Namespaced,
-    shortNames: List[String] = Nil,
-    subresources: Option[ResourceSpecification.Subresources] = None
-  ): ResourceDefinition[T] =
-  {
-    val singularStr=singular.getOrElse(kind.toLowerCase)
-    val pluralStr=plural.getOrElse(s"${singularStr}s")
-    val names=ResourceSpecification.Names(plural=pluralStr, singular = singularStr, kind = kind, shortNames = shortNames)
-    val defSpec=NonCoreResourceSpecification(group,Some(version), Nil, scope, names, subresources)
-    new ResourceDefinition[T]{ override def spec= defSpec }
+      kind: String,
+      group: String,
+      version: String = "v1",
+      singular: Option[String] = None,
+      plural: Option[String] = None,
+      scope: ResourceSpecification.Scope.Value = ResourceSpecification.Scope.Namespaced,
+      shortNames: List[String] = Nil,
+      subresources: Option[ResourceSpecification.Subresources] = None
+  ): ResourceDefinition[T] = {
+    val singularStr = singular.getOrElse(kind.toLowerCase)
+    val pluralStr = plural.getOrElse(s"${singularStr}s")
+    val names =
+      ResourceSpecification.Names(plural = pluralStr, singular = singularStr, kind = kind, shortNames = shortNames)
+    val defSpec = NonCoreResourceSpecification(group, Some(version), Nil, scope, names, subresources)
+    new ResourceDefinition[T] { override def spec: NonCoreResourceSpecification = defSpec }
   }
 
   /*

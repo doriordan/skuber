@@ -28,6 +28,6 @@ object RoleBinding {
     )
   )
 
-  implicit val roleDef = new ResourceDefinition[RoleBinding] { def spec = specification }
-  implicit val roleListDef = new ResourceDefinition[RoleBindingList] { def spec = specification }
+  implicit val roleDef: ResourceDefinition[RoleBinding] = new ResourceDefinition[RoleBinding] { def spec: NonCoreResourceSpecification = specification }
+  implicit val roleListDef: ResourceDefinition[RoleBindingList] = new ResourceDefinition[RoleBindingList] { def spec: NonCoreResourceSpecification = specification }
 }

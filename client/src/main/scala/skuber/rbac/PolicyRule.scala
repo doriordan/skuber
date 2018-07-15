@@ -10,6 +10,4 @@ case class PolicyRule(
     resourceNames: List[String],
     resources: List[String],
     verbs: List[String]
-) {
-
-}
+) {}
