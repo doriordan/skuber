@@ -6,16 +6,16 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-  
+
 /**
- * @author David O'Riordan
- */
+  * @author David O'Riordan
+  */
 object Guestbook extends App {
   val sys = ActorSystem("SkuberExamples")
   val guestbook = sys.actorOf(Props[GuestbookActor], "guestbook")
-  
+
   implicit val timeout = Timeout(40 seconds)
-  
+
   val deploymentResult = ask(guestbook, GuestbookActor.Deploy)
   deploymentResult map { result =>
     result match {
@@ -31,7 +31,7 @@ object Guestbook extends App {
           System.exit(0)
         }
       }
-    }  
+    }
   }
   deploymentResult.failed.foreach {
     case ex =>

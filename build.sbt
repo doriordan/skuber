@@ -1,16 +1,15 @@
-
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.13.5"
 val specs2 = "org.specs2" %% "specs2-core" % "3.9.5"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.4"
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
+val snakeYaml = "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.5"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.59"
 
-// the client API request/response handing uses Akka Http 
+// the client API request/response handing uses Akka Http
 // This also brings in the transitive dependencies on Akka actors and streams
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
 
@@ -43,7 +42,14 @@ scmInfo in ThisBuild := Some(
   )
 )
 
-developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan", email="doriordan@gmail.com", url=url("https://github.com/doriordan")))
+developers in ThisBuild := List(
+  Developer(
+    id = "doriordan",
+    name = "David ORiordan",
+    email = "doriordan@gmail.com",
+    url = url("https://github.com/doriordan")
+  )
+)
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
@@ -53,15 +59,25 @@ lazy val commonSettings = Seq(
     if (isSnapshot.value)
       Some("snapshots" at nexus + "content/repositories/snapshots")
     else
-      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+      Some("releases" at nexus + "service/local/staging/deploy/maven2")
   },
-  pomIncludeRepository := { _ => false }
+  pomIncludeRepository := { _ =>
+    false
+  }
 )
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, scalaCheck % Test,specs2 % Test).
-				map(_.exclude("commons-logging","commons-logging"))
+  libraryDependencies ++= Seq(
+    akkaHttp,
+    playJson,
+    snakeYaml,
+    commonsIO,
+    commonsCodec,
+    bouncyCastle,
+    scalaCheck % Test,
+    specs2 % Test
+  ).map(_.exclude("commons-logging", "commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
@@ -76,11 +92,11 @@ lazy val examplesAssemblySettings = Seq(
 
 publishArtifact in root := false
 
-lazy val root = (project in file(".")) 
+lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .aggregate(skuber, examples)
 
-lazy val skuber= (project in file("client"))
+lazy val skuber = (project in file("client"))
   .configs(IntegrationTest)
   .settings(
     commonSettings,

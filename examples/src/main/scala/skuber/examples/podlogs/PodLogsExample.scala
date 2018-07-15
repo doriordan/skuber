@@ -20,23 +20,24 @@ import scala.concurrent.duration._
 object PodLogExample extends App {
 
   val printLogFlow: Sink[ByteString, NotUsed] = Flow[ByteString]
-      .via(Framing.delimiter(
-        ByteString("\n"),
-        maximumFrameLength = 256,
-        allowTruncation = true))
-      .map(_.utf8String)
-      .to(Sink.foreach(text => println(s"[hello-world logs] $text")))
-
+    .via(Framing.delimiter(ByteString("\n"), maximumFrameLength = 256, allowTruncation = true))
+    .map(_.utf8String)
+    .to(Sink.foreach(text => println(s"[hello-world logs] $text")))
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
   val k8s = client.init(
     client.defaultK8sConfig.currentContext,
-    client.LoggingConfig(logRequestBasic = false, logResponseBasic = false) )
+    client.LoggingConfig(logRequestBasic = false, logResponseBasic = false)
+  )
 
-  val helloWorldContainer=Container(name="hello-world", image="busybox", command=List("sh", "-c", "echo Hello World! && echo Goodbye World && sleep 60"))
-  val helloWorldPod=Pod("hello-world", Pod.Spec().addContainer(helloWorldContainer))
+  val helloWorldContainer = Container(
+    name = "hello-world",
+    image = "busybox",
+    command = List("sh", "-c", "echo Hello World! && echo Goodbye World && sleep 60")
+  )
+  val helloWorldPod = Pod("hello-world", Pod.Spec().addContainer(helloWorldContainer))
 
   val podFut = k8s.create(helloWorldPod)
   println("Waiting 30 seconds to allow pod initialisation to complete before getting logs...")

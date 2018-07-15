@@ -7,10 +7,9 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 
-
 /**
- * @author David O'Riordan
- */
+  * @author David O'Riordan
+  */
 object WatchExamples extends App {
 
   implicit val system = ActorSystem("watch")
@@ -18,7 +17,7 @@ object WatchExamples extends App {
   implicit val dispatcher = system.dispatcher
   implicit val k8s = k8sInit
 
-  def  watchFrontEndScaling = {
+  def watchFrontEndScaling = {
 
     val frontendReplicaCountMonitor = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
       println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
@@ -29,7 +28,7 @@ object WatchExamples extends App {
       done <- frontendRCWatch.runWith(frontendReplicaCountMonitor)
     } yield done
   }
-  
+
   def watchPodPhases = {
 
     val podPhaseMonitor = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
