@@ -13,38 +13,38 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 
 /**
- * @author David O'Riordan
- * 
- * Some simple examples of using the extensions API to scale up and down a StatefulSet
- * or Deployment resource.
+  * @author David O'Riordan
+  *
+  * Some simple examples of using the extensions API to scale up and down a StatefulSet
+  * or Deployment resource.
   * Note: StatefulSet scaling via this method is only supported by Kubernetes v1.8 and later
- */
+  */
 object ScaleExamples extends App {
- 
+
   def scaleNginx = {
 
-    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
+    val nginxContainer = Container("nginx", image = "nginx").exposePort(80)
     val nginxBaseSpec = Pod.Template.Spec().addContainer(nginxContainer)
 
-    val nginxDeploymentLabels=Map("scale-example-type" -> "deployment")
-    val nginxDeploymentSel=LabelSelector(LabelSelector.IsEqualRequirement("scale-example-type","deployment"))
-    val nginxDeploymentSpec=nginxBaseSpec.addLabels(nginxDeploymentLabels)
-    val nginxDeployment=Deployment("nginx-scale-depl")
-       .withReplicas(10)
-       .withLabelSelector(nginxDeploymentSel)
-       .withTemplate(nginxDeploymentSpec)
+    val nginxDeploymentLabels = Map("scale-example-type" -> "deployment")
+    val nginxDeploymentSel = LabelSelector(LabelSelector.IsEqualRequirement("scale-example-type", "deployment"))
+    val nginxDeploymentSpec = nginxBaseSpec.addLabels(nginxDeploymentLabels)
+    val nginxDeployment = Deployment("nginx-scale-depl")
+      .withReplicas(10)
+      .withLabelSelector(nginxDeploymentSel)
+      .withTemplate(nginxDeploymentSpec)
 
-    val nginxStsLabels=Map("scale-example-type" -> "statefulset")
-    val nginxStsSel=LabelSelector(LabelSelector.IsEqualRequirement("scale-example-type","statefulset"))
-    val nginxStsSpec=nginxBaseSpec.addLabels(nginxStsLabels)
-    val nginxStatefulSet= StatefulSet("nginx-scale-sts")
+    val nginxStsLabels = Map("scale-example-type" -> "statefulset")
+    val nginxStsSel = LabelSelector(LabelSelector.IsEqualRequirement("scale-example-type", "statefulset"))
+    val nginxStsSpec = nginxBaseSpec.addLabels(nginxStsLabels)
+    val nginxStatefulSet = StatefulSet("nginx-scale-sts")
       .withReplicas(10)
       .withServiceName("nginx-scale-sts")
       .withLabelSelector(nginxStsSel)
       .withTemplate(nginxStsSpec)
 
     // StatefulSet needs a headless service
-    val nginxStsService: Service=Service(nginxStatefulSet.spec.get.serviceName.get, nginxStsLabels, 80).isHeadless
+    val nginxStsService: Service = Service(nginxStatefulSet.spec.get.serviceName.get, nginxStsLabels, 80).isHeadless
 
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
@@ -60,7 +60,7 @@ object ScaleExamples extends App {
     val deplFut = createdDeplFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the deployment already exists - retrieving latest version")
-        k8s get[Deployment] nginxDeployment.name
+        k8s get [Deployment] nginxDeployment.name
       }
     }
 
@@ -71,7 +71,9 @@ object ScaleExamples extends App {
       _ = println("Scale desired = " + scaledDown.spec.replicas + ", current = " + scaledDown.status.get.replicas)
       _ = println("Now directly scale up to 4 replicas")
       scaledUp <- k8s.scale[Deployment](nginxDeployment.name, 4)
-      _ = println("Scale object returned: specified = " + scaledUp.spec.replicas + ", current = " + scaledUp.status.get.replicas)
+      _ = println(
+        "Scale object returned: specified = " + scaledUp.spec.replicas + ", current = " + scaledUp.status.get.replicas
+      )
     } yield scaledUp
 
     Await.ready(scaledDeploymentFut, Inf)
@@ -79,7 +81,10 @@ object ScaleExamples extends App {
     println("waiting one minute to allow scaling to complete before deleting deployment")
     Thread.sleep(60000)
     println("will now delete deployment")
-    val deploymentDeletedFut = k8s.deleteWithOptions[Deployment](nginxDeployment.name, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
+    val deploymentDeletedFut = k8s.deleteWithOptions[Deployment](
+      nginxDeployment.name,
+      DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))
+    )
 
     // wait for deployment deletion to be acknowledged before moving on to stateful set
     Await.ready(deploymentDeletedFut, Inf)
@@ -89,11 +94,11 @@ object ScaleExamples extends App {
       svc <- k8s create nginxStsService
       sts <- k8s create nginxStatefulSet
     } yield sts
-   
+
     val stsFut = createdStsFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the stateful set or service already exists - retrieving latest version")
-        k8s get[StatefulSet] nginxStatefulSet.name
+        k8s get [StatefulSet] nginxStatefulSet.name
       }
     }
 
@@ -107,7 +112,7 @@ object ScaleExamples extends App {
       scaledDown <- k8s.scale[StatefulSet](nginxStatefulSet.name, 1)
       _ = println("Scale desired = " + scaledDown.spec.replicas + ", current = " + scaledDown.status.get.replicas)
       _ = println("Now directly scaling it up to 4 replicas")
-      scaledUp   <- k8s.scale[StatefulSet](nginxStatefulSet.name, 4)
+      scaledUp <- k8s.scale[StatefulSet](nginxStatefulSet.name, 4)
       _ = println("Scale desired = " + scaledUp.spec.replicas + ", current = " + scaledUp.status.get.replicas)
     } yield scaledUp
 
@@ -117,7 +122,10 @@ object ScaleExamples extends App {
     Thread.sleep(600000)
     println("will now delete StatefulSet and its service")
     val stsDelFut = for {
-      sts <- k8s.deleteWithOptions[StatefulSet](nginxStatefulSet.name, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
+      sts <- k8s.deleteWithOptions[StatefulSet](
+        nginxStatefulSet.name,
+        DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))
+      )
       done <- k8s.delete[Service](nginxStsService.name)
     } yield done
 
@@ -128,23 +136,21 @@ object ScaleExamples extends App {
     println("Recreating deployment for use with HPAS")
 
     val autoscaleDone = for {
-      depl  <- k8s create nginxDeployment
-      _ =  println("Now creating a HorizontalPodAutoscaler to automatically scale the replicas")
-      _ =  println("This should cause the replica count to fall to 8 or below")
-      hpas = HorizontalPodAutoscaler.scale(depl).
-               withMinReplicas(2).
-               withMaxReplicas(8).
-               withCPUTargetUtilization(80)
-      hpa  <- k8s create[HorizontalPodAutoscaler] hpas
+      depl <- k8s create nginxDeployment
+      _ = println("Now creating a HorizontalPodAutoscaler to automatically scale the replicas")
+      _ = println("This should cause the replica count to fall to 8 or below")
+      hpas = HorizontalPodAutoscaler.scale(depl).withMinReplicas(2).withMaxReplicas(8).withCPUTargetUtilization(80)
+      hpa <- k8s create [HorizontalPodAutoscaler] hpas
       _ = {
-            println("Successfully created horizontal pod autoscaler")
-            println("waiting one minute to allow scaling to progress before cleaning up")
-            // Note: should see replica count for deployment fall to 8 or below
-            Thread.sleep(60000)
-            println("will now delete hpa and deployment")
-          }
-      _ <-  k8s.delete[HorizontalPodAutoscaler](hpas.name)
-      done <- k8s.deleteWithOptions[Deployment](depl.name, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
+        println("Successfully created horizontal pod autoscaler")
+        println("waiting one minute to allow scaling to progress before cleaning up")
+        // Note: should see replica count for deployment fall to 8 or below
+        Thread.sleep(60000)
+        println("will now delete hpa and deployment")
+      }
+      _ <- k8s.delete[HorizontalPodAutoscaler](hpas.name)
+      done <- k8s
+        .deleteWithOptions[Deployment](depl.name, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
     } yield done
 
     Await.ready(autoscaleDone, Inf)

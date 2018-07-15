@@ -6,16 +6,16 @@ import akka.stream.ActorMaterializer
 import skuber.Pod.Phase
 import skuber._
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
 import skuber.json.format._
-  
+
 /**
- * @author David O'Riordan
- * 
- * A couple fo simple examples of getting lists of objects across all namespaces
- * 
- */
+  * @author David O'Riordan
+  *
+  * A couple fo simple examples of getting lists of objects across all namespaces
+  *
+  */
 object ListExamples extends App {
 
   private def listPods(pods: List[Pod]) = {
@@ -45,28 +45,34 @@ object ListExamples extends App {
 
   System.out.println("\nGetting list of pods in namespace of current context ==>")
 
-  val currNsPods: Future[PodList] = k8s list[PodList]()
-  val printCurrNsPods = currNsPods map { podList => listPods(podList.items) }
+  val currNsPods: Future[PodList] = k8s list [PodList] ()
+  val printCurrNsPods = currNsPods map { podList =>
+    listPods(podList.items)
+  }
   printCurrNsPods onFailure { case ex: Exception => System.err.println("Failed => " + ex) }
 
   Await.ready(printCurrNsPods, 30 seconds)
 
   System.out.println("\nGetting lists of pods in 'kube-system' namespace ==>")
 
-  val ksysPods: Future[PodList] = k8s listInNamespace[PodList]("kube-system")
-  val printKSysPods = ksysPods map { podList => listPods(podList.items) }
+  val ksysPods: Future[PodList] = k8s listInNamespace [PodList] ("kube-system")
+  val printKSysPods = ksysPods map { podList =>
+    listPods(podList.items)
+  }
   printKSysPods onFailure { case ex: Exception => System.err.println("Failed => " + ex) }
 
   Await.ready(printKSysPods, 30 seconds)
 
   System.out.println("\nGetting lists of pods in all namespaces in the cluster ==>")
 
-  val allPodsMapFut: Future[Map[String, PodList]] = k8s listByNamespace[PodList]()
+  val allPodsMapFut: Future[Map[String, PodList]] = k8s listByNamespace [PodList] ()
   val allPods: Future[List[Pod]] = allPodsMapFut map { allPodsMap =>
     allPodsMap.values.flatMap(_.items).toList
   }
 
-  val printAllPods = allPods map { pods=> listPods(pods) }
+  val printAllPods = allPods map { pods =>
+    listPods(pods)
+  }
   printAllPods onFailure { case ex: Exception => System.err.println("Failed => " + ex) }
 
   Await.ready(printAllPods, 30 seconds)

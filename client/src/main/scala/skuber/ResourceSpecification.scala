@@ -16,7 +16,6 @@ import skuber.api.client.Status
   *  It is an abstract base class with two concrete case subclasses, for core and non-core API group
   *  resource types respectively.
   */
-
 abstract class ResourceSpecification {
   def apiPathPrefix: String
   def group: Option[String] // set to None if defined on core API group, otherwise Some(groupName)
@@ -24,7 +23,7 @@ abstract class ResourceSpecification {
   def prioritisedVersions: List[String] // all versions enabled for the resource, sorted by descending priority
   def scope: ResourceSpecification.Scope.Value
   def names: ResourceSpecification.Names
-  def subresources:Option[ResourceSpecification.Subresources]
+  def subresources: Option[ResourceSpecification.Subresources]
 }
 
 object ResourceSpecification {
@@ -35,63 +34,63 @@ object ResourceSpecification {
   }
 
   case class Names(
-    plural: String,
-    singular: String,
-    kind: String,
-    shortNames: List[String],
-    listKind: Option[String] = None,
-    categories: List[String] = Nil
+      plural: String,
+      singular: String,
+      kind: String,
+      shortNames: List[String],
+      listKind: Option[String] = None,
+      categories: List[String] = Nil
   )
 
   case class Version(name: String, served: Boolean = false, storage: Boolean = false)
 
-  case class Subresources(
-    status: Option[StatusSubresource] = None,
-    scale: Option[ScaleSubresource] = None)
-  {
+  case class Subresources(status: Option[StatusSubresource] = None, scale: Option[ScaleSubresource] = None) {
     def withStatusSubresource(): Subresources = this.copy(status = Some(StatusSubresource()))
-    def withScaleSubresource(scale: ScaleSubresource): Subresources = this copy(scale = Some(scale))
+    def withScaleSubresource(scale: ScaleSubresource): Subresources = this copy (scale = Some(scale))
   }
 
   case class ScaleSubresource(
-    specReplicasPath: String,
-    statusReplicasPath: String,
-    labelSelectorPath: Option[String]=None)
+      specReplicasPath: String,
+      statusReplicasPath: String,
+      labelSelectorPath: Option[String] = None
+  )
 
   case class StatusSubresource()
 }
 
 case class CoreResourceSpecification(
-  override val group: Option[String] = None,
-  version: String = "v1",
-  override val scope: ResourceSpecification.Scope.Value,
-  override val names: ResourceSpecification.Names,
-  override val subresources: Option[ResourceSpecification.Subresources] = None) extends ResourceSpecification
-{
-  override val apiPathPrefix="api"
-  override val defaultVersion = version
-  override val prioritisedVersions: List[String]  = List(version)
+    override val group: Option[String] = None,
+    version: String = "v1",
+    override val scope: ResourceSpecification.Scope.Value,
+    override val names: ResourceSpecification.Names,
+    override val subresources: Option[ResourceSpecification.Subresources] = None
+) extends ResourceSpecification {
+  override val apiPathPrefix = "api"
+  override val defaultVersion: String = version
+  override val prioritisedVersions: List[String] = List(version)
 }
 
 /**
- * NonCoreResourceSpecification is used to specify any resource types outside the core k8s API group, including custom resources
- */
+  * NonCoreResourceSpecification is used to specify any resource types outside the core k8s API group, including custom resources
+  */
 case class NonCoreResourceSpecification(
-  val apiGroup: String,
-  val version: Option[String],
-  val versions: List[ResourceSpecification.Version], // introduced in k8s v1.11 for CRD types
-  override val scope: ResourceSpecification.Scope.Value,
-  override val names: ResourceSpecification.Names,
-  override val subresources: Option[ResourceSpecification.Subresources] = None) extends ResourceSpecification
-{
-  def apiPathPrefix="apis"
+    apiGroup: String,
+    version: Option[String],
+    versions: List[ResourceSpecification.Version], // introduced in k8s v1.11 for CRD types
+    override val scope: ResourceSpecification.Scope.Value,
+    override val names: ResourceSpecification.Names,
+    override val subresources: Option[ResourceSpecification.Subresources] = None
+) extends ResourceSpecification {
+  def apiPathPrefix = "apis"
   override def group: Option[String] = Some(apiGroup)
 
-  override lazy val defaultVersion = {
-    prioritisedVersions.headOption.getOrElse(throw new K8SException(Status(message=Some("No version defined for this resource type"))))
+  override lazy val defaultVersion: String = {
+    prioritisedVersions.headOption.getOrElse(
+      throw new K8SException(Status(message = Some("No version defined for this resource type")))
+    )
   }
 
-  override lazy val prioritisedVersions = {
+  override lazy val prioritisedVersions: List[String] = {
     if (versions.isEmpty)
       version.toList
     else {
@@ -101,8 +100,8 @@ case class NonCoreResourceSpecification(
       // Note: this pattern matches Kubernetes versions - matching will return nulls for the optional second and third groups if a GA version e.g. "v1"
       val kubernetesVersionPattern = """"v(\\d+)(alpha|beta)?(\\d+)?""".r
 
-      def nullToGA(str: String) = if (str==null) "GA" else str
-      val kubernetesReleaseStages=List[String]("GA", "beta", "alpha") // ordered from highest to lowest priority, null means GA
+      def nullToGA(str: String) = if (str == null) "GA" else str
+      val kubernetesReleaseStages = List[String]("GA", "beta", "alpha") // ordered from highest to lowest priority, null means GA
       def byReleaseStagePriority(stage1: String, stage2: String): Boolean = {
         kubernetesReleaseStages.indexOf(stage1) > kubernetesReleaseStages.indexOf(stage2)
       }
@@ -113,7 +112,7 @@ case class NonCoreResourceSpecification(
         (versionOneMatch, versionTwoMatch) match {
           case (None, Some(_)) => false
           case (Some(_), None) => true
-          case (None, None) => version1 < version2
+          case (None, None)    => version1 < version2
           case (Some(v1match), Some(v2match)) =>
             if (v1match.group(0) != v2match.group(0))
               v1match.group(0) > v2match.group(0)
@@ -131,19 +130,22 @@ case class NonCoreResourceSpecification(
       }
 
       versions
-          .filter(v => v.served)
-          .map(_.name)
-          .sortWith(byVersionPriority)
+        .filter(v => v.served)
+        .map(_.name)
+        .sortWith(byVersionPriority)
     }
   }
 }
 
 object NonCoreResourceSpecification {
 
-  def apply(apiGroup: String, version: String, scope: ResourceSpecification.Scope.Value, names: ResourceSpecification.Names): NonCoreResourceSpecification = {
-    val versions = List(ResourceSpecification.Version(name=version, true, true))
+  def apply(
+      apiGroup: String,
+      version: String,
+      scope: ResourceSpecification.Scope.Value,
+      names: ResourceSpecification.Names
+  ): NonCoreResourceSpecification = {
+    val versions = List(ResourceSpecification.Version(name = version, served = true, storage = true))
     new NonCoreResourceSpecification(apiGroup, Some(version), versions, scope, names, None)
   }
 }
-
-

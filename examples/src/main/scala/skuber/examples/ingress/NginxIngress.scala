@@ -6,7 +6,7 @@ import java.net.HttpURLConnection
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import skuber._
-import skuber.ext.{Ingress, ReplicaSet}
+import skuber.ext.{ Ingress, ReplicaSet }
 
 import scala.annotation.tailrec
 
@@ -19,17 +19,16 @@ import scala.concurrent.Future
 
 /**
   * @author David O'Riordan
-  * This Skuber creates and tests an nginx-based Ingress by emulating the steps described at 
+  * This Skuber creates and tests an nginx-based Ingress by emulating the steps described at
   * https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx
   */
-
 object NginxIngress extends App {
 
-  val httpPort=80
-  val httpsPort=443
+  val httpPort = 80
+  val httpsPort = 443
 
-  val nodeIngressHttpPort=30080
-  val nodeIngressHttpsPort=30443
+  val nodeIngressHttpPort = 30080
+  val nodeIngressHttpsPort = 30443
 
   run
 
@@ -43,33 +42,32 @@ object NginxIngress extends App {
     */
   def buildIngressController: (Service, ReplicaSet) = {
 
-    val replicase=1
-    val name="skuber-nginx-ing-ctrlr"
+    val replicase = 1
+    val name = "skuber-nginx-ing-ctrlr"
     val ingressControllerPodLabel = "skuber-example-app" -> "nginx-ingress-lb"
-    val controllerImage="gcr.io/google_containers/nginx-ingress-controller:0.7"
+    val controllerImage = "gcr.io/google_containers/nginx-ingress-controller:0.7"
 
-    val nginxContainer = Container(name=name, image=controllerImage)
-        .withImagePullPolicy(Container.PullPolicy.Always)
-        .withHttpLivenessProbe("/healthz",10249,initialDelaySeconds=30,timeoutSeconds=5)
-        .setEnvVarFromField("POD_NAME", "metadata.name")
-        .setEnvVarFromField("POD_NAMESPACE", "metadata.namespace")
-        .exposePort(httpPort)
-        .exposePort(httpsPort)
-        .withArgs(
-          "/nginx-ingress-controller",
-          "--default-backend-service=default/default-http-backend")
+    val nginxContainer = Container(name = name, image = controllerImage)
+      .withImagePullPolicy(Container.PullPolicy.Always)
+      .withHttpLivenessProbe("/healthz", 10249, initialDelaySeconds = 30, timeoutSeconds = 5)
+      .setEnvVarFromField("POD_NAME", "metadata.name")
+      .setEnvVarFromField("POD_NAMESPACE", "metadata.namespace")
+      .exposePort(httpPort)
+      .exposePort(httpsPort)
+      .withArgs("/nginx-ingress-controller", "--default-backend-service=default/default-http-backend")
 
-    val podSpec = Pod.Spec()
-        .addContainer(nginxContainer)
-        .withTerminationGracePeriodSeconds(60)
+    val podSpec = Pod
+      .Spec()
+      .addContainer(nginxContainer)
+      .withTerminationGracePeriodSeconds(60)
 
-    val rset = ReplicaSet(name=name, podSpec=podSpec, labels=Map(ingressControllerPodLabel))
+    val rset = ReplicaSet(name = name, podSpec = podSpec, labels = Map(ingressControllerPodLabel))
 
     val svc = Service(name)
-        .withSelector(ingressControllerPodLabel)
-        .exposeOnNodePort(nodeIngressHttpPort -> httpPort, "http")
-        .exposeOnNodePort(nodeIngressHttpsPort -> httpsPort, "https")
-    (svc,rset)
+      .withSelector(ingressControllerPodLabel)
+      .exposeOnNodePort(nodeIngressHttpPort -> httpPort, "http")
+      .exposeOnNodePort(nodeIngressHttpsPort -> httpsPort, "https")
+    (svc, rset)
   }
 
   /**
@@ -80,8 +78,8 @@ object NginxIngress extends App {
     */
   def buildIngress: Ingress = {
     Ingress("echomap")
-        .addHttpRule("foo.bar.com", Map("/foo" -> "echoheaders-x:80"))
-        .addHttpRule("bar.baz.com", Map("/bar" -> "echoheaders-y:80", "/foo" -> "echoheaders-x:80"))
+      .addHttpRule("foo.bar.com", Map("/foo" -> "echoheaders-x:80"))
+      .addHttpRule("bar.baz.com", Map("/bar" -> "echoheaders-y:80", "/foo" -> "echoheaders-x:80"))
   }
 
   /*
@@ -91,45 +89,46 @@ object NginxIngress extends App {
 
     val backendPodLabel = "app" -> "default-http-backend"
 
-    val container = Container(name="default-http-backend",image="gcr.io/google_containers/defaultbackend:1.0")
-        .withHttpLivenessProbe(path="/healthz", port = 80, initialDelaySeconds = 30, timeoutSeconds = 5)
-        .exposePort(8080)
-        .limitCPU("10m")
-        .limitMemory("20Mi")
-        .requestCPU("10m")
-        .requestMemory("20Mi")
+    val container = Container(name = "default-http-backend", image = "gcr.io/google_containers/defaultbackend:1.0")
+      .withHttpLivenessProbe(path = "/healthz", port = 80, initialDelaySeconds = 30, timeoutSeconds = 5)
+      .exposePort(8080)
+      .limitCPU("10m")
+      .limitMemory("20Mi")
+      .requestCPU("10m")
+      .requestMemory("20Mi")
 
-    val podSpec = Pod.Spec()
-        .addContainer(container)
-        .withTerminationGracePeriodSeconds(60)
+    val podSpec = Pod
+      .Spec()
+      .addContainer(container)
+      .withTerminationGracePeriodSeconds(60)
 
-    val rset = ReplicaSet(name="default-http-backend", podSpec=podSpec, labels=Map(backendPodLabel))
+    val rset = ReplicaSet(name = "default-http-backend", podSpec = podSpec, labels = Map(backendPodLabel))
     val svc = Service("default-http-backend")
-        .withSelector(backendPodLabel)
-        .exposeOnPort(Service.Port(port=80, targetPort=Some(8080)))
+      .withSelector(backendPodLabel)
+      .exposeOnPort(Service.Port(port = 80, targetPort = Some(8080)))
 
-    (svc,rset)
+    (svc, rset)
   }
 
   def buildEchoheadersServices: (List[Service], ReplicaSet) = {
 
-    val echoHeadersPodLabel= "app" -> "echoheaders"
+    val echoHeadersPodLabel = "app" -> "echoheaders"
 
     val container = Container(name = "echoheaders", image = "gcr.io/google_containers/echoserver:1.4")
-        .exposePort(8080)
+      .exposePort(8080)
 
     val podSpec = Pod.Spec().addContainer(container)
 
-    val rset = ReplicaSet(name="echoheaders", podSpec=podSpec, labels=Map(echoHeadersPodLabel))
-        .withReplicas(1)
+    val rset = ReplicaSet(name = "echoheaders", podSpec = podSpec, labels = Map(echoHeadersPodLabel))
+      .withReplicas(1)
 
     val echoheadersX = Service("echoheaders-x")
-        .withSelector(echoHeadersPodLabel)
-        .exposeOnPort(Service.Port(port = 80, targetPort = Some(8080)))
+      .withSelector(echoHeadersPodLabel)
+      .exposeOnPort(Service.Port(port = 80, targetPort = Some(8080)))
 
     val echoheadersY = Service("echoheaders-y")
-        .withSelector(echoHeadersPodLabel)
-        .exposeOnPort(Service.Port(port = 80, targetPort = Some(8080)))
+      .withSelector(echoHeadersPodLabel)
+      .exposeOnPort(Service.Port(port = 80, targetPort = Some(8080)))
 
     (List(echoheadersX, echoheadersY), rset)
   }
@@ -143,7 +142,7 @@ object NginxIngress extends App {
     // firstly we have to do this to allow the Host header to be set in the request...
     System.setProperty("sun.net.http.allowRestrictedHeaders", "true")
 
-    def httpGet(ipAddress: String, port: Int, path: String, host: String) : String  = {
+    def httpGet(ipAddress: String, port: Int, path: String, host: String): String = {
       import java.io.BufferedReader
       import java.io.InputStreamReader
       import java.net.URL
@@ -174,8 +173,7 @@ object NginxIngress extends App {
               munch
               bufferedReader.close()
             }
-          }
-          else {
+          } else {
             System.err.println("...received " + responseCode + " status")
             throw new RuntimeException("Non-ok status received while calling URL: " + urlStr)
           }
@@ -203,21 +201,20 @@ object NginxIngress extends App {
       headIng <- lb.ingress.headOption
       addr <- headIng.ip.orElse((headIng.hostName))
     } yield addr
-    val lbAddress=lbAddressOpt.getOrElse("127.0.0.1")
+    val lbAddress = lbAddressOpt.getOrElse("127.0.0.1")
 
     print("Enter Ingress Address [" + lbAddress + "]:")
     val enteredAddress = scala.io.StdIn.readLine()
     val address = enteredAddress match {
       case "" => lbAddress
-      case _ => enteredAddress
+      case _  => enteredAddress
     }
 
     import scala.annotation.tailrec
     @tailrec
-    def attempt(remainingAttempts: Int): Boolean =
-    {
+    def attempt(remainingAttempts: Int): Boolean = {
       try {
-       println("Testing...attempting to GET from a path that ingress should route to echoheaders service")
+        println("Testing...attempting to GET from a path that ingress should route to echoheaders service")
         val response = httpGet(ipAddress = address, port = nodeIngressHttpPort, path = "foo", host = "foo.bar.com")
         println("Testing...successfully got response: \n" + response)
         true
@@ -227,8 +224,7 @@ object NginxIngress extends App {
           if (remainingAttempts > 0) {
             Thread.sleep(retryIntervalSeconds * 1000)
             attempt(remainingAttempts - 1)
-          }
-          else {
+          } else {
             println(("Testing...exceeded max retry count, giving up"))
             false
           }
@@ -252,7 +248,7 @@ object NginxIngress extends App {
     val es = buildEchoheadersServices
     val esSvcs = es._1
     val esRset = es._2
-    val ingCtrlr= buildIngressController
+    val ingCtrlr = buildIngressController
     val ingCtrlSvc = ingCtrlr._1
     val ingCtrlRset = ingCtrlr._2
     val ingressSpec = buildIngress
@@ -273,7 +269,7 @@ object NginxIngress extends App {
     def updateIf409(ing: Ingress): PartialFunction[Throwable, Future[Ingress]] = {
       case ex: K8SException if ex.status.code.contains(409) => {
         println("Ingress already exists - updating to current rules and continuing")
-        (k8s get[Ingress] ing.name) flatMap { curr =>
+        (k8s get [Ingress] ing.name) flatMap { curr =>
           println("...retrieved ingress, now updating the rules")
           val updated = ing.copy(metadata = curr.metadata) // copies latest resource version for update
           k8s update updated
@@ -285,14 +281,9 @@ object NginxIngress extends App {
 
     // helpers for creating the resources on the cluster
     def createEchoServices = Future.sequence(esSvcs map { createSvc(_) })
-    def createNonIngressResources = Future.sequence(List(
-          createSvc(beSvc),
-          createRS(beRset),
-          createEchoServices,
-          createRS(esRset)))
-    def createIngressController = Future.sequence(List(
-          createSvc(ingCtrlSvc),
-          createRS(ingCtrlRset)))
+    def createNonIngressResources =
+      Future.sequence(List(createSvc(beSvc), createRS(beRset), createEchoServices, createRS(esRset)))
+    def createIngressController = Future.sequence(List(createSvc(ingCtrlSvc), createRS(ingCtrlRset)))
     def createIngress = createIng(ingressSpec)
 
     // create the resources in this order:
@@ -318,14 +309,14 @@ object NginxIngress extends App {
 
     done map { success =>
       if (success)
-          println("Successful.")
-        else
-          println("Failed - test unsuccessful.")
+        println("Successful.")
+      else
+        println("Failed - test unsuccessful.")
     }
 
     done onFailure {
       case ex: K8SException => println("*** FAILED with status=" + ex.status)
-      case other => println("FAILED: " + other.getMessage)
+      case other            => println("FAILED: " + other.getMessage)
     }
   }
 }

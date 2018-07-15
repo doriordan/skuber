@@ -8,6 +8,4 @@ case class Subject(
     kind: String,
     name: String,
     namespace: Option[String]
-) {
-
-}
+) {}

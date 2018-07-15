@@ -1,13 +1,13 @@
 package skuber.examples.customresources
 
-import skuber.{k8sInit,K8SException}
+import skuber.{ k8sInit, K8SException }
 import skuber.ResourceSpecification.Scope
 import skuber.apiextensions.CustomResourceDefinition
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 
-import scala.util.{Success, Failure}
+import scala.util.{ Success, Failure }
 
 /**
   * @author David O'Riordan
@@ -18,10 +18,7 @@ object CreateCRD extends App {
   // CRD for the organizations teams, each team should be represented by a single Team resource.
   // A teams resources may in some cases (we assume for demo purposes) exist in multiple namespaces, so scope of Team
   // is Clustered rather than the default of Namespaced
-  val teamCrd = CustomResourceDefinition(
-    name = "teams.examples.skuber.io",
-    kind = "Team",
-    scope = Scope.Cluster)
+  val teamCrd = CustomResourceDefinition(name = "teams.examples.skuber.io", kind = "Team", scope = Scope.Cluster)
 
   // CRD for the organizations service support (SUP) information, each service should have one SUP resource
   // Scope is default i.e. Namespaced - each SUP resource should be in the same namespace as the resources of the
@@ -29,7 +26,8 @@ object CreateCRD extends App {
   val svcSupportCrd = CustomResourceDefinition(
     name = "servicesupports.examples.skuber.io",
     kind = "ServiceSupport",
-    shortNames = "sup" :: Nil)
+    shortNames = "sup" :: Nil
+  )
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
@@ -66,7 +64,7 @@ object CreateCRD extends App {
       }
       case alreadyExists: K8SException if alreadyExists.status.code.contains(409) =>
         // update needs to use the rcurrent resource version of existing resource in order to be accepted by k8s
-        k8s get[CustomResourceDefinition] (crd.name) flatMap { existing =>
+        k8s get [CustomResourceDefinition] (crd.name) flatMap { existing =>
           val currentVersion = existing.metadata.resourceVersion
           val newMeta = crd.metadata.copy(resourceVersion = currentVersion)
           val updatedObj = crd.copy(metadata = newMeta)

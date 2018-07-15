@@ -7,6 +7,4 @@ case class RoleRef(
     apiGroup: String,
     kind: String,
     name: String
-) {
-
-}
+) {}

@@ -5,7 +5,7 @@ package skuber.json
  * This class is basically a copy of:
  * https://github.com/hseeberger/akka-http-json/blob/master/akka-http-play-json/src/main/scala/de/heikoseeberger/akkahttpplayjson/PlayJsonSupport.scala
  * ... but with some logging added to support skuber supportability requirements
-*/
+ */
 
 /*
  * Copyright 2015 Heiko Seeberger
@@ -55,11 +55,11 @@ trait PlayJsonSupportForAkkaHttp {
 
   private val jsonStringUnmarshaller =
     Unmarshaller.byteStringUnmarshaller
-        .forContentTypes(unmarshallerContentTypes: _*)
-        .mapWithCharset {
-          case (ByteString.empty, _) => throw Unmarshaller.NoContentException
-          case (data, charset)       => data.decodeString(charset.nioCharset.name)
-        }
+      .forContentTypes(unmarshallerContentTypes: _*)
+      .mapWithCharset {
+        case (ByteString.empty, _) => throw Unmarshaller.NoContentException
+        case (data, charset)       => data.decodeString(charset.nioCharset.name)
+      }
 
   private val jsonStringMarshaller = Marshaller.stringMarshaller(`application/json`)
 
@@ -72,13 +72,13 @@ trait PlayJsonSupportForAkkaHttp {
   implicit def unmarshaller[A: Reads]: FromEntityUnmarshaller[A] = {
     def read(json: JsValue) =
       implicitly[Reads[A]]
-          .reads(json)
-          .recoverTotal { e =>
-            println(s"e => $e")
-            throw RejectionError(
-              ValidationRejection(JsError.toJson(e).toString, Some(PlayJsonError(e)))
-            )
-          }
+        .reads(json)
+        .recoverTotal { e =>
+          println(s"e => $e")
+          throw RejectionError(
+            ValidationRejection(JsError.toJson(e).toString, Some(PlayJsonError(e)))
+          )
+        }
     jsonStringUnmarshaller.map { data =>
       read(Json.parse(data))
     }
@@ -91,8 +91,8 @@ trait PlayJsonSupportForAkkaHttp {
     * @return marshaller for any `A` value
     */
   implicit def marshaller[A](
-    implicit writes: Writes[A],
-    printer: JsValue => String = Json.prettyPrint
+      implicit writes: Writes[A],
+      printer: JsValue => String = Json.prettyPrint
   ): ToEntityMarshaller[A] =
     jsonStringMarshaller.compose(printer).compose(writes.writes)
 }
