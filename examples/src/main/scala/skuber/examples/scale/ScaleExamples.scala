@@ -67,10 +67,13 @@ object ScaleExamples extends App {
     val scaledDeploymentFut = for {
       del <- deplFut // wait for deployment to be created before scaling
       _ = println("Directly deployment down to 1 replica")
-      scaledDown <- k8s.scale[Deployment](nginxDeployment.name, 1)
+      currentScale <- k8s.getScale[Deployment](nginxDeployment.name)
+      downScale = currentScale.withSpecReplicas(1)
+      scaledDown <- k8s.updateScale[Deployment](nginxDeployment.name, downScale)
       _ = println("Scale desired = " + scaledDown.spec.replicas + ", current = " + scaledDown.status.get.replicas)
       _ = println("Now directly scale up to 4 replicas")
-      scaledUp <- k8s.scale[Deployment](nginxDeployment.name, 4)
+      upScale = scaledDown.withSpecReplicas(4)
+      scaledUp <- k8s.updateScale[Deployment](nginxDeployment.name, upScale)
       _ = println("Scale object returned: specified = " + scaledUp.spec.replicas + ", current = " + scaledUp.status.get.replicas)
     } yield scaledUp
 
@@ -104,10 +107,12 @@ object ScaleExamples extends App {
 
     println("Directly scaling stateful set down to 1 replica")
     val scaledStsFut = for {
-      scaledDown <- k8s.scale[StatefulSet](nginxStatefulSet.name, 1)
+      currentScale <- k8s.getScale[StatefulSet](nginxStatefulSet.name)
+      downScale = currentScale.withSpecReplicas(1)
+      scaledDown <- k8s.updateScale[StatefulSet](nginxStatefulSet.name, downScale)
       _ = println("Scale desired = " + scaledDown.spec.replicas + ", current = " + scaledDown.status.get.replicas)
       _ = println("Now directly scaling it up to 4 replicas")
-      scaledUp   <- k8s.scale[StatefulSet](nginxStatefulSet.name, 4)
+      scaledUp   <- k8s.updateScale[StatefulSet](nginxStatefulSet.name, scaledDown.withSpecReplicas(4))
       _ = println("Scale desired = " + scaledUp.spec.replicas + ", current = " + scaledUp.status.get.replicas)
     } yield scaledUp
 
