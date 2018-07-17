@@ -2,8 +2,7 @@ package skuber
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
-import skuber.apps.{Deployment, StatefulSet}
-import skuber.json.format.{maybeEmptyFormatMethods,objectMetaFormat, jsPath2LabelSelFormat}
+import skuber.json.format.{maybeEmptyFormatMethods,jsPath2LabelSelFormat,objectMetaFormat}
 
 /**
  * @author David O'Riordan
@@ -16,10 +15,17 @@ case class Scale(
     spec: Scale.Spec = Scale.Spec(),
     status: Option[Scale.Status] = None) extends ObjectResource
 {
+  @deprecated("use withSpecReplicas instead")
   def withReplicas(count: Int) = this.copy(spec=Scale.Spec(count))
+  def withSpecReplicas(count: Int) =  this.copy(spec=Scale.Spec(count))
+  def withStatusReplicas(count: Int) = {
+    val newStatus = this.status.map(_.copy(replicas = count)).getOrElse(Scale.Status(replicas=count))
+    this.copy(status=Some(newStatus))
+  }
 }
     
 object Scale {
+
   def named(name: String, apiVersion: String=v1) = new Scale(apiVersion=apiVersion,metadata=ObjectMeta(name=name))
 
   case class Spec(replicas: Int = 0)
@@ -41,7 +47,6 @@ object Scale {
     )(Scale.Status.apply _, unlift(Scale.Status.unapply))
   }
 
-  implicit val scaleSpecFormat: Format[Scale.Spec] = Json.format[Scale.Spec]
   implicit val scaleFormat: Format[Scale] = Json.format[Scale]
 
   // Any object resource type [O <: ObjectResource] that supports a Scale subresource must provide an implicit value of
@@ -49,9 +54,5 @@ object Scale {
   // Kubernetes supports Scale subresources on ReplicationController/ReplicaSet/Deployment/StatefulSet types
   trait SubresourceSpec[O <: ObjectResource] {
     def apiVersion: String // the API version to be set on any Scale subresource of the specific resource type O
-  }
-
-  class CustomResourceScaleSubResource[O <: ObjectResource] extends SubresourceSpec[O] {
-    def apiVersion = "autoscaling/v1"
   }
 }    

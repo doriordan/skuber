@@ -1,16 +1,15 @@
 package skuber
 
-import com.sun.org.glassfish.external.statistics.Statistic
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import skuber.apiextensions.CustomResourceDefinition
+import skuber.api.client.Status
 import skuber.json.format.objFormat
 
 import scala.reflect.runtime.universe._
 
 /*
  * CustomResource provides a generic model that can be used for custom resource types that follow the standard Kubernetes
- * pattern of being composed of "spec" and "status" subresources.
+ * pattern of being composed of "spec" and "status" subobjects.
  */
 case class CustomResource[Sp,St](
   override val kind: String,
@@ -43,19 +42,33 @@ object CustomResource {
     status = None)
 
   /**
-    * This implicit enables the 'status' methods on the Skuber APi to be called on all CustomResource types
-    * (note: those methods are applied to the status subresource of the custom resource, so for the calls to succeed the status
-    * subresource must be enabled on Kubernetes by setting it on the associated custom resource definition)
+    * Returns a value that can be passed as the required implicit parameter to the 'getStatus' and 'updateStatus' method for the given CR type
+    * Requires the status subresource to be defined on the custom resource definition for the type
+    * @param rd The resource definition for the type - the status subresource must be defined on it
+    * @tparam C The specific CustomResource type for which the status methods should be enabled
+    * @return HasStatusResource value that can be passed implicitly to the `updateStatus` method for this type
     */
-  implicit def enableStatus[Sp,St]: HasStatusSubresource[CustomResource[Sp,St]] = new HasStatusSubresource[CustomResource[Sp,St]] {}
+  def statusMethodsEnabler[C <: CustomResource[_,_]](implicit rd: ResourceDefinition[C]): HasStatusSubresource[C] = {
+    if (!rd.spec.subresources.map(_.status).isDefined)
+      throw new K8SException(Status(message=Some("Status subresource must be defined on the associated resource definition before status methods can be enabled")))
+    new HasStatusSubresource[C] {}
+  }
 
-  /*
-   * To indicate that 'scale' subresource is supported for specific custom resource type, the application declares:
-   * implicit val scaling=CustomResource.enableScaling[T] where T is the speicifc CustomResource type
-   * If no such implicit is provided the compiler won't allow the scale methods on the API to be invoked
-   */
-  def enableScaling[O <: ObjectResource] =
-    new Scale.SubresourceSpec[O] { override def apiVersion = "autoscaling/v1" }
+  /**
+    * Returns a value that can be passed as the required implicit parameter to the 'getScale' and 'updateScale' method for the
+    * given CR type
+    * Requires the scale subresource to be defined on the custom resource definition for the type
+    * @param rd The resource definition for the type - the status subresource must be defined on it
+    * @tparam C The specific CustomResource type for which the status methods should be enabled
+    * @return HasStatusResource value that can be passed implicitly to the `updateStatus` method for this type
+    */
+  def scalingMethodsEnabler[C <: CustomResource[_,_]](implicit rd: ResourceDefinition[C]): Scale.SubresourceSpec[C] = {
+    if (!rd.spec.subresources.map(_.scale).isDefined)
+      throw new K8SException(Status(message=Some("Scale subresource must be defined on the associated resource definition before scaling methods can be enabled")))
+    new Scale.SubresourceSpec[C] {
+      override def apiVersion: String =  "autoscaling/v1"
+    }
+  }
 
   /*
    * Generic formatter for custom resource types - this should be appropriate for most use cases, but can be
@@ -69,8 +82,7 @@ object CustomResource {
   )(CustomResource.apply _, unlift(CustomResource.unapply[Sp,St]))
 
   /*
-   * Generic formatter required for parsing lists of custom resources - requires an implicit formatter for the corresponding
-   * resource type to be in scope (which is usually just the above method)
+   * Generic formatter required for parsing lists of custom resources
    */
   implicit def crListFormat[CustomResource[Sp,St] <: ObjectResource, Sp, St](implicit ofmt: Format[CustomResource[Sp,St]]): Format[ListResource[CustomResource[Sp, St]]] = {
     import skuber.json.format.ListResourceFormat

@@ -596,6 +596,7 @@ package object client {
        makeRequestReturningObjectResource[Scale](req)
      }
 
+     @deprecated("use getScale followed by updateScale instead")
      def scale[O <: ObjectResource](objName: String, count: Int)(
        implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
      {
@@ -604,6 +605,12 @@ package object client {
          metadata = ObjectMeta(name = objName, namespace = namespaceName),
          spec = Scale.Spec(replicas = count)
        )
+       updateScale[O](objName, scale)
+     }
+
+     def updateScale[O <: ObjectResource](objName: String, scale: Scale)(
+      implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
+     {
        implicit val dispatcher=actorSystem.dispatcher
        val marshal = Marshal(scale)
        for {
