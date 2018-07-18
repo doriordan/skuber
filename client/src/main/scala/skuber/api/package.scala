@@ -652,6 +652,13 @@ package object client {
        } // invoke the specified close hook if specified
      }
 
+     /*
+      * Lightweight switching of namespace for applications that need to access multiple namespaces on same cluster
+      * and using same credentials and other configuration.
+      */
+     def usingNamespace(newNamespace: String): RequestContext =
+       new RequestContext(requestMaker,requestInvoker,clusterServer,requestAuth,newNamespace,logConfig,closeHook)
+
      private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
      {
        val statusOptFut = checkResponseStatus(response)
