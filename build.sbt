@@ -11,11 +11,12 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.59"
 
 // the client API request/response handing uses Akka Http 
-// This also brings in the transitive dependencies on Akka actors and streams
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.0.10"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.3"
+val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.14"
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.14"
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
-val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.4.19"
+val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.14"
 val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
@@ -47,7 +48,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.11.12", "2.12.4"),
+  crossScalaVersions := Seq("2.11.12", "2.12.6"),
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -60,13 +61,13 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaHttp, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, scalaCheck % Test,specs2 % Test).
+  libraryDependencies ++= Seq(akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, scalaCheck % Test,specs2 % Test).
 				map(_.exclude("commons-logging","commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
   name := "skuber-examples",
-  libraryDependencies ++= Seq(akkaSlf4j, logback)
+  libraryDependencies ++= Seq(akka, akkaSlf4j, logback)
 )
 
 // by default run the guestbook example when executing a fat examples JAR
