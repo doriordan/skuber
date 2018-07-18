@@ -35,7 +35,7 @@ import  Endpoints._
     }
     "this can be done for an Endpoints with a single subset containing two addresses" >> {
       val mySvc = Namespace("myNamespace").service("mySvc")
-      val endptsSubset = Subset(Address("10.247.0.10")::Address("10.247.0.11")::Nil,Nil, Port(6777)::Nil)
+      val endptsSubset = Subset(Address("10.247.0.10")::Address("10.247.0.11")::Nil,None, Port(6777)::Nil)
       val mySvcEndpoints = mySvc.mapsToEndpoints(endptsSubset)
       
       val readSvcEndpoints = Json.fromJson[Endpoints](Json.toJson(mySvcEndpoints)).get 
@@ -43,8 +43,8 @@ import  Endpoints._
     } 
     "this can be done for a more complex endppoints mapping" >> {
       val mySvc = Namespace("myNamespace").service("mySvc")
-      val endptsSubs1 = Subset(Address("10.247.0.10")::Address("10.247.0.11")::Nil,Nil,Port(6777)::Nil)
-      val endptsSubs2 = Subset(Address("10.213.0.1")::Nil, Nil, Port(6444, Protocol.TCP, "portTCP")::Port(6445, Protocol.UDP, "portUDP")::Nil)
+      val endptsSubs1 = Subset(Address("10.247.0.10")::Address("10.247.0.11")::Nil,None,Port(6777)::Nil)
+      val endptsSubs2 = Subset(Address("10.213.0.1")::Nil, None, Port(6444, Protocol.TCP, Some("portTCP"))::Port(6445, Protocol.UDP, Some("portUDP"))::Nil)
       val endptsSubsets=endptsSubs1::endptsSubs2::Nil
       val mySvcEndpoints = mySvc.mapsToEndpoints(endptsSubsets)
       
@@ -113,10 +113,10 @@ import  Endpoints._
      tgtRef.name mustEqual "kube-dns-v3-fkelw"
      val ports = endps.subsets(0).ports
      ports.length mustEqual 2
-     ports(0).name mustEqual "dns-tcp"
+     ports(0).name mustEqual Some("dns-tcp")
      ports(0).protocol mustEqual Protocol.TCP
      ports(0).port mustEqual 53
-     ports(1).name mustEqual "dns"
+     ports(1).name mustEqual Some("dns")
      ports(1).protocol mustEqual Protocol.UDP
      ports(1).port mustEqual 53   
     }
