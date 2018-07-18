@@ -1,14 +1,12 @@
 package skuber
 
-import java.util.Date
-
 /**
  * @author David O'Riordan
  */
 case class Endpoints(
-  	val kind: String ="Endpoints",
+  	kind: String ="Endpoints",
   	override val apiVersion: String = v1,
-    val metadata: ObjectMeta,
+    metadata: ObjectMeta,
     subsets: List[Endpoints.Subset] = Nil)       
   extends ObjectResource 
 {
@@ -17,7 +15,7 @@ case class Endpoints(
     def withEndpoint(ip: String, port: Int, protocol: Protocol.Value = Protocol.TCP) =
           this.copy(subsets=Endpoints.Subset(
                                     Endpoints.Address(ip)::Nil,
-                                    Nil,
+            None,
                                     Endpoints.Port(port,protocol)::Nil
                                   )
                                   ::Nil
@@ -42,12 +40,12 @@ object Endpoints {
 
   case class Subset(
     addresses: List[Address],
-    notReadyAddresses: List[Address],
+    notReadyAddresses: Option[List[Address]],
     ports: List[Port])
       
   case class Address(ip: String, targetRef: Option[ObjectReference] = None) {
     def references(obj: ObjectResource) = this.copy(ip, targetRef = Some(obj))
   }
 
-  case class Port(port: Int, protocol: Protocol.Value  = Protocol.TCP, name: String = "")
+  case class Port(port: Int, protocol: Protocol.Value  = Protocol.TCP, name: Option[String] = None)
 }

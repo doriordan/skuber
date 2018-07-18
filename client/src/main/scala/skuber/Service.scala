@@ -51,7 +51,7 @@ case class Service(
       
   import Endpoints._
   def mapsToEndpoint(ip: String, port: Int, protocol : Protocol.Value = Protocol.TCP): Endpoints =
-      Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets=Subset(Address(ip)::Nil, Nil, Port(port,protocol)::Nil)::Nil)
+      Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets=Subset(Address(ip)::Nil, None, Port(port,protocol)::Nil)::Nil)
   def mapsToEndpoints(subset: Subset): Endpoints =
       Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets=subset::Nil)
   def mapsToEndpoints(subsets: List[Subset]): Endpoints = Endpoints(metadata=ObjectMeta(name=this.name, namespace=this.ns),subsets = subsets)
