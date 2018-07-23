@@ -4,7 +4,7 @@ Skuber supports both out-of-cluster and in-cluster configurations.
 Сonfiguration algorithm can be described as follows:
 
 Initailly Skuber tries out-of-cluster methods in sequence (stops on first successful):
- 1. __Cluster URL__: Read `SKUBER_URL` environment variable and use it as kubectl proxy url. If not set then:
+ 1. Read `SKUBER_URL` environment variable and use it as kubectl proxy url. If not set then:
  1. Read `SKUBER_CONFIG` environment variable and if is equal to:
     * `file`  - Skuber will read `~/.kube/config` and use it as configuration source
     * `proxy` - Skuber will assume that kubectl proxy running on `localhost:8080` and will use it as endpoint to cluster API 
