@@ -27,7 +27,7 @@ import skuber.json.format._
 import skuber.json.format.apiobj._
 import skuber._
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 /**
  * @author David O'Riordan
@@ -206,6 +206,7 @@ package object client {
                         val clusterServer: String,
                         val requestAuth: AuthInfo,
                         val namespaceName: String,
+                        val maxWatchRequestTimeout: Duration,
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
       (implicit val actorSystem: ActorSystem, val materializer: Materializer, val executionContext: ExecutionContext) {
@@ -585,6 +586,24 @@ package object client {
        Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
      }
 
+     def watchContinuously[O <: ObjectResource](obj: O)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O]): Source[WatchEvent[O], _] =
+     {
+       watchContinuously(obj.name)
+     }
+
+     def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Source[WatchEvent[O], _] =
+     {
+       WatchSource(this, Some(name), sinceResourceVersion, maxWatchRequestTimeout, bufSize)
+     }
+
+     def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Source[WatchEvent[O], _] =
+     {
+       WatchSource(this, None, sinceResourceVersion, maxWatchRequestTimeout, bufSize)
+     }
+
      // Operations on scale subresource
      // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types
      // define an implicit Scale.SubresourceSpec, which is required to be passed to these methods.
@@ -664,7 +683,7 @@ package object client {
       * and using same credentials and other configuration.
       */
      def usingNamespace(newNamespace: String): RequestContext =
-       new RequestContext(requestMaker,requestInvoker,clusterServer,requestAuth,newNamespace,logConfig,closeHook)
+       new RequestContext(requestMaker, requestInvoker, clusterServer, requestAuth, newNamespace, maxWatchRequestTimeout, logConfig, closeHook)
 
      private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
      {
@@ -795,6 +814,9 @@ package object client {
 
     def durationFomConfig(configKey: String): Option[Duration] = Some(Duration.fromNanos(appConfig.getDuration(configKey).toNanos))
     val watchIdleTimeout: Duration = getSkuberConfig("watch.idle-timeout", durationFomConfig, Duration.Inf)
+    // Timeout needs to be less than idle connection timeout.
+    // Max timeout set to 60 seconds.
+    val maxWatchRequestTimeout: Duration = (watchIdleTimeout * 0.8).min(60.seconds)
 
     if (logConfig.logConfiguration) {
       val log = Logging.getLogger(actorSystem, "skuber.api")
@@ -825,7 +847,7 @@ package object client {
         Http().singleRequest(request, settings = watchSettings)
     }
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, logConfig, closeHook)
+    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, maxWatchRequestTimeout, logConfig, closeHook)
   }
 
   def defaultK8sConfig: Configuration = {
