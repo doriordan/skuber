@@ -4,6 +4,7 @@ import java.io.File
 
 import scala.collection.JavaConverters._
 import scala.util.Try
+import scala.util.Failure
 import java.util.{Base64, Date}
 
 import org.yaml.snakeyaml.Yaml
@@ -206,30 +207,50 @@ object Configuration {
     }
 
   /**
-    * Uses the configuration from a running pod, mounted in /var/run/secrets/kubernetes.io/serviceaccount
+    * Tries to create in-cluster configuration using credentials mounted inside a running pod
+    * <p>Follows official golang client logic
     *
-    * Code mostly from https://github.com/agemooij
+    * @return Try[Configuration]
+    *
+    * @see https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
+    *      https://github.com/kubernetes/client-go/blob/master/rest/config.go#L313
+    *      https://github.com/kubernetes-client/java/blob/master/util/src/main/java/io/kubernetes/client/util/ClientBuilder.java#L134
     */
-  lazy val useRunningPod: Try[Configuration] = Try {
+  lazy val inClusterConfig: Try[Configuration] = {
+
     val rootK8sFolder = "/var/run/secrets/kubernetes.io/serviceaccount"
-    val tokenFile = new File(rootK8sFolder + "/token")
-    val namespaceFile = new File(rootK8sFolder + "/namespace")
+    val tokenPath     = s"$rootK8sFolder/token"
+    val namespacePath = s"$rootK8sFolder/namespace"
+    val caPath        = s"$rootK8sFolder/ca.crt"
 
-    def fileContents(f: File): String = Source.fromFile(f, "UTF-8").getLines().mkString("\n")
+    lazy val maybeHost: Try[String] = Try(sys.env("KUBERNETES_SERVICE_HOST"))
+      .recoverWith { case e: NoSuchElementException =>
+        Failure(new Exception("environment variable KUBERNETES_SERVICE_HOST must be defined", e))}
 
-    val cluster = Cluster(
-      server = "https://kubernetes.default",
-      certificateAuthority = Some(Left(rootK8sFolder + "/ca.crt"))
-    )
+    lazy val maybePort: Try[String] = Try(sys.env("KUBERNETES_SERVICE_PORT"))
+      .recoverWith { case e: NoSuchElementException =>
+        Failure(new Exception("environment variable KUBERNETES_SERVICE_PORT must be defined", e))}
 
-    val authInfo = TokenAuth(fileContents(tokenFile))
-    val namespace = Namespace.forName(fileContents(namespaceFile))
-    val context = Context(cluster, authInfo, namespace)
+    lazy val maybeToken     = Try(Source.fromFile(tokenPath,     "utf-8").getLines().mkString("\n"))
+    lazy val maybeNamespace = Try(Source.fromFile(namespacePath, "utf-8").getLines().mkString("\n"))
 
-    Configuration(
+    // is not strictly required
+    // but client-go tries to read ca.file and logs the following error if unable to and continues
+    //"Expected to load root CA config from %s, but got err: %v", rootCAFile, err)
+    lazy val ca: Option[PathOrData] = if (Files.exists(Paths.get(caPath))) Some(Left(caPath)) else None
+
+    for {
+      host      <- maybeHost
+      port      <- maybePort
+      token     <- maybeToken
+      namespace <- maybeNamespace
+      hostPort  = s"https://$host${if (port.length > 0) ":" + port else ""}"
+      cluster   = Cluster(server = hostPort, certificateAuthority = ca)
+      ctx       = Context(cluster, TokenAuth(token), Namespace.forName(namespace))
+    } yield Configuration(
       clusters = Map("default" -> cluster),
-      contexts = Map("default" -> context),
-      currentContext = context
+      contexts = Map("default" -> ctx),
+      currentContext = ctx
     )
   }
 }
