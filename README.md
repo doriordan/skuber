@@ -4,14 +4,13 @@
 
 # Skuber
 
-
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
 
 ## Features
 
 - Comprehensive support for Kubernetes API model represented as Scala case classes
 - Support for core, extensions and other Kubernetes API groups
-- Full support for converting resources between the case class and standard JSON representations 
+- Full support for converting resources between the case class and standard JSON representations
 - Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
 - Fluent API for creating and updating specifications of Kubernetes resources
@@ -23,45 +22,70 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 Make sure [prerequisites](#prerequisites) are met. There are couple of quick ways to get started with Skuber:
 
-- With [Ammonite-REPL](http://ammonite.io/#Ammonite-REPL) for quick experiments:
-    
-    using bash:
-    ```bash
-    $ amm -p ./Quickstart.sc
-    ```
-    
-    from inside ammonite-repl:
-    ```scala
-    import $file.`Quickstart`, Quickstart._
-    ```
-      
-    Provides you with a configured client on startup. See more [elaborate example](docs/Examples.md)  
-    
-    Just handy shortcut to import skuber inside ammonite-repl: 
-    
-    ```import $ivy.`io.skuber::skuber:2.0.9`, skuber._, skuber.json.format._```
-   
+### With [Ammonite-REPL](http://ammonite.io/#Ammonite-REPL) 
 
-- Interactive with sbt 
+Provides you with a configured client on startup. It is handy to use this for quick experiments. 
+- using bash
     
-    Clone this repository.   
-    Tell Skuber to configure itself from the default Kubeconfig file (`$HOME/.kube/config`):
-    
+  ```bash
+  $ amm -p ./Quickstart.sc
+  ```
+
+- from inside ammonite-repl:
+  ```scala
+  import $file.`Quickstart`, Quickstart._
+  ```
+
+  ##### Just handy shortcut to import skuber inside ammonite-repl:
+
+  ```
+  import $ivy.`io.skuber::skuber:2.0.9`, skuber._, skuber.json.format._
+  ```
+
+### Copy-paste ready snippet
+
+  This example lists pods in `kube-system` namespace
+
+  ```scala
+  import skuber._
+  import skuber.json.format._
+  import akka.actor.ActorSystem
+  import akka.stream.ActorMaterializer
+  import scala.util.{Success, Failure}
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
+
+  val cfg: Configuration = Configuration.parseKubeconfigFile().get
+  val k8s = k8sInit(cfg)
+  val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
+  listPodsRequest.onComplete {
+    case Success(pods) => pods.items.foreach { p => println(p.name) }
+    case Failure(e) => throw(e)
+  }
+  ```
+  See more elaborate example [here](docs/Examples.md):
+
+### Interactive with sbt
+
+  * Clone this repository.
+  * Tell Skuber to configure itself from the default Kubeconfig file (`$HOME/.kube/config`):
 
     ```bash
     export SKUBER_CONFIG=file
     ```
-     
-    Read more about Skuber configuration [here](docs/Configuration.md) 
-    
-    Run `sbt` and try  one or more of the [examples](./examples/src/main/scala/skuber/examples) and then:
+
+    Read more about Skuber configuration [here](docs/Configuration.md)
+
+  * Run `sbt` and try  one or more of the [examples](./examples/src/main/scala/skuber/examples) and then:
 
     ```bash
     sbt:root> project examples
     sbt:skuber-examples> run
-    
+
     Multiple main classes detected, select one to run:
-    
+
      [1] skuber.examples.customresources.CreateCRD
      [2] skuber.examples.deployment.DeploymentExamples
      [3] skuber.examples.fluent.FluentExamples
@@ -73,7 +97,7 @@ Make sure [prerequisites](#prerequisites) are met. There are couple of quick way
      [9] skuber.examples.podlogs.PodLogExample
      [10] skuber.examples.scale.ScaleExamples
      [11] skuber.examples.watch.WatchExamples
-    
+
     Enter number:
     ```
 
@@ -82,11 +106,11 @@ For other Kubernetes setups, see the [configuration guide](docs/Configuration.md
 
 ## Prerequisites
 
-* Java 8 
+* Java 8
 * Kubernetes cluster
 
 A Kubernetes cluster is needed at runtime. For local development purposes, minikube is recommended.
-To get minikube follow the instructions [here](https://github.com/kubernetes/minikube) 
+To get minikube follow the instructions [here](https://github.com/kubernetes/minikube)
 
 
 
@@ -95,7 +119,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 You can use the latest release (for Scala 2.11 or 2.12) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.0.9"    
+libraryDependencies += "io.skuber" %% "skuber" % "2.0.9"
 ```
 
 Meanwhile users of skuber v1 can continue to use the latest (and possibly final, with exception of important fixes) v1.x release, which is available only on Scala 2.11:
