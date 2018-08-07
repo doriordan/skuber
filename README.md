@@ -36,7 +36,7 @@ Provides you with a configured client on startup. It is handy to use this for qu
   import $file.`Quickstart`, Quickstart._
   ```
 
-  ##### Just handy shortcut to import skuber inside ammonite-repl:
+  ###### Just handy shortcut to import skuber inside ammonite-repl:
 
   ```
   import $ivy.`io.skuber::skuber:2.0.9`, skuber._, skuber.json.format._
@@ -44,7 +44,7 @@ Provides you with a configured client on startup. It is handy to use this for qu
 
 ### Copy-paste ready snippet
 
-  This example lists pods in `kube-system` namespace
+  This example lists pods in `kube-system` namespace. It unsafely assumes that your kubeconfig file exists and kubernetes cluster is accessible:
 
   ```scala
   import skuber._
