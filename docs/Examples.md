@@ -1,7 +1,6 @@
 # Skuber usage examples
 
-
-##### Basic imports:  
+## Basic imports
 
 ```scala
 import skuber._
@@ -17,25 +16,25 @@ implicit val materializer = ActorMaterializer()
 implicit val dispatcher = system.dispatcher
 ```
 
-##### Populate cluster access configuration and initialize client
+## Populate cluster access configuration and initialize client
 
 You can configure cluster in [many different ways](Configuration.md). This example
 directly calls method that reads kubeconfig file at default location.
 Check [kubernetes docs](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#before-you-begin) if you don't know what is kubeconfig or where to look for it.
+
 ```scala
 import api.Configuration
 
-// unsafely assumes that Success is returned.
+// assumes that Success is returned.
 val cfg: Configuration = Configuration.parseKubeconfigFile().get
 val k8s = k8sInit(cfg)
 ```
 
-
-##### List pods example
+## List pods example
 
 Here we use `k8s` client to get all pods in `kube-system` namespace:
+
 ```scala
-// 
 import scala.util.{Success, Failure}
 val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
 listPodsRequest.onComplete {
@@ -44,13 +43,13 @@ listPodsRequest.onComplete {
 }
 ```
 
-##### Create deployment
+## Create deployment
 
 This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by a deployment of five nginx replicas.
- Requires defining selector, container description, pod spec, deployment and service:  
+ Requires defining selector, container description, pod spec, deployment and service:
 
 ```scala
-// Define selector 
+// Define selector
 import LabelSelector.dsl._
 val nginxSelector  = "app" is "nginx"
 
@@ -64,7 +63,7 @@ val nginxTemplate = Pod.Template.Spec
   .addContainer(nginxContainer)
   .addLabel("app" -> "nginx")
 
-// Define nginx deployment 
+// Define nginx deployment
 import skuber.apps.v1.Deployment
 val nginxDeployment = Deployment("nginx")
   .withReplicas(5)
@@ -88,12 +87,13 @@ createOnK8s.onComplete {
 }
 ```
 
-##### Safely shutdown the client 
+## Safely shutdown the client
+
 ```scala
 // Close client.
 // This prevents any more requests being sent by the client.
-k8s.close 
+k8s.close
 
 // this closes the connection resources etc.
-system.terminate 
+system.terminate
 ```
