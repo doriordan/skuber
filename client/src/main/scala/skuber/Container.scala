@@ -171,6 +171,6 @@ object Container {
 
   case class Image(
     names: List[String] = Nil,
-    sizeBytes: Option[Int] = None
+    sizeBytes: Option[Long] = None
   )
 }    
