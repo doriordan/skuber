@@ -95,7 +95,7 @@
           "nginx@sha256:2f68b99bc0d6d25d0c56876b924ec20418544ff28e1fb89a4c27679a40da811b",
           "nginx:1.9.1"
         ],
-        "sizeBytes": 132835913
+        "sizeBytes": 13283591300
       },
       {
         "names": [

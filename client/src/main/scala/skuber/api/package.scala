@@ -914,7 +914,7 @@ package object client {
             }.getOrElse {
               // Try to get config from a running pod
               // if that is not set then use default kubeconfig location
-              Configuration.useRunningPod.orElse(
+              Configuration.inClusterConfig.orElse(
                 Configuration.parseKubeconfigFile()
               )
             }.get

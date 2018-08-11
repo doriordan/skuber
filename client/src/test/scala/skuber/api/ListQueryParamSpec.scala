@@ -1,6 +1,5 @@
 package skuber.api
 
-import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mutable.Specification
 import skuber._
 
@@ -18,10 +17,7 @@ import LabelSelector.dsl._
  */
 class ListQueryParamSpec extends Specification {
 
-  type EE = ExecutionEnv
-
-  "LabelSelector string representations equate to the associated labelSelector query param values" >> { implicit ee: EE =>
-
+  "LabelSelector string representations equate to the associated labelSelector query param values" >> {
     LabelSelector("tier" is "database").toString mustEqual "tier=database"
     LabelSelector("tier" isNot "database").toString mustEqual "tier!=database"
     LabelSelector("tier" isIn List("web","database")).toString mustEqual "tier in (web,database)"

@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/doriordan/skuber.svg?branch=master)](https://travis-ci.org/doriordan/skuber)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.skuber/skuber_2.12/badge.svg)](http://search.maven.org/#search|ga|1|g:%22io.skuber%22a:%22skuber_2.12%22)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/doriordan/skuber/blob/master/LICENSE.txt)
 
 # Skuber
 
@@ -7,72 +10,116 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 
 - Comprehensive support for Kubernetes API model represented as Scala case classes
 - Support for core, extensions and other Kubernetes API groups
-- Full support for converting resources between the case class and standard JSON representations 
+- Full support for converting resources between the case class and standard JSON representations
 - Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
 - Fluent API for creating and updating specifications of Kubernetes resources
-- Uses standard `kubeconfig` files for configuration - see the [Configuration guide](docs/Configuration.md) for details
+- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
 
 See the [programming guide](docs/GUIDE.md) for more details.
 
-## Example Usage
+## Example
 
-This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by a deployment of five nginx replicas.
+This example lists pods in `kube-system` namespace:
 
-```scala
-import skuber._
-import skuber.json.format._
-import skuber.apps.v1.Deployment
-import LabelSelector.dsl._
+  ```scala
+  import skuber._
+  import skuber.json.format._
+  import akka.actor.ActorSystem
+  import akka.stream.ActorMaterializer
+  import scala.util.{Success, Failure}
 
-val nginxSelector  = "app" is "nginx" 
-val nginxContainer = Container(name = "nginx", image = "nginx").exposePort(80) 
-val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-val nginxDeployment = Deployment(name)
-    .withReplicas(5)
-    .withTemplate(nginxTemplate)
-    .withLabelSelector(nginxSelector)
-val nginxService = Service("nginx")
-    .withSelector("app" -> "nginx")
-    .exposeOnNodePort(30001 -> 80) 
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+  implicit val dispatcher = system.dispatcher
 
-// Some standard Akka implicits that are required by the skuber v2 client API
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
-implicit val dispatcher = system.dispatcher
+  val k8s = k8sInit()
+  val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
+  listPodsRequest.onComplete {
+    case Success(pods) => pods.items.foreach { p => println(p.name) }
+    case Failure(e) => throw(e)
+  }
+  ```
 
-// Initialise skuber client
-val k8s = k8sInit
+  See more elaborate example [here](docs/Examples.md).
 
-// Create the service and the deployment on the Kubernetes cluster
-val createOnK8s = for {
-  svc <- k8s create nginxService
-  dep  <- k8s create nginxDeployment
-} yield (dep,svc)
+## Quick Start
 
-createOnK8s onComplete {
-  case Success(_) => System.out.println("Successfully created nginx deployment & service on Kubernetes cluster")
-  case Failure(ex) => System.err.println("Encountered exception trying to create resources on Kubernetes cluster: " + ex)
-}
+Make sure [prerequisites](#prerequisites) are met. There are couple of quick ways to get started with Skuber:
 
-k8s.close // this prevents any more requests being sent by the client
-system.terminate // this closes the connection resources etc.
-```
+### With [Ammonite-REPL](http://ammonite.io/#Ammonite-REPL)
+
+Provides you with a configured client on startup. It is handy to use this for quick experiments.
+
+- using bash
+
+  ```bash
+  $ amm -p ./Quickstart.sc
+  ```
+
+- from inside ammonite-repl:
+
+  ```scala
+  import $file.`Quickstart`, Quickstart._
+  ```
+
+  > Just handy shortcut to import skuber inside ammonite-repl:
+
+  ```scala
+  import $ivy.`io.skuber::skuber:2.0.9`, skuber._, skuber.json.format._
+  ```
+
+### Interactive with sbt
+
+- Clone this repository.
+
+- Tell Skuber to configure itself from the default Kubeconfig file (`$HOME/.kube/config`):
+
+    ```bash
+    export SKUBER_CONFIG=file
+    ```
+
+    Read more about Skuber configuration [here](docs/Configuration.md)
+
+- Run `sbt` and try  one or more of the [examples](./examples/src/main/scala/skuber/examples) and then:
+
+  ```bash
+  sbt:root> project examples
+  sbt:skuber-examples> run
+
+  Multiple main classes detected, select one to run:
+
+   [1] skuber.examples.customresources.CreateCRD
+   [2] skuber.examples.deployment.DeploymentExamples
+   [3] skuber.examples.fluent.FluentExamples
+   [4] skuber.examples.guestbook.Guestbook
+   [5] skuber.examples.ingress.NginxIngress
+   [6] skuber.examples.job.PrintPiJob
+   [7] skuber.examples.list.ListExamples
+   [8] skuber.examples.patch.PatchExamples
+   [9] skuber.examples.podlogs.PodLogExample
+   [10] skuber.examples.scale.ScaleExamples
+   [11] skuber.examples.watch.WatchExamples
+
+  Enter number:
+  ```
+
+For other Kubernetes setups, see the [configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
 
 ## Prerequisites
 
-A Kubernetes cluster is needed at runtime. For local development purposes, minikube is recommended.
+- Java 8
+- Kubernetes cluster
 
-You need Java 8 to run Skuber.
+A Kubernetes cluster is needed at runtime. For local development purposes, minikube is recommended.
+To get minikube follow the instructions [here](https://github.com/kubernetes/minikube)
 
 ## Release
 
 You can use the latest release (for Scala 2.11 or 2.12) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.0.9"    
+libraryDependencies += "io.skuber" %% "skuber" % "2.0.9"
 ```
 
 Meanwhile users of skuber v1 can continue to use the latest (and possibly final, with exception of important fixes) v1.x release, which is available only on Scala 2.11:
@@ -88,45 +135,6 @@ If you have a Skuber client using release v1.x and want to move to the strategic
 ## Building
 
 Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
-
-## Quick Start
-
-The quickest way to get started with Skuber:
-
-- If you don't already have Kubernetes installed, then follow the instructions [here](https://github.com/kubernetes/minikube) to install minikube, which is now the recommended way to run Kubernetes locally.
-
-- Ensure Skuber configures itself from the default Kubeconfig file (`$HOME/.kube/config`) : 
-
-    ```bash
-    export SKUBER_CONFIG=file
-    ``` 
-
-- Try one or more of the examples: if you have cloned this repository run `sbt` in the top-level directory to start sbt in interactive mode and then:
-
-```bash
-sbt:root> project examples
-sbt:skuber-examples> run
-
-Multiple main classes detected, select one to run:
-
- [1] skuber.examples.customresources.CreateCRD
- [2] skuber.examples.deployment.DeploymentExamples
- [3] skuber.examples.fluent.FluentExamples
- [4] skuber.examples.guestbook.Guestbook
- [5] skuber.examples.ingress.NginxIngress
- [6] skuber.examples.job.PrintPiJob
- [7] skuber.examples.list.ListExamples
- [8] skuber.examples.patch.PatchExamples
- [9] skuber.examples.podlogs.PodLogExample
- [10] skuber.examples.scale.ScaleExamples
- [11] skuber.examples.watch.WatchExamples
-
-Enter number:
-```
-
-For other Kubernetes setups, see the [Configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
-
-
 
 ## License
 

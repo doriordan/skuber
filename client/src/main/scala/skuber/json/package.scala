@@ -666,7 +666,7 @@ package object format {
 
   implicit val cntnrImageFmt: Format[Container.Image] = (
     (JsPath \ "names").formatMaybeEmptyList[String] and
-    (JsPath \ "sizeBytes").formatNullable[Int]
+    (JsPath \ "sizeBytes").formatNullable[Long]
   )(Container.Image.apply _, unlift(Container.Image.unapply))
 
   implicit val podStatusCondFormat : Format[Pod.Condition] = (

@@ -1,16 +1,16 @@
 
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.13.5"
-val specs2 = "org.specs2" %% "specs2-core" % "3.9.5"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.4"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.0"
+val specs2 = "org.specs2" %% "specs2-core" % "4.3.2"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.0.5"
 val mockito = "org.mockito" % "mockito-core" % "2.21.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.14"
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
-val commonsIO = "commons-io" % "commons-io" % "2.5"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.59"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.21"
+val commonsIO = "commons-io" % "commons-io" % "2.6"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.11"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.60"
 
 // the client API request/response handing uses Akka Http 
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.3"
@@ -22,7 +22,7 @@ val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.14"
 val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.6.6"
+val playJson = "com.typesafe.play" %% "play-json" % "2.6.9"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
