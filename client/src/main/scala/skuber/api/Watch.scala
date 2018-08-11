@@ -1,17 +1,10 @@
 package skuber.api
 
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.{HttpMethods, _}
-import akka.stream.Materializer
-import akka.stream.scaladsl.{JsonFraming, Source}
-import akka.util.ByteString
-import play.api.libs.json.{Format, JsError, JsSuccess, Json}
-
+import akka.stream.scaladsl.Source
+import play.api.libs.json.Format
 import skuber.api.client._
 import skuber.{ObjectResource, ResourceDefinition}
 
@@ -40,7 +33,7 @@ object Watch {
 
     val maybeResourceVersionQuery = sinceResourceVersion map { version => Uri.Query("resourceVersion" -> version) }
     val request = context.buildRequest(HttpMethods.GET, rd, Some(name), query = maybeResourceVersionQuery, watch = true)
-    val responseFut = context.invoke(request, true)
+    val responseFut = context.invoke(request, watch = true)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
 
@@ -61,7 +54,7 @@ object Watch {
 
     val maybeResourceVersionQuery = sinceResourceVersion map { v => Uri.Query("resourceVersion" -> v) }
     val request = context.buildRequest(HttpMethods.GET, rd, None, query = maybeResourceVersionQuery, watch = true)
-    val responseFut = context.invoke(request, true)
+    val responseFut = context.invoke(request, watch = true)
     toFutureWatchEventSource(context, responseFut, bufSize)
   }
 
@@ -77,34 +70,11 @@ object Watch {
   private def toFutureWatchEventSource[O <: ObjectResource](context: RequestContext, eventStreamResponseFut: Future[HttpResponse], bufSize: Int)(
     implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
-    implicit val system = context.actorSystem
-    implicit val mat = context.materializer
+    implicit val ec: ExecutionContext = context.actorSystem.dispatcher
 
     eventStreamResponseFut.map { eventStreamResponse =>
-      bytesSourceToWatchEventSource(eventStreamResponse.entity.dataBytes, bufSize)
+      BytesToWatchEventSource(eventStreamResponse.entity.dataBytes, bufSize)
     }
-  }
-
-  /**
-    * Convert a source of bytes to a source of watch events of type O
-    */
-  private[api] def bytesSourceToWatchEventSource[O <: ObjectResource](bytesSource: Source[ByteString, _], bufSize: Int)(
-    implicit actorSystem: ActorSystem, materializer: Materializer, format: Format[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    import skuber.json.format.apiobj.watchEventFormat
-
-    implicit val dispatcher: ExecutionContextExecutor = actorSystem.dispatcher
-
-    bytesSource
-        .via(JsonFraming.objectScanner(bufSize))
-        .map { singleEventBytes =>
-          val singleEventJson = Json.parse(singleEventBytes.utf8String)
-          val validatedEvent = singleEventJson.validate[WatchEvent[O]](watchEventFormat[O])
-          validatedEvent match {
-            case JsSuccess(value, _) => value
-            case JsError(e) => throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(s"${lc.output} - ${e.toString}")))
-          }
-        }
   }
 }
 

@@ -1,57 +1,204 @@
 package skuber
 
-import akka.stream.{KillSwitches, UniqueKillSwitch}
+import akka.stream.KillSwitches
 import akka.stream.scaladsl.{Keep, Sink}
 import org.scalatest.Matchers
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.time.{Seconds, Span}
 import skuber.apps.v1.{Deployment, DeploymentList}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers {
-  val nginxDeploymentName: String = java.util.UUID.randomUUID().toString
+class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers with ScalaFutures {
+  implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(200, Seconds), interval = Span(5, Seconds))
 
   behavior of "WatchContinuously"
 
-  it should "watch the custom resources" in { k8s =>
-    import skuber.api.client.{EventType, WatchEvent}
-    import scala.collection.mutable.ListBuffer
+  it should "continuously watch changes on a resource - deployments" in { k8s =>
+    import skuber.api.client.EventType
 
-    val deployment = getNginxDeployment(nginxDeploymentName, "1.7.9")
+    val deploymentOneName = java.util.UUID.randomUUID().toString
+    val deploymentTwoName = java.util.UUID.randomUUID().toString
+    val deploymentOne = getNginxDeployment(deploymentOneName, "1.7.9")
+    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.7.9")
 
-    val trackedEvents = ListBuffer.empty[WatchEvent[Deployment]]
-    val trackEvents: Sink[WatchEvent[Deployment], _] = Sink.foreach { event =>
-      if(event._object.name == nginxDeploymentName && (event._type == EventType.ADDED || event._type == EventType.DELETED)) {
-        trackedEvents += event
-      }
-    }
-
-    def createSource() = k8s.list[DeploymentList].map { l =>
+    val stream = k8s.list[DeploymentList].map { l =>
       k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
         .viaMat(KillSwitches.single)(Keep.right)
-        .toMat(trackEvents)(Keep.both)
+        .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
+        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
+        .toMat(Sink.collection)(Keep.both)
         .run()
     }
 
-    val killSwitchFut = for {
-      (kill, _) <- createSource()
-      testResource <- k8s.create(deployment)
-      deleted <- k8s.delete[Deployment](nginxDeploymentName)
-    } yield kill
-
-    eventually(timeout(200 seconds), interval(3 seconds)) {
-      trackedEvents.size shouldBe 2
-      trackedEvents.head._type shouldBe EventType.ADDED
-      trackedEvents.head._object.name shouldBe deployment.name
-      trackedEvents(1)._type shouldBe EventType.DELETED
+    //Create first deployment and delete it.
+    k8s.create(deploymentOne).futureValue.name shouldBe deploymentOneName
+    eventually {
+      k8s.get[Deployment](deploymentOneName).futureValue.status.get.availableReplicas shouldBe 1
     }
+    k8s.delete[Deployment](deploymentOneName).futureValue
+
+    /*
+     * Request times for request is defaulted to 30 seconds.
+     * The idle timeout is also defaulted to 60 seconds.
+     * This will ensure multiple requests are performed by
+     * the source including empty responses
+     */
+    pause(62.seconds)
+
+    //Create second deployment and delete it.
+    k8s.create(deploymentTwo).futureValue.name shouldBe deploymentTwoName
+    eventually {
+      k8s.get[Deployment](deploymentTwoName).futureValue.status.get.availableReplicas shouldBe 1
+    }
+    k8s.delete[Deployment](deploymentTwoName).futureValue
 
     // cleanup
-    killSwitchFut.map { killSwitch =>
-      killSwitch.shutdown()
-      assert(true)
+    stream.map { killSwitch =>
+      killSwitch._1.shutdown()
     }
+
+    stream.futureValue._2.futureValue.toList.map { d =>
+      (d._type, d._object.name)
+    } shouldBe List(
+      (EventType.ADDED, deploymentOneName),
+      (EventType.DELETED, deploymentOneName),
+      (EventType.ADDED, deploymentTwoName),
+      (EventType.DELETED, deploymentTwoName)
+    )
+  }
+
+  it should "continuously watch changes on a named resource obj from the beginning - deployment" in { k8s =>
+    import skuber.api.client.EventType
+
+    val deploymentName = java.util.UUID.randomUUID().toString
+    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+
+    k8s.create(deployment).futureValue.name shouldBe deploymentName
+    eventually {
+      k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
+    }
+
+    val stream = k8s.get[Deployment](deploymentName).map { d =>
+      k8s.watchContinuously[Deployment](d)
+        .viaMat(KillSwitches.single)(Keep.right)
+        .filter(event => event._object.name == deploymentName)
+        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
+        .toMat(Sink.collection)(Keep.both)
+        .run()
+    }
+
+    /*
+     * Request times for request is defaulted to 30 seconds.
+     * The idle timeout is also defaulted to 60 seconds.
+     * This will ensure multiple requests are performed by
+     * the source including empty responses
+     */
+    pause(62.seconds)
+
+    k8s.delete[Deployment](deploymentName).futureValue
+
+    // cleanup
+    stream.map { killSwitch =>
+      killSwitch._1.shutdown()
+    }
+
+    stream.futureValue._2.futureValue.toList.map { d =>
+      (d._type, d._object.name)
+    } shouldBe List(
+      (EventType.ADDED, deploymentName),
+      (EventType.DELETED, deploymentName)
+    )
+  }
+
+  it should "continuously watch changes on a named resource from the beginning - deployment" in { k8s =>
+    import skuber.api.client.EventType
+
+    val deploymentName = java.util.UUID.randomUUID().toString
+    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+
+    k8s.create(deployment).futureValue.name shouldBe deploymentName
+    eventually {
+      k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
+    }
+
+    val stream = k8s.get[Deployment](deploymentName).map { d =>
+      k8s.watchContinuously[Deployment](deploymentName, None)
+        .viaMat(KillSwitches.single)(Keep.right)
+        .filter(event => event._object.name == deploymentName)
+        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
+        .toMat(Sink.collection)(Keep.both)
+        .run()
+    }
+
+    /*
+     * Request times for request is defaulted to 30 seconds.
+     * This will ensure multiple requests are performed by
+     * the source including empty responses
+     */
+    pause(62.seconds)
+
+    k8s.delete[Deployment](deploymentName).futureValue
+
+    // cleanup
+    stream.map { killSwitch =>
+      killSwitch._1.shutdown()
+    }
+
+    stream.futureValue._2.futureValue.toList.map { d =>
+      (d._type, d._object.name)
+    } shouldBe List(
+      (EventType.ADDED, deploymentName),
+      (EventType.DELETED, deploymentName)
+    )
+  }
+
+  it should "continuously watch changes on a named resource from a point in time - deployment" in { k8s =>
+    import skuber.api.client.EventType
+
+    val deploymentName = java.util.UUID.randomUUID().toString
+    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+
+    k8s.create(deployment).futureValue.name shouldBe deploymentName
+    eventually {
+      k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
+    }
+
+    val stream = k8s.get[Deployment](deploymentName).map { d =>
+      k8s.watchContinuously[Deployment](deploymentName, Some(d.resourceVersion))
+        .viaMat(KillSwitches.single)(Keep.right)
+        .filter(event => event._object.name == deploymentName)
+        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
+        .toMat(Sink.collection)(Keep.both)
+        .run()
+    }
+
+    /*
+     * Request times for request is defaulted to 30 seconds.
+     * The idle timeout is also defaulted to 60 seconds.
+     * This will ensure multiple requests are performed by
+     * the source including empty responses
+     */
+    pause(62.seconds)
+
+    k8s.delete[Deployment](deploymentName).futureValue
+
+    // cleanup
+    stream.map { killSwitch =>
+      killSwitch._1.shutdown()
+    }
+
+    stream.futureValue._2.futureValue.toList.map { d =>
+      (d._type, d._object.name)
+    } shouldBe List(
+      (EventType.DELETED, deploymentName)
+    )
+  }
+
+
+  def pause(length: Duration): Unit ={
+    Thread.sleep(length.toMillis)
   }
 
   def getNginxDeployment(name: String, version: String): Deployment = {

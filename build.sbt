@@ -4,6 +4,8 @@ resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.13.5"
 val specs2 = "org.specs2" %% "specs2-core" % "3.9.5"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.4"
+val mockito = "org.mockito" % "mockito-core" % "2.21.0"
+val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.14"
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.16"
 val commonsIO = "commons-io" % "commons-io" % "2.5"
@@ -61,8 +63,11 @@ lazy val commonSettings = Seq(
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  libraryDependencies ++= Seq(akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, scalaCheck % Test,specs2 % Test).
-				map(_.exclude("commons-logging","commons-logging"))
+  libraryDependencies ++= Seq(
+    akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
+    scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
+    scalaTest % Test
+  ).map(_.exclude("commons-logging", "commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
