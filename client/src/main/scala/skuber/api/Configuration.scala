@@ -167,9 +167,28 @@ object Configuration {
             }
           }
 
-          val maybeAuth = optionalValueAt[YamlMap](userConfig, "auth-provider") match {
-            case Some(authProvider) => authProviderRead(authProvider)
-            case None =>
+          def execAuthRead(execProvider: YamlMap): Option[AuthProviderAuth] = {
+            import scala.collection.JavaConverters._
+            for {
+              cmd <- optionalValueAt[String](execProvider, "command")
+              args = optionalValueAt[java.util.List[String]](execProvider, "args").getOrElse(new java.util.ArrayList())
+              env = optionalValueAt[java.util.List[YamlMap]](execProvider, "env").getOrElse(new java.util.ArrayList()).asScala.flatMap(
+                m => for {
+                  name <- optionalValueAt[String](m, "name")
+                  value <- optionalValueAt[String](m, "value")
+                } yield name -> value
+              )
+            } yield ExecAuth(
+              command = cmd,
+              args = args.asScala,
+              env = env
+            )
+          }
+
+          val maybeAuth =
+            optionalValueAt[YamlMap](userConfig, "exec").flatMap(execAuthRead)
+            .orElse(optionalValueAt[YamlMap](userConfig, "auth-provider").flatMap(authProviderRead))
+            .orElse {
               val clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data")
               val clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data")
 
