@@ -45,7 +45,7 @@ object Node {
   case class Taint(
     effect: String,
     key: String,
-    value: String,
+    value: Option[String] = None,
     timeAdded: Option[Timestamp] = None
   )
 
