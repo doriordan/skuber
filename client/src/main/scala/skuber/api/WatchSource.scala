@@ -73,7 +73,7 @@ private[api] object WatchSource {
               }
             ).concat(singleEnd)
           case (Success(HttpResponse(sc, _, entity, _)), _) =>
-            rc.logWarn("Error watching resource.")
+            rc.logWarn(s"Error watching resource. Recieved a status of ${sc.intValue()}")
             entity.discardBytes()
             throw new K8SException(Status(message = Some("Error watching resource."), code = Some(sc.intValue())))
           case (Failure(f), _) =>

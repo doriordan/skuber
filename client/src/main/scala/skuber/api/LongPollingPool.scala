@@ -33,10 +33,10 @@ private[api] object LongPollingPool {
 
   private def buildHostConnectionPool[T](poolIdleTimeout: Duration, clientConnectionSettings: ClientConnectionSettings, system: ActorSystem) = {
     ConnectionPoolSettings(system)
-      .withMaxConnections(1)              // Limit number of open connections to one
+      .withMaxConnections(1)              // Limit number the of open connections to one
       .withPipeliningLimit(1)             // Limit pipelining of requests to one
       .withMaxRetries(0)                  // Disables retries
-      .withIdleTimeout(poolIdleTimeout)   // automatically shutdown connection pool after timeout
+      .withIdleTimeout(poolIdleTimeout)   // Automatically shutdown connection pool after timeout
       .withConnectionSettings(clientConnectionSettings)
   }
 }

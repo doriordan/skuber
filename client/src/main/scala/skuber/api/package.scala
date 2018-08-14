@@ -603,7 +603,7 @@ package object client {
      }
 
      def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Source[WatchEvent[O], _] =
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Source[WatchEvent[O], _] =
      {
        WatchSource(this,
          buildLongPollingPool(),
@@ -613,7 +613,7 @@ package object client {
      }
 
      def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-       implicit fmt: Format[O], rd: ResourceDefinition[O],lc: LoggingContext=RequestLoggingContext()): Source[WatchEvent[O], _] =
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Source[WatchEvent[O], _] =
      {
        WatchSource(this,
          buildLongPollingPool(),

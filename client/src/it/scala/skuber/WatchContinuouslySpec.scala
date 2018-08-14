@@ -196,7 +196,6 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     )
   }
 
-
   def pause(length: Duration): Unit ={
     Thread.sleep(length.toMillis)
   }
