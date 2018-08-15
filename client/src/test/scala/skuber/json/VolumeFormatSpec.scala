@@ -52,6 +52,33 @@ class VolumeReadWriteSpec extends Specification {
       readVol.source mustEqual Volume.Secret("mySecretName")
     }
 
+    "this can be done in a generic way for unsupported source specs" >> {
+      val myVolStr =
+        """{
+          |  "name": "unsupported-volume",
+          |  "some-fancy-new-volume-type": {
+          |    "monitors": [
+          |      "10.16.154.78:6789",
+          |      "10.16.154.82:6789",
+          |      "10.16.154.83:6789"
+          |    ],
+          |    "readOnly": true,
+          |    "secretFile": "/etc/ceph/admin.secret",
+          |    "user": "admin"
+          |  }
+          |}
+        """.stripMargin
+      val myVolJson = Json.parse(myVolStr)
+      val genVol = Volume("unsupported-volume", Volume.GenericVolumeSource(myVolStr))
+      val readVol = Json.fromJson[Volume](myVolJson).get
+      readVol.name mustEqual "unsupported-volume"
+      readVol.source match {
+        case Volume.GenericVolumeSource(json) => Json.parse(json) must_== myVolJson
+        case _ => Failure("not a generic volume!")
+      }
+      Json.toJson(genVol) must_== myVolJson
+    }
+
     "this can be done for the a git repo source spec" >> {
       val gitVol = Volume("myVol", Volume.GitRepo("git://host/mygitrepo"))
       val myVolJson = Json.toJson(gitVol)
