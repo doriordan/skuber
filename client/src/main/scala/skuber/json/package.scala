@@ -81,7 +81,7 @@ package object format {
   }
 
   implicit def enumFormat[E <: Enumeration](enum: E) : Format[E#Value] = Format(enumReads(enum), enumWrites)
-   
+
   class EnumFormatter(val path: JsPath) {
      def formatEnum[E <: Enumeration](enum: E, default: Option[E#Value]=None) : OFormat[E#Value] =
         path.formatNullable[String].inmap[E#Value](_.map(s => enum.withName(s)).getOrElse(default.get), e =>  Some(e.toString))

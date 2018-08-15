@@ -2,22 +2,24 @@ package skuber.api
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.SystemProperties
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 import java.net.URL
 import java.time.Instant
 import java.util.UUID
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.settings.ConnectionPoolSettings
+import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Flow, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
+import javax.net.ssl.SSLContext
 import play.api.libs.json._
 import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
@@ -26,13 +28,16 @@ import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format._
 import skuber.json.format.apiobj._
 import skuber._
+import skuber.api.WatchSource.Start
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 /**
  * @author David O'Riordan
  */
 package object client {
+
+  type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
 
   final val sysProps = new SystemProperties
 
@@ -206,11 +211,17 @@ package object client {
                         val clusterServer: String,
                         val requestAuth: AuthInfo,
                         val namespaceName: String,
+                        val watchContinuouslyRequestTimeout: Duration,
+                        val watchContinuouslyIdleTimeout: Duration,
+                        val watchPoolIdleTimeout: Duration,
+                        val sslContext: Option[SSLContext],
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
       (implicit val actorSystem: ActorSystem, val materializer: Materializer, val executionContext: ExecutionContext) {
 
      val log = Logging.getLogger(actorSystem, "skuber.api")
+
+     private val clusterServerUri = Uri(clusterServer)
 
      private var isClosed = false
 
@@ -585,10 +596,46 @@ package object client {
        Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
      }
 
+     def watchContinuously[O <: ObjectResource](obj: O)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O]): Source[WatchEvent[O], _] =
+     {
+       watchContinuously(obj.name)
+     }
+
+     def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Source[WatchEvent[O], _] =
+     {
+       WatchSource(this,
+         buildLongPollingPool(),
+         Some(name), sinceResourceVersion,
+         watchContinuouslyRequestTimeout, bufSize
+       )
+     }
+
+     def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+       implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Source[WatchEvent[O], _] =
+     {
+       WatchSource(this,
+         buildLongPollingPool(),
+         None, sinceResourceVersion,
+         watchContinuouslyRequestTimeout, bufSize
+       )
+     }
+
+     private def buildLongPollingPool[O <: ObjectResource]() = {
+       LongPollingPool[Start[O]](
+         clusterServerUri.scheme,
+         clusterServerUri.authority.host.address(),
+         clusterServerUri.effectivePort,
+         watchPoolIdleTimeout,
+         sslContext.map(new HttpsConnectionContext(_)),
+         ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
+       )
+     }
+
      // Operations on scale subresource
      // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types
      // define an implicit Scale.SubresourceSpec, which is required to be passed to these methods.
-
      def getScale[O <: ObjectResource](objName: String)(
        implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext=RequestLoggingContext()) : Future[Scale] =
      {
@@ -664,7 +711,10 @@ package object client {
       * and using same credentials and other configuration.
       */
      def usingNamespace(newNamespace: String): RequestContext =
-       new RequestContext(requestMaker,requestInvoker,clusterServer,requestAuth,newNamespace,logConfig,closeHook)
+       new RequestContext(requestMaker, requestInvoker, clusterServer, requestAuth,
+         newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
+         watchPoolIdleTimeout, sslContext, logConfig, closeHook
+       )
 
      private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
      {
@@ -796,6 +846,13 @@ package object client {
     def durationFomConfig(configKey: String): Option[Duration] = Some(Duration.fromNanos(appConfig.getDuration(configKey).toNanos))
     val watchIdleTimeout: Duration = getSkuberConfig("watch.idle-timeout", durationFomConfig, Duration.Inf)
 
+    val watchContinuouslyRequestTimeout: Duration = getSkuberConfig("watch-continuously.request-timeout", durationFomConfig, 30.seconds)
+    val watchContinuouslyIdleTimeout: Duration = getSkuberConfig("watch-continuously.idle-timeout", durationFomConfig, 60.seconds)
+    val watchPoolIdleTimeout: Duration = getSkuberConfig("watch-continuously.pool-idle-timeout", durationFomConfig, 60.seconds)
+
+    //The watch idle timeout needs to be greater than watch api request timeout
+    require(watchContinuouslyIdleTimeout > watchContinuouslyRequestTimeout)
+
     if (logConfig.logConfiguration) {
       val log = Logging.getLogger(actorSystem, "skuber.api")
       log.info("Using following context for connecting to Kubernetes cluster: {}", k8sContext)
@@ -814,9 +871,9 @@ package object client {
 
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
 
-    val defaultClientSettings=ConnectionPoolSettings(actorSystem.settings.config)
-    val watchConnectionSettings=defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
-    val watchSettings=defaultClientSettings.withConnectionSettings(watchConnectionSettings)
+    val defaultClientSettings = ConnectionPoolSettings(actorSystem.settings.config)
+    val watchConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
+    val watchSettings = defaultClientSettings.withConnectionSettings(watchConnectionSettings)
 
     val requestInvoker = (request: HttpRequest, watch: Boolean) => {
       if (!watch)
@@ -825,7 +882,11 @@ package object client {
         Http().singleRequest(request, settings = watchSettings)
     }
 
-    new RequestContext(requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo, theNamespaceName, logConfig, closeHook)
+    new RequestContext(
+      requestMaker, requestInvoker, k8sContext.cluster.server, k8sContext.authInfo,
+      theNamespaceName, watchContinuouslyRequestTimeout, watchContinuouslyIdleTimeout,
+      watchPoolIdleTimeout, sslContext, logConfig, closeHook
+    )
   }
 
   def defaultK8sConfig: Configuration = {
