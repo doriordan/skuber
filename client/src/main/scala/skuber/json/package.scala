@@ -582,7 +582,8 @@ package object format {
      (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
      (JsPath \ "downwardAPI").read[DownwardApiVolumeSource].map(x => x: Source) |
-     persVolumeSourceReads.map(x => x: Source)
+     persVolumeSourceReads.map(x => x: Source) |
+     JsPath.read[JsValue].map[Source](j => GenericVolumeSource(j.toString))
    )
 
    implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
@@ -603,7 +604,8 @@ package object format {
        case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
        case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
-       case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc) 
+       case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
+       case Volume.GenericVolumeSource(json) => Json.parse(json)
      }
    }
   

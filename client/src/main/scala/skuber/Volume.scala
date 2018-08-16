@@ -46,6 +46,9 @@ object Volume {
       sizeLimit: Option[Resource.Quantity] = None)
     extends Source
 
+  case class GenericVolumeSource(
+      json: String) extends Source
+
   sealed trait PersistentSource extends Source
 
   case class HostPath(
