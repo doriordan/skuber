@@ -1,22 +1,23 @@
 package skuber.api
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.sys.SystemProperties
 import scala.util.{Failure, Success, Try}
 import java.net.URL
 import java.time.Instant
 import java.util.UUID
 
-import akka.NotUsed
+import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Source}
+import akka.stream.{Materializer, SinkShape}
+import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.net.ssl.SSLContext
@@ -696,6 +697,101 @@ package object client {
          response <- invoke(request)
          apiVersionResource <- toKubernetesResponse[APIVersions](response)
        } yield apiVersionResource.versions
+     }
+
+     def exec(podName: String, command: Seq[String], maybeContainerName: Option[String] = None,
+              maybeStdin: Option[Source[String, _]] = None,
+              maybeStdout: Option[Sink[String, _]] = None,
+              maybeStderr: Option[Sink[String, _]] = None,
+              tty: Boolean = false,
+              maybeClose: Option[Promise[Unit]] = None): Future[Unit] = {
+       val containerPrintName = maybeContainerName.getOrElse("<none>")
+       log.info(s"Trying to connect to container ${containerPrintName} of pod ${podName}")
+
+       // Compose queries
+       var queries: Seq[(String, String)] = Seq(
+         "stdin" -> maybeStdin.isDefined.toString,
+         "stdout" -> maybeStdout.isDefined.toString,
+         "stderr" -> maybeStderr.isDefined.toString,
+         "tty" -> tty.toString
+       )
+       maybeContainerName.foreach { containerName =>
+         queries ++= Seq("container" -> containerName)
+       }
+       queries ++= command.map("command" -> _)
+
+       // Determine scheme
+       val scheme = sslContext match {
+         case Some(_) =>
+           "wss"
+         case None =>
+           "ws"
+       }
+
+       // Compose URI
+       val uri = Uri(clusterServer)
+         .withScheme(scheme)
+         .withPath(Uri.Path(s"/api/v1/namespaces/$namespaceName/pods/${podName}/exec"))
+         .withQuery(Uri.Query(queries: _*))
+
+       // Compose headers
+       var headers: List[HttpHeader] = List(RawHeader("Accept", "*/*"))
+       headers ++= HTTPRequestAuth.getAuthHeaders(requestAuth)
+
+       // Convert `String` to `ByteString`, then prepend channel bytes
+       val source: Source[ws.Message, Promise[Option[ws.Message]]] = maybeStdin.getOrElse(Source.empty).viaMat(Flow[String].map { s =>
+         ws.BinaryMessage(ByteString(0).concat(ByteString(s)))
+       })(Keep.right).concatMat(Source.maybe[ws.Message])(Keep.right)
+
+       // Split the sink from websocket into stdout and stderr then remove first bytes which indicate channels
+       val sink: Sink[ws.Message, NotUsed] = Sink.fromGraph(GraphDSL.create() { implicit builder =>
+         import GraphDSL.Implicits._
+
+         val partition = builder.add(Partition[ws.Message](2, {
+           case bm: ws.BinaryMessage.Strict if bm.data(0) == 1 =>
+             0
+           case bm: ws.BinaryMessage.Strict if bm.data(0) == 2 =>
+             1
+         }))
+
+         def convertSink = Flow[ws.Message].map[String] {
+           case bm: ws.BinaryMessage.Strict =>
+             bm.data.utf8String.substring(1)
+         }
+
+         partition.out(0) ~> convertSink ~> maybeStdout.getOrElse(Sink.ignore)
+         partition.out(1) ~> convertSink ~> maybeStderr.getOrElse(Sink.ignore)
+
+         SinkShape(partition.in)
+       })
+
+       // Make a flow from the source to the sink
+       val flow: Flow[ws.Message, ws.Message, Promise[Option[ws.Message]]] = Flow.fromSinkAndSourceMat(sink, source)(Keep.right)
+
+       // upgradeResponse completes or fails when the connection succeeds or fails
+       // and promise controls the connection close timing
+       val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow)
+
+       val connected = upgradeResponse.map { upgrade =>
+         // just like a regular http request we can access response status which is available via upgrade.response.status
+         // status code 101 (Switching Protocols) indicates that server support WebSockets
+         if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
+           Done
+         } else {
+           val message = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
+           throw new K8SException(Status(message = Some(s"Connection failed with status ${upgrade.response.status}"), details = Some(message)))
+         }
+       }
+
+       val close = maybeClose.getOrElse(Promise.successful(()))
+       connected.foreach { _ =>
+         log.info(s"Connected to container ${containerPrintName} of pod ${podName}")
+         close.future.foreach { _ =>
+           log.info(s"Close the connection of container ${containerPrintName} of pod ${podName}")
+           promise.success(None)
+         }
+       }
+       Future.sequence(Seq(connected, close.future, promise.future)).map { _ => () }
      }
 
      def close: Unit =
