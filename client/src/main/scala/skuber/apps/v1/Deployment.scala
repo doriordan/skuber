@@ -146,7 +146,7 @@ object Deployment {
   implicit val depStatusFmt: Format[Status] = (
     (JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "updatedReplicas").formatMaybeEmptyInt() and
-    (JsPath \ "readydReplicas").formatMaybeEmptyInt() and
+    (JsPath \ "readyReplicas").formatMaybeEmptyInt() and
     (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "unavailableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "observedGeneration").formatMaybeEmptyInt() and
