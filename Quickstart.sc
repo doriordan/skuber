@@ -5,7 +5,7 @@
    Cluster access configuration is parsed to `cfg` val
    Client val is called `k8s`
 */
-import $ivy.`io.skuber::skuber:2.0.9`, skuber._, skuber.json.format._
+import $ivy.`io.skuber::skuber:2.0.10`, skuber._, skuber.json.format._
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
