@@ -14,6 +14,27 @@ class VolumeReadWriteSpec extends Specification {
 
   import Volume._
 
+  "A PersistentVolumeClaim spec can be symmetrically written to json and the same value read back in \n" >> {
+    "this can be done for the emptydir type source spec" >> {
+      val pvc = PersistentVolumeClaim(
+        metadata = ObjectMeta(
+          name = "mypvc"
+        ),
+        spec = Some(PersistentVolumeClaim.Spec(
+          accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
+          storageClassName = Some("a-storage-class-name"),
+          resources=Some(Resource.Requirements(limits=Map("storage" -> "30Gi")))
+        ))
+      )
+      val pvcJson = Json.toJson(pvc)
+      val readPvc = Json.fromJson[PersistentVolumeClaim](pvcJson).get
+      readPvc.name mustEqual pvc.name
+      readPvc.spec mustEqual pvc.spec
+      readPvc.spec.get.storageClassName must beSome("a-storage-class-name")
+    }
+
+  }
+
   // Volume reader and writer
   "A Volume spec can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for the emptydir type source spec" >> {
