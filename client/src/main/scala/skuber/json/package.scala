@@ -972,7 +972,8 @@ package object format {
   implicit val pvClaimSpecFmt: Format[PersistentVolumeClaim.Spec] = (
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
     (JsPath \ "resources").formatNullable[Resource.Requirements] and
-    (JsPath \ "volumeName").formatMaybeEmptyString()
+    (JsPath \ "volumeName").formatMaybeEmptyString() and
+    (JsPath \ "storageClassName").formatNullable[String]
   )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
   
   implicit val pvClaimStatusFmt: Format[PersistentVolumeClaim.Status] = (
