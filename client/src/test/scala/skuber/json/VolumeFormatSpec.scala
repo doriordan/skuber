@@ -44,12 +44,12 @@ class VolumeReadWriteSpec extends Specification {
     val podJsonStr = podJsonSource.mkString
 
     val myPv = Json.parse(podJsonStr).as[PersistentVolume]
-    myPv.spec must beSome
-//    myPv.spec.get.source match {
-//      case GenericVolumeSource(jsonStr) =>
-//        (Json.parse(jsonStr) \ "cephfs").isDefined must beTrue
-//      case _ => Failure("not a GenericVolumeSource!")
-//    }
+    myPv.spec.get.source match {
+      case GenericVolumeSource(jsonStr) =>
+        (Json.parse(jsonStr) \ "cephfs").isDefined must beTrue
+      case _ =>
+        ko("not a GenericVolumeSource!")
+    }
   }
 
   // Volume reader and writer
