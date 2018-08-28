@@ -37,7 +37,7 @@ package object skuber {
   case class ObjectMeta(
     name: String = emptyS,
     generateName: String = emptyS,
-    namespace: String = "default",
+    namespace: String = emptyS,
     uid: String = emptyS,
     selfLink: String = emptyS,
     resourceVersion: String = emptyS,
