@@ -572,7 +572,8 @@ package object format {
      (JsPath \ "nfs").read[NFS].map(x => x: PersistentSource) |
      (JsPath \ "glusterfs").read[Glusterfs].map(x => x: PersistentSource) |
      (JsPath \ "rbd").read[RBD].map(x => x: PersistentSource) |
-     (JsPath \ "iscsi").read[ISCSI].map(x => x: PersistentSource)
+     (JsPath \ "iscsi").read[ISCSI].map(x => x: PersistentSource) |
+     JsPath.read[JsValue].map[PersistentSource](j => GenericVolumeSource(j.toString))
    )
 
    implicit val volumeSourceReads: Reads[Source] = (
@@ -582,8 +583,7 @@ package object format {
      (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
      (JsPath \ "downwardAPI").read[DownwardApiVolumeSource].map(x => x: Source) |
-     persVolumeSourceReads.map(x => x: Source) |
-     JsPath.read[JsValue].map[Source](j => GenericVolumeSource(j.toString))
+     persVolumeSourceReads.map(x => x: Source)
    )
 
    implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
@@ -594,6 +594,7 @@ package object format {
      case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
      case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
      case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
+     case GenericVolumeSource(json) => Json.parse(json)
    }
 
    implicit val volumeSourceWrites: Writes[Source] = Writes[Source] {
@@ -605,7 +606,6 @@ package object format {
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
        case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
        case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
-       case Volume.GenericVolumeSource(json) => Json.parse(json)
      }
    }
   
