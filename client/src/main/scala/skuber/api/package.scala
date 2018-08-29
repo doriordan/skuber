@@ -859,10 +859,12 @@ package object client {
     }
 
     val sslContext = TLS.establishSSLContext(k8sContext)
-    sslContext foreach { ssl =>
-      val httpsContext = ConnectionContext.https(ssl, None,Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")), None, None)
-      Http().setDefaultClientHttpsContext(httpsContext)
-    }
+
+    val connectionContext = sslContext
+      .map { ssl =>
+        ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
+      }
+      .getOrElse(Http().defaultClientHttpsContext)
 
     val theNamespaceName = k8sContext.namespace.name match {
       case "" => "default"
@@ -877,9 +879,9 @@ package object client {
 
     val requestInvoker = (request: HttpRequest, watch: Boolean) => {
       if (!watch)
-        Http().singleRequest(request)
+        Http().singleRequest(request, connectionContext = connectionContext)
       else
-        Http().singleRequest(request, settings = watchSettings)
+        Http().singleRequest(request, settings = watchSettings, connectionContext = connectionContext)
     }
 
     new RequestContext(
