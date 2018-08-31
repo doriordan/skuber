@@ -376,7 +376,7 @@ package object client {
        // if this is a POST we don't include the resource name in the URL
        val nameComponent: Option[String] = method match {
          case HttpMethods.POST => None
-         case _ => Some(obj.name)
+         case _                => Some(obj.name)
        }
        modify(method, obj, nameComponent)
      }
@@ -384,11 +384,24 @@ package object client {
      private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
        implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
+
+       // Object namespace has higher priority.
+       // Because for k8s api absence of namespace value and empty string are equal
+       // and the namespace api url where client is submitting the request will determine where object end up
+       // target namespace must be computed differently if metadata.namespace will become Option[String]
+       //
+       // val targetNamespace = obj.metadata.namespace match {
+       //   case Some(ns) => if (ns.isEmpty) namespaceName else ns
+       //   case None     => namespaceName
+       // }
+       val targetNamespace = if (obj.metadata.namespace.isEmpty) namespaceName else obj.metadata.namespace
+
        logRequestObjectDetails(method, obj)
        val marshal = Marshal(obj)
        for {
-         requestEntity <- marshal.to[RequestEntity]
-         httpRequest = buildRequest(method, rd, nameComponent).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         requestEntity        <- marshal.to[RequestEntity]
+         httpRequest          = buildRequest(method, rd, nameComponent, namespace = targetNamespace)
+                                  .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
          newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
        } yield newOrUpdatedResource
      }
@@ -549,10 +562,11 @@ package object client {
        val marshalledOptions = Marshal(options)
        for {
          requestEntity <- marshalledOptions.to[RequestEntity]
-         request = buildRequest(HttpMethods.DELETE, rd, Some(name)).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-         response <- invoke(request)
-         _ <- checkResponseStatus(response)
-         _ <- ignoreResponseBody(response)
+         request       = buildRequest(HttpMethods.DELETE, rd, Some(name))
+                           .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         response      <- invoke(request)
+         _             <- checkResponseStatus(response)
+         _             <- ignoreResponseBody(response)
        } yield ()
      }
 
@@ -568,7 +582,7 @@ package object client {
        }
        val nameComponent=s"${name}/log"
        val rd = implicitly[ResourceDefinition[Pod]]
-       val request=buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, false, targetNamespace)
+       val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, false, targetNamespace)
        invoke(request).map { response =>
          response.entity.dataBytes
        }
@@ -658,11 +672,12 @@ package object client {
      def updateScale[O <: ObjectResource](objName: String, scale: Scale)(
       implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
      {
-       implicit val dispatcher=actorSystem.dispatcher
+       implicit val dispatcher = actorSystem.dispatcher
        val marshal = Marshal(scale)
        for {
-         requestEntity <- marshal.to[RequestEntity]
-         httpRequest = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale")).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         requestEntity  <- marshal.to[RequestEntity]
+         httpRequest    = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
+                            .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
          scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
        } yield scaledResource
      }
