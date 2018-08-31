@@ -556,6 +556,32 @@ package object client {
        } yield ()
      }
 
+     def deleteCollection[L <: ListResource[_]]()(
+       implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
+       _deleteCollection[L](rd, None)
+     }
+
+     def deleteCollectionSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
+       implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
+       _deleteCollection[L](rd, Some(labelSelector))
+     }
+
+     private def _deleteCollection[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
+       implicit fmt: Format[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
+       val queryOpt = maybeLabelSelector map { ls =>
+         Uri.Query("labelSelector" -> ls.toString)
+       }
+       if (log.isDebugEnabled) {
+         val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
+         logDebug(s"[Delete request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
+       }
+       val req = buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
+       makeRequestReturningListResource[L](req)
+     }
+
      def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
        implicit lc: LoggingContext=RequestLoggingContext()): Future[Source[ByteString, _]] =
      {
