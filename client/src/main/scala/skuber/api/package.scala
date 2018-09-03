@@ -556,19 +556,19 @@ package object client {
        } yield ()
      }
 
-     def deleteCollection[L <: ListResource[_]]()(
+     def deleteAll[L <: ListResource[_]]()(
        implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
-       _deleteCollection[L](rd, None)
+       _deleteAll[L](rd, None)
      }
 
-     def deleteCollectionSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
+     def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
        implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
-       _deleteCollection[L](rd, Some(labelSelector))
+       _deleteAll[L](rd, Some(labelSelector))
      }
 
-     private def _deleteCollection[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
+     private def _deleteAll[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
        implicit fmt: Format[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
        val queryOpt = maybeLabelSelector map { ls =>

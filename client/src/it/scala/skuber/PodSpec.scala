@@ -17,7 +17,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     val k8s = k8sInit
     val requirements = defaultLabels.toSeq.map { case (k, v) => LabelSelector.IsEqualRequirement(k, v) }
     val labelSelector = LabelSelector(requirements: _*)
-    Await.result(k8s.deleteCollectionSelected[PodList](labelSelector), 5 seconds)
+    Await.result(k8s.deleteAllSelected[PodList](labelSelector), 5 seconds)
   }
 
   behavior of "Pod"
@@ -81,7 +81,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     for {
       _ <- k8s.create(getNginxPod(nginxPodName + "-foo", "1.7.9", labels = Map("foo" -> "1")))
       _ <- k8s.create(getNginxPod(nginxPodName + "-bar", "1.7.9", labels = Map("bar" -> "2")))
-      _ <- k8s.deleteCollectionSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo")))
+      _ <- k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo")))
     } yield eventually(timeout(100 seconds), interval(3 seconds)) {
       val retrievePods = k8s.list[PodList]()
       val podsRetrieved = Await.result(retrievePods, 2 seconds)
