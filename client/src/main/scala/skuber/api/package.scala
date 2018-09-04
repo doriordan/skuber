@@ -779,7 +779,9 @@ package object client {
            Done
          } else {
            val message = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
-           throw new K8SException(Status(message = Some(s"Connection failed with status ${upgrade.response.status}"), details = Some(message)))
+           throw new K8SException(Status(message =
+             Some(s"Connection failed with status ${upgrade.response.status}"),
+             details = Some(message), code = Some(upgrade.response.status.intValue())))
          }
        }
 
