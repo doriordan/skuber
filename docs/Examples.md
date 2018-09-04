@@ -1,7 +1,7 @@
 # Skuber usage examples
 
-Skuber is built in top of Akka HTTP and therefore it has non-blocking and concurrent by default.
-Almost all requests return a Future, and you need to do a little bit of extra code if you want quick
+Skuber is built on top of Akka HTTP and therefore it is non-blocking and concurrent by default.
+Almost all requests return a Future, and you need to write a little bit of extra code if you want quick
 experiments in a single-threaded environment (like Ammonite REPL, or simple tests)
 It all boils down to either using Await or onComplete - see examples below.
 

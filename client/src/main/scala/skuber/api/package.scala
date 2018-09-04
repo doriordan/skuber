@@ -384,16 +384,8 @@ package object client {
      private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
        implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
-
-       // Object namespace has higher priority.
-       // Because for k8s api absence of namespace value and empty string are equal
-       // and the namespace api url where client is submitting the request will determine where object end up
-       // target namespace must be computed differently if metadata.namespace will become Option[String]
-       //
-       // val targetNamespace = obj.metadata.namespace match {
-       //   case Some(ns) => if (ns.isEmpty) namespaceName else ns
-       //   case None     => namespaceName
-       // }
+       // Namespace set in the object metadata (if set) has higher priority than that of the
+       //  request context (see Issue #204)
        val targetNamespace = if (obj.metadata.namespace.isEmpty) namespaceName else obj.metadata.namespace
 
        logRequestObjectDetails(method, obj)

@@ -20,7 +20,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers {
 
   val namespace1Name: String = "namespace1"
   val namespace2Name: String = "namespace2"
-  val testNamepsaces = List(namespace1Name,namespace2Name)
+  val testNamespaces = List(namespace1Name,namespace2Name)
 
   val pod1: Pod = getNginxPod(namespace1Name,nginxPodName1)
   val pod2: Pod = getNginxPod(namespace2Name, nginxPodName2)
@@ -78,12 +78,12 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers {
     val t  = timeout(100.seconds)
     val i  = interval(3.seconds)
     // Delete namespaces
-    testNamepsaces.foreach { ns => k8s.delete[Namespace](ns) }
+    testNamespaces.foreach { ns => k8s.delete[Namespace](ns) }
 
     eventually(t, i) {
-      testNamepsaces.map { ns => k8s.get[Namespace](ns) }
+      testNamespaces.map { ns => k8s.get[Namespace](ns) }
 
-      assert(!testNamepsaces
+      assert(!testNamespaces
         .map { n => k8s.get[Namespace](n) }               // get every namespace
         .map { f => Await.ready(f, 2.seconds).value.get } // await completion of each get
         .map {                                            // find out if deletion was successful
