@@ -1,5 +1,10 @@
 # Skuber usage examples
 
+Skuber is built on top of Akka HTTP and therefore it is non-blocking and concurrent by default.
+Almost all requests return a Future, and you need to write a little bit of extra code if you want quick
+experiments in a single-threaded environment (like Ammonite REPL, or simple tests)
+It all boils down to either using Await or onComplete - see examples below.
+
 ## Basic imports
 
 ```scala
@@ -42,6 +47,31 @@ listPodsRequest.onComplete {
   case Failure(e) => throw(e)
 }
 ```
+
+## List Namespaces
+
+```scala
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+val list = Await.result(k8s.list[NamespaceList], 10.seconds).items.map(i => i.name)
+// res19: List[String] = List("default", "kube-public", "kube-system", "namespace2", "ns-1")
+
+```
+
+
+## Create Pod
+
+```scala
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+val podSpec     = Pod.Spec(List(Container(name = "nginx", image = "nginx")))
+val pod         = Pod("nginxpod", podSpec)
+val podFuture   = k8s.create(pod)
+// handle future as you see fit
+```
+
 
 ## Create deployment
 
