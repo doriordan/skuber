@@ -86,14 +86,14 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
   it should "throw an exception without stdin, stdout nor stderr in the running pod" in { k8s =>
     k8s.exec(nginxPodName, Seq("whoami")).failed.map {
       case e: K8SException =>
-        assert(e.status.message == Some("Connection failed with status 400 Bad Request"))
+        assert(e.status.code == Some(400))
     }
   }
 
   it should "throw an exception against an unexisting pod" in { k8s =>
     k8s.exec(nginxPodName + "x", Seq("whoami")).failed.map {
       case e: K8SException =>
-        assert(e.status.message == Some("Connection failed with status 404 Not Found"))
+        assert(e.status.code == Some(404))
     }
   }
 
