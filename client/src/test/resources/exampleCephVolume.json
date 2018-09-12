@@ -1,0 +1,33 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolume",
+  "metadata": {
+    "creationTimestamp": "2018-08-27T12:56:03Z",
+    "name": "example-cephfs-pv",
+    "resourceVersion": "7407312",
+    "selfLink": "/api/v1/persistentvolumes/example-cephfs-pv",
+    "uid": "8e125e60-a9f8-11e8-85cf-42010a960025"
+  },
+  "spec": {
+    "accessModes": [
+      "ReadWriteOnce"
+    ],
+    "capacity": {
+      "storage": "1Gi"
+    },
+    "cephfs": {
+      "monitors": [
+        "10.16.154.78:6789",
+        "10.16.154.82:6789",
+        "10.16.154.83:6789"
+      ],
+      "readOnly": true,
+      "secretFile": "/etc/ceph/admin.secret",
+      "user": "admin"
+    },
+    "persistentVolumeReclaimPolicy": "Retain"
+  },
+  "status": {
+    "phase": "Available"
+  }
+}

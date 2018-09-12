@@ -48,6 +48,6 @@ object Namespace {
   lazy val all = Namespace.forName("")
   lazy val none = all
   def forName(label: String) : Namespace = Namespace(metadata=ObjectMeta(name=label))
-  def from(meta:ObjectMeta) : Namespace = Namespace(metadata=meta)
-  def apply(label: String) : Namespace = Namespace(metadata=ObjectMeta(name=label))
+  def from(meta:ObjectMeta)  : Namespace = Namespace(metadata=meta)
+  def apply(label: String)   : Namespace = Namespace(metadata=ObjectMeta(name=label))
 }

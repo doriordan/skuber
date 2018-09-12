@@ -1,22 +1,23 @@
 package skuber.api
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.sys.SystemProperties
 import scala.util.{Failure, Success, Try}
 import java.net.URL
 import java.time.Instant
 import java.util.UUID
 
-import akka.NotUsed
+import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Source}
+import akka.stream.{Materializer, SinkShape}
+import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.net.ssl.SSLContext
@@ -376,7 +377,7 @@ package object client {
        // if this is a POST we don't include the resource name in the URL
        val nameComponent: Option[String] = method match {
          case HttpMethods.POST => None
-         case _ => Some(obj.name)
+         case _                => Some(obj.name)
        }
        modify(method, obj, nameComponent)
      }
@@ -384,11 +385,16 @@ package object client {
      private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
        implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
      {
+       // Namespace set in the object metadata (if set) has higher priority than that of the
+       //  request context (see Issue #204)
+       val targetNamespace = if (obj.metadata.namespace.isEmpty) namespaceName else obj.metadata.namespace
+
        logRequestObjectDetails(method, obj)
        val marshal = Marshal(obj)
        for {
-         requestEntity <- marshal.to[RequestEntity]
-         httpRequest = buildRequest(method, rd, nameComponent).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         requestEntity        <- marshal.to[RequestEntity]
+         httpRequest          = buildRequest(method, rd, nameComponent, namespace = targetNamespace)
+                                  .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
          newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
        } yield newOrUpdatedResource
      }
@@ -549,11 +555,38 @@ package object client {
        val marshalledOptions = Marshal(options)
        for {
          requestEntity <- marshalledOptions.to[RequestEntity]
-         request = buildRequest(HttpMethods.DELETE, rd, Some(name)).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-         response <- invoke(request)
-         _ <- checkResponseStatus(response)
-         _ <- ignoreResponseBody(response)
+         request       = buildRequest(HttpMethods.DELETE, rd, Some(name))
+                           .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         response      <- invoke(request)
+         _             <- checkResponseStatus(response)
+         _             <- ignoreResponseBody(response)
        } yield ()
+     }
+
+     def deleteAll[L <: ListResource[_]]()(
+       implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
+       _deleteAll[L](rd, None)
+     }
+
+     def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
+       implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
+       _deleteAll[L](rd, Some(labelSelector))
+     }
+
+     private def _deleteAll[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
+       implicit fmt: Format[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
+     {
+       val queryOpt = maybeLabelSelector map { ls =>
+         Uri.Query("labelSelector" -> ls.toString)
+       }
+       if (log.isDebugEnabled) {
+         val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
+         logDebug(s"[Delete request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
+       }
+       val req = buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
+       makeRequestReturningListResource[L](req)
      }
 
      def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
@@ -568,7 +601,7 @@ package object client {
        }
        val nameComponent=s"${name}/log"
        val rd = implicitly[ResourceDefinition[Pod]]
-       val request=buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, false, targetNamespace)
+       val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, false, targetNamespace)
        invoke(request).map { response =>
          response.entity.dataBytes
        }
@@ -658,11 +691,12 @@ package object client {
      def updateScale[O <: ObjectResource](objName: String, scale: Scale)(
       implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext=RequestLoggingContext()): Future[Scale] =
      {
-       implicit val dispatcher=actorSystem.dispatcher
+       implicit val dispatcher = actorSystem.dispatcher
        val marshal = Marshal(scale)
        for {
-         requestEntity <- marshal.to[RequestEntity]
-         httpRequest = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale")).withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+         requestEntity  <- marshal.to[RequestEntity]
+         httpRequest    = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
+                            .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
          scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
        } yield scaledResource
      }
@@ -696,6 +730,103 @@ package object client {
          response <- invoke(request)
          apiVersionResource <- toKubernetesResponse[APIVersions](response)
        } yield apiVersionResource.versions
+     }
+
+     def exec(podName: String, command: Seq[String], maybeContainerName: Option[String] = None,
+              maybeStdin: Option[Source[String, _]] = None,
+              maybeStdout: Option[Sink[String, _]] = None,
+              maybeStderr: Option[Sink[String, _]] = None,
+              tty: Boolean = false,
+              maybeClose: Option[Promise[Unit]] = None): Future[Unit] = {
+       val containerPrintName = maybeContainerName.getOrElse("<none>")
+       log.info(s"Trying to connect to container ${containerPrintName} of pod ${podName}")
+
+       // Compose queries
+       var queries: Seq[(String, String)] = Seq(
+         "stdin" -> maybeStdin.isDefined.toString,
+         "stdout" -> maybeStdout.isDefined.toString,
+         "stderr" -> maybeStderr.isDefined.toString,
+         "tty" -> tty.toString
+       )
+       maybeContainerName.foreach { containerName =>
+         queries ++= Seq("container" -> containerName)
+       }
+       queries ++= command.map("command" -> _)
+
+       // Determine scheme
+       val scheme = sslContext match {
+         case Some(_) =>
+           "wss"
+         case None =>
+           "ws"
+       }
+
+       // Compose URI
+       val uri = Uri(clusterServer)
+         .withScheme(scheme)
+         .withPath(Uri.Path(s"/api/v1/namespaces/$namespaceName/pods/${podName}/exec"))
+         .withQuery(Uri.Query(queries: _*))
+
+       // Compose headers
+       var headers: List[HttpHeader] = List(RawHeader("Accept", "*/*"))
+       headers ++= HTTPRequestAuth.getAuthHeaders(requestAuth)
+
+       // Convert `String` to `ByteString`, then prepend channel bytes
+       val source: Source[ws.Message, Promise[Option[ws.Message]]] = maybeStdin.getOrElse(Source.empty).viaMat(Flow[String].map { s =>
+         ws.BinaryMessage(ByteString(0).concat(ByteString(s)))
+       })(Keep.right).concatMat(Source.maybe[ws.Message])(Keep.right)
+
+       // Split the sink from websocket into stdout and stderr then remove first bytes which indicate channels
+       val sink: Sink[ws.Message, NotUsed] = Sink.fromGraph(GraphDSL.create() { implicit builder =>
+         import GraphDSL.Implicits._
+
+         val partition = builder.add(Partition[ws.Message](2, {
+           case bm: ws.BinaryMessage.Strict if bm.data(0) == 1 =>
+             0
+           case bm: ws.BinaryMessage.Strict if bm.data(0) == 2 =>
+             1
+         }))
+
+         def convertSink = Flow[ws.Message].map[String] {
+           case bm: ws.BinaryMessage.Strict =>
+             bm.data.utf8String.substring(1)
+         }
+
+         partition.out(0) ~> convertSink ~> maybeStdout.getOrElse(Sink.ignore)
+         partition.out(1) ~> convertSink ~> maybeStderr.getOrElse(Sink.ignore)
+
+         SinkShape(partition.in)
+       })
+
+       // Make a flow from the source to the sink
+       val flow: Flow[ws.Message, ws.Message, Promise[Option[ws.Message]]] = Flow.fromSinkAndSourceMat(sink, source)(Keep.right)
+
+       // upgradeResponse completes or fails when the connection succeeds or fails
+       // and promise controls the connection close timing
+       val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow)
+
+       val connected = upgradeResponse.map { upgrade =>
+         // just like a regular http request we can access response status which is available via upgrade.response.status
+         // status code 101 (Switching Protocols) indicates that server support WebSockets
+         if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
+           Done
+         } else {
+           val message = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
+           throw new K8SException(Status(message =
+             Some(s"Connection failed with status ${upgrade.response.status}"),
+             details = Some(message), code = Some(upgrade.response.status.intValue())))
+         }
+       }
+
+       val close = maybeClose.getOrElse(Promise.successful(()))
+       connected.foreach { _ =>
+         log.info(s"Connected to container ${containerPrintName} of pod ${podName}")
+         close.future.foreach { _ =>
+           log.info(s"Close the connection of container ${containerPrintName} of pod ${podName}")
+           promise.success(None)
+         }
+       }
+       Future.sequence(Seq(connected, close.future, promise.future)).map { _ => () }
      }
 
      def close: Unit =
@@ -859,10 +990,12 @@ package object client {
     }
 
     val sslContext = TLS.establishSSLContext(k8sContext)
-    sslContext foreach { ssl =>
-      val httpsContext = ConnectionContext.https(ssl, None,Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")), None, None)
-      Http().setDefaultClientHttpsContext(httpsContext)
-    }
+
+    val connectionContext = sslContext
+      .map { ssl =>
+        ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
+      }
+      .getOrElse(Http().defaultClientHttpsContext)
 
     val theNamespaceName = k8sContext.namespace.name match {
       case "" => "default"
@@ -877,9 +1010,9 @@ package object client {
 
     val requestInvoker = (request: HttpRequest, watch: Boolean) => {
       if (!watch)
-        Http().singleRequest(request)
+        Http().singleRequest(request, connectionContext = connectionContext)
       else
-        Http().singleRequest(request, settings = watchSettings)
+        Http().singleRequest(request, settings = watchSettings, connectionContext = connectionContext)
     }
 
     new RequestContext(

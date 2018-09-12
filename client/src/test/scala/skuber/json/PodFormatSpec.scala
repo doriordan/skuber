@@ -409,6 +409,18 @@ import Pod._
       myPod mustEqual readPod
     }
 
+    "a pod with unsupported volume type can be read as json using GenericVolumeSource" >> {
+      import skuber.Volume.GenericVolumeSource
+
+      val podJsonSource = Source.fromURL(getClass.getResource("/examplePodWithCephVolume.json"))
+      val podJsonStr = podJsonSource.mkString
+
+      val myPod = Json.parse(podJsonStr).as[Pod]
+      myPod.spec must beSome
+      myPod.spec.get.volumes must haveSize(1)
+      myPod.spec.get.volumes.head.source must beAnInstanceOf[GenericVolumeSource]
+    }
+
     "NodeAffinity be properly read and written as json" >> {
       import Affinity.NodeAffinity
       import Affinity.NodeSelectorOperator

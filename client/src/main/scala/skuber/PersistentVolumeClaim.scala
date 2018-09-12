@@ -37,7 +37,8 @@ object PersistentVolumeClaim {
   case class Spec(
       accessModes: List[AccessMode.AccessMode] = Nil,
       resources: Option[Resource.Requirements] = None,
-      volumeName: String="")
+      volumeName: String="",
+      storageClassName: Option[String] = None)
       
   import PersistentVolume.Phase    
   case class Status(

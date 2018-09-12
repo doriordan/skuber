@@ -316,6 +316,8 @@ Note that both of the examples above watch only those events which have a later 
 k8s.watch[Pod]("myPod", sinceResourceVersion=lastProcessedResourceVersion)
 ```
 
+The API methods `watchContinuously` and `watchAllContinuously` are available since v2.0.10. These methods provide equivalent functionality (and type signatures) to `watch` and `watchAll` respectively, with the key difference that instead of the returned source finishing if the underlying watch request times out, these methods handle such timeouts transparently so that the application will receive new events indefinitely from the source returned by a single `watchContinuously` or `watchAllContinuously` call.     
+
 ### Extensions API Group
 
 The extensions API group traditionally contains some key types. Although in more recent versions of Kubernetes many of these have been migrated to other groups, this group is still supported and widely used.

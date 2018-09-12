@@ -6,6 +6,8 @@ import play.api.libs.json._
 import skuber._
 import skuber.json.format._
 
+import scala.io.Source
+
 /**
  * @author David O'Riordan
  */
@@ -13,6 +15,42 @@ class VolumeReadWriteSpec extends Specification {
   "This is a unit specification for the skuber json readers and writers for types that have multiple choices e.g. Volumes have multiple choices of Source type.\n ".txt 
 
   import Volume._
+
+  "A PersistentVolumeClaim spec can be symmetrically written to json and the same value read back in \n" >> {
+    "this can be done for the emptydir type source spec" >> {
+      val pvc = PersistentVolumeClaim(
+        metadata = ObjectMeta(
+          name = "mypvc"
+        ),
+        spec = Some(PersistentVolumeClaim.Spec(
+          accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
+          storageClassName = Some("a-storage-class-name"),
+          resources=Some(Resource.Requirements(limits=Map("storage" -> "30Gi")))
+        ))
+      )
+      val pvcJson = Json.toJson(pvc)
+      val readPvc = Json.fromJson[PersistentVolumeClaim](pvcJson).get
+      readPvc.name mustEqual pvc.name
+      readPvc.spec mustEqual pvc.spec
+      readPvc.spec.get.storageClassName must beSome("a-storage-class-name")
+    }
+
+  }
+
+  "A PersistentVolume with unsupported volume type can be read as json using GenericVolumeSource" >> {
+    import skuber.Volume.GenericVolumeSource
+
+    val podJsonSource = Source.fromURL(getClass.getResource("/exampleCephVolume.json"))
+    val podJsonStr = podJsonSource.mkString
+
+    val myPv = Json.parse(podJsonStr).as[PersistentVolume]
+    myPv.spec.get.source match {
+      case GenericVolumeSource(jsonStr) =>
+        (Json.parse(jsonStr) \ "cephfs").isDefined must beTrue
+      case _ =>
+        ko("not a GenericVolumeSource!")
+    }
+  }
 
   // Volume reader and writer
   "A Volume spec can be symmetrically written to json and the same value read back in\n" >> {

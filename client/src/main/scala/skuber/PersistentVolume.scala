@@ -45,7 +45,7 @@ object PersistentVolume {
   
   object ReclaimPolicy extends Enumeration {
     type ReclaimPolicy = Value
-    val Recycle, Retain = Value
+    val Recycle, Retain, Delete = Value
   }
   
   case class Spec(
