@@ -47,9 +47,6 @@ object PodDisruptionBudget {
   implicit val stsListDef: ResourceDefinition[PodDisruptionBudgetList] = new ResourceDefinition[PodDisruptionBudgetList] {
     def spec: NonCoreResourceSpecification = specification
   }
-  implicit val scDef: Scale.SubresourceSpec[PodDisruptionBudget] = new Scale.SubresourceSpec[PodDisruptionBudget] {
-    override def apiVersion: String = policyAPIVersion
-  }
 
   case class Spec(maxUnavailable: Option[IntOrString] = None,
                   minAvailable: Option[IntOrString] = None,
