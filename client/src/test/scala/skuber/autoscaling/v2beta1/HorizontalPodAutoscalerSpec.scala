@@ -41,7 +41,7 @@ class HorizontalPodAutoscalerSpec extends Specification {
       PodsMetricSource(
         "somePodsMetricName",
         Resource.Quantity("3"),
-        Some("application" is "somePodsApp"),
+        Some("application" is "somePodsApp")
       )
     ).addResourceMetric(
       ResourceMetricSource(
@@ -77,7 +77,7 @@ class HorizontalPodAutoscalerSpec extends Specification {
           PodsMetricStatus(
             "somePodsMetricName",
             Resource.Quantity("3"),
-            Some("application" is "somePodsApp"),
+            Some("application" is "somePodsApp")
           )
         ),
         ResourceMetricStatusHolder(

@@ -228,12 +228,14 @@ object HorizontalPodAutoscaler {
     case s: ExternalMetricStatusHolder => JsPath.write[ExternalMetricStatusHolder](externalMetricStatusHolderFmt).writes(s) + ("type" -> JsString("External"))
   }
 
-  implicit val metricStatusReads: Reads[MetricStatus] = { json =>
-    (json \ "type").as[String].toUpperCase match {
-      case "OBJECT" => JsSuccess(json.as[ObjectMetricStatusHolder])
-      case "PODS" => JsSuccess(json.as[PodsMetricStatusHolder])
-      case "RESOURCE" => JsSuccess(json.as[ResourceMetricStatusHolder])
-      case "EXTERNAL" => JsSuccess(json.as[ExternalMetricStatusHolder])
+  implicit val metricStatusReads: Reads[MetricStatus] = new Reads[MetricStatus] {
+    override def reads(json: JsValue): JsResult[MetricStatus] = {
+      (json \ "type").as[String].toUpperCase match {
+        case "OBJECT" => JsSuccess(json.as[ObjectMetricStatusHolder])
+        case "PODS" => JsSuccess(json.as[PodsMetricStatusHolder])
+        case "RESOURCE" => JsSuccess(json.as[ResourceMetricStatusHolder])
+        case "EXTERNAL" => JsSuccess(json.as[ExternalMetricStatusHolder])
+      }
     }
   }
 
@@ -278,12 +280,14 @@ object HorizontalPodAutoscaler {
   implicit val resourceMetricFmt: Format[ResourceMetric] = Json.format[ResourceMetric]
   implicit val externalMetricFmt: Format[ExternalMetric] = Json.format[ExternalMetric]
 
-  implicit val metricReads: Reads[Metric] = { json =>
-    (json \ "type").as[String].toUpperCase match {
-      case "OBJECT" => JsSuccess(json.as[ObjectMetric])
-      case "PODS" => JsSuccess(json.as[PodsMetric])
-      case "RESOURCE" => JsSuccess(json.as[ResourceMetric])
-      case "EXTERNAL" => JsSuccess(json.as[ExternalMetric])
+  implicit val metricReads: Reads[Metric] = new Reads[Metric] {
+    override def reads(json: JsValue): JsResult[Metric] = {
+      (json \ "type").as[String].toUpperCase match {
+        case "OBJECT" => JsSuccess(json.as[ObjectMetric])
+        case "PODS" => JsSuccess(json.as[PodsMetric])
+        case "RESOURCE" => JsSuccess(json.as[ResourceMetric])
+        case "EXTERNAL" => JsSuccess(json.as[ExternalMetric])
+      }
     }
   }
 
