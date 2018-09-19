@@ -53,8 +53,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Eventually with Matchers {
       ).flatMap { pdb =>
         k8s.delete[PodDisruptionBudget](pdb.name).flatMap { deleteResult =>
           k8s.get[PodDisruptionBudget](pdb.name).map { x =>
-            assert(x.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
-            assert(x.name == name)
+            assert(false)
           } recoverWith {
             case ex: K8SException if ex.status.code.contains(404) => assert(true)
             case _ => assert(false)
