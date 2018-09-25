@@ -1049,6 +1049,7 @@ package object format {
 
   implicit val podListFmt: Format[PodList] = ListResourceFormat[Pod]
   implicit val nodeListFmt: Format[NodeList] = ListResourceFormat[Node]
+  implicit val configMapListFmt: Format[ConfigMapList] = ListResourceFormat[ConfigMap]
   implicit val serviceListFmt: Format[ServiceList] = ListResourceFormat[Service]
   implicit val endpointsListFmt: Format[EndpointsList] = ListResourceFormat[Endpoints]
   implicit val eventListFmt: Format[EventList] = ListResourceFormat[Event]
