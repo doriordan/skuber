@@ -2,6 +2,7 @@ package skuber.autoscaling.v2beta1
 
 import play.api.libs.json._
 import skuber.ResourceSpecification.{Names, Scope}
+import skuber.apps.v1.{Deployment, DeploymentList}
 import skuber.{LabelSelector, LimitRange, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Resource, ResourceDefinition, Timestamp}
 
 case class HorizontalPodAutoscaler(override val kind: String = "HorizontalPodAutoscaler",
@@ -312,4 +313,6 @@ object HorizontalPodAutoscaler {
       (JsPath \ "spec").formatNullable[Spec] and
       (JsPath \ "status").formatNullable[Status]
     )(HorizontalPodAutoscaler.apply, unlift(HorizontalPodAutoscaler.unapply))
+
+  implicit val horizontalPodAutoscalerListFormat: Format[HorizontalPodAutoscalerList] = ListResourceFormat[HorizontalPodAutoscaler]
 }
