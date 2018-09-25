@@ -191,8 +191,12 @@ object Configuration {
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
         def toK8SContext(contextConfig: YamlMap) = {
-          val cluster=contextConfig.asScala.get("cluster").flatMap(clusterName => k8sClusterMap.get(clusterName.asInstanceOf[String])).getOrElse(Cluster())
-          val authInfo =contextConfig.asScala.get("user").flatMap(userKey => k8sAuthInfoMap.get(userKey.asInstanceOf[String])).getOrElse(NoAuth)
+          val cluster=contextConfig.asScala.get("cluster").filterNot(_ == "").map { clusterName =>
+            k8sClusterMap.get(clusterName.asInstanceOf[String]).get
+          }.getOrElse(Cluster())
+          val authInfo =contextConfig.asScala.get("user").filterNot(_ == "").map { userKey =>
+            k8sAuthInfoMap.get(userKey.asInstanceOf[String]).get
+          }.getOrElse(NoAuth)
           val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
           Context(cluster,authInfo,namespace)
         }
