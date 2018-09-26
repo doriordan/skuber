@@ -83,4 +83,6 @@ object PodDisruptionBudget {
       (JsPath \ "spec").formatNullable[Spec] and
       (JsPath \ "status").formatNullable[Status]
     )(PodDisruptionBudget.apply, unlift(PodDisruptionBudget.unapply))
+
+  implicit val pdbListFormat: Format[PodDisruptionBudgetList] = ListResourceFormat[PodDisruptionBudget]
 }
