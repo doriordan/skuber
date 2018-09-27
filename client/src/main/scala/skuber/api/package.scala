@@ -753,12 +753,12 @@ package object client {
        }
        queries ++= command.map("command" -> _)
 
-       // Determine scheme
-       val scheme = sslContext match {
-         case Some(_) =>
-           "wss"
+       // Determine scheme and connection context based on SSL context
+       val (scheme, connectionContext) = sslContext match {
+         case Some(ssl) =>
+           ("wss",ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1"))))
          case None =>
-           "ws"
+           ("ws", Http().defaultClientHttpsContext)
        }
 
        // Compose URI
@@ -798,12 +798,13 @@ package object client {
          SinkShape(partition.in)
        })
 
+
        // Make a flow from the source to the sink
        val flow: Flow[ws.Message, ws.Message, Promise[Option[ws.Message]]] = Flow.fromSinkAndSourceMat(sink, source)(Keep.right)
 
        // upgradeResponse completes or fails when the connection succeeds or fails
        // and promise controls the connection close timing
-       val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow)
+       val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
 
        val connected = upgradeResponse.map { upgrade =>
          // just like a regular http request we can access response status which is available via upgrade.response.status
