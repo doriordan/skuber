@@ -755,8 +755,8 @@ package object client {
 
        // Determine scheme and connection context based on SSL context
        val (scheme, connectionContext) = sslContext match {
-         case Some(sslContext) =>
-           ("wss",ConnectionContext.https(sslContext, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1"))))
+         case Some(ssl) =>
+           ("wss",ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1"))))
          case None =>
            ("ws", Http().defaultClientHttpsContext)
        }
