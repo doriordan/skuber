@@ -769,7 +769,7 @@ package object client {
 
        // Compose headers
        var headers: List[HttpHeader] = List(RawHeader("Accept", "*/*"))
-       headers ++= HTTPRequestAuth.getAuthHeaders(requestAuth)
+       headers ++= HTTPRequestAuth.getAuthHeader(requestAuth).map(a => List(a)).getOrElse(List())
 
        // Convert `String` to `ByteString`, then prepend channel bytes
        val source: Source[ws.Message, Promise[Option[ws.Message]]] = maybeStdin.getOrElse(Source.empty).viaMat(Flow[String].map { s =>

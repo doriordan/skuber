@@ -10,18 +10,14 @@ import skuber.api.client._
 object HTTPRequestAuth {
   
   def addAuth(request: HttpRequest, auth: AuthInfo) : HttpRequest = {
-    getAuthHeaders(auth).foreach { header =>
-      // Add headers one by one because `addHeaders()` doesn't convert the instance type
-      request.addHeader(header)
-    }
-    request
+    getAuthHeader(auth).map(request.addHeader).getOrElse(request)
   }
 
-  def getAuthHeaders(auth: AuthInfo) : Seq[HttpHeader] = {
+  def getAuthHeader(auth: AuthInfo) : Option[HttpHeader] = {
     auth match {
-      case NoAuth | _: CertAuth => Seq()
-      case BasicAuth(user, password) => Seq(Authorization(BasicHttpCredentials(user,password)))
-      case auth: AccessTokenAuth => Seq(Authorization(OAuth2BearerToken(auth.accessToken)))
+      case NoAuth | _: CertAuth => None
+      case BasicAuth(user, password) => Some(Authorization(BasicHttpCredentials(user,password)))
+      case auth: AccessTokenAuth => Some(Authorization(OAuth2BearerToken(auth.accessToken)))
     }
   }   
 }
