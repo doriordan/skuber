@@ -125,6 +125,8 @@ package object client {
      final case class ExecAuth private(private[api] val cmd: ExecAuthCommand, executioner: CommandExecutioner) extends AuthProviderAuth {
        override def name: String = "exec"
 
+       def command = cmd.command
+
        @volatile private var refresh: ExecRefresh = new ExecRefresh("", None)
 
        def refreshToken(): ExecRefresh = {
@@ -171,6 +173,8 @@ package object client {
 
    final case class GcpAuth private(private val config: GcpConfiguration, executioner: CommandExecutioner) extends AuthProviderAuth {
      override val name = "gcp"
+
+     def command = config.cmd.cmd
 
      @volatile private var refresh: GcpRefresh = new GcpRefresh(config.accessToken, config.expiry)
 
