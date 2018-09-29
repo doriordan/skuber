@@ -259,7 +259,7 @@ object Pod {
     timestamps: Option[Boolean] = None)
   {
    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
-      "containerName" -> containerName,
+      "container" -> containerName,
       "follow" -> follow.map(_.toString),
       "limitBytes" -> limitBytes.map(_.toString),
       "pretty" -> pretty.map(_.toString),
