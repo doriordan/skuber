@@ -721,6 +721,33 @@ package object client {
        makeRequestReturningObjectResource[O](httpRequest)
      }
 
+     def patch[T, O <: ObjectResource](name: String, patchData: T, namespace: Option[String] = None)(
+       implicit patchfmt: Writes[T], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
+       val targetNamespace = namespace.getOrElse(namespaceName)
+
+       val contentType = patchData match {
+         case _: StrategicMergePatchStrategy =>
+           CustomMediaTypes.`application/strategic-merge-patch+json`
+         case _: JsonMergePatchStrategy =>
+           CustomMediaTypes.`application/merge-patch+json`
+         case _: JsonPatchStrategy =>
+           MediaTypes.`application/json-patch+json`
+         case _ =>
+           CustomMediaTypes.`application/strategic-merge-patch+json`
+       }
+
+       logInfo(logConfig.logRequestBasicMetadata, s"Requesting patch of resource: { name:$name ... }")
+       logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${patchData.toString}")
+
+       val marshal = Marshal(patchData)
+       for {
+         requestEntity <- marshal.to[RequestEntity]
+         httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespace = targetNamespace)
+           .withEntity(requestEntity.withContentType(contentType))
+         newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+       } yield newOrUpdatedResource
+     }
+
      // get API versions supported by the cluster
      def getServerAPIVersions(implicit lc: LoggingContext=RequestLoggingContext()): Future[List[String]] = {
        val url = clusterServer + "/api"
