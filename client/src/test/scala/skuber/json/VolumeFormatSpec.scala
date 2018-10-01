@@ -55,15 +55,13 @@ class VolumeReadWriteSpec extends Specification {
   // Volume reader and writer
   "A Volume spec can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for the emptydir type source spec" >> {
-      val edVol = Volume("myVol", Volume.EmptyDir())
+      val edVol = Volume("myVol", Volume.EmptyDir(
+        Volume.HugePagesStorageMedium,
+        sizeLimit = Some(Resource.Quantity("100M"))))
       val myVolJson = Json.toJson(edVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
-      readVol.source match { 
-        case Volume.EmptyDir(medium,_) => medium mustEqual Volume.DefaultStorageMedium
-        case _ => Failure("not an emptyDir!")
-      }
-      readVol.source mustEqual Volume.EmptyDir()
+      readVol.source mustEqual Volume.EmptyDir(Volume.HugePagesStorageMedium, Some(Resource.Quantity("100M")))
     }
 
     "this can be done for the a hostpath type source" >> {
