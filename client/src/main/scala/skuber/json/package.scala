@@ -484,7 +484,7 @@ package object format {
   })
 
   implicit val emptyDirFormat: Format[EmptyDir] = (
-    (JsPath \ "medium").format[StorageMedium] and
+    (JsPath \ "medium").formatWithDefault[StorageMedium](DefaultStorageMedium) and
     (JsPath \ "sizeLimit").formatNullable[Resource.Quantity]
   )(EmptyDir.apply _, unlift(EmptyDir.unapply))
 

@@ -62,6 +62,12 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
       readVol.source mustEqual Volume.EmptyDir(Volume.HugePagesStorageMedium, Some(Resource.Quantity("100M")))
+
+      // Ensure empty EmptyDir is still deserizeable
+      val emptyEmptyDirJson = JsObject.empty
+      val readEmptyDir = Json.fromJson[Volume.EmptyDir](emptyEmptyDirJson).get
+      readEmptyDir.medium mustEqual Volume.DefaultStorageMedium
+      readEmptyDir.sizeLimit mustEqual None
     }
 
     "this can be done for the a hostpath type source" >> {
