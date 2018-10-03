@@ -472,23 +472,22 @@ package object format {
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]
   
   import Volume._
-  
-  implicit val emptyDirReads: Reads[EmptyDir] = {
-      (JsPath \ "medium").readNullable[String].map {
-        case Some(med) if med == "Memory" => EmptyDir(MemoryStorageMedium)
-        case Some(med) if med == "HugePages" => EmptyDir(HugePagesStorageMedium)
-        case _ => EmptyDir(DefaultStorageMedium)
-      }
-  }  
-  implicit val emptyDirWrites: Writes[EmptyDir] = Writes[EmptyDir] {
-    ed => ed.medium match {
-      case DefaultStorageMedium => (JsPath \ "medium").write[String].writes("")
-      case MemoryStorageMedium => (JsPath \ "medium").write[String].writes("Memory")
-      case HugePagesStorageMedium => (JsPath \ "medium").write[String].writes("HugePages")
-    }
-  }  
-  implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
-  
+
+  implicit val storageMediumFormat: Format[StorageMedium] = Format[StorageMedium](Reads[StorageMedium] {
+    case JsString(med) if med == "Memory" => JsSuccess(MemoryStorageMedium)
+    case JsString(med) if med == "HugePages" => JsSuccess(HugePagesStorageMedium)
+    case _ => JsSuccess(DefaultStorageMedium)
+  }, Writes[StorageMedium] {
+    case DefaultStorageMedium => JsString("")
+    case MemoryStorageMedium => JsString("Memory")
+    case HugePagesStorageMedium => JsString("HugePages")
+  })
+
+  implicit val emptyDirFormat: Format[EmptyDir] = (
+    (JsPath \ "medium").formatWithDefault[StorageMedium](DefaultStorageMedium) and
+    (JsPath \ "sizeLimit").formatNullable[Resource.Quantity]
+  )(EmptyDir.apply _, unlift(EmptyDir.unapply))
+
   implicit val hostPathFormat: Format[HostPath] = Json.format[HostPath]
   implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
   implicit val volumeSecretFormat: Format[skuber.Volume.Secret] = Json.format[skuber.Volume.Secret]
