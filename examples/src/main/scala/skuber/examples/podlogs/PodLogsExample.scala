@@ -45,8 +45,8 @@ object PodLogExample extends App {
   Thread.sleep(30000)
   for {
     pod <- podFut
-    logsSource <- k8s.getPodLogSource("hello-world", Pod.LogQueryParams(containerName = Some("hello-world")))
-    logsSource1 <- k8s.getPodLogSource("hello-world", Pod.LogQueryParams(containerName = Some("hello-world2")))
+    logsSource <- k8s.getPodLogSource("hello-world", Pod.LogQueryParams(containerName = Some("hello-world"), sinceSeconds = Some(9999999)))
+    logsSource1 <- k8s.getPodLogSource("hello-world", Pod.LogQueryParams(containerName = Some("hello-world2"), sinceTime = pod.metadata.creationTimestamp))
     donePrinting = logsSource.runWith(printLogFlow("hello-world"))
     donePrinting1 = logsSource1.runWith(printLogFlow("hello-world2"))
   } yield (donePrinting, donePrinting1)
