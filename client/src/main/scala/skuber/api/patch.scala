@@ -52,16 +52,26 @@ package object patch {
     }
   }
 
+  sealed trait Patch {
+    val strategy: PatchStrategy
+  }
+
   sealed trait PatchStrategy
 
-  trait StrategicMergePatchStrategy extends PatchStrategy
+  sealed trait MergePatchStrategy extends PatchStrategy
 
-  trait JsonMergePatchStrategy extends PatchStrategy
+  case object StrategicMergePatchStrategy extends MergePatchStrategy
 
-  trait JsonPatchStrategy extends PatchStrategy
+  case object JsonMergePatchStrategy extends MergePatchStrategy
 
-  case class JsonPatchOperationList(operations: List[JsonPatchOperation.Operation]) extends JsonPatchStrategy
+  case object JsonPatchStrategy extends PatchStrategy
 
-  case class MetadataPatch(labels: Option[Map[String, String]] = Some(Map()), annotations: Option[Map[String, String]] = Some(Map()))
+  case class JsonPatchOperationList(operations: List[JsonPatchOperation.Operation]) extends Patch {
+    override val strategy = JsonPatchStrategy
+  }
+
+  case class MetadataPatch(labels: Option[Map[String, String]] = Some(Map()),
+                           annotations: Option[Map[String, String]] = Some(Map()),
+                           override val strategy: MergePatchStrategy = StrategicMergePatchStrategy) extends Patch
 
 }

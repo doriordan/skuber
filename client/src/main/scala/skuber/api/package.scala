@@ -30,7 +30,7 @@ import skuber.json.format._
 import skuber.json.format.apiobj._
 import skuber._
 import skuber.api.WatchSource.Start
-import skuber.api.patch.{CustomMediaTypes, JsonMergePatchStrategy, JsonPatchStrategy, StrategicMergePatchStrategy}
+import skuber.api.patch._
 
 import scala.concurrent.duration._
 
@@ -722,19 +722,17 @@ package object client {
        makeRequestReturningObjectResource[O](httpRequest)
      }
 
-     def patch[T, O <: ObjectResource](name: String, patchData: T, namespace: Option[String] = None)(
-       implicit patchfmt: Writes[T], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
+     def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
+                                   (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
        val targetNamespace = namespace.getOrElse(namespaceName)
 
-       val contentType = patchData match {
-         case _: StrategicMergePatchStrategy =>
+       val contentType = patchData.strategy match {
+         case StrategicMergePatchStrategy =>
            CustomMediaTypes.`application/strategic-merge-patch+json`
-         case _: JsonMergePatchStrategy =>
+         case JsonMergePatchStrategy =>
            CustomMediaTypes.`application/merge-patch+json`
-         case _: JsonPatchStrategy =>
+         case JsonPatchStrategy =>
            MediaTypes.`application/json-patch+json`
-         case _ =>
-           CustomMediaTypes.`application/strategic-merge-patch+json`
        }
 
        logInfo(logConfig.logRequestBasicMetadata, s"Requesting patch of resource: { name:$name ... }")

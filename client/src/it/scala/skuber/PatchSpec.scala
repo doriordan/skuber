@@ -53,7 +53,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
 
   it should "patch a pod with strategic merge patch" in { k8s =>
     val randomString = java.util.UUID.randomUUID().toString
-    val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None) with StrategicMergePatchStrategy
+    val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = StrategicMergePatchStrategy)
     k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
       eventually(timeout(10 seconds), interval(1 seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
@@ -70,7 +70,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
 
   it should "patch a pod with json merge patch" in { k8s =>
     val randomString = java.util.UUID.randomUUID().toString
-    val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None) with JsonMergePatchStrategy
+    val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = JsonMergePatchStrategy)
     k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
       eventually(timeout(10 seconds), interval(1 seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
