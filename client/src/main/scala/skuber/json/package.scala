@@ -8,6 +8,7 @@ import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber._
+import skuber.api.patch.{JsonPatchOperation, JsonPatchOperationList, MetadataPatch}
 
 /**
  * @author David O'Riordan

@@ -2,6 +2,7 @@ package skuber
 
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.Eventually
+import skuber.api.patch._
 import skuber.json.format._
 
 import scala.concurrent.duration._

@@ -30,6 +30,7 @@ import skuber.json.format._
 import skuber.json.format.apiobj._
 import skuber._
 import skuber.api.WatchSource.Start
+import skuber.api.patch.{CustomMediaTypes, JsonMergePatchStrategy, JsonPatchStrategy, StrategicMergePatchStrategy}
 
 import scala.concurrent.duration._
 
