@@ -8,6 +8,7 @@ import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber._
+import skuber.api.patch.{JsonPatchOperation, JsonPatchOperationList, MetadataPatch}
 
 /**
  * @author David O'Riordan
@@ -1095,6 +1096,39 @@ package object format {
       (JsPath \ "object").format[T]
     )(WatchEvent.apply[T] _, unlift(WatchEvent.unapply[T]))
     
-  }  
+  }
+
+  implicit def jsonPatchOperationWrite = Writes[JsonPatchOperation.Operation] { value =>
+    JsObject(Map("op" -> JsString(value.op)) ++ (value match {
+      case v: JsonPatchOperation.ValueOperation[_] =>
+        Map(
+          "path" -> JsString(v.path),
+          "value" -> v.fmt.writes(v.value)
+        )
+      case v: JsonPatchOperation.UnaryOperation =>
+        Map(
+          "path" -> JsString(v.path)
+        )
+      case v: JsonPatchOperation.DirectionalOperation =>
+        Map(
+          "from" -> JsString(v.from),
+          "path" -> JsString(v.path)
+        )
+    }))
+  }
+
+  implicit def jsonPatchOperationListWrite = Writes[JsonPatchOperationList] { value =>
+    JsArray(value.operations.map(jsonPatchOperationWrite.writes)) }
+
+  implicit val metadataPatchWrite = Writes[MetadataPatch] { value =>
+    val labels = value.labels.map {
+      m => JsObject(m.mapValues(JsString))
+    }.getOrElse(JsNull)
+    val annotations = value.annotations.map {
+      m => JsObject(m.mapValues(JsString))
+    }.getOrElse(JsNull)
+    val metadata = JsObject(Map("labels" -> labels, "annotations" -> annotations))
+    JsObject(Map("metadata" -> metadata))
+  }
 }
 

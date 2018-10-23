@@ -30,6 +30,7 @@ import skuber.json.format._
 import skuber.json.format.apiobj._
 import skuber._
 import skuber.api.WatchSource.Start
+import skuber.api.patch._
 
 import scala.concurrent.duration._
 
@@ -719,6 +720,31 @@ package object client {
        val patchRequestEntity = HttpEntity.Strict(`application/merge-patch+json`, ByteString(patch))
        val httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(obj.name)).withEntity(patchRequestEntity)
        makeRequestReturningObjectResource[O](httpRequest)
+     }
+
+     def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
+                                   (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
+       val targetNamespace = namespace.getOrElse(namespaceName)
+
+       val contentType = patchData.strategy match {
+         case StrategicMergePatchStrategy =>
+           CustomMediaTypes.`application/strategic-merge-patch+json`
+         case JsonMergePatchStrategy =>
+           CustomMediaTypes.`application/merge-patch+json`
+         case JsonPatchStrategy =>
+           MediaTypes.`application/json-patch+json`
+       }
+
+       logInfo(logConfig.logRequestBasicMetadata, s"Requesting patch of resource: { name:$name ... }")
+       logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${patchData.toString}")
+
+       val marshal = Marshal(patchData)
+       for {
+         requestEntity <- marshal.to[RequestEntity]
+         httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespace = targetNamespace)
+           .withEntity(requestEntity.withContentType(contentType))
+         newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+       } yield newOrUpdatedResource
      }
 
      // get API versions supported by the cluster
