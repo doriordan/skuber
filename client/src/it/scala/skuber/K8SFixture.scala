@@ -14,8 +14,10 @@ trait K8SFixture extends fixture.AsyncFlatSpec {
   implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
+  val config = ConfigFactory.load()
+
   override def withFixture(test: OneArgAsyncTest): FutureOutcome = {
-    val k8s = k8sInit
+    val k8s = k8sInit(config)
     complete {
       withFixture(test.toNoArgAsyncTest(k8s))
     } lastly {
