@@ -215,6 +215,7 @@ package object client {
                         val watchContinuouslyIdleTimeout: Duration,
                         val watchPoolIdleTimeout: Duration,
                         val watchSettings: ConnectionPoolSettings,
+                        val podLogSettings: ConnectionPoolSettings,
                         val sslContext: Option[SSLContext],
                         val logConfig: LoggingConfig,
                         val closeHook: Option[() => Unit])
@@ -227,6 +228,8 @@ package object client {
      private var isClosed = false
 
      private[skuber] def invokeWatch(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, watchSettings)
+
+     private[skuber] def invokeLog(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, podLogSettings)
 
      private[skuber] def invoke(request: HttpRequest, settings: ConnectionPoolSettings = ConnectionPoolSettings(actorSystem))(implicit lc: LoggingContext): Future[HttpResponse] = {
        if (isClosed) {
@@ -609,8 +612,14 @@ package object client {
        val nameComponent=s"${name}/log"
        val rd = implicitly[ResourceDefinition[Pod]]
        val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, false, targetNamespace)
-       invoke(request).map { response =>
-         response.entity.dataBytes
+       invokeLog(request).flatMap { response =>
+         val statusOptFut = checkResponseStatus(response)
+         statusOptFut map {
+           case Some(status) =>
+             throw new K8SException(status)
+           case _ =>
+             response.entity.dataBytes
+         }
        }
      }
 
@@ -852,7 +861,7 @@ package object client {
      def usingNamespace(newNamespace: String): RequestContext =
        new RequestContext(requestMaker, clusterServer, requestAuth,
          newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
-         watchPoolIdleTimeout, watchSettings, sslContext, logConfig, closeHook
+         watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
        )
 
      private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
@@ -984,6 +993,7 @@ package object client {
 
     def durationFomConfig(configKey: String): Option[Duration] = Some(Duration.fromNanos(appConfig.getDuration(configKey).toNanos))
     val watchIdleTimeout: Duration = getSkuberConfig("watch.idle-timeout", durationFomConfig, Duration.Inf)
+    val podLogIdleTimeout: Duration = getSkuberConfig("pod-log.idle-timeout", durationFomConfig, Duration.Inf)
 
     val watchContinuouslyRequestTimeout: Duration = getSkuberConfig("watch-continuously.request-timeout", durationFomConfig, 30.seconds)
     val watchContinuouslyIdleTimeout: Duration = getSkuberConfig("watch-continuously.idle-timeout", durationFomConfig, 60.seconds)
@@ -1009,11 +1019,13 @@ package object client {
     val defaultClientSettings = ConnectionPoolSettings(actorSystem.settings.config)
     val watchConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
     val watchSettings = defaultClientSettings.withConnectionSettings(watchConnectionSettings)
+    val podLogConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(podLogIdleTimeout)
+    val podLogSettings = defaultClientSettings.withConnectionSettings(podLogConnectionSettings)
 
     new RequestContext(
       requestMaker, k8sContext.cluster.server, k8sContext.authInfo,
       theNamespaceName, watchContinuouslyRequestTimeout, watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, sslContext, logConfig, closeHook
+      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
     )
   }
 
