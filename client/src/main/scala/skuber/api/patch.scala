@@ -66,8 +66,16 @@ package object patch {
 
   case object JsonPatchStrategy extends PatchStrategy
 
-  case class JsonPatchOperationList(operations: List[JsonPatchOperation.Operation]) extends Patch {
+  case class JsonPatch(operations: List[JsonPatchOperation.Operation]) extends Patch {
     override val strategy = JsonPatchStrategy
+  }
+
+  trait JsonMergePatch extends Patch {
+    override val strategy = JsonMergePatchStrategy
+  }
+
+  trait StrategicMergePatch extends Patch {
+    override val strategy = StrategicMergePatchStrategy
   }
 
   case class MetadataPatch(labels: Option[Map[String, String]] = Some(Map()),
