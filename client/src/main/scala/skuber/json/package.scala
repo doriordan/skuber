@@ -204,7 +204,8 @@ package object format {
     
   implicit val listMetaFormat: Format[ListMeta] = (
     (JsPath \ "selfLink").formatMaybeEmptyString() and
-    (JsPath \ "resourceVersion").formatMaybeEmptyString()
+    (JsPath \ "resourceVersion").formatMaybeEmptyString() and
+    (JsPath \ "continue").formatNullable[String]
   )(ListMeta.apply _, unlift(ListMeta.unapply))
 
   implicit val localObjRefFormat = Json.format[LocalObjectReference]

@@ -56,7 +56,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
-  val k8s = k8sInit // initialize skuber client (request context)
+  val k8s = k8sInit // initialize skuber client (
   var rcWatching = mutable.HashMap[String, Watching]()
    
   private def invoke(skuberRequest: => Future[Any]) : Future[Any] = {   

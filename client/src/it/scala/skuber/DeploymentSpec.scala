@@ -28,6 +28,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
 
   it should "upgrade the newly created deployment" in { k8s =>
     k8s.get[Deployment](nginxDeploymentName).flatMap { d =>
+      println(s"DEPLOYMENT TO UPDATE ==> $d")
       val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
       k8s.update(updatedDeployment).flatMap { _ =>
         eventually(timeout(200 seconds), interval(5 seconds)) {

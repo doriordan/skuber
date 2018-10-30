@@ -1,4 +1,4 @@
-package skuber.api
+package skuber.api.watch
 
 import akka.NotUsed
 import akka.actor.ActorSystem
@@ -7,7 +7,8 @@ import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
 import akka.stream.{Materializer, SourceShape}
 import play.api.libs.json.Format
 import skuber.api.client._
-import skuber.{K8SRequestContext, ObjectResource, ResourceDefinition}
+import skuber.api.client.impl.KubernetesClientImpl
+import skuber.{K8SRequestContext, ObjectResource, ResourceDefinition, ListOptions}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -26,14 +27,10 @@ private[api] object WatchSource {
 
   case class StreamContext(currentResourceVersion: Option[String], state: StreamState)
 
-  private val timeoutSecondsQueryParam: String = "timeoutSeconds"
-  private val resourceVersionQueryParam: String = "resourceVersion"
-
-  def apply[O <: ObjectResource](rc: K8SRequestContext,
+  def apply[O <: ObjectResource](client: KubernetesClientImpl,
                                  pool: Pool[Start[O]],
                                  name: Option[String],
-                                 sinceResourceVersion: Option[String],
-                                 maxWatchRequestTimeout: Duration,
+                                 options: ListOptions,
                                  bufSize: Int)(implicit sys: ActorSystem,
                                                fm: Materializer,
                                                format: Format[O],
@@ -44,11 +41,16 @@ private[api] object WatchSource {
 
       implicit val dispatcher: ExecutionContext = sys.dispatcher
 
-      def createRequest(rc: RequestContext, name: Option[String], sinceResourceVersion: Option[String], rd: ResourceDefinition[O], timeout: Duration) = {
-        rc.buildRequest(
-          HttpMethods.GET, rd, name,
-          query = Some(Uri.Query(timeoutSecondsQueryParam -> timeout.toSeconds.toString :: sinceResourceVersion.map(v => resourceVersionQueryParam -> v).toList: _*)),
-          watch = true
+      def createWatchRequest(since: Option[String]) =
+      {
+        val nameFieldSelector=name.map(objName => s"metadata.name=$objName")
+        val watchOptions=options.copy(
+          resourceVersion = since,
+          watch = Some(true),
+          fieldSelector = nameFieldSelector.orElse(options.fieldSelector)
+        )
+        client.buildRequest(
+          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap))
         )
       }
 
@@ -57,28 +59,28 @@ private[api] object WatchSource {
       def singleStart(s:StreamElement[O]) = Source.single(s)
 
       val initSource = Source.single(
-        (createRequest(rc, name, sinceResourceVersion, rd, maxWatchRequestTimeout), Start[O](sinceResourceVersion))
+        (createWatchRequest(options.resourceVersion), Start[O](options.resourceVersion))
       )
 
       val httpFlow: Flow[(HttpRequest, Start[O]), StreamElement[O], NotUsed] =
         Flow[(HttpRequest, Start[O])].map { request => // log request
-          rc.logInfo(rc.logConfig.logRequestBasic, s"about to send HTTP request: ${request._1.method.value} ${request._1.uri.toString}")
+          client.logInfo(client.logConfig.logRequestBasic, s"about to send HTTP request: ${request._1.method.value} ${request._1.uri.toString}")
           request
         }.via(pool).flatMapConcat {
           case (Success(HttpResponse(StatusCodes.OK, _, entity, _)), se) =>
-            rc.logInfo(rc.logConfig.logResponseBasic, s"received response with HTTP status 200")
+            client.logInfo(client.logConfig.logResponseBasic, s"received response with HTTP status 200")
             singleStart(se).concat(
               BytesToWatchEventSource[O](entity.dataBytes, bufSize).map { event =>
                 Result[O](event._object.resourceVersion, event)
               }
             ).concat(singleEnd)
           case (Success(HttpResponse(sc, _, entity, _)), _) =>
-            rc.logWarn(s"Error watching resource. Recieved a status of ${sc.intValue()}")
+            client.logWarn(s"Error watching resource. Received a status of ${sc.intValue()}")
             entity.discardBytes()
-            throw new K8SException(Status(message = Some("Error watching resource."), code = Some(sc.intValue())))
+            throw new K8SException(Status(message = Some("Error watching resource"), code = Some(sc.intValue())))
           case (Failure(f), _) =>
-            rc.logError("Error watching resource.", f)
-            throw new K8SException(Status(message = Some("Error watching resource.")))
+            client.logError("Error watching resource.", f)
+            throw new K8SException(Status(message = Some("Error watching resource"), details = Some(f.getMessage)))
         }
 
       val outboundFlow: Flow[StreamElement[O], WatchEvent[O], NotUsed] =
@@ -89,6 +91,7 @@ private[api] object WatchSource {
             case _ => throw new K8SException(Status(message = Some("Error processing watch events.")))
           }
 
+
       val feedbackFlow: Flow[StreamElement[O], (HttpRequest, Start[O]), NotUsed] =
         Flow[StreamElement[O]].scan(StreamContext(None, Waiting)){(cxt, next) =>
           next match {
@@ -97,7 +100,7 @@ private[api] object WatchSource {
             case End() => cxt.copy(state = Finished)
           }
         }.filter(_.state == Finished).map { acc =>
-          (createRequest(rc, name, acc.currentResourceVersion, rd, maxWatchRequestTimeout), Start[O](acc.currentResourceVersion))
+          (createWatchRequest(acc.currentResourceVersion), Start[O](acc.currentResourceVersion))
         }
 
       val init = b.add(initSource)

@@ -8,6 +8,7 @@ import akka.util.ByteString
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import akka.actor.ActorSystem
+import skuber.api.watch.BytesToWatchEventSource
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration

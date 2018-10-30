@@ -2,12 +2,6 @@
 import scala.language.implicitConversions
 import java.net.URL
 
-import akka.http.scaladsl.model.{HttpCharsets, MediaType}
-import akka.stream.Materializer
-import com.typesafe.config.Config
-import play.api.libs.json._
-import skuber.api.client.{RequestContext, Status}
-
 /*
  * Represents core types and aliases
  * In future some of these are likely to be moved to separate files and even packages
@@ -69,7 +63,8 @@ package object skuber {
 
   case class ListMeta(
     selfLink: String = "",
-    resourceVersion: String = "")
+    resourceVersion: String = "",
+    continue: Option[String] = None)
 
   case class APIVersions(
     kind: String,
@@ -229,7 +224,6 @@ package object skuber {
     type DeletePropagation = Value
     val Orphan, Background, Foreground = Value
   }
-
   case class Preconditions(uid: String="")
   case class DeleteOptions(
     apiVersion: String = "v1",
@@ -238,6 +232,32 @@ package object skuber {
     preconditions: Option[Preconditions] = None,
     propagationPolicy: Option[DeletePropagation.Value] = None)
 
+  // List options can be passed to a list or watch request.
+  case class ListOptions(
+    labelSelector: Option[LabelSelector] = None,
+    fieldSelector: Option[String] = None,
+    includeUninitialized: Option[Boolean] = None,
+    resourceVersion: Option[String] = None,
+    timeoutSeconds: Option[Long] = None,
+    limit: Option[Long] = None,
+    continue: Option[String] = None,
+    watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
+  ) {
+    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
+      "labelSelector" -> labelSelector.map(_.toString),
+      "fieldSelector" -> fieldSelector,
+      "includeUninitialized" -> includeUninitialized.map(_.toString),
+      "resourceVersion" -> resourceVersion,
+      "timeoutSeconds" -> timeoutSeconds.map(_.toString),
+      "limit" -> limit.map(_.toString),
+      "continue" -> continue,
+      "watch" -> watch.map(_.toString))
+
+    lazy val asMap: Map[String, String] = asOptionalsMap.collect {
+      case (key, Some(value)) => key -> value
+    }
+  }
+
   // Any object resource type [O <: ObjectResource] that supports a `status` subresource must provide an
   // implicit value of HasStatusSubresource type to enable the client `status` API methods to be used on
   // such resources
@@ -245,33 +265,40 @@ package object skuber {
 
   // aliases, references and delegates that enable using the API for many use cases without 
   // having to import anything from the skuber.api package
+
+  import skuber.api.client.KubernetesClient
+
   val K8SCluster = skuber.api.client.Cluster
   val K8SContext = skuber.api.client.Context
-  type K8SRequestContext = skuber.api.client.RequestContext
+  type K8SRequestContext = KubernetesClient
   type K8SException = skuber.api.client.K8SException
   val K8SConfiguration = skuber.api.Configuration
   type K8SWatchEvent[I <: ObjectResource] = skuber.api.client.WatchEvent[I]
 
+  // Initialisation of the Skuber Kubernetes client
+
   import akka.actor.ActorSystem
+  import akka.stream.Materializer
+  import com.typesafe.config.Config
 
   /**
     * Initialise Skuber using default Kubernetes and application configuration.
     */
-  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
     skuber.api.client.init
   }
 
   /**
     * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
     */
-  def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+  def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
     skuber.api.client.init(config)
   }
 
   /**
     * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
     */
-  def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): RequestContext = {
+  def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
     skuber.api.client.init(appConfig)
   }
 
@@ -279,7 +306,8 @@ package object skuber {
     * Initialise Skuber using the specified Kubernetes and application configuration.
     */
   def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer)
-      : RequestContext = {
+      : KubernetesClient =
+  {
     skuber.api.client.init(config, appConfig)
   }
 }
