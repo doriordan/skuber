@@ -223,6 +223,12 @@ package object client {
 
      val log = Logging.getLogger(actorSystem, "skuber.api")
 
+     val connectionContext = sslContext
+       .map { ssl =>
+         ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
+       }
+       .getOrElse(Http().defaultClientHttpsContext)
+
      private val clusterServerUri = Uri(clusterServer)
 
      private var isClosed = false
@@ -237,11 +243,7 @@ package object client {
          throw new IllegalStateException("Request context has been closed")
        }
        logInfo(logConfig.logRequestBasic, s"about to send HTTP request: ${request.method.value} ${request.uri.toString}")
-       val connectionContext = sslContext
-         .map { ssl =>
-           ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
-         }
-         .getOrElse(Http().defaultClientHttpsContext)
+
        val responseFut = Http().singleRequest(request, settings = settings, connectionContext = connectionContext)
        responseFut onComplete {
          case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
