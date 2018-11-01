@@ -714,6 +714,7 @@ package object client {
       * @param patch A string containing the JSON patch entity
       * @return The patched resource (in a Future)
       */
+     @deprecated("use patch instead")
      def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(
        implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext=RequestLoggingContext()): Future[O] =
      {
