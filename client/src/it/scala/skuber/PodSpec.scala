@@ -90,6 +90,17 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     }
   }
 
+  it should "list selected pods" in { k8s =>
+    (for {
+      _ <- k8s.create(getNginxPod(nginxPodName + "-list-1", "1.7.9", labels = Map("env" -> "test")))
+      _ <- k8s.create(getNginxPod(nginxPodName + "-list-2", "1.7.9", labels = Map("env" -> "test")))
+      pods <- k8s.listSelected[PodList](LabelSelector(LabelSelector.IsEqualRequirement("env", "test")),
+        Some(FieldSelector(FieldSelector.IsEqualRequirement("metadata.name", nginxPodName + "-list-1"))))
+    } yield pods) map { pods =>
+      assert(pods.map(_.name).toSet == Set(nginxPodName + "-list-1"))
+    }
+  }
+
   def getNginxContainer(name: String, version: String): Container = Container(name = name, image = "nginx:" + version).exposePort(80)
 
   def getNginxPod(name: String, version: String, labels: Map[String, String] = Map()): Pod = {

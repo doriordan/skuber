@@ -488,23 +488,30 @@ package object client {
      def list[L <: ListResource[_]]()(
        implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
-       _list[L](rd, None)
+       _list[L](rd, None, None)
      }
 
      /*
       * Retrieve the list of objects of given type in the current namespace that match the supplied label selector
       */
-     def listSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
+     def listSelected[L <: ListResource[_]](labelSelector: LabelSelector, maybeFieldSelector: Option[FieldSelector] = None)(
        implicit fmt: Format[L], rd: ResourceDefinition[L],lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
-       _list[L](rd, Some(labelSelector))
+       _list[L](rd, Some(labelSelector), maybeFieldSelector)
      }
 
-     private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
+     private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector], maybeFieldSelector: Option[FieldSelector])(
        implicit fmt: Format[L], lc: LoggingContext=RequestLoggingContext()): Future[L] =
      {
-       val queryOpt = maybeLabelSelector map { ls =>
+       val labelQuery = maybeLabelSelector map { ls =>
          Uri.Query("labelSelector" -> ls.toString)
+       } getOrElse(Uri.Query.Empty)
+       val fieldQuery = maybeFieldSelector map { fs =>
+         Uri.Query("fieldSelector" -> fs.toString)
+       } getOrElse(Uri.Query.Empty)
+       val queryOpt = (labelQuery ++ fieldQuery) match {
+         case q if q.nonEmpty => Some(Uri.Query(q: _*))
+         case q => None
        }
        if (log.isDebugEnabled) {
          val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
