@@ -52,7 +52,7 @@ package object patch {
     }
   }
 
-  sealed trait Patch {
+  trait Patch {
     val strategy: PatchStrategy
   }
 
