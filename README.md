@@ -66,7 +66,7 @@ Provides you with a configured client on startup. It is handy to use this for qu
   > Just handy shortcut to import skuber inside ammonite-repl:
 
   ```scala
-  import $ivy.`io.skuber::skuber:2.0.11`, skuber._, skuber.json.format._
+  import $ivy.`io.skuber::skuber:2.0.12`, skuber._, skuber.json.format._
   ```
 
 ### Interactive with sbt
