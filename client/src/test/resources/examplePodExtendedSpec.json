@@ -118,7 +118,6 @@
         },
         "securityContext": {
           "runAsUser": 1000,
-          "fsGroup": 2000,
           "allowPrivilegeEscalation": true
         }
       }

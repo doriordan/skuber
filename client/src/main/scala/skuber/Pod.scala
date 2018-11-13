@@ -40,7 +40,7 @@ object Pod {
     imagePullSecrets: List[LocalObjectReference] = List(),
     affinity: Option[Affinity] = None,
     tolerations: List[Toleration] = List(),
-    securityContext: Option[Security.Context] = None,
+    securityContext: Option[PodSecurityContext] = None,
     hostname: Option[String] = None,
     hostAliases: List[HostAlias] = Nil,
     hostPID: Option[Boolean] = None,
