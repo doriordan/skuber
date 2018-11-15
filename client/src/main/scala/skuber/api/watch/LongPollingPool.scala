@@ -1,9 +1,9 @@
-package skuber.api
+package skuber.api.watch
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
+import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.stream.Materializer
 import skuber.api.client.Pool
 

@@ -8,6 +8,8 @@ import org.scalatest.time.{Seconds, Span}
 import skuber.apps.v1.{Deployment, DeploymentList}
 
 import scala.concurrent.duration._
+import scala.concurrent.Await
+
 import scala.language.postfixOps
 
 class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers with ScalaFutures {
@@ -31,6 +33,9 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
         .toMat(Sink.collection)(Keep.both)
         .run()
     }
+
+    // Wait for watch to be confirmed before performing the actions that create new events to be watched
+    Await.result(stream, 5.seconds)
 
     //Create first deployment and delete it.
     k8s.create(deploymentOne).futureValue.name shouldBe deploymentOneName
@@ -104,7 +109,15 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
       killSwitch._1.shutdown()
     }
 
-    stream.futureValue._2.futureValue.toList.map { d =>
+    val f1 = stream.futureValue
+
+    f1._2.onFailure {
+      case ex: Exception => ex.printStackTrace()
+    }
+
+    val f2 = f1._2.futureValue
+
+    f2.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
       (EventType.ADDED, deploymentName),

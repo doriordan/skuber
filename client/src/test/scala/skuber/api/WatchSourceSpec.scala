@@ -13,9 +13,11 @@ import com.fasterxml.jackson.core.JsonParseException
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.mockito.MockitoSugar
 import org.specs2.mutable.Specification
-import skuber.api.WatchSource.Start
+import skuber.api.client.impl.KubernetesClientImpl
+import skuber.api.watch.WatchSource.Start
 import skuber.api.client.{LoggingContext, _}
-import skuber.{Container, DNSPolicy, K8SRequestContext, ObjectMeta, ObjectResource, Pod, Protocol, ReplicationController, Resource, RestartPolicy}
+import skuber.api.watch.WatchSource
+import skuber.{Container, DNSPolicy, ListOptions, ObjectMeta, ObjectResource, Pod, Protocol, ReplicationController, Resource, RestartPolicy}
 import skuber.json.format._
 
 import scala.concurrent.Await
@@ -31,25 +33,25 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
   "WatchSource" should {
     "read event continuously with no name specified and from a point in time" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null)
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
       ).thenReturn(secondRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
         secondRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -64,36 +66,36 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(rc, times(4)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client, times(4)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802",  "watch" -> "true")), null
       )
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null
       )
       ok
     }
 
     "read event continuously with no name specified from the beginning" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null)
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
       ).thenReturn(secondRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
         secondRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, None, 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -108,36 +110,41 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(rc, times(4)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1")), watch = true, null
+      verify(client, times(4)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), null
       )
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null
       )
       ok
     }
 
     "read event continuously with name specified from a point in time" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
+      val name = "someName"
+      val nameFieldSelector=s"metadata.name=$name"
+      val query1=Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true", "fieldSelector" -> nameFieldSelector)
+      val query2=Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true", "fieldSelector" -> nameFieldSelector)
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null)
       ).thenReturn(firstRequest)
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null)
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null)
       ).thenReturn(secondRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
         secondRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), Some("someName"), Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(resourceVersion= Some("12802"),timeoutSeconds = Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -152,37 +159,40 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(rc, times(4)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client, times(4)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null
       )
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null
       )
 
       ok
     }
 
     "read event continuously with name specified from the beginning" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
-
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1")), watch = true, null)
+      val name="someName"
+      val nameFieldSelector=s"metadata.name=$name"
+      val query1=Uri.Query("timeoutSeconds" -> "1", "watch" -> "true", "fieldSelector" -> nameFieldSelector)
+      val query2=Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true","fieldSelector" -> nameFieldSelector)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null)
       ).thenReturn(firstRequest)
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null)
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null)
       ).thenReturn(secondRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
         secondRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), Some("someName"), None, 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(timeoutSeconds = Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -197,39 +207,39 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(rc, times(4)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1")), watch = true, null
+      verify(client, times(4)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null
       )
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, Some("someName"), Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null
       )
 
       ok
     }
 
     "handle empty responses from the cluster when request timeout times out" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
       val thirdRequest = HttpRequest(uri = Uri("http://watch/3"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null)
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
       ).thenReturn(secondRequest).thenReturn(thirdRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
         secondRequest -> HttpResponse(StatusCodes.OK, entity = ""),
         thirdRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -244,31 +254,31 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(rc, times(6)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client, times(6)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
-      verify(rc, times(2)).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804")), watch = true, null
+      verify(client, times(2)).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null
       )
       ok
     }
 
     "handle bad input from cluster" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = "bad input")
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -280,29 +290,29 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       error must haveClass[FramingException]
       error.getMessage mustEqual "Invalid JSON encountered at position [0] of [ByteString(98, 97, 100, 32, 105, 110, 112, 117, 116)]"
 
-      verify(rc, times(2)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client, times(2)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
 
       ok
     }
 
     "handle bad json from cluster" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity("{asdf:asdfa}"))
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -314,29 +324,29 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       error must haveClass[JsonParseException]
       error.getMessage mustEqual "Unexpected character ('a' (code 97)): was expecting double-quote to start field name\n at [Source: {asdf:asdfa}; line: 1, column: 3]"
 
-      verify(rc, times(2)).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client, times(2)).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
 
       ok
     }
 
     "handle a HTTP 500 error from service" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.InternalServerError)
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -346,31 +356,31 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[K8SException]
-      error.asInstanceOf[K8SException].status mustEqual Status(message = Some("Error watching resource."), code = Some(500))
+      error.asInstanceOf[K8SException].status.code mustEqual Some(500)
 
-      verify(rc).logConfig
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
 
       ok
     }
 
-    "handle a HTTP 403 error from service" >> {
-      val rc = mock[K8SRequestContext]
+    "handle a HTTP 401 error from service" >> {
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.Unauthorized)
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(repsonses), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -380,32 +390,32 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[K8SException]
-      error.asInstanceOf[K8SException].status mustEqual Status(message = Some("Error watching resource."), code = Some(401))
+      error.asInstanceOf[K8SException].status.code mustEqual Some(401)
 
-      verify(rc).logConfig
+      verify(client).logConfig
 
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
 
       ok
     }
 
     "handle idle timeout from service" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.InternalServerError)
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(new TcpIdleTimeoutException("timeout", 10.seconds)), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(new TcpIdleTimeoutException("timeout", 10.seconds)), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -415,32 +425,31 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[K8SException]
-      error.asInstanceOf[K8SException].status mustEqual Status(message = Some("Error watching resource."))
 
-      verify(rc).logConfig
+      verify(client).logConfig
 
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
 
       ok
     }
 
     "handle connection timeout from service" >> {
-      val rc = mock[K8SRequestContext]
+      val client = mock[KubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
-      when(rc.logConfig).thenReturn(LoggingConfig())
-      when(rc.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null)
+      when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
       ).thenReturn(firstRequest)
 
-      val repsonses = Map(
+      val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.InternalServerError)
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](rc, mockPool(new ConnectException(s"Connect timeout of 10s expired")), None, Some("12802"), 1.second, 10000)
+        WatchSource[ReplicationController](client, mockPool(new ConnectException(s"Connect timeout of 10s expired")), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -450,12 +459,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[K8SException]
-      error.asInstanceOf[K8SException].status mustEqual Status(message = Some("Error watching resource."))
 
-      verify(rc).logConfig
-
-      verify(rc).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802")), watch = true, null
+      verify(client).logConfig
+      verify(client).buildRequest(
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
       )
 
       ok
