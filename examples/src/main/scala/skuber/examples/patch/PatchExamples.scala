@@ -8,8 +8,8 @@ import skuber.apps.v1beta1.StatefulSet
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
-
 import play.api.libs.json.{Format, Json}
+import skuber.api.patch.JsonMergePatch
 /**
  * @author David O'Riordan
  * 
@@ -19,17 +19,15 @@ import play.api.libs.json.{Format, Json}
  */
 object PatchExamples extends App {
 
-  // A model - with implicit JSON formatters - of the specific JSON merge patch we are going to send to the server in this example.
-  // The resulting JSON will look like `{ "spec" : { "replicas" : <replicas> } }`, and will be converted to a String for sending via the
-  // API jsonMergePatch method.
+  // API patch method.
   // This will change the replica count on the statefulset causing it to scale accordingly.
-  // Clients do not need to make a model with JSON formatters to send a patch, as the API method takes the patch JSON as a String type, but
-  // this pattern ensures valid JSON is sent
   case class ReplicaSpec(replicas: Int)
-  case class ReplicaPatch(spec: ReplicaSpec)
+  case class ReplicaPatch(spec: ReplicaSpec) extends JsonMergePatch
 
   implicit val rsFmt: Format[ReplicaSpec] = Json.format[ReplicaSpec]
   implicit val rpFmt: Format[ReplicaPatch] = Json.format[ReplicaPatch]
+
+  val statefulSetName = "nginx-patch-sts"
 
   def scaleNginx = {
 
@@ -40,9 +38,9 @@ object PatchExamples extends App {
     val nginxStsLabels=Map("patch-example" -> "statefulset")
     val nginxStsSel=LabelSelector(LabelSelector.IsEqualRequirement("patch-example","statefulset"))
     val nginxStsSpec=nginxBaseSpec.addLabels(nginxStsLabels)
-    val nginxStatefulSet= StatefulSet("nginx-patch-sts")
+    val nginxStatefulSet= StatefulSet(statefulSetName)
       .withReplicas(4)
-      .withServiceName("nginx-patch-sts")
+      .withServiceName(statefulSetName)
       .withLabelSelector(nginxStsSel)
       .withTemplate(nginxStsSpec)
 
@@ -82,7 +80,7 @@ object PatchExamples extends App {
     val singleReplicaPatchJsonStr=singleReplicaPatchJson.toString
 
     // Send the Patch to the statefulset on Kubernetes
-    val patchedStsFut = k8s.jsonMergePatch(sts, singleReplicaPatchJsonStr)
+    val patchedStsFut = k8s.patch[ReplicaPatch, StatefulSet](statefulSetName, singleReplicaPatch)
 
     val patchedSts = Await.result(patchedStsFut, Inf)
     println(s"Patched statefulset now has a desired replica count of ${patchedSts.spec.get.replicas}")
