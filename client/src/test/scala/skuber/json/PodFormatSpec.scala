@@ -65,7 +65,7 @@ import Pod._
                                lifecycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
                                terminationMessagePath=Some("/var/log/termination-message"),
                                terminationMessagePolicy=Some(Container.TerminationMessagePolicy.File),
-                               securityContext=Some(Security.Context(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
+                               securityContext=Some(SecurityContext(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
                               )
                      )
       val vols = List(Volume("myVol1", Volume.Glusterfs("myEndpointsName", "/usr/mypath")),
@@ -74,7 +74,8 @@ import Pod._
                       volumes=vols,
                       dnsPolicy=DNSPolicy.ClusterFirst,
                       nodeSelector=Map("diskType" -> "ssd", "machineSize" -> "large"),
-                      imagePullSecrets=List(LocalObjectReference("abc"),LocalObjectReference("def"))
+                      imagePullSecrets=List(LocalObjectReference("abc"),LocalObjectReference("def")),
+                      securityContext=Some(PodSecurityContext(supplementalGroups=List(1, 2, 3)))
                      )
       val myPod = Namespace("myNamespace").pod("myPod",pdSpec)
                             
@@ -565,6 +566,7 @@ import Pod._
     val pod = Json.parse(podJsonStr).as[Pod]
 
     val container=pod.spec.get.containers(0)
+    container.securityContext.get.runAsUser mustEqual Some(1000)
     container.terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.FallbackToLogsOnError)
     container.terminationMessagePath mustEqual Some("/tmp/my-log")
     val mount=container.volumeMounts(0)
