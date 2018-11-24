@@ -8,7 +8,7 @@ import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber._
-import skuber.api.patch.{JsonPatchOperation, JsonPatchOperationList, MetadataPatch}
+import skuber.api.patch.{JsonPatchOperation, JsonPatch, MetadataPatch}
 
 /**
  * @author David O'Riordan
@@ -1118,7 +1118,7 @@ package object format {
     }))
   }
 
-  implicit def jsonPatchOperationListWrite = Writes[JsonPatchOperationList] { value =>
+  implicit def jsonPatchWrite = Writes[JsonPatch] { value =>
     JsArray(value.operations.map(jsonPatchOperationWrite.writes)) }
 
   implicit val metadataPatchWrite = Writes[MetadataPatch] { value =>
