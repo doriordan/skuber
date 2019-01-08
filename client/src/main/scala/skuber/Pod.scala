@@ -90,11 +90,11 @@ object Pod {
       val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
     }
 
-    case class MatchExpression(key: String, operator: NodeSelectorOperator.Value, values: List[String])
-    type MatchExpressions = List[MatchExpression]
-    def MatchExpressions(xs: MatchExpression*) = List(xs: _*)
+    case class NodeSelectorRequirement(key: String, operator: NodeSelectorOperator.Value, values: List[String])
+    type NodeSelectorRequirements = List[NodeSelectorRequirement]
+    def NodeSelectorRequirements(xs: NodeSelectorRequirement*) = List(xs: _*)
 
-    case class NodeSelectorTerm(matchExpressions: MatchExpressions)
+    case class NodeSelectorTerm(matchExpressions: NodeSelectorRequirements = List.empty, matchFields: NodeSelectorRequirements = List.empty)
     type NodeSelectorTerms = List[NodeSelectorTerm]
     def NodeSelectorTerms(xs: NodeSelectorTerm*) = List(xs: _*)
 
@@ -111,8 +111,8 @@ object Pod {
           RequiredDuringSchedulingIgnoredDuringExecution(
             NodeSelectorTerms(
               NodeSelectorTerm(
-                MatchExpressions(
-                  MatchExpression(key, operator, values)
+                matchExpressions = NodeSelectorRequirements(
+                  NodeSelectorRequirement(key, operator, values)
                 )
               )
             )
@@ -127,7 +127,7 @@ object Pod {
         def preferredQuery(weight: Int, key: String, operator: NodeSelectorOperator.Value, values: List[String]): PreferredSchedulingTerm = {
           PreferredSchedulingTerm(
             preference = NodeSelectorTerm(
-              MatchExpressions(MatchExpression(key, operator, values))
+              matchExpressions = NodeSelectorRequirements(NodeSelectorRequirement(key, operator, values))
             ),
             weight = weight
           )

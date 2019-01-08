@@ -717,15 +717,16 @@ package object format {
 
   implicit val nodeAffinityOperatorFormat: Format[Pod.Affinity.NodeSelectorOperator.Operator] = Format(enumReads(Pod.Affinity.NodeSelectorOperator), enumWrites)
 
-  implicit val nodeMatchExpressionFormat: Format[Pod.Affinity.MatchExpression] = (
+  implicit val nodeMatchExpressionFormat: Format[Pod.Affinity.NodeSelectorRequirement] = (
     (JsPath \ "key").formatMaybeEmptyString() and
       (JsPath \ "operator").formatEnum(Pod.Affinity.NodeSelectorOperator) and
       (JsPath \ "values").formatMaybeEmptyList[String]
-    )(Pod.Affinity.MatchExpression.apply _, unlift(Pod.Affinity.MatchExpression.unapply))
+    )(Pod.Affinity.NodeSelectorRequirement.apply _, unlift(Pod.Affinity.NodeSelectorRequirement.unapply))
 
   implicit val nodeSelectorTermFormat: Format[Pod.Affinity.NodeSelectorTerm] = (
-    (JsPath \ "matchExpressions").format[Pod.Affinity.MatchExpressions].inmap(matchExpressions => Pod.Affinity.NodeSelectorTerm(matchExpressions), (nst: Pod.Affinity.NodeSelectorTerm) => nst.matchExpressions)
-    )
+    (JsPath \ "matchExpressions").formatMaybeEmptyList[Pod.Affinity.NodeSelectorRequirement] and
+      (JsPath \ "matchFields").formatMaybeEmptyList[Pod.Affinity.NodeSelectorRequirement]
+    )(Pod.Affinity.NodeSelectorTerm.apply _, unlift(Pod.Affinity.NodeSelectorTerm.unapply))
 
   implicit val nodeRequiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] = (
     (JsPath \ "nodeSelectorTerms").format[Pod.Affinity.NodeSelectorTerms].inmap(
