@@ -422,6 +422,74 @@ import Pod._
       myPod.spec.get.volumes.head.source must beAnInstanceOf[GenericVolumeSource]
     }
 
+    "NodeSelectorTerm be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+      import Affinity.NodeSelectorOperator
+      import Affinity.NodeSelectorRequirement
+      import Affinity.NodeSelectorRequirements
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTerm.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm(
+        matchExpressions = NodeSelectorRequirements(
+          NodeSelectorRequirement("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
+        ),
+        matchFields = NodeSelectorRequirements(
+          NodeSelectorRequirement("metadata.name", NodeSelectorOperator.In, List("some-node-name"))
+        )
+      )
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
+    "NodeSelectorTerm with no matchExpressions be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+      import Affinity.NodeSelectorOperator
+      import Affinity.NodeSelectorRequirement
+      import Affinity.NodeSelectorRequirements
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchExpressions.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm(
+        matchFields = NodeSelectorRequirements(
+          NodeSelectorRequirement("metadata.name", NodeSelectorOperator.In, List("some-node-name"))
+        )
+      )
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
+    "NodeSelectorTerm with no matchFields be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+      import Affinity.NodeSelectorOperator
+      import Affinity.NodeSelectorRequirement
+      import Affinity.NodeSelectorRequirements
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchFields.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm(
+        matchExpressions = NodeSelectorRequirements(
+          NodeSelectorRequirement("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
+        )
+      )
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
+    "NodeSelectorTerm with empty be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermEmpty.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm()
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
     "NodeAffinity be properly read and written as json" >> {
       import Affinity.NodeAffinity
       import Affinity.NodeSelectorOperator
