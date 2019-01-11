@@ -2,9 +2,10 @@
 import scala.language.implicitConversions
 import java.net.URL
 
+import akka.http.scaladsl.model.{HttpCharsets, MediaType}
 import akka.stream.Materializer
 import com.typesafe.config.Config
-import play.api.libs.json.Format
+import play.api.libs.json._
 import skuber.api.client.{RequestContext, Status}
 
 /*

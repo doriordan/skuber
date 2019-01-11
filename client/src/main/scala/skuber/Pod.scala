@@ -1,5 +1,7 @@
 package skuber
 
+import java.time.format.DateTimeFormatter
+
 /**
  * @author David O'Riordan
  */
@@ -255,16 +257,18 @@ object Pod {
     pretty: Option[Boolean] = None,
     previous: Option[Boolean] = None,
     sinceSeconds: Option[Int] = None,
+    sinceTime: Option[Timestamp] = None,
     tailLines: Option[Int] = None,
     timestamps: Option[Boolean] = None)
   {
    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
-      "containerName" -> containerName,
+      "container" -> containerName,
       "follow" -> follow.map(_.toString),
       "limitBytes" -> limitBytes.map(_.toString),
       "pretty" -> pretty.map(_.toString),
       "previous" -> previous.map(_.toString),
       "sinceSeconds" -> sinceSeconds.map(_.toString),
+      "sinceTime" -> sinceTime.map(_.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)),
       "tailLines" -> tailLines.map(_.toString),
       "timestamps" -> timestamps.map(_.toString))
 

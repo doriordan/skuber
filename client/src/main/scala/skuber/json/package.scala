@@ -8,6 +8,7 @@ import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber._
+import skuber.api.patch.{JsonPatchOperation, JsonPatchOperationList, MetadataPatch}
 
 /**
  * @author David O'Riordan
@@ -472,23 +473,22 @@ package object format {
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]
   
   import Volume._
-  
-  implicit val emptyDirReads: Reads[EmptyDir] = {
-      (JsPath \ "medium").readNullable[String].map {
-        case Some(med) if med == "Memory" => EmptyDir(MemoryStorageMedium)
-        case Some(med) if med == "HugePages" => EmptyDir(HugePagesStorageMedium)
-        case _ => EmptyDir(DefaultStorageMedium)
-      }
-  }  
-  implicit val emptyDirWrites: Writes[EmptyDir] = Writes[EmptyDir] {
-    ed => ed.medium match {
-      case DefaultStorageMedium => (JsPath \ "medium").write[String].writes("")
-      case MemoryStorageMedium => (JsPath \ "medium").write[String].writes("Memory")
-      case HugePagesStorageMedium => (JsPath \ "medium").write[String].writes("HugePages")
-    }
-  }  
-  implicit val emptyDirFormat: Format[EmptyDir] = Format(emptyDirReads, emptyDirWrites)
-  
+
+  implicit val storageMediumFormat: Format[StorageMedium] = Format[StorageMedium](Reads[StorageMedium] {
+    case JsString(med) if med == "Memory" => JsSuccess(MemoryStorageMedium)
+    case JsString(med) if med == "HugePages" => JsSuccess(HugePagesStorageMedium)
+    case _ => JsSuccess(DefaultStorageMedium)
+  }, Writes[StorageMedium] {
+    case DefaultStorageMedium => JsString("")
+    case MemoryStorageMedium => JsString("Memory")
+    case HugePagesStorageMedium => JsString("HugePages")
+  })
+
+  implicit val emptyDirFormat: Format[EmptyDir] = (
+    (JsPath \ "medium").formatWithDefault[StorageMedium](DefaultStorageMedium) and
+    (JsPath \ "sizeLimit").formatNullable[Resource.Quantity]
+  )(EmptyDir.apply _, unlift(EmptyDir.unapply))
+
   implicit val hostPathFormat: Format[HostPath] = Json.format[HostPath]
   implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
   implicit val volumeSecretFormat: Format[skuber.Volume.Secret] = Json.format[skuber.Volume.Secret]
@@ -1050,6 +1050,7 @@ package object format {
 
   implicit val podListFmt: Format[PodList] = ListResourceFormat[Pod]
   implicit val nodeListFmt: Format[NodeList] = ListResourceFormat[Node]
+  implicit val configMapListFmt: Format[ConfigMapList] = ListResourceFormat[ConfigMap]
   implicit val serviceListFmt: Format[ServiceList] = ListResourceFormat[Service]
   implicit val endpointsListFmt: Format[EndpointsList] = ListResourceFormat[Endpoints]
   implicit val eventListFmt: Format[EventList] = ListResourceFormat[Event]
@@ -1095,6 +1096,39 @@ package object format {
       (JsPath \ "object").format[T]
     )(WatchEvent.apply[T] _, unlift(WatchEvent.unapply[T]))
     
-  }  
+  }
+
+  implicit def jsonPatchOperationWrite = Writes[JsonPatchOperation.Operation] { value =>
+    JsObject(Map("op" -> JsString(value.op)) ++ (value match {
+      case v: JsonPatchOperation.ValueOperation[_] =>
+        Map(
+          "path" -> JsString(v.path),
+          "value" -> v.fmt.writes(v.value)
+        )
+      case v: JsonPatchOperation.UnaryOperation =>
+        Map(
+          "path" -> JsString(v.path)
+        )
+      case v: JsonPatchOperation.DirectionalOperation =>
+        Map(
+          "from" -> JsString(v.from),
+          "path" -> JsString(v.path)
+        )
+    }))
+  }
+
+  implicit def jsonPatchOperationListWrite = Writes[JsonPatchOperationList] { value =>
+    JsArray(value.operations.map(jsonPatchOperationWrite.writes)) }
+
+  implicit val metadataPatchWrite = Writes[MetadataPatch] { value =>
+    val labels = value.labels.map {
+      m => JsObject(m.mapValues(JsString))
+    }.getOrElse(JsNull)
+    val annotations = value.annotations.map {
+      m => JsObject(m.mapValues(JsString))
+    }.getOrElse(JsNull)
+    val metadata = JsObject(Map("labels" -> labels, "annotations" -> annotations))
+    JsObject(Map("metadata" -> metadata))
+  }
 }
 
