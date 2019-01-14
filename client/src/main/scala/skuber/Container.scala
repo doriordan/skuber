@@ -23,7 +23,7 @@ case class Container(
     terminationMessagePath: Option[String] = None,
     terminationMessagePolicy: Option[Container.TerminationMessagePolicy.Value] = None,
     imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
-    securityContext: Option[Security.Context] = None,
+    securityContext: Option[SecurityContext] = None,
     envFrom: List[EnvFromSource] = Nil,
     stdin: Option[Boolean] = None,
     stdinOnce: Option[Boolean] = None,

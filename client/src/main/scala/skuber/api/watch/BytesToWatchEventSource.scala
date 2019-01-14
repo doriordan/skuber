@@ -1,4 +1,4 @@
-package skuber.api
+package skuber.api.watch
 
 import akka.stream.scaladsl.{JsonFraming, Source}
 import akka.util.ByteString

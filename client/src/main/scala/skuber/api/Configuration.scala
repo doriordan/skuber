@@ -1,6 +1,7 @@
 package skuber.api
 
 import java.io.File
+import java.net.URL
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -276,4 +277,41 @@ object Configuration {
       currentContext = ctx
     )
   }
+
+  /*
+   * Get the current default configuration
+   */
+  def defaultK8sConfig = {
+    import java.nio.file.Paths
+
+    val skuberUrlOverride = sys.env.get("SKUBER_URL")
+    skuberUrlOverride match {
+      case Some(url) =>
+        Configuration.useProxyAt(url)
+      case None =>
+        val skuberConfigEnv = sys.env.get("SKUBER_CONFIG")
+        skuberConfigEnv match {
+          case Some(conf) if conf == "file" =>
+            Configuration.parseKubeconfigFile().get // default kubeconfig location
+          case Some(conf) if conf == "proxy" =>
+            Configuration.useLocalProxyDefault
+          case Some(fileUrl) =>
+            val path = Paths.get(new URL(fileUrl).toURI)
+            Configuration.parseKubeconfigFile(path).get
+          case None =>
+            // try KUBECONFIG
+            val kubeConfigEnv = sys.env.get("KUBECONFIG")
+            kubeConfigEnv.map { kc =>
+              Configuration.parseKubeconfigFile(Paths.get(kc))
+            }.getOrElse {
+              // Try to get config from a running pod
+              // if that is not set then use default kubeconfig location
+              Configuration.inClusterConfig.orElse(
+                Configuration.parseKubeconfigFile()
+              )
+            }.get
+        }
+    }
+  }
+
 }

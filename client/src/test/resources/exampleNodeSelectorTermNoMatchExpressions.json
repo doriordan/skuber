@@ -1,0 +1,11 @@
+{
+  "matchFields": [
+    {
+      "key": "metadata.name",
+      "operator": "In",
+      "values": [
+        "some-node-name"
+      ]
+    }
+  ]
+}

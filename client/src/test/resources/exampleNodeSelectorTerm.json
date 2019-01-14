@@ -1,0 +1,21 @@
+{
+  "matchExpressions": [
+    {
+      "key": "kubernetes.io/e2e-az-name",
+      "operator": "In",
+      "values": [
+        "e2e-az1",
+        "e2e-az2"
+      ]
+    }
+  ],
+  "matchFields": [
+    {
+      "key": "metadata.name",
+      "operator": "In",
+      "values": [
+        "some-node-name"
+      ]
+    }
+  ]
+}

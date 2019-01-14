@@ -7,8 +7,9 @@ import java.time.format._
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import skuber.Volume.{ConfigMapVolumeSource, KeyToPath}
 import skuber._
-import skuber.api.patch.{JsonPatchOperation, JsonPatchOperationList, MetadataPatch}
+import skuber.api.patch.{JsonPatchOperation, JsonPatch, MetadataPatch}
 
 /**
  * @author David O'Riordan
@@ -204,7 +205,8 @@ package object format {
     
   implicit val listMetaFormat: Format[ListMeta] = (
     (JsPath \ "selfLink").formatMaybeEmptyString() and
-    (JsPath \ "resourceVersion").formatMaybeEmptyString()
+    (JsPath \ "resourceVersion").formatMaybeEmptyString() and
+    (JsPath \ "continue").formatNullable[String]
   )(ListMeta.apply _, unlift(ListMeta.unapply))
 
   implicit val localObjRefFormat = Json.format[LocalObjectReference]
@@ -241,8 +243,20 @@ package object format {
       (JsPath \ "add").formatMaybeEmptyList[Security.Capability] and
       (JsPath \ "drop").formatMaybeEmptyList[Security.Capability]
   )(Security.Capabilities.apply _, unlift(Security.Capabilities.unapply))
- 
-  implicit val secCtxtFormat: Format[Security.Context] = Json.format[Security.Context]
+
+  implicit val secSysctlFormat: Format[Security.Sysctl] = Json.format[Security.Sysctl]
+
+  implicit val secCtxtFormat: Format[SecurityContext] = Json.format[SecurityContext]
+
+  implicit val podSecCtxtFormat: Format[PodSecurityContext] = (
+      (JsPath \ "fsGroup").formatNullable[Int] and
+      (JsPath \ "runAsGroup").formatNullable[Int] and
+      (JsPath \ "runAsNonRoot").formatNullable[Boolean] and
+      (JsPath \ "runAsUser").formatNullable[Int] and
+      (JsPath \ "seLinuxOptions").formatNullable[Security.SELinuxOptions] and
+      (JsPath \ "supplementalGroups").formatMaybeEmptyList[Int] and
+      (JsPath \ "sysctls").formatMaybeEmptyList[Security.Sysctl]
+  )(PodSecurityContext.apply _, unlift(PodSecurityContext.unapply))
 
   implicit val tolerationEffectFmt: Format[Pod.TolerationEffect] = new Format[Pod.TolerationEffect] {
 
@@ -658,7 +672,7 @@ package object format {
     (JsPath \ "terminationMessagePath").formatNullable[String] and
     (JsPath \ "terminationMessagePolicy").formatNullableEnum(Container.TerminationMessagePolicy)  and
     (JsPath \ "imagePullPolicy").formatEnum(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)) and
-    (JsPath \ "securityContext").formatNullable[Security.Context] and
+    (JsPath \ "securityContext").formatNullable[SecurityContext] and
     (JsPath \ "envFrom").formatMaybeEmptyList[EnvFromSource] and
     (JsPath \ "stdin").formatNullable[Boolean] and
     (JsPath \ "stdinOnce").formatNullable[Boolean] and
@@ -703,15 +717,16 @@ package object format {
 
   implicit val nodeAffinityOperatorFormat: Format[Pod.Affinity.NodeSelectorOperator.Operator] = Format(enumReads(Pod.Affinity.NodeSelectorOperator), enumWrites)
 
-  implicit val nodeMatchExpressionFormat: Format[Pod.Affinity.MatchExpression] = (
+  implicit val nodeMatchExpressionFormat: Format[Pod.Affinity.NodeSelectorRequirement] = (
     (JsPath \ "key").formatMaybeEmptyString() and
       (JsPath \ "operator").formatEnum(Pod.Affinity.NodeSelectorOperator) and
       (JsPath \ "values").formatMaybeEmptyList[String]
-    )(Pod.Affinity.MatchExpression.apply _, unlift(Pod.Affinity.MatchExpression.unapply))
+    )(Pod.Affinity.NodeSelectorRequirement.apply _, unlift(Pod.Affinity.NodeSelectorRequirement.unapply))
 
   implicit val nodeSelectorTermFormat: Format[Pod.Affinity.NodeSelectorTerm] = (
-    (JsPath \ "matchExpressions").format[Pod.Affinity.MatchExpressions].inmap(matchExpressions => Pod.Affinity.NodeSelectorTerm(matchExpressions), (nst: Pod.Affinity.NodeSelectorTerm) => nst.matchExpressions)
-    )
+    (JsPath \ "matchExpressions").formatMaybeEmptyList[Pod.Affinity.NodeSelectorRequirement] and
+      (JsPath \ "matchFields").formatMaybeEmptyList[Pod.Affinity.NodeSelectorRequirement]
+    )(Pod.Affinity.NodeSelectorTerm.apply _, unlift(Pod.Affinity.NodeSelectorTerm.unapply))
 
   implicit val nodeRequiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] = (
     (JsPath \ "nodeSelectorTerms").format[Pod.Affinity.NodeSelectorTerms].inmap(
@@ -759,7 +774,7 @@ package object format {
   // which has finally necessitated a hack to get around Play Json limitations supporting case classes with > 22 members
   // (see e.g. https://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5)
 
-  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], skuber.RestartPolicy.Value, Option[Int], Option[Int], skuber.DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[Security.Context])] = (
+  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], skuber.RestartPolicy.Value, Option[Int], Option[Int], skuber.DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[PodSecurityContext])] = (
       (JsPath \ "containers").format[List[Container]] and
       (JsPath \ "initContainers").formatMaybeEmptyList[Container] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
@@ -774,7 +789,7 @@ package object format {
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
       (JsPath \ "affinity").formatNullable[Pod.Affinity] and
       (JsPath \ "tolerations").formatMaybeEmptyList[Pod.Toleration] and
-      (JsPath \ "securityContext").formatNullable[Security.Context]
+      (JsPath \ "securityContext").formatNullable[PodSecurityContext]
      ).tupled
 
   val podSpecPartTwoFormat: OFormat[(Option[String], List[Pod.HostAlias], Option[Boolean], Option[Boolean], Option[Boolean], Option[Int], Option[String], Option[String], Option[String], Option[Pod.DNSConfig])] = (
@@ -793,8 +808,8 @@ package object format {
   implicit val podSpecFmt: Format[Pod.Spec] = (
       podSpecPartOneFormat and podSpecPartTwoFormat
   ).apply({
-    case ((conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, sc), (host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)) =>
-      Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, sc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)
+    case ((conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc), (host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)) =>
+      Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)
   }, s =>(
       ( s.containers,
         s.initContainers,
@@ -1117,7 +1132,7 @@ package object format {
     }))
   }
 
-  implicit def jsonPatchOperationListWrite = Writes[JsonPatchOperationList] { value =>
+  implicit def jsonPatchWrite = Writes[JsonPatch] { value =>
     JsArray(value.operations.map(jsonPatchOperationWrite.writes)) }
 
   implicit val metadataPatchWrite = Writes[MetadataPatch] { value =>

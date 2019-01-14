@@ -5,10 +5,11 @@ import akka.stream.ActorMaterializer
 import org.scalatest.{FutureOutcome, fixture}
 import skuber.api.client._
 import com.typesafe.config.ConfigFactory
+import skuber.api.client.impl.KubernetesClientImpl
 
 trait K8SFixture extends fixture.AsyncFlatSpec {
 
-  override type FixtureParam =  RequestContext
+  override type FixtureParam =  K8SRequestContext
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()

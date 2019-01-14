@@ -65,7 +65,7 @@ import Pod._
                                lifecycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
                                terminationMessagePath=Some("/var/log/termination-message"),
                                terminationMessagePolicy=Some(Container.TerminationMessagePolicy.File),
-                               securityContext=Some(Security.Context(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
+                               securityContext=Some(SecurityContext(capabilities=Some(Security.Capabilities(add=List("CAP_KILL"),drop=List("CAP_AUDIT_WRITE")))))
                               )
                      )
       val vols = List(Volume("myVol1", Volume.Glusterfs("myEndpointsName", "/usr/mypath")),
@@ -74,7 +74,8 @@ import Pod._
                       volumes=vols,
                       dnsPolicy=DNSPolicy.ClusterFirst,
                       nodeSelector=Map("diskType" -> "ssd", "machineSize" -> "large"),
-                      imagePullSecrets=List(LocalObjectReference("abc"),LocalObjectReference("def"))
+                      imagePullSecrets=List(LocalObjectReference("abc"),LocalObjectReference("def")),
+                      securityContext=Some(PodSecurityContext(supplementalGroups=List(1, 2, 3)))
                      )
       val myPod = Namespace("myNamespace").pod("myPod",pdSpec)
                             
@@ -421,6 +422,74 @@ import Pod._
       myPod.spec.get.volumes.head.source must beAnInstanceOf[GenericVolumeSource]
     }
 
+    "NodeSelectorTerm be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+      import Affinity.NodeSelectorOperator
+      import Affinity.NodeSelectorRequirement
+      import Affinity.NodeSelectorRequirements
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTerm.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm(
+        matchExpressions = NodeSelectorRequirements(
+          NodeSelectorRequirement("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
+        ),
+        matchFields = NodeSelectorRequirements(
+          NodeSelectorRequirement("metadata.name", NodeSelectorOperator.In, List("some-node-name"))
+        )
+      )
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
+    "NodeSelectorTerm with no matchExpressions be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+      import Affinity.NodeSelectorOperator
+      import Affinity.NodeSelectorRequirement
+      import Affinity.NodeSelectorRequirements
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchExpressions.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm(
+        matchFields = NodeSelectorRequirements(
+          NodeSelectorRequirement("metadata.name", NodeSelectorOperator.In, List("some-node-name"))
+        )
+      )
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
+    "NodeSelectorTerm with no matchFields be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+      import Affinity.NodeSelectorOperator
+      import Affinity.NodeSelectorRequirement
+      import Affinity.NodeSelectorRequirements
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchFields.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm(
+        matchExpressions = NodeSelectorRequirements(
+          NodeSelectorRequirement("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
+        )
+      )
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
+    "NodeSelectorTerm with empty be properly read and written as json" >> {
+      import Affinity.NodeSelectorTerm
+
+      val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermEmpty.json"))
+      val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
+      val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
+      myTerm must_== NodeSelectorTerm()
+      val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
+      myTerm mustEqual readTerm
+    }
+
     "NodeAffinity be properly read and written as json" >> {
       import Affinity.NodeAffinity
       import Affinity.NodeSelectorOperator
@@ -565,6 +634,7 @@ import Pod._
     val pod = Json.parse(podJsonStr).as[Pod]
 
     val container=pod.spec.get.containers(0)
+    container.securityContext.get.runAsUser mustEqual Some(1000)
     container.terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.FallbackToLogsOnError)
     container.terminationMessagePath mustEqual Some("/tmp/my-log")
     val mount=container.volumeMounts(0)

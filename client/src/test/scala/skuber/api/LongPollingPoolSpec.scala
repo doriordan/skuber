@@ -17,6 +17,7 @@ import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.specs2.mutable.Specification
+import skuber.api.watch.LongPollingPool
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

@@ -88,12 +88,12 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   it should "patch a pod with json patch" in { k8s =>
     val randomString = java.util.UUID.randomUUID().toString
     val annotations = Map("skuber" -> "wow")
-    val patchData = JsonPatchOperationList(List(
+    val patchData = JsonPatch(List(
       JsonPatchOperation.Add("/metadata/labels/foo", randomString),
       JsonPatchOperation.Add("/metadata/annotations", randomString),
       JsonPatchOperation.Remove("/metadata/annotations"),
     ))
-    k8s.patch[JsonPatchOperationList, Pod](nginxPodName, patchData).map { _ =>
+    k8s.patch[JsonPatch, Pod](nginxPodName, patchData).map { _ =>
       eventually(timeout(10 seconds), interval(1 seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
         val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
