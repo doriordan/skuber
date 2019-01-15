@@ -127,7 +127,7 @@ These are the basic steps to use the Skuber API:
 - Import the API definitions from the appropriate package(s)
 - Import the implicit JSON formatters from the appropriate package(s) as described above. The API uses these to read/write the request and response data.
 - Declare some additional Akka implicit values as shown below (this is basically to configure the Akka HTTP client which Skuber v2 uses under the hood)
-- Create a Kubernetes cliet by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
+- Create a Kubernetes client by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
 - Invoke the required requests using the client
 - The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
 
