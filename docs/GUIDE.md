@@ -127,8 +127,8 @@ These are the basic steps to use the Skuber API:
 - Import the API definitions from the appropriate package(s)
 - Import the implicit JSON formatters from the appropriate package(s) as described above. The API uses these to read/write the request and response data.
 - Declare some additional Akka implicit values as shown below (this is basically to configure the Akka HTTP client which Skuber v2 uses under the hood)
-- Create a request context by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
-- Invoke the required requests using the context.
+- Create a Kubernetes cliet by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
+- Invoke the required requests using the client
 - The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
 
 For example, the following creates a pod  on our Kubernetes cluster:
@@ -147,13 +147,15 @@ val pod: Pod = ??? // read a Pod definition from some file or other source
 k8s create pod 
 ```
 
-When finished making requests the application should call `close` on the request context. Note that this call no longer closes connection resources since Skuber migrated to using Akka, because the use of application-supplied  implicit Akka actor systems means Skuber cannot be sure that other application components are not also using the same actor system. Therefore the application should explicitly perform any required Akka cleanup, e.g.
+When finished making requests the application should call `close` on the Kubernetes client. Note that this call no longer closes connection resources since Skuber migrated to using Akka, because the use of application-supplied  implicit Akka actor systems means Skuber cannot be sure that other application components are not also using the same actor system. Therefore the application should explicitly perform any required Akka cleanup, e.g.
 
 ```scala  
 k8s.close
 system.terminate
 ```     
 ### API Method Summary
+
+(See [here](https://github.com/doriordan/skuber/blob/master/client/src/main/scala/skuber/api/client/KubernetesClient.scala) for the latest complete API documentation)
 
 Create a resource on Kubernetes from a Skuber object kind:
 ```scala
