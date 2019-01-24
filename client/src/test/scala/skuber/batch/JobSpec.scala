@@ -20,6 +20,20 @@ class JobSpec extends Specification {
     job.spec.get.template.get mustEqual template
   }
 
+  "A Job object can be constructed with fluent API" >> {
+    val job = Job("jobname")
+      .withActiveDeadlineSeconds(42)
+      .withBackoffLimit(43)
+      .withCompletions(44)
+      .withParallelism(45)
+
+    job.spec.get.activeDeadlineSeconds mustEqual Some(42)
+    job.spec.get.backoffLimit mustEqual Some(43)
+    job.spec.get.completions mustEqual Some(44)
+    job.spec.get.parallelism mustEqual Some(45)
+  }
+
+
   "A Job object can be written to Json and then read back again successfully" >> {
     val container = Container(name = "jobcontainer", image = "jobimage")
     val template = Pod.Template.Spec.named("jobtemplatespecname").addContainer(container)
