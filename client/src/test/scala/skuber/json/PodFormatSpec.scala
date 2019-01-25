@@ -648,6 +648,7 @@ import Pod._
     pod.spec.get.subdomain mustEqual Some("def")
     pod.spec.get.dnsPolicy mustEqual DNSPolicy.None
     pod.spec.get.hostNetwork mustEqual true
+    pod.spec.get.shareProcessNamespace mustEqual Some(true)
 
     // write and read it back in again and compare
     val json = Json.toJson(pod)

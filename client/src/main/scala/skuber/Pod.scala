@@ -50,8 +50,9 @@ object Pod {
     priorityClassName: Option[String] = None,
     schedulerName: Option[String] = None,
     subdomain: Option[String] = None,
-    dnsConfig: Option[DNSConfig] = None) {
-     
+    dnsConfig: Option[DNSConfig] = None,
+    shareProcessNamespace: Option[Boolean] = None) {
+
     // a few convenience methods for fluently building out a pod spec
     def addContainer(c: Container) = { this.copy(containers = c :: containers) }
     def addInitContainer(c: Container) = { this.copy(initContainers = c :: initContainers) }

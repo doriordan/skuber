@@ -792,7 +792,7 @@ package object format {
       (JsPath \ "securityContext").formatNullable[PodSecurityContext]
      ).tupled
 
-  val podSpecPartTwoFormat: OFormat[(Option[String], List[Pod.HostAlias], Option[Boolean], Option[Boolean], Option[Boolean], Option[Int], Option[String], Option[String], Option[String], Option[Pod.DNSConfig])] = (
+  val podSpecPartTwoFormat: OFormat[(Option[String], List[Pod.HostAlias], Option[Boolean], Option[Boolean], Option[Boolean], Option[Int], Option[String], Option[String], Option[String], Option[Pod.DNSConfig], Option[Boolean])] = (
       (JsPath \ "hostname").formatNullable[String] and
       (JsPath \ "hostAliases").formatMaybeEmptyList[Pod.HostAlias] and
       (JsPath \ "hostPID").formatNullable[Boolean] and
@@ -802,14 +802,15 @@ package object format {
       (JsPath \ "priorityClassName").formatNullable[String] and
       (JsPath \ "schedulerName").formatNullable[String] and
       (JsPath \ "subdomain").formatNullable[String] and
-      (JsPath \ "dnsConfig").formatNullable[Pod.DNSConfig]
+      (JsPath \ "dnsConfig").formatNullable[Pod.DNSConfig] and
+      (JsPath \ "shareProcessNamespace").formatNullable[Boolean]
   ).tupled
 
   implicit val podSpecFmt: Format[Pod.Spec] = (
       podSpecPartOneFormat and podSpecPartTwoFormat
   ).apply({
-    case ((conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc), (host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)) =>
-      Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc)
+    case ((conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc), (host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc, spn)) =>
+      Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc, spn)
   }, s =>(
       ( s.containers,
         s.initContainers,
@@ -836,7 +837,8 @@ package object format {
         s.priorityClassName,
         s.schedulerName,
         s.subdomain,
-        s.dnsConfig
+        s.dnsConfig,
+        s.shareProcessNamespace
       ))
   )
     

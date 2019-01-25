@@ -14,6 +14,7 @@
     "terminationGracePeriodSeconds": 60,
     "hostNetwork": true,
     "dnsPolicy": "None",
+    "shareProcessNamespace": true,
     "imagePullSecrets": [
       {
        "name": "secret"
