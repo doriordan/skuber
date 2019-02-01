@@ -1,5 +1,7 @@
 package skuber.batch
 
+import java.time.ZonedDateTime.parse
+
 import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber.Pod.Template
@@ -61,7 +63,23 @@ class JobSpec extends Specification {
         |		},
         |  "backoffLimit": 4,
         |  "activeDeadlineSeconds": 60
-        |	}
+        |	},
+        | "status": {
+        |    "conditions": [
+        |      {
+        |        "type": "Failed",
+        |        "status": "True",
+        |        "lastProbeTime": "2019-02-01T11:43:05Z",
+        |        "lastTransitionTime": "2019-02-01T11:43:05Z",
+        |        "reason": "BackoffLimitExceeded",
+        |        "message": "Job has reached the specified backoff limit"
+        |      }
+        |    ],
+        |    "startTime": "2019-02-01T11:42:19Z",
+        |    "active": 1,
+        |    "succeeded": 2,
+        |    "failed": 3
+        |  }
         |}
       """.stripMargin
 
@@ -76,5 +94,17 @@ class JobSpec extends Specification {
     val container = templateSpec.spec.get.containers.head
     container.name mustEqual "containername"
     container.image mustEqual "perl"
+    val status = job.status.get
+    status.succeeded mustEqual Some(1)
+    status.active mustEqual Some(2)
+    status.failed mustEqual Some(3)
+    status.startTime mustEqual Some(parse("2019-02-01T11:43:05Z"))
+    val conditions = status.conditions.get
+    conditions.`type` mustEqual Some("Failed")
+    conditions.status mustEqual Some("True")
+    conditions.lastProbeTime mustEqual Some(parse("2019-02-01T11:43:05Z"))
+    conditions.lastTransitionTime mustEqual Some(parse("2019-02-01T11:43:05Z"))
+    conditions.reason mustEqual Some("BackoffLimitExceeded")
+    conditions.message mustEqual Some("Job has reached the specified backoff limit")
   }
 }
