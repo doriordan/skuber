@@ -95,13 +95,13 @@ class JobSpec extends Specification {
     container.name mustEqual "containername"
     container.image mustEqual "perl"
     val status = job.status.get
-    status.succeeded mustEqual Some(1)
-    status.active mustEqual Some(2)
+    status.active mustEqual Some(1)
+    status.succeeded mustEqual Some(2)
     status.failed mustEqual Some(3)
-    status.startTime mustEqual Some(parse("2019-02-01T11:43:05Z"))
-    val conditions = status.conditions.get
-    conditions.`type` mustEqual Some("Failed")
-    conditions.status mustEqual Some("True")
+    status.startTime mustEqual Some(parse("2019-02-01T11:42:19Z"))
+    val conditions = status.conditions.head
+    conditions.`type` mustEqual "Failed"
+    conditions.status mustEqual "True"
     conditions.lastProbeTime mustEqual Some(parse("2019-02-01T11:43:05Z"))
     conditions.lastTransitionTime mustEqual Some(parse("2019-02-01T11:43:05Z"))
     conditions.reason mustEqual Some("BackoffLimitExceeded")
