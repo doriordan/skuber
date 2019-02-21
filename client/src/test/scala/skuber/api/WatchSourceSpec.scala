@@ -322,7 +322,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[JsonParseException]
-      error.getMessage mustEqual "Unexpected character ('a' (code 97)): was expecting double-quote to start field name\n at [Source: {asdf:asdfa}; line: 1, column: 3]"
+      error.getMessage mustEqual "Unexpected character ('a' (code 97)): was expecting double-quote to start field name\n at [Source: (String)\"{asdf:asdfa}\"; line: 1, column: 3]"
 
       verify(client, times(2)).logConfig
       verify(client).buildRequest(

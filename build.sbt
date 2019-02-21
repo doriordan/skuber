@@ -2,27 +2,27 @@
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.0"
-val specs2 = "org.specs2" %% "specs2-core" % "4.3.2"
+val specs2 = "org.specs2" %% "specs2-core" % "4.4.1"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.5"
-val mockito = "org.mockito" % "mockito-core" % "2.21.0"
-val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.14"
+val mockito = "org.mockito" % "mockito-core" % "2.24.5"
+val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.21"
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.21"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.23"
 val commonsIO = "commons-io" % "commons-io" % "2.6"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.11"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.60"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.12"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.61"
 
 // the client API request/response handing uses Akka Http 
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.3"
-val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.14"
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.14"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.7"
+val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.21"
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.21"
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
-val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.14"
-val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
+val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.21"
+val logback = "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.6.9"
+val playJson = "com.typesafe.play" %% "play-json" % "2.7.1"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
@@ -50,6 +50,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
+  scalaVersion := "2.12.8",
   crossScalaVersions := Seq("2.11.12", "2.12.6"),
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
@@ -77,7 +78,14 @@ lazy val examplesSettings = Seq(
 
 // by default run the guestbook example when executing a fat examples JAR
 lazy val examplesAssemblySettings = Seq(
-  mainClass in assembly := Some("skuber.examples.guestbook.Guestbook")
+  mainClass in assembly := Some("skuber.examples.guestbook.Guestbook"),
+  assemblyMergeStrategy in assembly := {
+    case PathList("module-info.class") =>
+      MergeStrategy.discard
+    case x =>
+      val oldStrategy = (assemblyMergeStrategy in assembly).value
+      oldStrategy(x)
+  }
 )
 
 publishArtifact in root := false
@@ -85,6 +93,7 @@ publishArtifact in root := false
 lazy val root = (project in file(".")) 
   .settings(commonSettings: _*)
   .aggregate(skuber, examples)
+  .disablePlugins(AssemblyPlugin)
 
 lazy val skuber= (project in file("client"))
   .configs(IntegrationTest)
@@ -94,9 +103,11 @@ lazy val skuber= (project in file("client"))
     Defaults.itSettings,
     libraryDependencies += scalaTest % "it"
   )
+  .disablePlugins(AssemblyPlugin)
 
 lazy val examples = (project in file("examples"))
   .settings(commonSettings: _*)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
+  .enablePlugins(AssemblyPlugin)

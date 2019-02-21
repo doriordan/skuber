@@ -16,13 +16,13 @@ class HorizontalPodAutoscalerSpec extends Specification {
 
   "A HorizontalPodAutoscaler can" >> {
     "decoded from json" >> {
-      Json.parse(createJson("/exampleHorizontalPodAutoscaler.json")).validate[HorizontalPodAutoscaler] mustEqual JsSuccess(hpa)
+      Json.parse(readResource("/exampleHorizontalPodAutoscaler.json")).validate[HorizontalPodAutoscaler] mustEqual JsSuccess(hpa)
     }
 
     "encode to json" >> {
       Json.stringify(
         Json.toJson(hpa)
-      ) mustEqual createJson("/exampleHorizontalPodAutoscaler.json")
+      ) mustEqual readResource("/exampleHorizontalPodAutoscaler.json")
     }
   }
 
@@ -108,7 +108,7 @@ class HorizontalPodAutoscalerSpec extends Specification {
     )
   )
 
-  private def createJson(file: String): String = {
+  private def readResource(file: String): String = {
     val source = scala.io.Source.fromURL(getClass.getResource(file))
     try source.mkString finally source.close()
   }
