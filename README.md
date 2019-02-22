@@ -33,7 +33,7 @@ This example lists pods in `kube-system` namespace:
   implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
-  val k8s = k8sInit()
+  val k8s = k8sInit
   val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
   listPodsRequest.onComplete {
     case Success(pods) => pods.items.foreach { p => println(p.name) }
