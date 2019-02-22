@@ -47,7 +47,7 @@ object Job {
                   template: Option[Pod.Template.Spec] = None,
                   backoffLimit: Option[Int] = None)
 
-  case class Status(conditions: Option[Condition] = None,
+  case class Status(conditions: List[Condition] = List(),
                     startTime: Option[Timestamp] = None,
                     completionTime: Option[Timestamp] = None,
                     active: Option[Int] = None,

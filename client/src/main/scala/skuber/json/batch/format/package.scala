@@ -23,7 +23,7 @@ package object format {
     )(Job.Condition.apply _, unlift(Job.Condition.unapply))
 
   implicit val jobStatusFormat: Format[Job.Status] = (
-      (JsPath \ "conditions").formatNullable[Job.Condition] and
+      (JsPath \ "conditions").formatMaybeEmptyList[Job.Condition] and
       (JsPath \ "startTime").formatNullable[Timestamp] and
       (JsPath \ "completionTime").formatNullable[Timestamp] and
       (JsPath \ "active").formatNullable[Int] and
