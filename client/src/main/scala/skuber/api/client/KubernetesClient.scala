@@ -335,9 +335,9 @@ trait KubernetesClient {
     * @param maybeContainerName an optional container name
     * @param maybeStdin optional Akka Source for sending input to stdin for the command
     * @param maybeStdout optional Akka Sink to receive output from stdout for the command
-    * @param maybeStderr optional Akka Sink to recieve output from stderr for the command
+    * @param maybeStderr optional Akka Sink to receive output from stderr for the command
     * @param tty optionally set tty on
-    * @param maybeClose if set, this Promise can be used to terminate the command
+    * @param maybeClose if set, this can be used to close the connection to the pod by completing the promise
     * @return A future indicating the exec command has been submitted
     */
   def exec(
