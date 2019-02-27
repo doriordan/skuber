@@ -42,6 +42,7 @@ case class Service(
   def withClusterIP(ip: String) = this.copy(spec = Some(copySpec.copy(clusterIP = ip)))
   def withType(_type: Service.Type.Value) = this.copy(spec = Some(copySpec.copy(_type = _type)))
   def withLoadBalancerType = withType(Service.Type.LoadBalancer)
+  def withLoadBalancerIP(ip: String) = this.copy(spec = Some(copySpec.copy(loadBalancerIP = ip)))
   
   def withExternalIP(ip: String) = this.copy(spec = Some(copySpec.copy(externalIPs = List(ip))))
   def withExternalIPs(ips: List[String]) = this.copy(spec = Some(copySpec.copy(externalIPs = ips)))
@@ -108,7 +109,9 @@ object Service {
      _type: ServiceType=ClusterIP,
      externalIPs: List[String] = List(),
      externalName: String = "",
-     sessionAffinity: Affinity.Affinity = Affinity.None)
+     sessionAffinity: Affinity.Affinity = Affinity.None,
+     loadBalancerIP: String = ""
+   )
    {
      def withSelector(sel: Map[String, String]) : Spec = this.copy(selector = sel)
      def withSelector(sel: Tuple2[String,String]): Spec = withSelector(Map(sel))
