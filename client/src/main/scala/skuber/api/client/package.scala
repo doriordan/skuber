@@ -94,13 +94,67 @@ package object client {
     override def toString = """OidcAuth(idToken=<redacted>)"""
   }
 
-  final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderAuth {
+  final case class ExecAuth private(private[api] val cmd: ExecAuthCommand, executioner: CommandExecutioner) extends AuthProviderAuth {
+    override def name: String = "exec"
+
+    def command = cmd.command
+
+    @volatile private var refresh: ExecRefresh = new ExecRefresh("", None)
+
+    def refreshToken(): ExecRefresh = {
+      val output = executioner.execute(
+        command = cmd.command +: cmd.args,
+        env = cmd.env
+      )
+      Json.parse(output).as[ExecRefresh]
+    }
+
+    def accessToken: String = this.synchronized {
+      if(refresh.expired)
+        refresh = refreshToken()
+      refresh.accessToken
+    }
+
+    override def toString = """ExecAuth(token=<redacted>)""".stripMargin
+  }
+
+  final private[client] case class ExecRefresh(accessToken: String, maybeExpiry: Option[Instant]) {
+    def expired: Boolean = !maybeExpiry.exists(expiry => Instant.now.isBefore(expiry.minusSeconds(20)))
+  }
+
+  private[client] object ExecRefresh {
+    implicit val execRefreshReads: Reads[ExecRefresh] = (
+    (JsPath \ "status" \ "token").read[String] and
+      (JsPath \ "status" \ "expirationTimestamp").readNullable[Instant]
+    )(ExecRefresh.apply _)
+  }
+
+  trait CommandExecutioner {
+    def execute(command: Seq[String], env: Seq[(String,String)]): String
+  }
+
+  implicit val defaultCommandExecution = new CommandExecutioner {
+    override def execute(command: Seq[String], env: Seq[(String, String)]): String = {
+      scala.sys.process.Process(
+        command = command,
+        cwd = None,
+        extraEnv = env:_*
+      ).!!
+    }
+  }
+
+  final case class GcpAuth private(private val config: GcpConfiguration, executioner: CommandExecutioner) extends AuthProviderAuth {
     override val name = "gcp"
+
+    def command = config.cmd.cmd
 
     @volatile private var refresh: GcpRefresh = new GcpRefresh(config.accessToken, config.expiry)
 
     def refreshGcpToken(): GcpRefresh = {
-      val output = config.cmd.execute()
+     val output = executioner.execute(
+        command = config.cmd.cmd +: config.cmd.args.split("""\s+""").toSeq,
+        env = Seq.empty
+     )
       Json.parse(output).as[GcpRefresh]
     }
 
@@ -128,21 +182,29 @@ package object client {
 
   final case class GcpConfiguration(accessToken: String, expiry: Instant, cmd: GcpCommand)
 
-  final case class GcpCommand(cmd: String, args: String) {
+  final case class ExecAuthCommand(command: String, args: Seq[String], env: Seq[(String,String)])
 
-    import scala.sys.process._
+  final case class GcpCommand(cmd: String, args: String)
 
-    def execute(): String = s"$cmd $args".!!
+  object ExecAuth {
+    def apply(command: String, args: Seq[String], env: Seq[(String,String)])
+      (implicit executioner: CommandExecutioner): ExecAuth =
+      new ExecAuth(
+        cmd = ExecAuthCommand(command, args, env),
+        executioner
+      )
   }
 
   object GcpAuth {
-    def apply(accessToken: String, expiry: Instant, cmdPath: String, cmdArgs: String): GcpAuth =
+    def apply(accessToken: String, expiry: Instant, cmdPath: String, cmdArgs: String)
+      (implicit executioner: CommandExecutioner): GcpAuth =
       new GcpAuth(
         GcpConfiguration(
           accessToken = accessToken,
           expiry = expiry,
           GcpCommand(cmdPath, cmdArgs)
-        )
+        ),
+        executioner
       )
   }
 
