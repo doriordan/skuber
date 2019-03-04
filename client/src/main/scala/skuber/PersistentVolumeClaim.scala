@@ -46,6 +46,7 @@ object PersistentVolumeClaim {
     volumeMode: VolumeMode.VolumeMode,
     resources: Option[Resource.Requirements] = None,
     storageClassName: Option[String] = None,
+    volumeName: Option[String] = None,
     selector: Option[Selector] = None
   )
 

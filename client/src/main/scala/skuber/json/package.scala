@@ -996,6 +996,7 @@ package object format {
       (JsPath \ "volumeMode").formatEnum(PersistentVolumeClaim.VolumeMode, Some(PersistentVolumeClaim.VolumeMode.Filesystem)) and
       (JsPath \ "resources").formatNullable[Resource.Requirements] and
       (JsPath \ "storageClassName").formatNullable[String] and
+      ((JsPath \ "volumeName").formatNullable[String]) and
       (JsPath \ "selector").formatNullable[Selector]
     )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
 
@@ -1004,7 +1005,12 @@ package object format {
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
     )(PersistentVolumeClaim.Status.apply _, unlift(PersistentVolumeClaim.Status.unapply))
 
-  implicit val pvcFmt: Format[PersistentVolumeClaim] = Json.format[PersistentVolumeClaim]
+  implicit val pvcFmt: Format[PersistentVolumeClaim] =  (
+    objFormat and
+      (JsPath \ "spec").formatNullable[PersistentVolumeClaim.Spec] and
+      (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
+    )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
+
 
   implicit val configMapFmt: Format[ConfigMap] = (
     objFormat and
