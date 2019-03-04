@@ -28,6 +28,7 @@ class VolumeReadWriteSpec extends Specification {
           volumeMode = VolumeMode.Filesystem,
           resources=Some(Resource.Requirements(limits=Map("storage" -> "30Gi"))),
           storageClassName = Some("a-storage-class-name"),
+          volumeName = Some("volume-name"),
           selector = Some(Selector(matchLabels = Some(Map("label" -> "value")), matchExpressions = None))
         ))
       )
