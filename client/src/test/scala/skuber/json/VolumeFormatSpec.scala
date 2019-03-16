@@ -25,10 +25,10 @@ class VolumeReadWriteSpec extends Specification {
         ),
         spec = Some(PersistentVolumeClaim.Spec(
           accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
-          volumeMode = VolumeMode.Filesystem,
-          resources=Some(Resource.Requirements(limits=Map("storage" -> "30Gi"))),
-          storageClassName = Some("a-storage-class-name"),
+          resources = Some(Resource.Requirements(limits=Map("storage" -> "30Gi"))),
           volumeName = Some("volume-name"),
+          storageClassName = Some("a-storage-class-name"),
+          volumeMode = Some(VolumeMode.Filesystem),
           selector = Some(Selector(matchLabels = Some(Map("label" -> "value")), matchExpressions = None))
         ))
       )

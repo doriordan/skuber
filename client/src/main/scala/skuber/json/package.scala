@@ -993,10 +993,10 @@ package object format {
 
   implicit val pvClaimSpecFmt: Format[PersistentVolumeClaim.Spec] = (
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
-      (JsPath \ "volumeMode").formatEnum(PersistentVolumeClaim.VolumeMode, Some(PersistentVolumeClaim.VolumeMode.Filesystem)) and
       (JsPath \ "resources").formatNullable[Resource.Requirements] and
-      (JsPath \ "storageClassName").formatNullable[String] and
       ((JsPath \ "volumeName").formatNullable[String]) and
+      (JsPath \ "storageClassName").formatNullable[String] and
+      (JsPath \ "volumeMode").formatNullableEnum(PersistentVolumeClaim.VolumeMode) and
       (JsPath \ "selector").formatNullable[Selector]
     )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
 

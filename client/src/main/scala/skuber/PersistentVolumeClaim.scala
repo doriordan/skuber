@@ -43,10 +43,10 @@ object PersistentVolumeClaim {
   import PersistentVolume.AccessMode
   case class Spec(
     accessModes: List[AccessMode.AccessMode] = Nil,
-    volumeMode: VolumeMode.VolumeMode,
     resources: Option[Resource.Requirements] = None,
-    storageClassName: Option[String] = None,
     volumeName: Option[String] = None,
+    storageClassName: Option[String] = None,
+    volumeMode: Option[VolumeMode.VolumeMode] = None,
     selector: Option[Selector] = None
   )
 
