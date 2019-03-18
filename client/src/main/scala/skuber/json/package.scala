@@ -9,7 +9,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber.Volume.{ConfigMapVolumeSource, KeyToPath}
 import skuber._
-import skuber.api.patch.{JsonPatchOperation, JsonPatch, MetadataPatch}
+import skuber.annotation.MatchExpression
+import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
 
 /**
  * @author David O'Riordan
@@ -986,24 +987,30 @@ package object format {
     (JsPath \ "spec").formatNullable[PersistentVolume.Spec] and
     (JsPath \ "status").formatNullable[PersistentVolume.Status]
   )(PersistentVolume.apply _, unlift(PersistentVolume.unapply))
-  
+
+  import skuber.json.annotation.format.matchExpressionFormat
+  implicit val selectorFmt: Format[Selector] = Json.format[Selector]
+
   implicit val pvClaimSpecFmt: Format[PersistentVolumeClaim.Spec] = (
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
-    (JsPath \ "resources").formatNullable[Resource.Requirements] and
-    (JsPath \ "volumeName").formatMaybeEmptyString() and
-    (JsPath \ "storageClassName").formatNullable[String]
-  )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
-  
+      (JsPath \ "resources").formatNullable[Resource.Requirements] and
+      ((JsPath \ "volumeName").formatNullable[String]) and
+      (JsPath \ "storageClassName").formatNullable[String] and
+      (JsPath \ "volumeMode").formatNullableEnum(PersistentVolumeClaim.VolumeMode) and
+      (JsPath \ "selector").formatNullable[Selector]
+    )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
+
   implicit val pvClaimStatusFmt: Format[PersistentVolumeClaim.Status] = (
     (JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
-    (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
-  )(PersistentVolumeClaim.Status.apply _, unlift(PersistentVolumeClaim.Status.unapply))
-  
-  implicit val pvClaimFmt: Format[PersistentVolumeClaim] = (
+      (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
+    )(PersistentVolumeClaim.Status.apply _, unlift(PersistentVolumeClaim.Status.unapply))
+
+  implicit val pvcFmt: Format[PersistentVolumeClaim] =  (
     objFormat and
-    (JsPath \ "spec").formatNullable[PersistentVolumeClaim.Spec] and
-    (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
-  )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
+      (JsPath \ "spec").formatNullable[PersistentVolumeClaim.Spec] and
+      (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
+    )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
+
 
   implicit val configMapFmt: Format[ConfigMap] = (
     objFormat and

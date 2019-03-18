@@ -5,8 +5,9 @@ import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber._
 import skuber.json.format._
-
 import scala.io.Source
+
+import skuber.PersistentVolumeClaim.VolumeMode
 
 /**
  * @author David O'Riordan
@@ -24,8 +25,11 @@ class VolumeReadWriteSpec extends Specification {
         ),
         spec = Some(PersistentVolumeClaim.Spec(
           accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
+          resources = Some(Resource.Requirements(limits=Map("storage" -> "30Gi"))),
+          volumeName = Some("volume-name"),
           storageClassName = Some("a-storage-class-name"),
-          resources=Some(Resource.Requirements(limits=Map("storage" -> "30Gi")))
+          volumeMode = Some(VolumeMode.Filesystem),
+          selector = Some(Selector(matchLabels = Some(Map("label" -> "value")), matchExpressions = None))
         ))
       )
       val pvcJson = Json.toJson(pvc)
