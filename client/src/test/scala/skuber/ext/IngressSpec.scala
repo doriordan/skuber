@@ -73,7 +73,7 @@ class IngressSpec extends Specification {
     ing.kind mustEqual "Ingress"
     ing.name mustEqual "example-ingress"
 
-    ing.spec.get.rules.head.host must_== "example.com"
+    ing.spec.get.rules.head.host must beSome("example.com")
     ing.spec.get.rules.head.http.paths must_== List(Ingress.Path(
       path = "",
       backend = Ingress.Backend("service", 80)
