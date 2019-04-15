@@ -20,9 +20,7 @@ class HorizontalPodAutoscalerSpec extends Specification {
     }
 
     "encode to json" >> {
-      Json.stringify(
-        Json.toJson(hpa)
-      ) mustEqual createJson("/exampleHorizontalPodAutoscaler.json")
+      Json.toJson(hpa) mustEqual Json.parse(createJson("/exampleHorizontalPodAutoscaler.json"))
     }
   }
 
