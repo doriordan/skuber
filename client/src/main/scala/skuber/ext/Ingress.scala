@@ -22,12 +22,24 @@ case class Ingress(
    * Fluent API method for building out ingress rules e.g.
    * val ingress = Ingress("microservices").
    *   addHttpRule("foo.bar.com",
-   *                Map("/order" -> "orderService:80", "inventory" -> "inventoryService:80").
+   *                Map("/order" -> "orderService:80", "inventory" -> "inventoryService:80")).
    *   addHttpRule("foo1.bar.com",
-   *                Map("/ship" -> "orderService:80", "inventory" -> "inventoryService:80").
+   *                Map("/ship" -> "orderService:80", "inventory" -> "inventoryService:80")).
    *
    */
-  def addHttpRule(host:String, pathsMap: Map[String, String]): Ingress = {
+  def addHttpRule(host:String, pathsMap: Map[String, String]): Ingress =
+    addHttpRule(Some(host), pathsMap)
+
+  /*
+   * Fluent API method for building out ingress rules e.g.
+   * val ingress = Ingress("microservices").
+   *   addHttpRule(Some("foo.bar.com"),
+   *                Map("/order" -> "orderService:80", "inventory" -> "inventoryService:80")).
+   *   addHttpRule(None,
+   *                Map("/ship" -> "orderService:80", "inventory" -> "inventoryService:80")).
+   *
+   */
+  def addHttpRule(host: Option[String], pathsMap: Map[String, String]): Ingress = {
     val paths: List[Ingress.Path] = pathsMap map { case (path: String, backend: String) =>
        val beParts = backend.split(':')
        if (beParts.size != 2)
@@ -38,7 +50,6 @@ case class Ingress(
     } toList
     val httpRule = Ingress.HttpRule(paths)
     val rule = Ingress.Rule(host, httpRule)
-    val baseSpec=copySpec
     val withRuleSpec=copySpec.copy(rules = copySpec.rules :+ rule)
     this.copy(spec = Some(withRuleSpec))
   }
@@ -72,7 +83,7 @@ object Ingress {
   case class Backend(serviceName: String, servicePort: Int = 0)
   case class Path(path: String, backend: Backend)
   case class HttpRule(paths: List[Path] = List())
-  case class Rule(host: String, http: HttpRule)
+  case class Rule(host: Option[String], http: HttpRule)
   case class TLS(hosts: List[String]=List(), secretName: String="")
 
   case class Spec(
