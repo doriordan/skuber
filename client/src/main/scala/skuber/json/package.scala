@@ -481,7 +481,7 @@ package object format {
     (JsPath \ "initialDelaySeconds").formatMaybeEmptyInt() and
     (JsPath \ "timeoutSeconds").formatMaybeEmptyInt() and
     (JsPath \ "periodSeconds").formatNullable[Int] and
-    (JsPath \ "successTreshold").formatNullable[Int] and
+    (JsPath \ "successThreshold").formatNullable[Int] and
     (JsPath \ "failureThreshold").formatNullable[Int]
   )(Probe.apply _, unlift(Probe.unapply))
   
