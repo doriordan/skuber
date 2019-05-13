@@ -19,6 +19,7 @@ case class Job(val kind: String = "Job",
   def withCompletions(completions: Int) = this.copy(spec = Some(copySpec.copy(completions = Some(completions))))
   def withActiveDeadlineSeconds(seconds: Int) = this.copy(spec = Some(copySpec.copy(activeDeadlineSeconds = Some(seconds))))
   def withBackoffLimit(limit: Int) = this.copy(spec = Some(copySpec.copy(backoffLimit = Some(limit))))
+  def withTTLSecondsAfterFinished(limit: Int) = this.copy(spec = Some(copySpec.copy(ttlSecondsAfterFinished = Some(limit))))
 }
 
 object Job {
@@ -45,7 +46,8 @@ object Job {
                   selector: Option[LabelSelector] = None,
                   manualSelector: Option[Boolean] = None,
                   template: Option[Pod.Template.Spec] = None,
-                  backoffLimit: Option[Int] = None)
+                  backoffLimit: Option[Int] = None,
+                  ttlSecondsAfterFinished: Option[Int] = None)
 
   case class Status(conditions: List[Condition] = List(),
                     startTime: Option[Timestamp] = None,

@@ -38,7 +38,8 @@ package object format {
       (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "manualSelector").formatNullable[Boolean] and
       (JsPath \ "template").formatNullable[Pod.Template.Spec] and
-      (JsPath \ "backoffLimit").formatNullable[Int]
+      (JsPath \ "backoffLimit").formatNullable[Int] and
+      (JsPath \ "ttlSecondsAfterFinished").formatNullable[Int]
     )(Job.Spec.apply _, unlift(Job.Spec.unapply))
 
   implicit val jobFormat: Format[Job] = (
