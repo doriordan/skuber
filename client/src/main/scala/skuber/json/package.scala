@@ -20,8 +20,10 @@ package object format {
   
   // Formatters for the Java 8 ZonedDateTime objects that represent
   // (ISO 8601 / RFC 3329 compatible) Kubernetes timestamp fields 
-  implicit val timewWrites = Writes.temporalWrites[ZonedDateTime, DateTimeFormatter](
+  implicit val timeWrites = Writes.temporalWrites[ZonedDateTime, DateTimeFormatter](
       DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  @deprecated("Use timeWrites instead", "2.3.0")
+  def timewWrites = timeWrites
   implicit val timeReads = Reads.DefaultZonedDateTimeReads    
       
   // Many Kubernetes fields are interpreted as "empty" if they have certain values:
