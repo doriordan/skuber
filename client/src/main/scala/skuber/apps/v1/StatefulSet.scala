@@ -72,7 +72,7 @@ object StatefulSet {
     selector: Option[LabelSelector] = None,
     template: Pod.Template.Spec,
     volumeClaimTemplates: List[PersistentVolumeClaim] = Nil,
-    podManagmentPolicy: Option[PodManagementPolicyType.PodManagementPolicyType] = None,
+    podManagementPolicy: Option[PodManagementPolicyType.PodManagementPolicyType] = None,
     updateStrategy: Option[UpdateStrategy] = None,
     revisionHistoryLimit: Option[Int] = None)
   {
@@ -105,7 +105,7 @@ object StatefulSet {
     (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").format[Pod.Template.Spec] and
     (JsPath \ "volumeClaimTemplates").formatMaybeEmptyList[PersistentVolumeClaim] and
-    (JsPath \ "podManagmentPolicy").formatNullableEnum(StatefulSet.PodManagementPolicyType) and
+    (JsPath \ "podManagementPolicy").formatNullableEnum(StatefulSet.PodManagementPolicyType) and
     (JsPath \ "updateStrategy").formatNullable[StatefulSet.UpdateStrategy] and
     (JsPath \ "revisionHistoryLimit").formatNullable[Int]
   )(StatefulSet.Spec.apply _, unlift(StatefulSet.Spec.unapply))
