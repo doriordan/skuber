@@ -11,8 +11,7 @@ import skuber.api.client._
  */
 class AuthSpec extends Specification {
   "This is a unit specification for the auth data model. ".txt
-  
-  
+
   // Auth
   "Auth toString works when empty" >> {
     NoAuth.toString mustEqual "NoAuth"
@@ -43,6 +42,10 @@ class AuthSpec extends Specification {
   "GcpAuth toString masks accessToken" >> {
     GcpAuth(accessToken = "MyAccessToken", expiry = Instant.now, cmdPath = "gcp", cmdArgs = "").toString mustEqual
       "GcpAuth(accessToken=<redacted>)"
+  }
+
+  "ExecAuth toString masks token" >> {
+    ExecAuth("", Seq.empty, Seq.empty).toString mustEqual "ExecAuth(token=<redacted>)"
   }
 
   "OidcAuth toString masks idToken" >> {

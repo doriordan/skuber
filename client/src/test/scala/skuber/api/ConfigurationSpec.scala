@@ -77,6 +77,17 @@ users:
         expiry-key: '{.credential.token_expiry}'
         token-key: '{.credential.access_token}'
       name: gcp
+- name: aws-user
+  user:
+    exec:
+      apiVersion: "client.authentication.k8s.io/v1alpha1"
+      command: "/usr/local/bin/heptio-authenticator-aws"
+      args: ["token", "-i", "CLUSTER_ID", "-r", "ROLE_ARN"]
+      env:
+      - name: "1"
+        value: "2"
+      - name: "3"
+        value: "4"
 """
 
   implicit val system=ActorSystem("test")
@@ -100,7 +111,12 @@ users:
     val jwtUser= OidcAuth(idToken = "jwt-token")
     val gcpUser = GcpAuth(accessToken = "myAccessToken", expiry = Instant.parse("2018-03-04T14:08:18Z"),
       cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
-    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser)
+    val awsUser = ExecAuth(
+      command = "/usr/local/bin/heptio-authenticator-aws",
+      args = Seq("token", "-i", "CLUSTER_ID", "-r", "ROLE_ARN"),
+      env = Seq("1" -> "2", "3" -> "4")
+    )
+    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser, "aws-user"->awsUser)
 
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
     val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))
