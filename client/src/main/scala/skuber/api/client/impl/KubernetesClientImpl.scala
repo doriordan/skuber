@@ -642,7 +642,8 @@ class KubernetesClientImpl private[client] (
     podCompletion: WatchEvent[Pod] => Future[Unit],
     watchContinuouslyRequestTimeout: Duration,
     deletionMonitorRepeatDelay: FiniteDuration,
-    pool: Option[Pool[WatchSource.Start[Pod]]])(implicit jfmt: Format[Job], pfmt: Format[Pod], jrd: ResourceDefinition[Job], prd: ResourceDefinition[Pod])
+    pool: Option[Pool[WatchSource.Start[Pod]]],
+    bufSize: Int = 10000)(implicit jfmt: Format[Job], pfmt: Format[Pod], jrd: ResourceDefinition[Job], prd: ResourceDefinition[Pod])
   : Future[(Pool[WatchSource.Start[Pod]], Option[Http.HostConnectionPool], WatchEvent[Pod])] =
     for {
       j <- create(job)
@@ -652,6 +653,7 @@ class KubernetesClientImpl private[client] (
             labelSelector = Some(labelSelector),
             timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds)
           ),
+          bufsize = bufSize,
           pool = pool
         )
           .takeWhile(podProgress, inclusive = true)

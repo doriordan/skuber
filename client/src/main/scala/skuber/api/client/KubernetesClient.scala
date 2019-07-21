@@ -381,6 +381,7 @@ trait KubernetesClient {
     * @param watchContinuouslyRequestTimeout the delay for continuously monitoring the pod progress
     * @param deletionMonitorRepeatDelay the delay for continuously monitoring the job deletion
     * @param pool a skuber pool to reuse, if any, or to create otherwise
+    * @param bufSize optional buffer size for received object updates, normally the default is more than enough
     * @return A future consisting of a triple of the following:
     *         - the skuber pool suitable for subsequently executing other jobs on the same server
     *         - the akka host connection pool that can be shutdown when no further jobs need to be executed on the same server
@@ -393,7 +394,8 @@ trait KubernetesClient {
     podCompletion: WatchEvent[Pod] => Future[Unit],
     watchContinuouslyRequestTimeout: Duration,
     deletionMonitorRepeatDelay: FiniteDuration,
-    pool: Option[Pool[WatchSource.Start[Pod]]])(implicit jfmt: Format[Job], pfmt: Format[Pod], jrd: ResourceDefinition[Job], prd: ResourceDefinition[Pod]):
+    pool: Option[Pool[WatchSource.Start[Pod]]],
+    bufSize: Int = 10000)(implicit jfmt: Format[Job], pfmt: Format[Pod], jrd: ResourceDefinition[Job], prd: ResourceDefinition[Pod]):
   Future[(Pool[WatchSource.Start[Pod]], Option[Http.HostConnectionPool], WatchEvent[Pod])]
 
   /**
