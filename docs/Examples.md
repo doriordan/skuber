@@ -223,12 +223,102 @@ val watchContinuouslyRequestTimeout: Duration = ...
 val deletionMonitorRepeatDelay: FiniteDuration = ...
 ```
 
-Next, define a list of jobs to execute.
-This example generates a sequence of jobs, some that cannot be executed.
+There are different strategies to execute jobs.
 
-```scala
- val jobs = Seq.tabulate[Job](n = 10) { n =>
-      if (n % 3 == 0) {
+- Sequentially
+
+    Define a list of jobs to execute.
+    This example generates a sequence of jobs, some that cannot be executed.
+    
+    ```scala
+     val jobs = Seq.tabulate[Job](n = 10) { n =>
+          if (n % 3 == 0) {
+            // simulate a job failure
+            val piContainer = Container(name = "pi",
+                                        image = "nowhere/does-not-exist:latest",
+                                        command = List("/bin/bash"),
+                                        args = List("-c", "env"))
+            val piSpec = Pod
+              .Spec()
+              .addContainer(piContainer)
+              .withRestartPolicy(RestartPolicy.Never)
+            val piTemplateSpec =
+              Pod.Template.Spec(metadata = metadata(n)).withPodSpec(piSpec)
+            Job("pi").withTemplate(piTemplateSpec)
+          } else {
+            val piContainer = Container(
+              name = "pi",
+              image = "perl",
+              command =
+                List("perl", "-Mbignum=bpi", "-wle", s"print bpi(${n * 10})"))
+            val piSpec = Pod
+              .Spec()
+              .addContainer(piContainer)
+              .withRestartPolicy(RestartPolicy.Never)
+            val piTemplateSpec =
+              Pod.Template.Spec(metadata = metadata(n)).withPodSpec(piSpec)
+            Job("pi").withTemplate(piTemplateSpec)
+          }
+        }
+    ```
+
+    Execute the first job without a host connection pool
+    and reuse the pool obtained for executing subsequent jobs.
+    Finally, shutdown the connection pool.
+        
+    ```scala
+        val (firstJob, otherJobs) = (jobs.head, jobs.tail)
+    
+        val f: Future[Unit] = for {
+    
+          // First run: create a pool.
+          (pool, hcp, podEvent) <- k8s.executeJobAndWaitUntilDeleted(
+            firstJob,
+            labelSelector,
+            podProgress,
+            podCompletion(k8s),
+            watchContinuouslyRequestTimeout,
+            deletionMonitorRepeatDelay,
+            None)
+    
+          // Subsequent runs: reuse the same pool.
+          _ <- Source
+            .fromIterator(() => otherJobs.toIterator)
+            .mapAsync(parallelism = 1) { job: Job =>
+              k8s.executeJobAndWaitUntilDeleted(job,
+                                                labelSelector,
+                                                podProgress,
+                                                podCompletion(k8s),
+                                                watchContinuouslyRequestTimeout,
+                                                deletionMonitorRepeatDelay,
+                                                Some(pool))
+            }
+            .runForeach(_ => ())
+    
+          // Shutdown the pool, if any.
+          _ <- hcp.fold(Future.successful(()))(_.shutdown().map(_ => ()))
+    
+        } yield ()
+    ```
+
+    For a working example, see: [PiJobsSequential.scala](examples/job/PiJobsSequential.scala)
+    
+- In parallel
+
+    Define a list of job execution futures,
+    taking care of shutting down the pool after completion.
+    
+    ```scala
+    
+    def metadata(n: Int) =
+      ObjectMeta(name = s"pi-$n",
+                 labels = Map("job-kind" -> s"piTest$n", "iteration" -> s"$n"))
+    def labelSelector(n: Int) =
+      LabelSelector(LabelSelector.IsEqualRequirement("job-kind", s"piTest$n"))
+
+    val jobs = Seq.tabulate[Future[Unit]](n = 10) { n =>
+      val jname = s"pi-$n"
+      val job: Job = if (n % 3 == 0) {
         // simulate a job failure
         val piContainer = Container(name = "pi",
                                     image = "nowhere/does-not-exist:latest",
@@ -240,7 +330,7 @@ This example generates a sequence of jobs, some that cannot be executed.
           .withRestartPolicy(RestartPolicy.Never)
         val piTemplateSpec =
           Pod.Template.Spec(metadata = metadata(n)).withPodSpec(piSpec)
-        Job("pi").withTemplate(piTemplateSpec)
+        Job(jname).withTemplate(piTemplateSpec)
       } else {
         val piContainer = Container(
           name = "pi",
@@ -253,51 +343,36 @@ This example generates a sequence of jobs, some that cannot be executed.
           .withRestartPolicy(RestartPolicy.Never)
         val piTemplateSpec =
           Pod.Template.Spec(metadata = metadata(n)).withPodSpec(piSpec)
-        Job("pi").withTemplate(piTemplateSpec)
+        Job(jname).withTemplate(piTemplateSpec)
       }
+
+      for {
+        // Execute the job with a unique pool
+        (_, hcp, _) <- k8s.executeJobAndWaitUntilDeleted(
+          job,
+          labelSelector(n),
+          podProgress,
+          podCompletion(k8s),
+          watchContinuouslyRequestTimeout,
+          deletionMonitorRepeatDelay,
+          None)
+
+        // Shutdown the pool, if any.
+        _ <- hcp.fold(Future.successful(()))(_.shutdown().map(_ => ()))
+      } yield ()
+
     }
-```
+    ```
+    
+    Execute the job futures in parallel.
+    
+    ```scala
+     val f: Future[Unit] =
+      Future.foldLeft[Unit, Unit](jobs)(())((_: Unit, _: Unit) => ())
+    ```
 
-Finally, exeute them. Note that skuber will create a host connection pool
-for the first job and that this pool will be reused for subsequent jobs
-and will be shutdown when no more jobs need to be executed on the same server.
-
-```scala
-    val (firstJob, otherJobs) = (jobs.head, jobs.tail)
-
-    val f: Future[Unit] = for {
-
-      // First run: create a pool.
-      (pool, hcp, podEvent) <- k8s.executeJobAndWaitUntilDeleted(
-        firstJob,
-        labelSelector,
-        podProgress,
-        podCompletion(k8s),
-        watchContinuouslyRequestTimeout,
-        deletionMonitorRepeatDelay,
-        None)
-
-      // Subsequent runs: reuse the same pool.
-      _ <- Source
-        .fromIterator(() => otherJobs.toIterator)
-        .mapAsync(parallelism = 1) { job: Job =>
-          k8s.executeJobAndWaitUntilDeleted(job,
-                                            labelSelector,
-                                            podProgress,
-                                            podCompletion(k8s),
-                                            watchContinuouslyRequestTimeout,
-                                            deletionMonitorRepeatDelay,
-                                            Some(pool))
-        }
-        .runForeach(_ => ())
-
-      // Shutdown the pool, if any.
-      _ <- hcp.fold(Future.successful(()))(_.shutdown().map(_ => ()))
-
-    } yield ()
-```
-
-
+    For a working example, see: [PiJobsParallel.scala](examples/job/PiJobsParallel.scala)
+    
 ## Safely shutdown the client
 
 ```scala
