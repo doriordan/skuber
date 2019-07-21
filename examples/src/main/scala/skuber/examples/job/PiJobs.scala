@@ -1,127 +1,39 @@
-# Skuber usage examples
+package skuber.examples.job
 
-Skuber is built on top of Akka HTTP and therefore it is non-blocking and concurrent by default.
-Almost all requests return a Future, and you need to write a little bit of extra code if you want quick
-experiments in a single-threaded environment (like Ammonite REPL, or simple tests)
-It all boils down to either using Await or onComplete - see examples below.
-
-## Basic imports
-
-```scala
-import skuber._
-import skuber.json.format._
-
-
-// Some standard Akka implicits that are required by the skuber v2 client API
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-
-implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
-implicit val dispatcher = system.dispatcher
-```
-
-## Populate cluster access configuration and initialize client
-
-You can configure cluster in [many different ways](Configuration.md). This example
-directly calls method that reads kubeconfig file at default location.
-Check [kubernetes docs](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#before-you-begin) if you don't know what is kubeconfig or where to look for it.
-
-```scala
-import api.Configuration
-
-// assumes that Success is returned.
-val cfg: Configuration = Configuration.parseKubeconfigFile().get
-val k8s = k8sInit(cfg)
-```
-
-## List pods example
-
-Here we use `k8s` client to get all pods in `kube-system` namespace:
-
-```scala
-import scala.util.{Success, Failure}
-val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
-listPodsRequest.onComplete {
-  case Success(pods) => pods.items.foreach { p => println(p.name) }
-  case Failure(e) => throw(e)
+import akka.stream.scaladsl._
+import akka.util.ByteString
+import com.typesafe.config.{Config, ConfigFactory}
+import skuber.api.client.{
+  EventType,
+  KubernetesClient,
+  WatchEvent,
+  defaultK8sConfig
 }
-```
-
-## List Namespaces
-
-```scala
-import scala.concurrent.Await
-import scala.concurrent.duration._
-
-val list = Await.result(k8s.list[NamespaceList], 10.seconds).items.map(i => i.name)
-// res19: List[String] = List("default", "kube-public", "kube-system", "namespace2", "ns-1")
-
-```
-
-
-## Create Pod
-
-```scala
-import scala.concurrent.Await
-import scala.concurrent.duration._
-
-val podSpec     = Pod.Spec(List(Container(name = "nginx", image = "nginx")))
-val pod         = Pod("nginxpod", podSpec)
-val podFuture   = k8s.create(pod)
-// handle future as you see fit
-```
-
-## Create deployment
-
-This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by a deployment of five nginx replicas.
- Requires defining selector, container description, pod spec, deployment and service:
-
-```scala
-// Define selector
-import LabelSelector.dsl._
-val nginxSelector  = "app" is "nginx"
-
-// Define nginx container
-val nginxContainer = Container(name = "nginx", image = "nginx")
-  .exposePort(80)
-
-// Define nginx pod template spec
-val nginxTemplate = Pod.Template.Spec
-  .named("nginx")
-  .addContainer(nginxContainer)
-  .addLabel("app" -> "nginx")
-
-// Define nginx deployment
-import skuber.apps.v1.Deployment
-val nginxDeployment = Deployment("nginx")
-  .withReplicas(5)
-  .withTemplate(nginxTemplate)
-  .withLabelSelector(nginxSelector)
-
-// Define nginx service
-val nginxService = Service("nginx")
-  .withSelector("app" -> "nginx")
-  .exposeOnNodePort(30001 -> 80)
-
-// Create the service and the deployment on the Kubernetes cluster
-val createOnK8s = for {
-  svc  <- k8s create nginxService
-  dep  <- k8s create nginxDeployment
-} yield (dep,svc)
-
-createOnK8s.onComplete {
-  case Success(_)  => println("Successfully created nginx deployment & service on Kubernetes cluster")
-  case Failure(ex) => throw (new Exception("Encountered exception trying to create resources on Kubernetes cluster: ", ex))
+import skuber.batch.Job
+import skuber.json.batch.format._
+import skuber.json.format._
+import skuber.{
+  Container,
+  LabelSelector,
+  ObjectMeta,
+  Pod,
+  RestartPolicy,
+  k8sInit
 }
-```
 
-## Execute a job and monitor its execution until completed (successfully or not) and monitor its deletion
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 
-First, define a suitable progress predicate for monitoring the execution of a Kubernetes pod.
-For example:
+/**
+  * Demonstrates two things:
+  * 1) watching continuously pod events until any container status or pod status indicates a non-progress condition.
+  * 2) making sure that the host connection pool used for watching is shutdown to avoid the
+  */
+object PiJobs {
 
-```scala
   def podProgress(
       ev: WatchEvent[Pod]
   ): Boolean = {
@@ -154,12 +66,25 @@ For example:
     ev._type != EventType.ERROR &&
     ev._object.status.fold[Boolean](true)(podStatusProgress)
   }
-```
 
-Next, define a suitable completion callback for handling a completed.
-For example:
+  def durationFomConfig(config: Config)(configKey: String): Option[Duration] =
+    Some(Duration.fromNanos(config.getDuration(configKey).toNanos))
 
-```scala
+  def getSkuberConfig[T](config: Config,
+                         key: String,
+                         fromConfig: String => Option[T],
+                         default: T): T = {
+    val skuberConfigKey = s"skuber.$key"
+    if (config.getIsNull(skuberConfigKey)) {
+      default
+    } else {
+      fromConfig(skuberConfigKey) match {
+        case None    => default
+        case Some(t) => t
+      }
+    }
+  }
+
   def podCompletion(k8s: KubernetesClient)(lastPodEvent: WatchEvent[Pod])(
       implicit ec: ExecutionContext,
       mat: ActorMaterializer): Future[Unit] = {
@@ -214,20 +139,34 @@ For example:
         } yield ()
     }
   }
-``` 
 
-Next, define some suitable delays for monitoring:
+  def main(
+      args: Array[String]
+  ): Unit = {
 
-```scala
-val watchContinuouslyRequestTimeout: Duration = ...
-val deletionMonitorRepeatDelay: FiniteDuration = ...
-```
+    implicit val as: ActorSystem = ActorSystem("PiJobs")
+    implicit val ec: ExecutionContext = as.dispatcher
+    implicit val mat: ActorMaterializer = ActorMaterializer()
+    val sconfig: skuber.api.Configuration = defaultK8sConfig
+    val aconfig: Config = ConfigFactory.load()
+    implicit val k8s: KubernetesClient =
+      k8sInit(config = sconfig, appConfig = aconfig)
 
-Next, define a list of jobs to execute.
-This example generates a sequence of jobs, some that cannot be executed.
+    val watchContinuouslyRequestTimeout: Duration = getSkuberConfig(
+      aconfig,
+      "watch-continuously.request-timeout",
+      durationFomConfig(aconfig),
+      30.seconds)
 
-```scala
- val jobs = Seq.tabulate[Job](n = 10) { n =>
+    val deletionMonitorRepeatDelay: FiniteDuration = 1.second
+
+    def metadata(n: Int) =
+      ObjectMeta(name = "pi",
+                 labels = Map("job-kind" -> "piTest", "iteration" -> s"$n"))
+    val labelSelector = LabelSelector(
+      LabelSelector.IsEqualRequirement("job-kind", "piTest"))
+
+    val jobs = Seq.tabulate[Job](n = 10) { n =>
       if (n % 3 == 0) {
         // simulate a job failure
         val piContainer = Container(name = "pi",
@@ -256,13 +195,6 @@ This example generates a sequence of jobs, some that cannot be executed.
         Job("pi").withTemplate(piTemplateSpec)
       }
     }
-```
-
-Finally, exeute them. Note that skuber will create a host connection pool
-for the first job and that this pool will be reused for subsequent jobs
-and will be shutdown when no more jobs need to be executed on the same server.
-
-```scala
     val (firstJob, otherJobs) = (jobs.head, jobs.tail)
 
     val f: Future[Unit] = for {
@@ -295,16 +227,12 @@ and will be shutdown when no more jobs need to be executed on the same server.
       _ <- hcp.fold(Future.successful(()))(_.shutdown().map(_ => ()))
 
     } yield ()
-```
 
+    // Wait until done and shutdown k8s & akka.
+    Await.result(f.flatMap { _ =>
+      k8s.close
+      as.terminate().map(_ => ())
+    }, Duration.Inf)
 
-## Safely shutdown the client
-
-```scala
-// Close client.
-// This prevents any more requests being sent by the client.
-k8s.close
-
-// this closes the connection resources etc.
-system.terminate
-```
+  }
+}

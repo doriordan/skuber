@@ -1,11 +1,15 @@
 package skuber.api.client
 
 import akka.stream.scaladsl.{Sink, Source}
+import akka.http.scaladsl.Http
 import akka.util.ByteString
-import play.api.libs.json.{Writes,Format}
+import play.api.libs.json.{Format, Writes}
 import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
 import skuber.api.patch.Patch
+import skuber.api.watch.WatchSource
+import skuber.batch.Job
 
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Future, Promise}
 
 /**
@@ -87,6 +91,15 @@ trait KubernetesClient {
     * @return A future that will be set to success if the deletion request was accepted by Kubernetes, otherwise failure
     */
   def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions)(implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit]
+
+  /**
+    * Monitor a resource existence until no longer available
+    * @param name the name of the resource to monitor its existence
+    * @param monitorRepeatDelay delay for repeating the monitoring as long as the resource is available by name
+    * @tparam O the specific object resource type e.g. Pod, Deployment
+    * @return A future that will be set to success when Kubernetes confirm the resource is no longer available by name, otherwise failure
+    */
+  def monitorResourceUntilUnavailable[O <: ObjectResource](name: String, monitorRepeatDelay: FiniteDuration)(implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Unit]
 
   /**
     * Delete all resources of specified type in current namespace
@@ -216,10 +229,12 @@ trait KubernetesClient {
     * Watch a specific object resource continuously. This returns a source that will continue to produce
     * events on any updates to the object even if the server times out, by transparently restarting the watch as needed.
     * @param obj  the object resource to watch
+    * @param pool reuse a skuber pool for querying the server if any or create a new one
     * @tparam O the type of the resource e.g Pod
-    * @return  A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return  A future containing an Akka streams Source of WatchEvents that will be emitted where the materialized
+    *          value is a pair of the skuber pool used and the underlying Akka host connection pool used, if any.
     */
-  def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchContinuously[O <: ObjectResource](obj: O, pool: Option[Pool[WatchSource.Start[O]]])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])]
 
   /**
     * Watch a specific object resource continuously. This returns a source that will continue to produce
@@ -232,11 +247,13 @@ trait KubernetesClient {
     * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method to receive any future updates. If no resource version is specified,
     * a single ADDED event will be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for received object updates, normally the default is more than enough
+    * @param pool reuse a skuber pool for querying the server if any or create a new one
     * @tparam O the type of the resource
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing an Akka streams Source of WatchEvents that will be emitted where the materialized
+    *         value is a pair of the skuber pool used and the underlying Akka host connection pool used, if any.
     */
-  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, pool: Option[Pool[WatchSource.Start[O]]] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])]
 
   /**
     * Watch all object resources of a specified type continuously. This returns a source that will continue to produce
@@ -248,24 +265,29 @@ trait KubernetesClient {
     * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method to receive any future updates. If no resource version is specified,
     * a single ADDED event will be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for received object updates, normally the default is more than enough
+    * @param pool reuse a skuber pool for querying the server if any or create a new one
     * @tparam O the type pf the resource
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing an Akka streams Source of WatchEvents that will be emitted where the materialized
+    *         value is a pair of the skuber pool used and the underlying Akka host connection pool used, if any.
     */
-  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, pool: Option[Pool[WatchSource.Start[O]]] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])]
 
 /**
   * Watch all object resources of a specified type continuously, passing the specified options to the API server with the watch request.
   * This returns a source that will continue to produce events even if the server times out, by transparently restarting the watch as needed.
+  *
   * @param options a set of list options to pass to the server. See https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#ListOptions
   * for the meaning of the options. Note that the `watch` flag in the options will be ignored / overridden by the client, which
   * ensures a watch is always requested on the server.
   * @param bufsize optional buffer size for received object updates, normally the default is more than enough
+  * @param pool reuse a skuber pool for querying the server if any or create a new one
   * @tparam O the resource type to watch
-  * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+  * @return A future containing an Akka streams Source of WatchEvents that will be emitted where the materialized
+  *         value is a pair of the skuber pool used and the underlying Akka host connection pool used, if any.
   */
-  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, pool: Option[Pool[WatchSource.Start[O]]] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])]
 
   /**
    * Get the scale subresource of the named object resource
@@ -349,6 +371,30 @@ trait KubernetesClient {
     maybeStderr: Option[Sink[String, _]] = None,
     tty: Boolean = false,
     maybeClose: Option[Promise[Unit]] = None)(implicit lc: LoggingContext): Future[Unit]
+
+  /**
+    * Execute a job, monitoring the progress of its pod until completion and monitor its deletion until complete
+    * @param job the Kubernetes job to execute
+    * @param labelSelector the label selector for monitoring the job's pod status
+    * @param podProgress the predicate for monitoring the pod status while satisfied before deleting the job
+    * @param podCompletion a callback invoked at the completion of the job's pod (successful or not), after which the job will be deleted
+    * @param watchContinuouslyRequestTimeout the delay for continuously monitoring the pod progress
+    * @param deletionMonitorRepeatDelay the delay for continuously monitoring the job deletion
+    * @param pool a skuber pool to reuse, if any, or to create otherwise
+    * @return A future consisting of a triple of the following:
+    *         - the skuber pool suitable for subsequently executing other jobs on the same server
+    *         - the akka host connection pool that can be shutdown when no further jobs need to be executed on the same server
+    *         - the last pod status received when the pod progress predicate became unsatisfied
+    */
+  def executeJobAndWaitUntilDeleted(
+    job: Job,
+    labelSelector: LabelSelector,
+    podProgress: WatchEvent[Pod] => Boolean,
+    podCompletion: WatchEvent[Pod] => Future[Unit],
+    watchContinuouslyRequestTimeout: Duration,
+    deletionMonitorRepeatDelay: FiniteDuration,
+    pool: Option[Pool[WatchSource.Start[Pod]]])(implicit jfmt: Format[Job], pfmt: Format[Pod], jrd: ResourceDefinition[Job], prd: ResourceDefinition[Pod]):
+  Future[(Pool[WatchSource.Start[Pod]], Option[Http.HostConnectionPool], WatchEvent[Pod])]
 
   /**
     * Return list of API versions supported by the server

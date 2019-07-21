@@ -7,12 +7,13 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import akka.pattern.after
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.net.ssl.SSLContext
-import play.api.libs.json.{Format, Writes, Reads}
+import play.api.libs.json.{Format, Reads, Writes}
 import skuber._
 import skuber.api.client.exec.PodExecImpl
 import skuber.api.client.{K8SException => _, _}
@@ -22,6 +23,7 @@ import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
 import skuber.api.patch._
+import skuber.batch.Job
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -403,6 +405,17 @@ class KubernetesClientImpl private[client] (
     } yield ()
   }
 
+  override def monitorResourceUntilUnavailable[O <: ObjectResource](name: String, monitorRepeatDelay: FiniteDuration)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O]): Future[Unit] =
+    getOption[O](name).flatMap {
+      case None =>
+        Future.successful(())
+      case Some(_) =>
+        after(monitorRepeatDelay, actorSystem.scheduler)(
+          monitorResourceUntilUnavailable[O](name, monitorRepeatDelay)
+        )
+    }
+
   override def deleteAll[L <: ListResource[_]]()(
     implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
@@ -481,30 +494,30 @@ class KubernetesClientImpl private[client] (
     Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
   }
 
-  override def watchContinuously[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchContinuously[O <: ObjectResource](obj: O, pool: Option[Pool[WatchSource.Start[O]]])(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])] =
   {
-    watchContinuously(obj.name)
+    watchContinuously(obj.name, pool = pool)
   }
 
-  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, pool: Option[Pool[WatchSource.Start[O]]] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
-    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize)
+    WatchSource(this, pool.getOrElse(buildLongPollingPool()), Some(name), options, bufSize)
   }
 
-  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, pool: Option[Pool[WatchSource.Start[O]]] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds))
-    WatchSource(this, buildLongPollingPool(), None, options, bufSize)
+    WatchSource(this, pool.getOrElse(buildLongPollingPool()), None, options, bufSize)
   }
 
-  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000, pool: Option[Pool[WatchSource.Start[O]]] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], (Pool[WatchSource.Start[O]], Option[Http.HostConnectionPool])] =
   {
-    WatchSource(this, buildLongPollingPool(), None, options, bufsize)
+    WatchSource(this, pool.getOrElse(buildLongPollingPool()), None, options, bufsize)
   }
 
   private def buildLongPollingPool[O <: ObjectResource]() = {
@@ -621,6 +634,44 @@ class KubernetesClientImpl private[client] (
   {
     PodExecImpl.exec(this, podName, command, maybeContainerName, maybeStdin, maybeStdout, maybeStderr, tty, maybeClose)
   }
+
+  override def executeJobAndWaitUntilDeleted(
+    job: Job,
+    labelSelector: LabelSelector,
+    podProgress: WatchEvent[Pod] => Boolean,
+    podCompletion: WatchEvent[Pod] => Future[Unit],
+    watchContinuouslyRequestTimeout: Duration,
+    deletionMonitorRepeatDelay: FiniteDuration,
+    pool: Option[Pool[WatchSource.Start[Pod]]])(implicit jfmt: Format[Job], pfmt: Format[Pod], jrd: ResourceDefinition[Job], prd: ResourceDefinition[Pod])
+  : Future[(Pool[WatchSource.Start[Pod]], Option[Http.HostConnectionPool], WatchEvent[Pod])] =
+    for {
+      j <- create(job)
+      (p, hcp, lastPodEvent) <- {
+       watchWithOptions[Pod](
+          options = ListOptions(
+            labelSelector = Some(labelSelector),
+            timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds)
+          ),
+          pool = pool
+        )
+          .takeWhile(podProgress, inclusive = true)
+          .toMat(Sink.last)(Keep.both)
+          .run() match {
+          case ((pool: Pool[WatchSource.Start[Pod]],
+          hostConnectionPool: Option[Http.HostConnectionPool]),
+          f: Future[WatchEvent[Pod]]) =>
+            f.map { ev =>
+              (pool, hostConnectionPool, ev)
+            }
+        }
+      }
+      _ <- podCompletion(lastPodEvent)
+      _ <- deleteWithOptions[Job](
+        name = j.metadata.name,
+        options =
+          DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
+      _ <- monitorResourceUntilUnavailable[Job](j.metadata.name, deletionMonitorRepeatDelay)
+    } yield (p, hcp, lastPodEvent)
 
   override def close: Unit =
   {

@@ -3,8 +3,8 @@ package skuber.api
 import java.time.Instant
 import java.util.UUID
 
-import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
@@ -23,7 +23,13 @@ import skuber.api.client.impl.KubernetesClientImpl
   */
 package object client {
 
-  type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
+  /**
+    * The materialized value is an optional host connection pool.
+    * For testing, allows mocking without creating a host connection pool.
+    * For development and production, provides access to the host connection pool created (if none was provided).
+    * @tparam T The type of elements flowing in and out.
+    */
+  type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), Option[Http.HostConnectionPool]]
 
   final val sysProps = new SystemProperties
 
