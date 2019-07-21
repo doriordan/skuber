@@ -1,9 +1,7 @@
 sudo: false
 language: scala
 scala:
-- 2.11.8
-jdk:
-- oraclejdk8
+- 2.12.8
 cache:
   directories:
     - '$HOME/.ivy2/cache'
