@@ -24,6 +24,7 @@ import skuber.{
   k8sInit
 }
 
+import scala.collection.immutable.Seq
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
@@ -88,7 +89,7 @@ object PiJobsSequential {
 
   def podCompletion(k8s: KubernetesClient)(lastPodEvent: WatchEvent[Pod])(
       implicit ec: ExecutionContext,
-      mat: ActorMaterializer): Future[Unit] = {
+      mat: ActorMaterializer): Future[Boolean] = {
 
     def printLogFlow(cntrName: String): Sink[ByteString, Future[Done]] =
       Flow[ByteString]
@@ -102,7 +103,7 @@ object PiJobsSequential {
 
     def showContainerStateIfSuccessful(cs: Container.Status,
                                        podName: String,
-                                       message: String): Future[Unit] = {
+                                       message: String): Future[Boolean] = {
       val terminatedSuccessfully = cs.state.foldLeft[Boolean](false) {
         case (_, s: Container.Terminated) =>
           0 == s.exitCode
@@ -116,36 +117,43 @@ object PiJobsSequential {
             name = podName,
             queryParams = Pod.LogQueryParams(containerName = Some(cs.name)))
           _ <- logSource.runWith(printLogFlow(message))
-        } yield ()
+        } yield true
       else {
         println(s"$message: no output because of unsuccessful execution")
-        Future.successful(())
+        Future.successful(false)
       }
     }
 
     lastPodEvent._object.status match {
       case None =>
-        Future.successful(())
+        Future.successful(false)
       case Some(s) =>
         val podName = lastPodEvent._object.name
         for {
-          _ <- s.initContainerStatuses
-            .foldLeft[Future[Unit]](Future.successful(())) {
-              case (_, cs) =>
-                showContainerStateIfSuccessful(
-                  cs,
-                  podName,
-                  s"init/$podName (iteration=${lastPodEvent._object.metadata.labels("iteration")})")
+          delete1 <- s.initContainerStatuses
+            .foldLeft[Future[Boolean]](Future.successful(true)) {
+              case (flag, cs) =>
+                Future.reduceLeft(
+                  Seq(
+                    flag,
+                    showContainerStateIfSuccessful(
+                      cs,
+                      podName,
+                      s"init/$podName (iteration=${lastPodEvent._object.metadata
+                        .labels("iteration")})")))(_ || _)
             }
-          _ <- s.containerStatuses
-            .foldLeft[Future[Unit]](Future.successful(())) {
-              case (_, cs) =>
-                showContainerStateIfSuccessful(
-                  cs,
-                  podName,
-                  s"$podName (iteration=${lastPodEvent._object.metadata.labels("iteration")})")
+          delete2 <- s.containerStatuses
+            .foldLeft[Future[Boolean]](Future.successful(delete1)) {
+              case (flag, cs) =>
+                Future.reduceLeft(
+                  Seq(flag,
+                      showContainerStateIfSuccessful(
+                        cs,
+                        podName,
+                        s"$podName (iteration=${lastPodEvent._object.metadata
+                          .labels("iteration")})")))(_ || _)
             }
-        } yield ()
+        } yield delete2
     }
   }
 

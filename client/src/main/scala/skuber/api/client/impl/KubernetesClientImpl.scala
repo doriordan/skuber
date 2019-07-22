@@ -639,7 +639,7 @@ class KubernetesClientImpl private[client] (
     job: Job,
     labelSelector: LabelSelector,
     podProgress: WatchEvent[Pod] => Boolean,
-    podCompletion: WatchEvent[Pod] => Future[Unit],
+    podCompletion: WatchEvent[Pod] => Future[Boolean],
     watchContinuouslyRequestTimeout: Duration,
     deletionMonitorRepeatDelay: FiniteDuration,
     pool: Option[Pool[WatchSource.Start[Pod]]],
@@ -667,12 +667,11 @@ class KubernetesClientImpl private[client] (
             }
         }
       }
-      _ <- podCompletion(lastPodEvent)
-      _ <- deleteWithOptions[Job](
-        name = j.metadata.name,
-        options =
-          DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
-      _ <- monitorResourceUntilUnavailable[Job](j.metadata.name, deletionMonitorRepeatDelay)
+      delete <- podCompletion(lastPodEvent)
+      _ <- if (delete)
+        deleteWithOptions[Job](name = j.metadata.name, options = DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
+          .flatMap(_ => monitorResourceUntilUnavailable[Job](j.metadata.name, deletionMonitorRepeatDelay))
+      else Future.successful(())
     } yield (p, hcp, lastPodEvent)
 
   override def close: Unit =

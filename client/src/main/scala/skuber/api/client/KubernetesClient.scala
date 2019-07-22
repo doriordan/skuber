@@ -377,7 +377,8 @@ trait KubernetesClient {
     * @param job the Kubernetes job to execute
     * @param labelSelector the label selector for monitoring the job's pod status
     * @param podProgress the predicate for monitoring the pod status while satisfied before deleting the job
-    * @param podCompletion a callback invoked at the completion of the job's pod (successful or not), after which the job will be deleted
+    * @param podCompletion a callback invoked at the completion of the job's pod (successful or not),
+    *                      after which the job will be deleted if and only if the podCompletion result is true
     * @param watchContinuouslyRequestTimeout the delay for continuously monitoring the pod progress
     * @param deletionMonitorRepeatDelay the delay for continuously monitoring the job deletion
     * @param pool a skuber pool to reuse, if any, or to create otherwise
@@ -391,7 +392,7 @@ trait KubernetesClient {
     job: Job,
     labelSelector: LabelSelector,
     podProgress: WatchEvent[Pod] => Boolean,
-    podCompletion: WatchEvent[Pod] => Future[Unit],
+    podCompletion: WatchEvent[Pod] => Future[Boolean],
     watchContinuouslyRequestTimeout: Duration,
     deletionMonitorRepeatDelay: FiniteDuration,
     pool: Option[Pool[WatchSource.Start[Pod]]],
