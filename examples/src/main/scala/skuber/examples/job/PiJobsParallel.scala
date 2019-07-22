@@ -1,28 +1,16 @@
 package skuber.examples.job
 
-import akka.NotUsed
+import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-import skuber.api.client.{
-  EventType,
-  KubernetesClient,
-  WatchEvent,
-  defaultK8sConfig
-}
+import skuber.api.client.{EventType, KubernetesClient, WatchEvent, defaultK8sConfig}
 import skuber.batch.Job
 import skuber.json.batch.format._
 import skuber.json.format._
-import skuber.{
-  Container,
-  LabelSelector,
-  ObjectMeta,
-  Pod,
-  RestartPolicy,
-  k8sInit
-}
+import skuber.{Container, LabelSelector, ObjectMeta, Pod, RestartPolicy, k8sInit}
 
 import scala.concurrent.duration._
 import scala.collection.immutable._
@@ -91,30 +79,37 @@ object PiJobsParallel {
       implicit ec: ExecutionContext,
       mat: ActorMaterializer): Future[Unit] = {
 
-    def printLogFlow(cntrName: String): Sink[ByteString, NotUsed] =
+    def printLogFlow(cntrName: String): Sink[ByteString, Future[Done]] =
       Flow[ByteString]
         .via(
           Framing.delimiter(ByteString("\n"),
                             maximumFrameLength = 10000,
                             allowTruncation = true))
         .map(_.utf8String)
-        .to(Sink.foreach(text => println(s"[$cntrName logs] $text")))
+        .toMat(Sink.foreach(text => println(s"[$cntrName logs] $text")))(Keep.right)
 
     def showContainerStateIfSuccessful(cs: Container.Status,
                                        podName: String,
-                                       message: String): Future[Unit] =
-      cs.state.fold[Future[Unit]](Future.successful(())) {
-        case s: Container.Terminated if s.exitCode == 0 =>
-          for {
-            logSource <- k8s.getPodLogSource(
-              name = podName,
-              queryParams = Pod.LogQueryParams(containerName = Some(cs.name)))
-            _ = logSource.runWith(printLogFlow(message))
-          } yield ()
-        case s =>
-          println(s"[$message] No logs because of unsuccessful status: $s")
-          Future.successful(())
+                                       message: String): Future[Unit] = {
+      val terminatedSuccessfully = cs.state.foldLeft[Boolean](false) {
+        case (_, s: Container.Terminated) =>
+          0 == s.exitCode
+        case (flag, _) =>
+          flag
       }
+
+      if (terminatedSuccessfully)
+        for {
+          logSource <- k8s.getPodLogSource(
+            name = podName,
+            queryParams = Pod.LogQueryParams(containerName = Some(cs.name)))
+          _ <- logSource.runWith(printLogFlow(message))
+        } yield ()
+      else {
+        println(s"$message: no output because of unsuccessful execution")
+        Future.successful(())
+      }
+    }
 
     lastPodEvent._object.status match {
       case None =>
