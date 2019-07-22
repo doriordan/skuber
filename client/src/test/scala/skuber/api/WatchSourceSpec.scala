@@ -4,6 +4,7 @@ import java.net.ConnectException
 import java.time.{ZoneId, ZonedDateTime}
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
@@ -517,13 +518,13 @@ class WatchSourceSpec extends Specification with MockitoSugar {
   def mockPool[O <: ObjectResource](requestResponses: Map[HttpRequest, HttpResponse]): Pool[Start[O]] = {
     Flow[(HttpRequest, Start[O])].map { x =>
       (Try(requestResponses(x._1)), x._2)
-    }
+    }.mapMaterializedValue(_ => Option.empty[Http.HostConnectionPool])
   }
 
   def mockPool[O <: ObjectResource](error: Throwable): Pool[Start[O]] = {
     Flow[(HttpRequest, Start[O])].map { x =>
       (Try(throw error), x._2)
-    }
+    }.mapMaterializedValue(_ => Option.empty[Http.HostConnectionPool])
   }
 
   def retrieveWatchJson(path: String): String = {
