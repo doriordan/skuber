@@ -63,7 +63,7 @@ class GuestbookActor extends Actor with ActorLogging {
   val frontEndService = context.actorOf(ServiceActor.props(kubernetesProxy, frontEndSpec), "frontEnd")
  
   // set up defaults for actor messaging
-  implicit val timeout = Timeout(20 seconds) 
+  implicit val timeout = Timeout(20.seconds)
   
   var redisMasterRunning=false
   var redisSlaveRunning=false

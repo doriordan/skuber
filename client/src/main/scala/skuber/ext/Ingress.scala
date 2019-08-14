@@ -40,14 +40,14 @@ case class Ingress(
    *
    */
   def addHttpRule(host: Option[String], pathsMap: Map[String, String]): Ingress = {
-    val paths: List[Ingress.Path] = pathsMap map { case (path: String, backend: String) =>
+    val paths: List[Ingress.Path] = pathsMap.map { case (path: String, backend: String) =>
        val beParts = backend.split(':')
        if (beParts.size != 2)
          throw new Exception("invalid backend format: expected \"serviceName:servicePort\"")
        val serviceName=beParts(0)
        val servicePort=beParts(1).toInt
        Ingress.Path(path,Ingress.Backend(serviceName, servicePort))
-    } toList
+    }.toList
     val httpRule = Ingress.HttpRule(paths)
     val rule = Ingress.Rule(host, httpRule)
     val withRuleSpec=copySpec.copy(rules = copySpec.rules :+ rule)

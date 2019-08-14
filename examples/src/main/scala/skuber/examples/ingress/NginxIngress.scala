@@ -323,7 +323,7 @@ object NginxIngress extends App {
           println("Failed - test unsuccessful.")
     }
 
-    done onFailure {
+    done.failed.foreach {
       case ex: K8SException => println("*** FAILED with status=" + ex.status)
       case other => println("FAILED: " + other.getMessage)
     }

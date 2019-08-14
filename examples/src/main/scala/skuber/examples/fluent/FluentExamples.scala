@@ -95,7 +95,7 @@ object FluentExamples extends App {
   def buildNginxControllers: Future[List[ReplicationController]] = {
     
     // As a prerequisite get a list of current controllers, the applicable ones will be updated if they already exist
-    val rcList = k8s list[ReplicationControllerList]()    
+    val rcList = k8s.list[ReplicationControllerList]()
      
     // 1. create dev controller
 
@@ -200,7 +200,7 @@ object FluentExamples extends App {
    */
   def buildNginxServices: Future[List[Service]] = {
     
-    val svcList = k8s list[ServiceList]()
+    val svcList = k8s.list[ServiceList]()
     
     // we make service available outside K8S cluster using node ports, 
     // exposing node ports 30001 to 30005 (depending on env), each routing to pod port 80
@@ -247,7 +247,7 @@ object FluentExamples extends App {
   def deployControllers: Future[List[ReplicationController]] = {
       
     val newControllerBuilds = buildNginxControllers
-    val listCurrentControllers = k8s list[ReplicationControllerList]()
+    val listCurrentControllers = k8s.list[ReplicationControllerList]()
       
     listCurrentControllers flatMap { existingRCList =>
         
@@ -278,7 +278,7 @@ object FluentExamples extends App {
   def deployServices : Future[List[Service]] = {
       
     val newServiceBuilds = buildNginxServices
-    val listCurrentServices = k8s list[ServiceList]()
+    val listCurrentServices = k8s.list[ServiceList]()
       
     listCurrentServices flatMap { existingSvcList =>       
         

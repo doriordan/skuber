@@ -43,7 +43,7 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
   private def reportStatus(rc: ReplicationController) = 
     report(rc.status.get.replicas + " replicas currently running (target: " + rc.spec.get.replicas + ")")
     
-  implicit val timeout = Timeout(60 seconds) 
+  implicit val timeout = Timeout(60.seconds)
   
   var watching: Option[ReplicationController]= None
    
