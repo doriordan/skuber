@@ -77,6 +77,17 @@ users:
         expiry-key: '{.credential.token_expiry}'
         token-key: '{.credential.access_token}'
       name: gcp
+- name: string-date-gke-user
+  user:
+    auth-provider:
+      config:
+        access-token: myAccessToken
+        cmd-args: config config-helper --format=json
+        cmd-path: /home/user/google-cloud-sdk/bin/gcloud
+        expiry: "2018-03-04T14:08:18Z"
+        expiry-key: '{.credential.token_expiry}'
+        token-key: '{.credential.access_token}'
+      name: gcp
 """
 
   implicit val system=ActorSystem("test")
@@ -100,7 +111,7 @@ users:
     val jwtUser= OidcAuth(idToken = "jwt-token")
     val gcpUser = GcpAuth(accessToken = "myAccessToken", expiry = Instant.parse("2018-03-04T14:08:18Z"),
       cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
-    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser)
+    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser, "string-date-gke-user"->gcpUser)
 
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
     val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))

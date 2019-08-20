@@ -2,6 +2,8 @@ package skuber.api
 
 import java.io.File
 import java.net.URL
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -41,6 +43,13 @@ object Configuration {
       clusters = Map("default" -> defaultCluster),
       contexts= Map("default" -> defaultContext),
       currentContext = defaultContext)
+  }
+
+  // This covers most of RFC3339
+  private val DateFormatters = List(DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  private def parseInstant(s: String): Instant = {
+    DateFormatters.collectFirst(Function.unlift(format => Try(Instant.from(format.parse(s))).toOption))
+      .getOrElse(sys.error(s"'$s' could not be parsed as a date time string"))
   }
 
   // config to use a local proxy running on a specified port
@@ -106,6 +115,14 @@ object Configuration {
         def valueAt[T](parent: YamlMap, key: String, fallback: Option[T] = None) : T =
           parent.asScala.get(key).orElse(fallback).get.asInstanceOf[T]
 
+        def instantValueAt[T](parent: YamlMap, key: String) : Instant =
+          parent.asScala.get(key) match {
+            case Some(d: Date) => d.toInstant
+            case Some(s: String) => parseInstant(s)
+            case Some(unsupported) => sys.error(s"Unsupported date type: $unsupported")
+            case None => sys.error(s"No value found at $key")
+          }
+
         def optionalValueAt[T](parent: YamlMap, key: String) : Option[T] =
           parent.asScala.get(key).map(_.asInstanceOf[T])
 
@@ -159,7 +176,7 @@ object Configuration {
                 Some(
                   GcpAuth(
                     accessToken = valueAt(config, "access-token"),
-                    expiry = valueAt[Date](config, "expiry").toInstant,
+                    expiry = instantValueAt(config, "expiry"),
                     cmdPath = valueAt(config, "cmd-path"),
                     cmdArgs = valueAt(config, "cmd-args")
                   )
