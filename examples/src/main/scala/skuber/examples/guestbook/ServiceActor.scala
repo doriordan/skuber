@@ -42,7 +42,7 @@ import ServiceActor._
 
 class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecification) extends Actor with ActorLogging {
   
-  implicit val timeout = Timeout(60 seconds)
+  implicit val timeout = Timeout(60.seconds)
    
   /*
    * Create the service on Kubernetes

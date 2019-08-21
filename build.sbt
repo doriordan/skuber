@@ -2,10 +2,10 @@
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.0"
-val specs2 = "org.specs2" %% "specs2-core" % "4.3.2"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.5"
+val specs2 = "org.specs2" %% "specs2-core" % "4.7.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
 val mockito = "org.mockito" % "mockito-core" % "2.21.0"
-val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.14"
+val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.23"
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.21"
 val commonsIO = "commons-io" % "commons-io" % "2.6"
@@ -13,16 +13,16 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.11"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.60"
 
 // the client API request/response handing uses Akka Http 
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.3"
-val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.14"
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.14"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.9"
+val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.23"
+val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.23"
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
-val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.14"
+val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.23"
 val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.7.2"
+val playJson = "com.typesafe.play" %% "play-json" % "2.7.4"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
@@ -50,7 +50,8 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.11.12", "2.12.6"),
+  crossScalaVersions := Seq("2.11.12", "2.12.9", "2.13.0"),
+  scalaVersion := "2.13.0",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
