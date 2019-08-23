@@ -19,7 +19,7 @@ If all above fails Skuber tries [in-cluster configuration method](https://kubern
 
 If proxying via a [kubectl proxy](https://kubernetes.io/docs/user-guide/kubectl/v1.6/#proxy) then you can configure Skuber to connect through that proxy by setting the SKUBER_URL environment variable to point at it e.g.
 
-    export SKUBER_URL=http://locahost:8001
+    export SKUBER_URL=http://localhost:8001
 
 If the cluster URL is set this way, then the SKUBER_CONFIG and KUBECONFIG environment variables below are ignored by Skuber.
 
