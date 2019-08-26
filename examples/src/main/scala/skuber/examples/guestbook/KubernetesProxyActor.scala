@@ -66,12 +66,13 @@ class KubernetesProxyActor extends Actor with ActorLogging {
         KubernetesProxyActor.ResourceNotFound 
       }
     }
-    reply onSuccess { 
-      case msg => log.debug("Kubernetes proxy returning: " + msg)
-    } 
-    reply onFailure { 
-      case k8ex: K8SException => log.error("Kubernetes API returned failure...status = " + k8ex.status.code)
+
+    reply.onComplete {
+      case Success(msg) => log.debug(s"Kubernetes proxy returning: $msg")
+      case Failure(k8ex: K8SException) => log.error(s"Kubernetes API returned failure. Status = ${k8ex.status.code}")
+      case Failure(ex) => log.error(s"Kubernetes API returned failure ${ex.getMessage}")
     }
+
     reply
   }
   

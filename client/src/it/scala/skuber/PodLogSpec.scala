@@ -17,14 +17,14 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
 
   behavior of "PodLog"
 
-  val idleTimeout = 3 seconds
+  val idleTimeout = 3.seconds
   override val config = ConfigFactory.parseString(s"skuber.pod-log.idle-timeout=${idleTimeout.toSeconds}s").withFallback(ConfigFactory.load())
 
   override def beforeAll(): Unit = {
     super.beforeAll()
 
     val k8s = k8sInit(config)
-    Await.result(k8s.create(getNginxPod(podName, "1.7.9")), 3 second)
+    Await.result(k8s.create(getNginxPod(podName, "1.7.9")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
     k8s.close
@@ -32,7 +32,7 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
 
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
-    Await.result(k8s.delete[Pod](podName), 3 second)
+    Await.result(k8s.delete[Pod](podName), 3.second)
     Thread.sleep(3000)
     k8s.close
 

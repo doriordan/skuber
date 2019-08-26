@@ -17,7 +17,6 @@ object ExecExamples extends App {
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit
-  k8s.logConfig
 
   println("Executing commands in pods ==>")
 

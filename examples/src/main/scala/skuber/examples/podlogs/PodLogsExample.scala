@@ -53,7 +53,7 @@ object PodLogExample extends App {
 
   // allow another 5 seconds for logs to be streamed from the pod to stdout before cleaning up
   Thread.sleep(5000)
-  Await.result(k8s.delete[Pod]("hello-world"), 5 seconds)
+  Await.result(k8s.delete[Pod]("hello-world"), 5.seconds)
   k8s.close
   system.terminate
   System.exit(0)

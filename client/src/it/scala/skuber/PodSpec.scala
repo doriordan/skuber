@@ -17,7 +17,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     val k8s = k8sInit
     val requirements = defaultLabels.toSeq.map { case (k, v) => LabelSelector.IsEqualRequirement(k, v) }
     val labelSelector = LabelSelector(requirements: _*)
-    Await.result(k8s.deleteAllSelected[PodList](labelSelector), 5 seconds)
+    Await.result(k8s.deleteAllSelected[PodList](labelSelector), 5.seconds)
   }
 
   behavior of "Pod"
@@ -35,9 +35,9 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
   }
 
   it should "check for newly created pod and container to be ready" in { k8s =>
-    eventually(timeout(100 seconds), interval(3 seconds)) {
+    eventually(timeout(100.seconds), interval(3.seconds)) {
       val retrievePod = k8s.get[Pod](nginxPodName)
-      val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
+      val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
       val podStatus = podRetrieved.get.status.get
       val nginxContainerStatus = podStatus.containerStatuses(0)
       podStatus.phase should contain(Pod.Phase.Running)
@@ -63,9 +63,9 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
 
   it should "delete a pod" in { k8s =>
     k8s.delete[Pod](nginxPodName).map { _ =>
-      eventually(timeout(100 seconds), interval(3 seconds)) {
+      eventually(timeout(100.seconds), interval(3.seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
-        val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
+        val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case s: Success[_] => assert(false)
           case Failure(ex) => ex match {
@@ -82,9 +82,9 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
       _ <- k8s.create(getNginxPod(nginxPodName + "-foo", "1.7.9", labels = Map("foo" -> "1")))
       _ <- k8s.create(getNginxPod(nginxPodName + "-bar", "1.7.9", labels = Map("bar" -> "2")))
       _ <- k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo")))
-    } yield eventually(timeout(100 seconds), interval(3 seconds)) {
+    } yield eventually(timeout(100.seconds), interval(3.seconds)) {
       val retrievePods = k8s.list[PodList]()
-      val podsRetrieved = Await.result(retrievePods, 2 seconds)
+      val podsRetrieved = Await.result(retrievePods, 2.seconds)
       val podNamesRetrieved = podsRetrieved.items.map(_.name)
       assert(!podNamesRetrieved.contains(nginxPodName + "-foo") && podNamesRetrieved.contains(nginxPodName + "-bar"))
     }

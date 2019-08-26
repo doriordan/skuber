@@ -29,9 +29,9 @@ class ServiceSpec extends K8SFixture with Eventually with Matchers {
 
   it should "delete a service" in { k8s =>
     k8s.delete[Service](nginxServiceName).map { _ =>
-      eventually(timeout(100 seconds), interval(3 seconds)) {
+      eventually(timeout(100.seconds), interval(3.seconds)) {
         val retrieveService = k8s.get[Service](nginxServiceName)
-        val serviceRetrieved = Await.ready(retrieveService, 2 seconds).value.get
+        val serviceRetrieved = Await.ready(retrieveService, 2.seconds).value.get
         serviceRetrieved match {
           case s: Success[_] => assert(false)
           case Failure(ex) => ex match {

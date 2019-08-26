@@ -111,10 +111,6 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     val f1 = stream.futureValue
 
-    f1._2.onFailure {
-      case ex: Exception => ex.printStackTrace()
-    }
-
     val f2 = f1._2.futureValue
 
     f2.toList.map { d =>

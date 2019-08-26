@@ -17,7 +17,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     super.beforeAll()
 
     val k8s = k8sInit
-    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3 second)
+    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
     k8s.close
@@ -25,7 +25,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
-    Await.result(k8s.delete[Pod](nginxPodName), 3 second)
+    Await.result(k8s.delete[Pod](nginxPodName), 3.second)
     Thread.sleep(3000)
     k8s.close
 
@@ -38,9 +38,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     val randomString = java.util.UUID.randomUUID().toString
     val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None)
     k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
-      eventually(timeout(10 seconds), interval(1 seconds)) {
+      eventually(timeout(10.seconds), interval(1.seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
-        val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
+        val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
@@ -55,9 +55,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     val randomString = java.util.UUID.randomUUID().toString
     val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = StrategicMergePatchStrategy)
     k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
-      eventually(timeout(10 seconds), interval(1 seconds)) {
+      eventually(timeout(10.seconds), interval(1.seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
-        val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
+        val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
@@ -72,9 +72,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     val randomString = java.util.UUID.randomUUID().toString
     val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = JsonMergePatchStrategy)
     k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
-      eventually(timeout(10 seconds), interval(1 seconds)) {
+      eventually(timeout(10.seconds), interval(1.seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
-        val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
+        val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
@@ -94,9 +94,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
       JsonPatchOperation.Remove("/metadata/annotations"),
     ))
     k8s.patch[JsonPatch, Pod](nginxPodName, patchData).map { _ =>
-      eventually(timeout(10 seconds), interval(1 seconds)) {
+      eventually(timeout(10.seconds), interval(1.seconds)) {
         val retrievePod = k8s.get[Pod](nginxPodName)
-        val podRetrieved = Await.ready(retrievePod, 2 seconds).value.get
+        val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
