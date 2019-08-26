@@ -161,9 +161,9 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
 
     it should "delete the custom resource" in { k8s =>
       k8s.delete[TestResource](testResourceName)
-      eventually(timeout(200 seconds), interval(3 seconds)) {
+      eventually(timeout(200.seconds), interval(3.seconds)) {
         val retrieveCr= k8s.get[TestResource](testResourceName)
-        val crRetrieved=Await.ready(retrieveCr, 2 seconds).value.get
+        val crRetrieved=Await.ready(retrieveCr, 2.seconds).value.get
         crRetrieved match {
           case s: Success[_] => assert(false)
           case Failure(ex) => ex match {
@@ -207,7 +207,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
         deleted <- deleteTestResource
       } yield kill
 
-      eventually(timeout(200 seconds), interval(3 seconds)) {
+      eventually(timeout(200.seconds), interval(3.seconds)) {
         trackedEvents.size shouldBe 2
         trackedEvents(0)._type shouldBe EventType.ADDED
         trackedEvents(0)._object.name shouldBe testResource.name
@@ -224,9 +224,9 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
 
     it should "delete the crd" in { k8s =>
       k8s.delete[CustomResourceDefinition](TestResource.crd.name)
-      eventually(timeout(200 seconds), interval(3 seconds)) {
+      eventually(timeout(200.seconds), interval(3.seconds)) {
         val retrieveCrd= k8s.get[CustomResourceDefinition](TestResource.crd.name)
-        val crdRetrieved=Await.ready(retrieveCrd, 2 seconds).value.get
+        val crdRetrieved=Await.ready(retrieveCrd, 2.seconds).value.get
         crdRetrieved match {
           case s: Success[_] => assert(false)
           case Failure(ex) => ex match {

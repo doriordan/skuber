@@ -1158,12 +1158,14 @@ package object format {
     JsArray(value.operations.map(jsonPatchOperationWrite.writes)) }
 
   implicit val metadataPatchWrite = Writes[MetadataPatch] { value =>
-    val labels = value.labels.map {
-      m => JsObject(m.view.mapValues(JsString).toSeq)
+    val labels = value.labels.map { m =>
+      val fields = m.map { case (k,v) => (k, JsString(v)) }.toSeq
+      JsObject(fields)
     }.getOrElse(JsNull)
 
-    val annotations = value.annotations.map {
-      m => JsObject(m.view.mapValues(JsString).toSeq)
+    val annotations = value.annotations.map { m =>
+      val fields = m.map { case (k,v) => (k, JsString(v)) }.toSeq
+      JsObject(fields)
     }.getOrElse(JsNull)
 
     val metadata = JsObject(Seq("labels" -> labels, "annotations" -> annotations))

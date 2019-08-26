@@ -20,7 +20,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     super.beforeAll()
 
     val k8s = k8sInit
-    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3 second)
+    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
     k8s.close
@@ -28,7 +28,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
-    Await.result(k8s.delete[Pod](nginxPodName), 3 second)
+    Await.result(k8s.delete[Pod](nginxPodName), 3.second)
     Thread.sleep(3000)
     k8s.close
 
@@ -40,7 +40,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(nginxPodName, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1 second))).map { _ =>
+    k8s.exec(nginxPodName, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).map { _ =>
       assert(output == "root\n")
       assert(errorOutput == "")
     }
@@ -52,7 +52,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
     k8s.exec(nginxPodName, Seq("whoami"), maybeContainerName = Some("nginx"),
-      maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1 second))).map { _ =>
+      maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).map { _ =>
       assert(output == "root\n")
       assert(errorOutput == "")
     }
@@ -64,7 +64,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
     k8s.exec(nginxPodName, Seq("sh", "-c", "whoami >&2"),
-      maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1 second))).map { _ =>
+      maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).map { _ =>
       assert(output == "")
       assert(errorOutput == "root\n")
     }
@@ -77,7 +77,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
     k8s.exec(nginxPodName, Seq("sh"), maybeStdin = Some(stdin),
-      maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1 second))).map { _ =>
+      maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).map { _ =>
       assert(output == "# whoami\r\nroot\r\n# ")
       assert(errorOutput == "")
     }

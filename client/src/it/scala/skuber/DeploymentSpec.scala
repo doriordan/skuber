@@ -31,9 +31,9 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
       println(s"DEPLOYMENT TO UPDATE ==> $d")
       val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
       k8s.update(updatedDeployment).flatMap { _ =>
-        eventually(timeout(200 seconds), interval(5 seconds)) {
+        eventually(timeout(200.seconds), interval(5.seconds)) {
           val retrieveDeployment=k8s.get[Deployment](nginxDeploymentName)
-          ScalaFutures.whenReady(retrieveDeployment, timeout(2 seconds), interval(1 second)) { deployment =>
+          ScalaFutures.whenReady(retrieveDeployment, timeout(2.seconds), interval(1.second)) { deployment =>
             deployment.status.get.updatedReplicas shouldBe 1
           }
         }
@@ -43,9 +43,9 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
 
   it should "delete a deployment" in { k8s =>
     k8s.deleteWithOptions[Deployment](nginxDeploymentName, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).map { _ =>
-      eventually(timeout(200 seconds), interval(3 seconds)) {
+      eventually(timeout(200.seconds), interval(3.seconds)) {
         val retrieveDeployment = k8s.get[Deployment](nginxDeploymentName)
-        val deploymentRetrieved=Await.ready(retrieveDeployment, 2 seconds).value.get
+        val deploymentRetrieved=Await.ready(retrieveDeployment, 2.seconds).value.get
         deploymentRetrieved match {
           case s: Success[_] => assert(false)
           case Failure(ex) => ex match {

@@ -58,7 +58,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers {
 
   it should "not find pod1 in the default namespace" in { k8s =>
     val retrievePod = k8s.get[Pod](nginxPodName1)
-    val podRetrieved=Await.ready(retrievePod, 2 seconds).value.get
+    val podRetrieved=Await.ready(retrievePod, 2.seconds).value.get
     podRetrieved match {
       case s: Success[_] => assert(false)
       case Failure(ex) => ex match {
