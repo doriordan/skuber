@@ -97,18 +97,24 @@ package object client {
   final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderAuth {
     override val name = "gcp"
 
-    @volatile private var refresh: GcpRefresh = new GcpRefresh(config.accessToken, config.expiry)
+    @volatile private var refresh: Option[GcpRefresh] = config.cachedAccessToken.map(token => GcpRefresh(token.accessToken, token.expiry))
 
-    def refreshGcpToken(): GcpRefresh = {
+    private def refreshGcpToken(): GcpRefresh = {
       val output = config.cmd.execute()
-      Json.parse(output).as[GcpRefresh]
+      val parsed = Json.parse(output).as[GcpRefresh]
+      refresh = Some(parsed)
+      parsed
     }
 
     def accessToken: String = this.synchronized {
-      if (refresh.expired)
-        refresh = refreshGcpToken()
-
-      refresh.accessToken
+      refresh match {
+        case Some(expired) if expired.expired =>
+          refreshGcpToken().accessToken
+        case None =>
+          refreshGcpToken().accessToken
+        case Some(token) =>
+          token.accessToken
+      }
     }
 
     override def toString =
@@ -120,13 +126,19 @@ package object client {
   }
 
   private[client] object GcpRefresh {
+    // todo - the path to read this from is part of the configuration, use that instead of
+    // hard coding.
     implicit val gcpRefreshReads: Reads[GcpRefresh] = (
         (JsPath \ "credential" \ "access_token").read[String] and
             (JsPath \ "credential" \ "token_expiry").read[Instant]
         ) (GcpRefresh.apply _)
   }
 
-  final case class GcpConfiguration(accessToken: String, expiry: Instant, cmd: GcpCommand)
+  final case class GcpConfiguration(cachedAccessToken: Option[GcpCachedAccessToken], cmd: GcpCommand)
+
+  final case class GcpCachedAccessToken(accessToken: String, expiry: Instant) {
+    def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
+  }
 
   final case class GcpCommand(cmd: String, args: String) {
 
@@ -136,14 +148,18 @@ package object client {
   }
 
   object GcpAuth {
-    def apply(accessToken: String, expiry: Instant, cmdPath: String, cmdArgs: String): GcpAuth =
+    def apply(accessToken: Option[String], expiry: Option[Instant], cmdPath: String, cmdArgs: String): GcpAuth = {
+      val cachedAccessToken = for {
+        token <- accessToken
+        exp <- expiry
+      } yield GcpCachedAccessToken(token, exp)
       new GcpAuth(
         GcpConfiguration(
-          accessToken = accessToken,
-          expiry = expiry,
+          cachedAccessToken = cachedAccessToken,
           GcpCommand(cmdPath, cmdArgs)
         )
       )
+    }
   }
 
   // for use with the Watch command

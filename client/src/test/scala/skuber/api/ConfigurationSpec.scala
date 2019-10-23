@@ -3,7 +3,8 @@ package skuber.api
 import skuber._
 import org.specs2.mutable.Specification
 import java.nio.file.Paths
-import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId}
 
 import akka.stream.ActorMaterializer
 import akka.actor.ActorSystem
@@ -88,6 +89,16 @@ users:
         expiry-key: '{.credential.token_expiry}'
         token-key: '{.credential.access_token}'
       name: gcp
+- name: other-date-gke-user
+  user:
+    auth-provider:
+      config:
+        cmd-args: config config-helper --format=json
+        cmd-path: /home/user/google-cloud-sdk/bin/gcloud
+        expiry: "2018-03-04 14:08:18"
+        expiry-key: '{.credential.token_expiry}'
+        token-key: '{.credential.access_token}'
+      name: gcp
 """
 
   implicit val system=ActorSystem("test")
@@ -109,9 +120,12 @@ users:
     val blueUser = TokenAuth("blue-token")
     val greenUser = CertAuth(clientCertificate = Left("path/to/my/client/cert"), clientKey = Left("path/to/my/client/key"), user = None)
     val jwtUser= OidcAuth(idToken = "jwt-token")
-    val gcpUser = GcpAuth(accessToken = "myAccessToken", expiry = Instant.parse("2018-03-04T14:08:18Z"),
+    val gcpUser = GcpAuth(accessToken = Some("myAccessToken"), expiry = Some(Instant.parse("2018-03-04T14:08:18Z")),
       cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
-    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser, "string-date-gke-user"->gcpUser)
+    val noAccessTokenGcpUser = GcpAuth(accessToken = None, expiry = None,
+      cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
+    val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser,
+      "string-date-gke-user"->gcpUser, "other-date-gke-user" -> noAccessTokenGcpUser)
 
     val federalContext=K8SContext(horseCluster,greenUser,Namespace.forName("chisel-ns"))
     val queenAnneContext=K8SContext(pigCluster,blueUser, Namespace.forName("saw-ns"))
