@@ -151,7 +151,7 @@ package object client {
     def apply(accessToken: Option[String], expiry: Option[Instant], cmdPath: String, cmdArgs: String): GcpAuth =
       new GcpAuth(
         GcpConfiguration(
-          refresh = accessToken.zip(expiry).map(GcpConfiguredRefresh.tupled),
+          refresh = accessToken.zip(expiry).map(GcpConfiguredRefresh.tupled).headOption,
           cmd = GcpCommand(cmdPath, cmdArgs)
         )
       )
