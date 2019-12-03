@@ -97,7 +97,8 @@ package object client {
   final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderAuth {
     override val name = "gcp"
 
-    @volatile private var refresh: GcpRefresh = new GcpRefresh(config.accessToken, config.expiry)
+    @volatile private var refresh: GcpRefresh = config.refresh.map(r => DefinedGcpRefresh(r.accessToken, r.expiry))
+      .getOrElse(EmptyGcpRefresh)
 
     def refreshGcpToken(): GcpRefresh = {
       val output = config.cmd.execute()
@@ -115,18 +116,29 @@ package object client {
       """GcpAuth(accessToken=<redacted>)""".stripMargin
   }
 
-  final private[client] case class GcpRefresh(accessToken: String, expiry: Instant) {
-    def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
+  private[client] sealed trait GcpRefresh {
+    def expired: Boolean
+    def accessToken: String
+  }
+
+  private[client] final case class DefinedGcpRefresh(accessToken: String, expiry: Instant) extends GcpRefresh {
+    override def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
+  }
+  private[client] final object EmptyGcpRefresh extends GcpRefresh {
+    override def expired: Boolean = true
+    override def accessToken: String = throw new IllegalStateException("access-token has never been refreshed")
   }
 
   private[client] object GcpRefresh {
     implicit val gcpRefreshReads: Reads[GcpRefresh] = (
         (JsPath \ "credential" \ "access_token").read[String] and
             (JsPath \ "credential" \ "token_expiry").read[Instant]
-        ) (GcpRefresh.apply _)
+        ) (DefinedGcpRefresh.apply _)
   }
 
-  final case class GcpConfiguration(accessToken: String, expiry: Instant, cmd: GcpCommand)
+  final case class GcpConfiguration(refresh: Option[GcpConfiguredRefresh], cmd: GcpCommand)
+
+  final case class GcpConfiguredRefresh(accessToken: String, expiry: Instant)
 
   final case class GcpCommand(cmd: String, args: String) {
 
@@ -136,12 +148,11 @@ package object client {
   }
 
   object GcpAuth {
-    def apply(accessToken: String, expiry: Instant, cmdPath: String, cmdArgs: String): GcpAuth =
+    def apply(accessToken: Option[String], expiry: Option[Instant], cmdPath: String, cmdArgs: String): GcpAuth =
       new GcpAuth(
         GcpConfiguration(
-          accessToken = accessToken,
-          expiry = expiry,
-          GcpCommand(cmdPath, cmdArgs)
+          refresh = accessToken.zip(expiry).map(GcpConfiguredRefresh.tupled),
+          cmd = GcpCommand(cmdPath, cmdArgs)
         )
       )
   }

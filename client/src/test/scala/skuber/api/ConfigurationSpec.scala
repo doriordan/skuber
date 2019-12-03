@@ -7,7 +7,6 @@ import java.time.Instant
 
 import akka.stream.ActorMaterializer
 import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
 
 import scala.util.Try
 import skuber.api.client._
@@ -109,7 +108,7 @@ users:
     val blueUser = TokenAuth("blue-token")
     val greenUser = CertAuth(clientCertificate = Left("path/to/my/client/cert"), clientKey = Left("path/to/my/client/key"), user = None)
     val jwtUser= OidcAuth(idToken = "jwt-token")
-    val gcpUser = GcpAuth(accessToken = "myAccessToken", expiry = Instant.parse("2018-03-04T14:08:18Z"),
+    val gcpUser = GcpAuth(accessToken = Some("myAccessToken"), expiry = Some(Instant.parse("2018-03-04T14:08:18Z")),
       cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
     val users=Map("blue-user"->blueUser,"green-user"->greenUser,"jwt-user"->jwtUser, "gke-user"->gcpUser, "string-date-gke-user"->gcpUser)
 
@@ -123,6 +122,59 @@ users:
     directlyConstructedConfig.users mustEqual parsedFromStringConfig.users
     directlyConstructedConfig.currentContext mustEqual parsedFromStringConfig.currentContext
     
+    directlyConstructedConfig mustEqual parsedFromStringConfig
+  }
+
+  "A kubeconfig file without access-token can be parsed correctly" >> {
+    val kubeConfigWoAccessToken =
+      """
+        |apiVersion: v1
+        |clusters:
+        |- cluster:
+        |    insecure-skip-tls-verify: true
+        |    server: https://cluster.org:443
+        |  name: the-cluster
+        |contexts:
+        |- context:
+        |    cluster: the-cluster
+        |    namespace: the-ns
+        |    user: the-user
+        |  name: the-context
+        |current-context: the-context
+        |kind: Config
+        |users:
+        |- name: the-user
+        |  user:
+        |    auth-provider:
+        |      config:
+        |        cmd-args: config config-helper --format=json
+        |        cmd-path: /home/user/google-cloud-sdk/bin/gcloud
+        |        expiry-key: '{.credential.token_expiry}'
+        |        token-key: '{.credential.access_token}'
+        |      name: gcp
+        |""".stripMargin
+    val is = new java.io.ByteArrayInputStream(kubeConfigWoAccessToken.getBytes(java.nio.charset.Charset.forName("UTF-8")))
+    val k8sConfig = K8SConfiguration.parseKubeconfigStream(is)
+    val parsedFromStringConfig = k8sConfig.get
+
+    // construct equivalent config directly for comparison
+
+    val theCluster=K8SCluster("v1", "https://cluster.org:443", true)
+    val clusters=Map("the-cluster" -> theCluster)
+
+    val theUser = GcpAuth(accessToken = None, expiry = None,
+      cmdPath = "/home/user/google-cloud-sdk/bin/gcloud", cmdArgs = "config config-helper --format=json")
+    val users=Map("the-user" -> theUser)
+
+    val theContext=K8SContext(theCluster, theUser, Namespace.forName("the-ns"))
+    val contexts=Map("the-context" -> theContext)
+
+    val directlyConstructedConfig=Configuration(clusters,contexts,theContext,users)
+    directlyConstructedConfig.clusters mustEqual parsedFromStringConfig.clusters
+    directlyConstructedConfig.contexts mustEqual parsedFromStringConfig.contexts
+    directlyConstructedConfig.users mustEqual parsedFromStringConfig.users
+    directlyConstructedConfig.currentContext mustEqual parsedFromStringConfig.currentContext
+
     directlyConstructedConfig mustEqual parsedFromStringConfig
   }
 

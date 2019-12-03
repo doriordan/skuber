@@ -41,7 +41,7 @@ class AuthSpec extends Specification {
   }
 
   "GcpAuth toString masks accessToken" >> {
-    GcpAuth(accessToken = "MyAccessToken", expiry = Instant.now, cmdPath = "gcp", cmdArgs = "").toString mustEqual
+    GcpAuth(accessToken = Some("MyAccessToken"), expiry = Some(Instant.now), cmdPath = "gcp", cmdArgs = "").toString mustEqual
       "GcpAuth(accessToken=<redacted>)"
   }
 
