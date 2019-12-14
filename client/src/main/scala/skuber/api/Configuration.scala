@@ -115,12 +115,11 @@ object Configuration {
         def valueAt[T](parent: YamlMap, key: String, fallback: Option[T] = None) : T =
           parent.asScala.get(key).orElse(fallback).get.asInstanceOf[T]
 
-        def instantValueAt[T](parent: YamlMap, key: String) : Instant =
-          parent.asScala.get(key) match {
-            case Some(d: Date) => d.toInstant
-            case Some(s: String) => parseInstant(s)
-            case Some(unsupported) => sys.error(s"Unsupported date type: $unsupported")
-            case None => sys.error(s"No value found at $key")
+        def optionalInstantValueAt[T](parent: YamlMap, key: String) : Option[Instant] =
+          parent.asScala.get(key).flatMap {
+            case d: Date => Some(d.toInstant)
+            case s: String => Try(parseInstant(s)).toOption
+            case _ => None
           }
 
         def optionalValueAt[T](parent: YamlMap, key: String) : Option[T] =
@@ -175,8 +174,8 @@ object Configuration {
               case "gcp" =>
                 Some(
                   GcpAuth(
-                    accessToken = valueAt(config, "access-token"),
-                    expiry = instantValueAt(config, "expiry"),
+                    accessToken = optionalValueAt(config, "access-token"),
+                    expiry = optionalInstantValueAt(config, "expiry"),
                     cmdPath = valueAt(config, "cmd-path"),
                     cmdArgs = valueAt(config, "cmd-args")
                   )
