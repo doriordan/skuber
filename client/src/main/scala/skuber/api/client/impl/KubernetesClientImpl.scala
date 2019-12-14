@@ -535,7 +535,7 @@ class KubernetesClientImpl private[client] (
     val scale = Scale(
       apiVersion = sc.apiVersion,
       metadata = ObjectMeta(name = objName, namespace = namespaceName),
-      spec = Scale.Spec(replicas = count)
+      spec = Scale.Spec(replicas = Some(count))
     )
     updateScale[O](objName, scale)
   }
