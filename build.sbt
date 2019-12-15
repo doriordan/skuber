@@ -1,5 +1,5 @@
 
-resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.0"
 val specs2 = "org.specs2" %% "specs2-core" % "4.7.0"
@@ -29,7 +29,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "2.3.0"
+version in ThisBuild := "2.4.0"
 
 sonatypeProfileName := "io.skuber"
 
@@ -50,16 +50,11 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.11.12", "2.12.9", "2.13.0"),
-  scalaVersion := "2.13.0",
-  publishTo := {
-    val nexus = "https://oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at nexus + "content/repositories/snapshots")
-    else
-      Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-  },
-  pomIncludeRepository := { _ => false }
+  crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
+  scalaVersion := "2.13.1",
+  publishTo :=  sonatypePublishToBundle.value,
+  pomIncludeRepository := { _ => false },
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
 
 lazy val skuberSettings = Seq(

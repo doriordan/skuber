@@ -78,7 +78,8 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
     k8s.exec(nginxPodName, Seq("sh"), maybeStdin = Some(stdin),
       maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).map { _ =>
-      assert(output == "# whoami\r\nroot\r\n# ")
+      output should include("whoami")
+      output should include("root")
       assert(errorOutput == "")
     }
   }

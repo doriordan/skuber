@@ -154,7 +154,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
 
     it should "return the modified desired and actual replica counts in response to a getScale request" in { k8s =>
       k8s.getScale[TestResource](testResourceName).map { scale =>
-        assert(scale.spec.replicas == modifiedDesiredReplicas)
+        assert(scale.spec.replicas.contains(modifiedDesiredReplicas))
         assert(scale.status.get.replicas == modifiedActualReplicas)
       }
     }

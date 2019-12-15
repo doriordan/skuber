@@ -15,8 +15,6 @@ case class Scale(
     spec: Scale.Spec = Scale.Spec(),
     status: Option[Scale.Status] = None) extends ObjectResource
 {
-  @deprecated("use withSpecReplicas instead")
-  def withReplicas(count: Int) = this.copy(spec=Scale.Spec(Some(count)))
   def withSpecReplicas(count: Int) =  this.copy(spec=Scale.Spec(Some(count)))
   def withStatusReplicas(count: Int) = {
     val newStatus = this.status.map(_.copy(replicas = count)).getOrElse(Scale.Status(replicas=count))
