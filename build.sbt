@@ -29,7 +29,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "2.4.0-SNAPSHOT"
+version in ThisBuild := "2.4.0"
 
 sonatypeProfileName := "io.skuber"
 
@@ -51,7 +51,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 lazy val commonSettings = Seq(
   organization := "io.skuber",
   crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.13.1",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
