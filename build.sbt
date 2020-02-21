@@ -1,24 +1,26 @@
 
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.0"
-val specs2 = "org.specs2" %% "specs2-core" % "4.7.0"
+val akkaVersion = "2.5.29"
+
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.3"
+val specs2 = "org.specs2" %% "specs2-core" % "4.8.3"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
 val mockito = "org.mockito" % "mockito-core" % "2.21.0"
-val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.23"
+val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.21"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.25"
 val commonsIO = "commons-io" % "commons-io" % "2.6"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.11"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.60"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.64"
 
-// the client API request/response handing uses Akka Http 
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.9"
-val akkaStream = "com.typesafe.akka" %% "akka-stream" % "2.5.23"
-val akka = "com.typesafe.akka" %% "akka-actor" % "2.5.23"
+// the client API request/response handing uses Akka Http
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.11"
+val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
+val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
-val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % "2.5.23"
+val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
@@ -29,7 +31,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "2.4.0"
+version in ThisBuild := "2.4.1-SNAPSHOT"
 
 sonatypeProfileName := "io.skuber"
 
@@ -78,7 +80,7 @@ lazy val examplesAssemblySettings = Seq(
 
 publishArtifact in root := false
 
-lazy val root = (project in file(".")) 
+lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .aggregate(skuber, examples)
 

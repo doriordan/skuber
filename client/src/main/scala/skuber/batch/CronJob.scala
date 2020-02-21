@@ -6,9 +6,9 @@ import skuber.{ObjectReference, LabelSelector, NonCoreResourceSpecification, Obj
 /**
   * @author David O'Riordan
   */
-case class CronJob(val kind: String ="CronJob",
-  override val apiVersion: String = batchAPIVersion,
-  val metadata: ObjectMeta = ObjectMeta(),
+case class CronJob(kind: String ="CronJob",
+  override val apiVersion: String = "batch/v1beta1",
+  metadata: ObjectMeta = ObjectMeta(),
   spec: Option[CronJob.Spec] = None,
   status: Option[CronJob.Status] = None) extends ObjectResource
 
@@ -30,6 +30,23 @@ object CronJob {
   def apply(name: String) = new CronJob(metadata=ObjectMeta(name=name))
   def apply(name: String, schedule: String, jobTemplateSpec: JobTemplate.Spec) =
     new CronJob(metadata=ObjectMeta(name=name),spec=Some(Spec(schedule=schedule, jobTemplate = jobTemplateSpec)))
+
+  def apply(name: String, schedule: String, podTemplateSpec: Pod.Template.Spec) =
+    new CronJob(
+      metadata=ObjectMeta(name=name),
+      spec=Some(
+        Spec(
+          schedule=schedule,
+          jobTemplate = JobTemplate.Spec(
+            spec = Job.Spec(
+              template = Some(podTemplateSpec)
+            )
+          )
+        )
+      )
+    )
+
+
 
   case class Spec(
     schedule: String,

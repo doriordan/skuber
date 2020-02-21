@@ -10,19 +10,19 @@ case class Pod(
   	override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     spec: Option[Pod.Spec] = None,
-    status: Option[Pod.Status] = None) 
+    status: Option[Pod.Status] = None)
       extends ObjectResource with Limitable
 
 object Pod {
 
-  val specification = CoreResourceSpecification(
+  val specification: CoreResourceSpecification = CoreResourceSpecification(
       scope = ResourceSpecification.Scope.Namespaced,
       names = ResourceSpecification.Names(plural="pods",singular="pod",kind="Pod",shortNames=List("po"))
   )
-  implicit val poDef = new ResourceDefinition[Pod] { def spec = specification }
-  implicit val poListDef = new ResourceDefinition[PodList] { def spec = specification }
+  implicit val poDef: ResourceDefinition[Pod] = new ResourceDefinition[Pod] { def spec: CoreResourceSpecification = specification }
+  implicit val poListDef: ResourceDefinition[PodList] = new ResourceDefinition[PodList] { def spec: CoreResourceSpecification = specification }
 
-  def named(name: String) = Pod(metadata=ObjectMeta(name=name))
+  def named(name: String): Pod = Pod(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: Pod.Spec) : Pod = Pod(metadata=ObjectMeta(name=name), spec = Some(spec))
 
   case class Spec(
@@ -54,25 +54,25 @@ object Pod {
     shareProcessNamespace: Option[Boolean] = None) {
 
     // a few convenience methods for fluently building out a pod spec
-    def addContainer(c: Container) = { this.copy(containers = c :: containers) }
-    def addInitContainer(c: Container) = { this.copy(initContainers = c :: initContainers) }
-    def addVolume(v: Volume) = { this.copy(volumes = v :: volumes) }
-    def addNodeSelector(kv: Tuple2[String,String]) = {
+    def addContainer(c: Container): Spec = { this.copy(containers = c :: containers) }
+    def addInitContainer(c: Container): Spec = { this.copy(initContainers = c :: initContainers) }
+    def addVolume(v: Volume): Spec = { this.copy(volumes = v :: volumes) }
+    def addNodeSelector(kv: (String,String)): Spec = {
       this.copy(nodeSelector = this.nodeSelector + kv)
     }
-    def addImagePullSecretRef(ref: String) = {
+    def addImagePullSecretRef(ref: String): Spec = {
       val loref = LocalObjectReference(ref)
       this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
     }
-    def withTerminationGracePeriodSeconds(gp: Int) = this.copy(terminationGracePeriodSeconds = Some(gp))
-    def withActiveDeadlineSeconds(ad: Int) = this.copy(activeDeadlineSeconds = Some(ad))
-    def withDnsPolicy(dp: DNSPolicy.DNSPolicy) = this.copy(dnsPolicy=dp)
-    def withNodeName(nn: String) = this.copy(nodeName = nn)
-    def withServiceAccountName(san: String) = this.copy(serviceAccountName = san)
-    def withRestartPolicy(rp: RestartPolicy.RestartPolicy) = this.copy(restartPolicy = rp)
-    def useHostNetwork = this.copy(hostNetwork=true)
+    def withTerminationGracePeriodSeconds(gp: Int): Spec = this.copy(terminationGracePeriodSeconds = Some(gp))
+    def withActiveDeadlineSeconds(ad: Int): Spec = this.copy(activeDeadlineSeconds = Some(ad))
+    def withDnsPolicy(dp: DNSPolicy.DNSPolicy): Spec = this.copy(dnsPolicy=dp)
+    def withNodeName(nn: String): Spec = this.copy(nodeName = nn)
+    def withServiceAccountName(san: String): Spec = this.copy(serviceAccountName = san)
+    def withRestartPolicy(rp: RestartPolicy.RestartPolicy): Spec = this.copy(restartPolicy = rp)
+    def useHostNetwork: Spec = this.copy(hostNetwork=true)
    }
-   
+
   object Phase extends Enumeration {
     type Phase = Value
     val Pending, Running, Succeeded, Failed, Unknown = Value
@@ -174,29 +174,29 @@ object Pod {
     message: Option[String]=None,
     lastProbeTime: Option[Timestamp]=None,
     lastTransitionTime: Option[Timestamp]=None)
- 
+
   case class Template(
-    val kind: String ="PodTemplate",
+    kind: String ="PodTemplate",
     override val apiVersion: String = v1,
-    val metadata: ObjectMeta = ObjectMeta(),
-    spec: Option[Template.Spec] = None) 
+    metadata: ObjectMeta = ObjectMeta(),
+    spec: Option[Template.Spec] = None)
     extends ObjectResource
-  {  
-    def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+  {
+    def withResourceVersion(version: String): Template = this.copy(metadata = metadata.copy(resourceVersion=version))
 
     def addLabel(label: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
-    def addLabel(label: String) : Template = addLabel(label -> "") 
-    def addLabels(newLabels: Map[String, String]) = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))
+    def addLabel(label: String) : Template = addLabel(label -> "")
+    def addLabels(newLabels: Map[String, String]): Template = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))
     def addAnnotation(anno: Tuple2[String, String]) : Template = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
-    def addAnnotation(anno: String) : Template = addAnnotation(anno -> "") 
-    def addAnnotations(newAnnos: Map[String, String]) = this.copy(metadata=metadata.copy(annotations = metadata.annotations ++ newAnnos))
-    def withTemplateSpec(spec: Template.Spec) = this.copy(spec=Some(spec))
-    def withPodSpec(podSpec: Pod.Spec) = this.copy(spec=Some(Pod.Template.Spec(spec=Some(podSpec))))
+    def addAnnotation(anno: String) : Template = addAnnotation(anno -> "")
+    def addAnnotations(newAnnos: Map[String, String]): Template = this.copy(metadata=metadata.copy(annotations = metadata.annotations ++ newAnnos))
+    def withTemplateSpec(spec: Template.Spec): Template = this.copy(spec=Some(spec))
+    def withPodSpec(podSpec: Pod.Spec): Template = this.copy(spec=Some(Pod.Template.Spec(spec=Some(podSpec))))
   }
-    
+
   object Template {
 
-    val specification = CoreResourceSpecification(
+    val specification: CoreResourceSpecification = CoreResourceSpecification(
       scope = ResourceSpecification.Scope.Namespaced,
       names = ResourceSpecification.Names(
         plural="podtemplates",
@@ -212,21 +212,25 @@ object Pod {
      case class Spec(
          metadata: ObjectMeta = ObjectMeta(),
          spec: Option[Pod.Spec] = None) {
-       
-       def addLabel(label: Tuple2[String, String]) : Spec = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
-       def addLabels(newLabels: Map[String, String]) = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))
-       def addAnnotation(anno: Tuple2[String, String]) : Spec = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
-       def addAnnotations(newAnnos: Map[String, String]) = this.copy(metadata=metadata.copy(annotations = metadata.annotations ++ newAnnos))
-       def addContainer(container: Container) : Spec = {
-         val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addContainer(container)
-         this.copy(spec=Some(newPodSpec))
+
+       private def updateSpec(f: Pod.Spec => Pod.Spec) = {
+         val newPodSpec = f(this.spec.getOrElse(Pod.Spec(Nil)))
+         this.copy(spec = Some(newPodSpec))
        }
-       def addInitContainer(container: Container): Spec = {
-         val newPodSpec = this.spec.getOrElse(Pod.Spec(Nil)).addInitContainer(container)
-         this.copy(spec=Some(newPodSpec))
-       }
+
+       def addLabel(label: (String, String)) : Spec = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
+       def addLabels(newLabels: Map[String, String]): Spec = this.copy(metadata=metadata.copy(labels = metadata.labels ++  newLabels))
+       def addAnnotation(anno: (String, String)) : Spec = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
+       def addAnnotations(newAnnos: Map[String, String]): Spec = this.copy(metadata=metadata.copy(annotations = metadata.annotations ++ newAnnos))
+       def addContainer(container: Container): Spec = updateSpec(_.addContainer(container))
+       def addInitContainer(container: Container): Spec = updateSpec(_.addInitContainer(container))
+       def addVolume(v: Volume): Spec = updateSpec(_.addVolume(v))
+       def withServiceAccountName(san: String): Spec = updateSpec(_.withServiceAccountName(san))
+       def withRestartPolicy(rp: RestartPolicy.RestartPolicy): Spec = updateSpec(_.withRestartPolicy(rp))
+
+
        def withPodSpec(spec: Pod.Spec): Spec = this.copy(spec=Some(spec))
-     }       
+     }
      object Spec {
        def named(name: String) : Spec = Spec(metadata=ObjectMeta(name=name))
      }
