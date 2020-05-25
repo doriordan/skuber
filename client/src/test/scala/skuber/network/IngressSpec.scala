@@ -1,11 +1,10 @@
-package skuber.ext
+package skuber.networking
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber.LabelSelector.dsl._
 import skuber._
 import skuber.json.networking.format._
-import skuber.networking.Ingress
 
 /**
  * @author Chris Baker
@@ -57,6 +56,11 @@ class IngressSpec extends Specification {
         |          ]
         |        }
         |      }
+        |    ],
+        |    "tls": [
+        |      {
+        |        "hosts": ["abc","def"]
+        |      }  
         |    ]
         |  },
         |  "status": {
@@ -78,6 +82,10 @@ class IngressSpec extends Specification {
     ing.spec.get.rules.head.http.paths must_== List(Ingress.Path(
       path = "",
       backend = Ingress.Backend("service", "http")
+    ))
+    ing.spec.get.tls must_== List(Ingress.TLS(
+      hosts = List("abc","def"),
+      secretName = None
     ))
 
   }

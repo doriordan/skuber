@@ -6,6 +6,8 @@ target/
 .cache-main
 .worksheet/
 .idea/
+.bloop/
+.metals/
 *.sc
 *.launch
 *.s??
