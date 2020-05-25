@@ -27,11 +27,10 @@ package object format {
   implicit val ingressTLSFmt: Format[Ingress.TLS] = Json.format[Ingress.TLS]
 
   implicit val ingressSpecFormat: Format[Ingress.Spec] = (
-  (JsPath \ "backend").formatNullable[Ingress.Backend] and
+    (JsPath \ "backend").formatNullable[Ingress.Backend] and
     (JsPath \ "rules").formatMaybeEmptyList[Ingress.Rule] and
     (JsPath \ "tls").formatMaybeEmptyList[Ingress.TLS]
   )(Ingress.Spec.apply _, unlift(Ingress.Spec.unapply))
-
 
   implicit val ingrlbingFormat: Format[Ingress.Status.LoadBalancer.Ingress] =
     Json.format[Ingress.Status.LoadBalancer.Ingress]

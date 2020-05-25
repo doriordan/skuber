@@ -160,7 +160,7 @@ object Ingress {
   case class Path(path: String, backend: Backend)
   case class HttpRule(paths: List[Path] = List())
   case class Rule(host: Option[String], http: HttpRule)
-  case class TLS(hosts: List[String]=List(), secretName: String="")
+  case class TLS(hosts: List[String]=List(), secretName: Option[String] = None)
 
   case class Spec(
     backend: Option[Backend] = None,
