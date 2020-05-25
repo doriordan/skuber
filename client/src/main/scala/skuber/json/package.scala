@@ -680,7 +680,8 @@ package object format {
     (JsPath \ "stdin").formatNullable[Boolean] and
     (JsPath \ "stdinOnce").formatNullable[Boolean] and
     (JsPath \ "tty").formatNullable[Boolean] and
-    (JsPath \ "volumeDevices").formatMaybeEmptyList[Volume.Device]
+    (JsPath \ "volumeDevices").formatMaybeEmptyList[Volume.Device] and
+    (JsPath \ "startupProbe").formatNullable[Probe] 
   )(Container.apply _, unlift(Container.unapply))
 
   implicit val cntnrImageFmt: Format[Container.Image] = (

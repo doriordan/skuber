@@ -28,7 +28,8 @@ case class Container(
     stdin: Option[Boolean] = None,
     stdinOnce: Option[Boolean] = None,
     tty: Option[Boolean] = None,
-    volumeDevices: List[Volume.Device] = Nil
+    volumeDevices: List[Volume.Device] = Nil,
+    startupProbe: Option[Probe] = None
     )
       extends Limitable
 {
