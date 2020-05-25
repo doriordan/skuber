@@ -84,7 +84,7 @@ object DaemonSet {
     numberAvailable: Option[Int],
     numberUnavailable:Option[Int],
     collisionCount:Option[Long],
-    conditions: List[Condition])
+    conditions: Option[List[Condition]])
 
   // json formatters
   import play.api.libs.json.{Json,Format, JsPath}
