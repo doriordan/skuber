@@ -51,6 +51,11 @@ import Pod._
         successThreshold = None,
         failureThreshold = Some(100)
       )
+      val startupProbe=Probe(
+        action=HTTPGetAction(new URL("http://10.145.15.67:8100/ping")),
+        periodSeconds = Some(10),
+        failureThreshold = Some(30)
+      )
       val cntrs=List(Container("myContainer", "myImage"),
                      Container(name="myContainer2", 
                                image = "myImage2", 
@@ -62,6 +67,7 @@ import Pod._
                                volumeMounts=List(Volume.Mount("mnt1","/mt1"), 
                                                  Volume.Mount("mnt2","/mt2", readOnly = true)),
                                readinessProbe=Some(readyProbe),
+                               startupProbe=Some(startupProbe),
                                lifecycle=Some(Lifecycle(preStop=Some(ExecAction(List("/bin/bash", "probe"))))),
                                terminationMessagePath=Some("/var/log/termination-message"),
                                terminationMessagePolicy=Some(Container.TerminationMessagePolicy.File),
