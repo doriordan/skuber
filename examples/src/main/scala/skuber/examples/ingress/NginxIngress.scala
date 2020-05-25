@@ -6,7 +6,8 @@ import java.net.HttpURLConnection
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import skuber._
-import skuber.ext.{Ingress, ReplicaSet}
+import skuber.ext.ReplicaSet
+import skuber.networking.Ingress
 
 import scala.annotation.tailrec
 
@@ -14,12 +15,13 @@ import scala.annotation.tailrec
 
 import skuber.json.format._
 import skuber.json.ext.format._
+import skuber.json.networking.format._
 
 import scala.concurrent.Future
 
 /**
   * @author David O'Riordan
-  * This Skuber creates and tests an nginx-based Ingress by emulating the steps described at 
+  * This Skuber creates and tests an nginx-based Ingress by emulating the steps described at
   * https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx
   */
 

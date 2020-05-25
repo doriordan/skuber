@@ -8,7 +8,12 @@ package skuber
 case class ConfigMap(val kind: String ="ConfigMap",
                      override val apiVersion: String = v1,
                      val metadata: ObjectMeta,
-                     data: Map[String, String] = Map()) extends ObjectResource
+                     data: Map[String, String] = Map()) extends ObjectResource {
+
+  def withData(data: Map[String, String]): ConfigMap =
+    this.copy(data = data)
+
+}
 
 object ConfigMap {
   val specification = CoreResourceSpecification(
@@ -23,5 +28,8 @@ object ConfigMap {
 
   implicit val configMapDef = new ResourceDefinition[ConfigMap] { def spec=specification }
   implicit val configMapListDef = new ResourceDefinition[ConfigMapList] { def spec=specification }
+
+  def apply(name: String): ConfigMap = new ConfigMap(metadata=ObjectMeta(name=name))
+
 }
 
