@@ -15,6 +15,7 @@ import format._
 import play.api.libs.json._
 import skuber.apps.StatefulSet
 import skuber.Pod.ExistsToleration
+import skuber.Volume.{ProjectedConfigMap, ProjectedSecret}
 
 /**
  * @author David O'Riordan
@@ -660,6 +661,12 @@ import Pod._
     val json = Json.toJson(pod)
     val readPod = Json.fromJson[Pod](json).get
     readPod mustEqual pod
+
+    val configVolume = pod.spec.get.volumes.filter(_.name == "config-volume").head
+    configVolume.source must beAnInstanceOf[Volume.Projected]
+    configVolume.source.asInstanceOf[Volume.Projected].defaultMode mustEqual Some(128)
+
+    configVolume.source.asInstanceOf[Volume.Projected].sources mustEqual List(ProjectedSecret("verysecret",None), ProjectedConfigMap("justConfig",None,None))
   }
 
 }

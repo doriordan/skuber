@@ -75,6 +75,10 @@
           {
             "name": "logs",
             "mountPath": "/var/log/app.log"
+          },
+          {
+            "mountPath": "/config",
+            "name": "config-volume"
           }
         ],
         "terminationMessagePolicy": "FallbackToLogsOnError",
@@ -124,6 +128,24 @@
       }
     ],
     "volumes": [
+      {
+        "name": "config-volume",
+        "projected": {
+          "defaultMode": 128,
+          "sources": [
+            {
+              "secret": {
+                "name": "verysecret"
+              }
+            },
+            {
+              "configMap": {
+                "name": "justConfig"
+              }
+            }
+          ]
+        }
+      },
       {
         "name": "keys",
         "secret": {
