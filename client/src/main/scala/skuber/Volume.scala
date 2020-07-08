@@ -18,14 +18,13 @@ object Volume {
     extends Source
 
   sealed trait ProjectedSource
-  case class Projected( defaultMode:Option[Int] = None,
-                        sources: List[ProjectedSource]) extends Source
+  case class Projected(defaultMode:Option[Int] = None,
+                       sources: List[ProjectedSource]) extends Source
   case class ProjectedSecret(name: String,
                              items: Option[List[KeyToPath]] = None) extends ProjectedSource
-  case class ProjectedConfigMap(
-                                    name: String,
-                                    items: Option[List[KeyToPath]] = None,
-                                    mode: Option[Int] = None) extends ProjectedSource
+  case class ProjectedConfigMap(name: String,
+                                items: Option[List[KeyToPath]] = None,
+                                mode: Option[Int] = None) extends ProjectedSource
   case class ProjectedDownwardApi(items: List[DownwardApiVolumeFile] = List())  extends ProjectedSource
 
   case class Secret(

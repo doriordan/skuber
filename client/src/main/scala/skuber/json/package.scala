@@ -613,7 +613,7 @@ package object format {
           s.keys.headOption map {
             case "secret" => s.value("secret").as[Volume.ProjectedSecret]
             case "configMap" => s.value("configMap").as[Volume.ProjectedConfigMap]
-            case "downwardAPI" =>s.value("downwardAPI").as[Volume.ProjectedDownwardApi]
+            case "downwardAPI" => s.value("downwardAPI").as[Volume.ProjectedDownwardApi]
           }
         })))
   }
