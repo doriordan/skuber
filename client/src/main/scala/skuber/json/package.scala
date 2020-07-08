@@ -70,8 +70,7 @@ package object format {
     def reads(json: JsValue): JsResult[E#Value] = json match {
       case JsString(s) => {
         try {
-          JsSuccess(enum
-            .withName(s))
+          JsSuccess(enum.withName(s))
         } catch {
           case _: NoSuchElementException => JsError(s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'")
         }
@@ -507,12 +506,10 @@ package object format {
     (JsPath \ "sizeLimit").formatNullable[Resource.Quantity]
   )(EmptyDir.apply _, unlift(EmptyDir.unapply))
 
-
   implicit val hostPathFormat: Format[HostPath] = Json.format[HostPath]
   implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
   implicit val volumeSecretFormat: Format[skuber.Volume.Secret] = Json.format[skuber.Volume.Secret]
   implicit val gitFormat: Format[GitRepo] = Json.format[GitRepo]
-
 
   implicit val objectFieldSelectorFormat: Format[ObjectFieldSelector] = (
     (JsPath \ "apiVersion").formatMaybeEmptyString() and
@@ -596,7 +593,6 @@ package object format {
      JsPath.read[JsValue].map[PersistentSource](j => GenericVolumeSource(j.toString))
    )
 
-
   implicit val projectedSecretFormat: Format[Volume.ProjectedSecret] = Json.format[ProjectedSecret]
   implicit val projectedConfigMapFormat: Format[Volume.ProjectedConfigMap] = Json.format[ProjectedConfigMap]
   implicit val projectedDownwardApiFormat: Format[Volume.ProjectedDownwardApi] = Json.format[ProjectedDownwardApi]
@@ -652,7 +648,6 @@ package object format {
      case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
      case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
    }
-
 
    implicit val volumeReads: Reads[Volume] = (
      (JsPath \ "name").read[String] and
