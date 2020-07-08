@@ -593,16 +593,6 @@ package object format {
      JsPath.read[JsValue].map[PersistentSource](j => GenericVolumeSource(j.toString))
    )
 
-   implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
-     case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
-     case gced: GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[GCEPersistentDisk](gceFormat).writes(gced)
-     case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
-     case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
-     case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
-     case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
-     case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
-     case GenericVolumeSource(json) => Json.parse(json)
-   }
 
   implicit val projectedSecretFormat: Format[Volume.ProjectedSecret] = Json.format[ProjectedSecret]
   implicit val projectedConfigMapFormat: Format[Volume.ProjectedConfigMap] = Json.format[ProjectedConfigMap]
@@ -629,25 +619,37 @@ package object format {
         })))
   }
 
-  implicit val volumeSourceReads: Reads[Source] = (
-    (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
-      (JsPath \ "projected").read[Projected].map(x => x: Source) |
-      (JsPath \ "secret").read[skuber.Volume.Secret].map(x => x: Source) |
-      (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
-      (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
-      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
-      (JsPath \ "downwardAPI").read[DownwardApiVolumeSource].map(x => x: Source) |
-      persVolumeSourceReads.map(x => x: Source)
-    )
+   implicit val volumeSourceReads: Reads[Source] = (
+     (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
+     (JsPath \ "projected").read[Projected].map(x => x: Source) |
+     (JsPath \ "secret").read[skuber.Volume.Secret].map(x => x: Source) |
+     (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
+     (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
+     (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
+     (JsPath \ "downwardAPI").read[DownwardApiVolumeSource].map(x => x: Source) |
+     persVolumeSourceReads.map(x => x: Source)
+   )
+
+   implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
+     case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
+     case gced: GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[GCEPersistentDisk](gceFormat).writes(gced)
+     case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
+     case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
+     case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
+     case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
+     case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
+     case GenericVolumeSource(json) => Json.parse(json)
+   }
+
    implicit val volumeSourceWrites: Writes[Source] = Writes[Source] {
-     case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
-     case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
-     case p: Projected => (JsPath \ "projected").write[Projected](projectedFormat).writes(p)
-     case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
-     case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
-     case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
-     case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
-     case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
+       case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
+       case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
+       case p: Projected => (JsPath \ "projected").write[Projected](projectedFormat).writes(p)
+       case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
+       case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
+       case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
+       case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
+       case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
    }
 
    implicit val volumeReads: Reads[Volume] = (
