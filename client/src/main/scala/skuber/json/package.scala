@@ -593,6 +593,17 @@ package object format {
      JsPath.read[JsValue].map[PersistentSource](j => GenericVolumeSource(j.toString))
    )
 
+  implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
+    case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
+    case gced: GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[GCEPersistentDisk](gceFormat).writes(gced)
+    case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
+    case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
+    case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
+    case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
+    case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
+    case GenericVolumeSource(json) => Json.parse(json)
+  }
+
   implicit val projectedSecretFormat: Format[Volume.ProjectedSecret] = Json.format[ProjectedSecret]
   implicit val projectedConfigMapFormat: Format[Volume.ProjectedConfigMap] = Json.format[ProjectedConfigMap]
   implicit val projectedDownwardApiFormat: Format[Volume.ProjectedDownwardApi] = Json.format[ProjectedDownwardApi]
@@ -617,16 +628,6 @@ package object format {
           }
         })))
   }
-   implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
-     case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
-     case gced: GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[GCEPersistentDisk](gceFormat).writes(gced)
-     case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
-     case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
-     case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
-     case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
-     case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
-     case GenericVolumeSource(json) => Json.parse(json)
-   }
 
   implicit val volumeSourceReads: Reads[Source] = (
     (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
