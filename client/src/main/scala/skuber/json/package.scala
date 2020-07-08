@@ -614,11 +614,10 @@ package object format {
       JsSuccess(Projected(
         (json \ "defaultMode").asOpt[Int],
         (json \ "sources").as[List[JsObject]].flatMap(s => {
-          s.keys.headOption match {
-            case Some("secret") => Some(s.value("secret").as[Volume.ProjectedSecret])
-            case Some("configMap") => Some(s.value("configMap").as[Volume.ProjectedConfigMap])
-            case Some("downwardAPI") => Some(s.value("downwardAPI").as[Volume.ProjectedDownwardApi])
-            case _ => None
+          s.keys.headOption map {
+            case "secret" => s.value("secret").as[Volume.ProjectedSecret]
+            case "configMap" => s.value("configMap").as[Volume.ProjectedConfigMap]
+            case "downwardAPI" =>s.value("downwardAPI").as[Volume.ProjectedDownwardApi]
           }
         })))
   }
