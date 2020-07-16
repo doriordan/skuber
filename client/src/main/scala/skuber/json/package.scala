@@ -402,7 +402,7 @@ package object format {
     (JsPath \ "requests").formatMaybeEmptyMap[Resource.Quantity]
   )(Resource.Requirements.apply _, unlift(Resource.Requirements.unapply))
 
-  implicit val protocolFmt = Format(enumReads(Protocol, Protocol.TCP), enumWrites)
+  implicit val protocolFmt: Format[skuber.Protocol.Value] = Format(enumReads(Protocol, Protocol.TCP), enumWrites)
 
   implicit val formatCntrProt: Format[Container.Port] = (
     (JsPath \ "containerPort").format[Int] and
