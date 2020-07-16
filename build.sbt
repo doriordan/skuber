@@ -12,7 +12,7 @@ val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersi
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.25"
 val commonsIO = "commons-io" % "commons-io" % "2.6"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.64"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
 
 // the client API request/response handing uses Akka Http
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.11"
@@ -24,7 +24,7 @@ val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.7.4"
+val playJson = "com.typesafe.play" %% "play-json" % "2.9.0"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
