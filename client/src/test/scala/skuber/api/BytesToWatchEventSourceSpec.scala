@@ -21,7 +21,6 @@ class BytesToWatchEventSourceSpec extends Specification {
 
   implicit val system: ActorSystem = ActorSystem("test")
   implicit val ec: ExecutionContext = system.dispatcher
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
 
   "A single chunk containing a single Watch event can be read correctly" >> {

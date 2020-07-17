@@ -13,7 +13,7 @@ private[api] object LongPollingPool {
   def apply[T](schema: String, host: String, port: Int,
                poolIdleTimeout: Duration,
                httpsConnectionContext: Option[HttpsConnectionContext],
-               clientConnectionSettings: ClientConnectionSettings)(implicit mat: Materializer, system: ActorSystem): Pool[T] = {
+               clientConnectionSettings: ClientConnectionSettings)(implicit system: ActorSystem): Pool[T] = {
     schema match {
       case "http" =>
         Http().newHostConnectionPool[T](

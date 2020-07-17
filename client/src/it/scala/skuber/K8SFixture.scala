@@ -12,7 +12,6 @@ trait K8SFixture extends fixture.AsyncFlatSpec {
   override type FixtureParam =  K8SRequestContext
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val config = ConfigFactory.load()

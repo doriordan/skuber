@@ -139,7 +139,6 @@ import skuber.json.format._
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
 implicit val dispatcher = system.dispatcher
     
 val k8s = k8sInit
@@ -259,12 +258,10 @@ import skuber.json.format._
 import skuber.apps.v1.Deployment
    
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
     
 object WatchExamples {
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
   val k8s = k8sInit
 

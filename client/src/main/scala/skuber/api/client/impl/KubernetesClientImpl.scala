@@ -45,7 +45,7 @@ class KubernetesClientImpl private[client] (
   val podLogSettings: ConnectionPoolSettings,
   val sslContext: Option[SSLContext], // provides the Akka client with the SSL details needed for https connections to the API server
   override val logConfig: LoggingConfig,
-  val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val materializer: Materializer, val executionContext: ExecutionContext)
+  val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val executionContext: ExecutionContext)
     extends KubernetesClient
 {
   val log = Logging.getLogger(actorSystem, "skuber.api")
@@ -700,7 +700,7 @@ class KubernetesClientImpl private[client] (
 object KubernetesClientImpl {
 
   def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
-   (implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClientImpl =
+   (implicit actorSystem: ActorSystem): KubernetesClientImpl =
   {
     appConfig.checkValid(ConfigFactory.defaultReference(), "skuber")
 

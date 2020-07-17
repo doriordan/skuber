@@ -25,7 +25,6 @@ import scala.util.Success
 
 class LongPollingPoolSpec extends Specification with ScalaFutures {
   implicit val system: ActorSystem = ActorSystem("watch-source-spec")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(3, Seconds), interval = Span(5, Millis))
 

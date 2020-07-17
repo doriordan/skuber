@@ -242,7 +242,6 @@ object NginxIngress extends App {
   def run = {
 
     implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
     implicit val dispatcher = system.dispatcher
 
     implicit val k8s = k8sInit

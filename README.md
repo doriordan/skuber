@@ -30,7 +30,6 @@ This example lists pods in `kube-system` namespace:
   import scala.util.{Success, Failure}
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

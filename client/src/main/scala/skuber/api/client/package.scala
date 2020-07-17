@@ -190,29 +190,29 @@ package object client {
 
   type RequestContext = KubernetesClient // for backwards compatibility (with pre 2.1 clients)
 
-  def init()(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def init()(implicit actorSystem: ActorSystem): KubernetesClient = {
     init(defaultK8sConfig, defaultAppConfig)
   }
 
-  def init(config: Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def init(config: Configuration)(implicit actorSystem: ActorSystem): KubernetesClient = {
     init(config.currentContext, LoggingConfig(), None, defaultAppConfig)
   }
 
-  def init(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def init(appConfig: Config)(implicit actorSystem: ActorSystem): KubernetesClient = {
     init(defaultK8sConfig.currentContext, LoggingConfig(), None, appConfig)
   }
 
-  def init(config: Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def init(config: Configuration, appConfig: Config)(implicit actorSystem: ActorSystem): KubernetesClient = {
     init(config.currentContext, LoggingConfig(), None, appConfig)
   }
 
   def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None)
-      (implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+      (implicit actorSystem: ActorSystem): KubernetesClient = {
     init(k8sContext, logConfig, closeHook, defaultAppConfig)
   }
 
   def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
-      (implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+      (implicit actorSystem: ActorSystem): KubernetesClient = {
     KubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig)
   }
 

@@ -102,7 +102,6 @@ users:
 """
 
   implicit val system=ActorSystem("test")
-  implicit val materializer = ActorMaterializer()
   implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
 
   "An example kubeconfig file can be parsed correctly" >> {

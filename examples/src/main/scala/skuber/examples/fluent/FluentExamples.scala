@@ -46,7 +46,6 @@ object FluentExamples extends App {
   val prodExternalSelector = Map(prodLabel, prodExternalZoneLabel)
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

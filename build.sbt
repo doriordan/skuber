@@ -15,7 +15,7 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.12"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.11"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
@@ -52,8 +52,8 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
-  scalaVersion := "2.13.1",
+  crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.3"),
+  scalaVersion := "2.13.3",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat

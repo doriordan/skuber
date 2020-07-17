@@ -29,7 +29,7 @@ object PodExecImpl {
     maybeStdout: Option[Sink[String, _]] = None,
     maybeStderr: Option[Sink[String, _]] = None,
     tty: Boolean = false,
-    maybeClose: Option[Promise[Unit]] = None)(implicit sys: ActorSystem, mat: Materializer, lc : LoggingContext): Future[Unit] =
+    maybeClose: Option[Promise[Unit]] = None)(implicit sys: ActorSystem, lc : LoggingContext): Future[Unit] =
   {
     implicit val executor: ExecutionContext = sys.dispatcher
 

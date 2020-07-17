@@ -17,7 +17,6 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 
 implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
 implicit val dispatcher = system.dispatcher
 ```
 

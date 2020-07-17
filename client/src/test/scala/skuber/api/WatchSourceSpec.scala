@@ -26,7 +26,6 @@ import scala.util.Try
 
 class WatchSourceSpec extends Specification with MockitoSugar {
   implicit val system: ActorSystem = ActorSystem("watch-source-spec")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val loggingContext: LoggingContext = new LoggingContext {
     override def output: String = "test"
   }

@@ -9,12 +9,8 @@ Because skuber now uses [Akka Http](https://doc.akka.io/docs/akka-http/current/s
 ```
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-
-
 
 implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
 
 val k8s = skuber.k8sInit
 
