@@ -52,7 +52,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.3"),
+  crossScalaVersions := Seq("2.12.10", "2.13.3"),
   scalaVersion := "2.13.3",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
