@@ -8,10 +8,10 @@ import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
 import akka.stream.testkit.scaladsl.TestSink
-import akka.stream.{ActorMaterializer, KillSwitches}
+import akka.stream.KillSwitches
 import com.fasterxml.jackson.core.JsonParseException
 import org.mockito.Mockito.{times, verify, when}
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.specs2.mutable.Specification
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.watch.WatchSource.Start
