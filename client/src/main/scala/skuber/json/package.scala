@@ -594,34 +594,34 @@ package object format {
    )
 
 
-  implicit val projectedSecretFormat: Format[Volume.ProjectedSecret] = Json.format[ProjectedSecret]
-  implicit val projectedConfigMapFormat: Format[Volume.ProjectedConfigMap] = Json.format[ProjectedConfigMap]
-  implicit val projectedDownwardApiFormat: Format[Volume.ProjectedDownwardApi] = Json.format[ProjectedDownwardApi]
+  implicit val projectedSecretFormat: Format[Volume.SecretProjection] = Json.format[SecretProjection]
+  implicit val projectedConfigMapFormat: Format[Volume.ConfigMapProjection] = Json.format[ConfigMapProjection]
+  implicit val projectedDownwardApiFormat: Format[Volume.DownwardAPIProjection] = Json.format[DownwardAPIProjection]
 
-  implicit val projectedVolumeSourceWrites: Writes[ProjectedSource] = Writes[ProjectedSource] {
-    case s: ProjectedSecret => (JsPath \ "secret").write[ProjectedSecret](projectedSecretFormat).writes(s)
-    case cm: ProjectedConfigMap => (JsPath \ "configMap").write[ProjectedConfigMap](projectedConfigMapFormat).writes(cm)
-    case dapi: ProjectedDownwardApi => (JsPath \ "downwardAPI").write[ProjectedDownwardApi](projectedDownwardApiFormat).writes(dapi)
+  implicit val projectedVolumeSourceWrites: Writes[VolumeProjection] = Writes[VolumeProjection] {
+    case s: SecretProjection => (JsPath \ "secret").write[SecretProjection](projectedSecretFormat).writes(s)
+    case cm: ConfigMapProjection => (JsPath \ "configMap").write[ConfigMapProjection](projectedConfigMapFormat).writes(cm)
+    case dapi: DownwardAPIProjection => (JsPath \ "downwardAPI").write[DownwardAPIProjection](projectedDownwardApiFormat).writes(dapi)
   }
 
-  implicit val projectedFormat: Format[Projected] = new Format[Projected] {
-    override def writes(o: Projected): JsValue = Json.writes[Projected].writes(o)
+  implicit val projectedFormat: Format[ProjectedVolumeSource] = new Format[ProjectedVolumeSource] {
+    override def writes(o: ProjectedVolumeSource): JsValue = Json.writes[ProjectedVolumeSource].writes(o)
 
-    override def reads(json: JsValue): JsResult[Projected] =
-      JsSuccess(Projected(
+    override def reads(json: JsValue): JsResult[ProjectedVolumeSource] =
+      JsSuccess(ProjectedVolumeSource(
         (json \ "defaultMode").asOpt[Int],
         (json \ "sources").as[List[JsObject]].flatMap(s => {
           s.keys.headOption map {
-            case "secret" => s.value("secret").as[Volume.ProjectedSecret]
-            case "configMap" => s.value("configMap").as[Volume.ProjectedConfigMap]
-            case "downwardAPI" => s.value("downwardAPI").as[Volume.ProjectedDownwardApi]
+            case "secret" => s.value("secret").as[Volume.SecretProjection]
+            case "configMap" => s.value("configMap").as[Volume.ConfigMapProjection]
+            case "downwardAPI" => s.value("downwardAPI").as[Volume.DownwardAPIProjection]
           }
         })))
   }
 
    implicit val volumeSourceReads: Reads[Source] = (
      (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
-     (JsPath \ "projected").read[Projected].map(x => x: Source) |
+     (JsPath \ "projected").read[ProjectedVolumeSource].map(x => x: Source) |
      (JsPath \ "secret").read[skuber.Volume.Secret].map(x => x: Source) |
      (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
      (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
@@ -644,7 +644,7 @@ package object format {
    implicit val volumeSourceWrites: Writes[Source] = Writes[Source] {
        case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
-       case p: Projected => (JsPath \ "projected").write[Projected](projectedFormat).writes(p)
+       case p: ProjectedVolumeSource => (JsPath \ "projected").write[ProjectedVolumeSource](projectedFormat).writes(p)
        case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
        case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)

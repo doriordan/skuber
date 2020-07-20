@@ -17,15 +17,19 @@ object Volume {
       directory: Option[String] = None)
     extends Source
 
-  sealed trait ProjectedSource
-  case class Projected(defaultMode:Option[Int] = None,
-                       sources: List[ProjectedSource]) extends Source
-  case class ProjectedSecret(name: String,
-                             items: Option[List[KeyToPath]] = None) extends ProjectedSource
-  case class ProjectedConfigMap(name: String,
-                                items: Option[List[KeyToPath]] = None,
-                                mode: Option[Int] = None) extends ProjectedSource
-  case class ProjectedDownwardApi(items: List[DownwardApiVolumeFile] = List())  extends ProjectedSource
+  sealed trait VolumeProjection
+  case class ProjectedVolumeSource(defaultMode:Option[Int] = None,
+                                   sources: List[VolumeProjection]) extends Source
+  case class SecretProjection(name: String,
+                              items: Option[List[KeyToPath]] = None,
+                              optional: Option[Boolean] = None) extends VolumeProjection
+  case class ConfigMapProjection(name: String,
+                                 items: Option[List[KeyToPath]] = None,
+                                 optional: Option[Boolean] = None) extends VolumeProjection
+  case class DownwardAPIProjection(items: List[DownwardApiVolumeFile] = List())  extends VolumeProjection
+  case class ServiceAccountTokenProjection(audience: Option[String],
+                                          expirationSeconds: Option[Int],
+                                          path: String)
 
   case class Secret(
       secretName: String,
