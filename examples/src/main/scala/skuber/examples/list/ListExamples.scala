@@ -1,7 +1,6 @@
 package skuber.examples.list
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import skuber.Pod.Phase
 import skuber._
 

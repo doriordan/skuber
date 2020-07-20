@@ -4,7 +4,6 @@ import akka.NotUsed
 import skuber._
 import skuber.json.format._
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import skuber.api.client

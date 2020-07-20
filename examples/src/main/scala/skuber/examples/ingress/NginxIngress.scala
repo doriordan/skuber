@@ -4,7 +4,7 @@ import java.io.Serializable
 import java.net.HttpURLConnection
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+
 import skuber._
 import skuber.ext.ReplicaSet
 import skuber.networking.Ingress

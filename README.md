@@ -26,7 +26,6 @@ This example lists pods in `kube-system` namespace:
   import skuber._
   import skuber.json.format._
   import akka.actor.ActorSystem
-  import akka.stream.ActorMaterializer
   import scala.util.{Success, Failure}
 
   implicit val system = ActorSystem()

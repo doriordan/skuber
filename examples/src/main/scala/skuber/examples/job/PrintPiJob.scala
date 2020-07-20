@@ -1,7 +1,6 @@
 package skuber.examples.job
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import skuber.{Container, Pod, RestartPolicy, k8sInit}
 import skuber.batch.Job

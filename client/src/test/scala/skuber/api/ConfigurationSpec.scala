@@ -6,7 +6,6 @@ import java.nio.file.Paths
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
-import akka.stream.ActorMaterializer
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 

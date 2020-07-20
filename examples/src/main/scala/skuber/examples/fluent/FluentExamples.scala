@@ -6,8 +6,7 @@ import skuber.json.format._
 import scala.concurrent.Future
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-  
+
 /**
  * @author David O'Riordan
  * 

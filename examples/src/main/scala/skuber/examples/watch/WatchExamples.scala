@@ -4,7 +4,6 @@ import skuber._
 import skuber.json.format._
 import skuber.K8SWatchEvent
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 
 

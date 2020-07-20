@@ -1,7 +1,6 @@
 package skuber.examples.scale
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import skuber._
 import skuber.autoscaling.HorizontalPodAutoscaler

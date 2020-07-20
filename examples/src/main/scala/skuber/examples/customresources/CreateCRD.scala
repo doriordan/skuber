@@ -5,7 +5,6 @@ import skuber.ResourceSpecification.Scope
 import skuber.apiextensions.CustomResourceDefinition
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import scala.util.{Success, Failure}
 

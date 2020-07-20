@@ -5,7 +5,6 @@ import skuber.ext.Deployment
 import skuber.json.ext.format._
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
