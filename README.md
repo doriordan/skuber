@@ -114,7 +114,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 
 ## Release
 
-You can use the latest release (for Scala 2.11, 2.12 or 2.13) by adding to your build:
+You can use the latest release (for 2.12 or 2.13) by adding to your build:
 
 ```sbt
 libraryDependencies += "io.skuber" %% "skuber" % "2.4.0"
