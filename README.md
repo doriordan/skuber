@@ -126,7 +126,7 @@ Meanwhile users of skuber v1 can continue to use the final v1.x release, which i
 libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
 ```
 
-NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 is now deprecated and will be removed in a future release.
+NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 has now been removed.
 
 ## Migrating to release v2
 
