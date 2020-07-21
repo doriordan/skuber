@@ -594,14 +594,16 @@ package object format {
    )
 
 
-  implicit val projectedSecretFormat: Format[Volume.SecretProjection] = Json.format[SecretProjection]
-  implicit val projectedConfigMapFormat: Format[Volume.ConfigMapProjection] = Json.format[ConfigMapProjection]
-  implicit val projectedDownwardApiFormat: Format[Volume.DownwardAPIProjection] = Json.format[DownwardAPIProjection]
+  implicit val secretProjectionFormat: Format[Volume.SecretProjection] = Json.format[SecretProjection]
+  implicit val configMapProjectionFormat: Format[Volume.ConfigMapProjection] = Json.format[ConfigMapProjection]
+  implicit val downwardApiProjectionFormat: Format[Volume.DownwardAPIProjection] = Json.format[DownwardAPIProjection]
+  implicit val serviceAccountTokenProjectionFormat: Format[Volume.ServiceAccountTokenProjection] = Json.format[ServiceAccountTokenProjection]
 
   implicit val projectedVolumeSourceWrites: Writes[VolumeProjection] = Writes[VolumeProjection] {
-    case s: SecretProjection => (JsPath \ "secret").write[SecretProjection](projectedSecretFormat).writes(s)
-    case cm: ConfigMapProjection => (JsPath \ "configMap").write[ConfigMapProjection](projectedConfigMapFormat).writes(cm)
-    case dapi: DownwardAPIProjection => (JsPath \ "downwardAPI").write[DownwardAPIProjection](projectedDownwardApiFormat).writes(dapi)
+    case s: SecretProjection => (JsPath \ "secret").write[SecretProjection](secretProjectionFormat).writes(s)
+    case cm: ConfigMapProjection => (JsPath \ "configMap").write[ConfigMapProjection](configMapProjectionFormat).writes(cm)
+    case dapi: DownwardAPIProjection => (JsPath \ "downwardAPI").write[DownwardAPIProjection](downwardApiProjectionFormat).writes(dapi)
+    case sa: ServiceAccountTokenProjection => (JsPath \ "serviceAccountToken").write[ServiceAccountTokenProjection](serviceAccountTokenProjectionFormat).writes(sa)
   }
 
   implicit val projectedFormat: Format[ProjectedVolumeSource] = new Format[ProjectedVolumeSource] {
@@ -615,6 +617,7 @@ package object format {
             case "secret" => s.value("secret").as[Volume.SecretProjection]
             case "configMap" => s.value("configMap").as[Volume.ConfigMapProjection]
             case "downwardAPI" => s.value("downwardAPI").as[Volume.DownwardAPIProjection]
+            case "serviceAccountToken" => s.value("serviceAccountToken").as[Volume.ServiceAccountTokenProjection]
           }
         })))
   }

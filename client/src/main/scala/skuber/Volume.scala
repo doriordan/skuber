@@ -18,7 +18,7 @@ object Volume {
     extends Source
 
   sealed trait VolumeProjection
-  case class ProjectedVolumeSource(defaultMode:Option[Int] = None,
+  case class ProjectedVolumeSource(defaultMode: Option[Int] = None,
                                    sources: List[VolumeProjection]) extends Source
   case class SecretProjection(name: String,
                               items: Option[List[KeyToPath]] = None,
@@ -29,7 +29,7 @@ object Volume {
   case class DownwardAPIProjection(items: List[DownwardApiVolumeFile] = List())  extends VolumeProjection
   case class ServiceAccountTokenProjection(audience: Option[String],
                                           expirationSeconds: Option[Int],
-                                          path: String)
+                                          path: String) extends VolumeProjection
 
   case class Secret(
       secretName: String,

@@ -135,12 +135,41 @@
           "sources": [
             {
               "secret": {
-                "name": "verysecret"
+                "name": "verysecret",
+                "optional": false,
+                "items": [
+                  {
+                    "key": "host-key-pub",
+                    "path": "host_key.pub"
+                  },
+                  {
+                    "key": "other-key",
+                    "path": "worker_key"
+                  }
+                ]
               }
             },
             {
               "configMap": {
-                "name": "justConfig"
+                "name": "justConfig",
+                "optional": false,
+                "items": [
+                  {
+                    "key": "host-key-pub",
+                    "path": "host_key.pub"
+                  },
+                  {
+                    "key": "other-key",
+                    "path": "worker_key"
+                  }
+                ]
+              }
+            },
+            {
+              "serviceAccountToken" : {
+                "path": "vault-token",
+                "expirationSeconds": 7200,
+                "audience": "vault"
               }
             }
           ]
