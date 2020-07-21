@@ -6,7 +6,7 @@ val akkaVersion = "2.6.8"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.3"
 val specs2 = "org.specs2" %% "specs2-core" % "4.8.3"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
-val mockito = "org.mockito" % "mockito-core" % "2.21.0"
+val mockito = "org.mockito" % "mockito-core" % "3.4.4"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.25"
@@ -15,7 +15,7 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.11"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.12"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
