@@ -84,12 +84,9 @@ private[api] object WatchSource {
 
       val outboundFlow: Flow[StreamElement[O], WatchEvent[O], NotUsed] =
         Flow[StreamElement[O]]
-          .filter(_.isInstanceOf[Result[O]])
-          .map{
+          .collect {
             case Result(_, event) => event
-            case _ => throw new K8SException(Status(message = Some("Error processing watch events.")))
           }
-
 
       val feedbackFlow: Flow[StreamElement[O], (HttpRequest, Start[O]), NotUsed] =
         Flow[StreamElement[O]].scan(StreamContext(None, Waiting)){(cxt, next) =>
