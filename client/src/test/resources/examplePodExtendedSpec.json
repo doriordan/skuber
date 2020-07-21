@@ -75,6 +75,10 @@
           {
             "name": "logs",
             "mountPath": "/var/log/app.log"
+          },
+          {
+            "mountPath": "/config",
+            "name": "config-volume"
           }
         ],
         "terminationMessagePolicy": "FallbackToLogsOnError",
@@ -124,6 +128,53 @@
       }
     ],
     "volumes": [
+      {
+        "name": "config-volume",
+        "projected": {
+          "defaultMode": 128,
+          "sources": [
+            {
+              "secret": {
+                "name": "verysecret",
+                "optional": false,
+                "items": [
+                  {
+                    "key": "host-key-pub",
+                    "path": "host_key.pub"
+                  },
+                  {
+                    "key": "other-key",
+                    "path": "worker_key"
+                  }
+                ]
+              }
+            },
+            {
+              "configMap": {
+                "name": "justConfig",
+                "optional": false,
+                "items": [
+                  {
+                    "key": "host-key-pub",
+                    "path": "host_key.pub"
+                  },
+                  {
+                    "key": "other-key",
+                    "path": "worker_key"
+                  }
+                ]
+              }
+            },
+            {
+              "serviceAccountToken" : {
+                "path": "vault-token",
+                "expirationSeconds": 7200,
+                "audience": "vault"
+              }
+            }
+          ]
+        }
+      },
       {
         "name": "keys",
         "secret": {

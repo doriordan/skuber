@@ -1,20 +1,16 @@
 package skuber.json
 
-import org.specs2.mutable.Specification
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
-import org.specs2.execute.Success
-
-import scala.math.BigInt
-import scala.io.Source
-import java.util.Calendar
 import java.net.URL
 
-import skuber._
-import format._
+import org.specs2.execute.{Failure, Result}
+import org.specs2.mutable.Specification
 import play.api.libs.json._
+import skuber.Volume.{ConfigMapProjection, KeyToPath, SecretProjection, ServiceAccountTokenProjection}
+import skuber._
 import skuber.apps.StatefulSet
-import skuber.Pod.ExistsToleration
+import skuber.json.format._
+
+import scala.io.Source
 
 /**
  * @author David O'Riordan
@@ -393,10 +389,8 @@ import Pod._
     }
 
     "a pod with nodeAffinity can be read and written as json" >> {
-      import Affinity.NodeAffinity
-      import Affinity.NodeSelectorOperator
-      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+      import Affinity.{NodeAffinity, NodeSelectorOperator}
+      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms, RequiredDuringSchedulingIgnoredDuringExecution}
 
       val podJsonSource = Source.fromURL(getClass.getResource("/examplePodWithNodeAffinity.json"))
       val podJsonStr = podJsonSource.mkString
@@ -429,10 +423,7 @@ import Pod._
     }
 
     "NodeSelectorTerm be properly read and written as json" >> {
-      import Affinity.NodeSelectorTerm
-      import Affinity.NodeSelectorOperator
-      import Affinity.NodeSelectorRequirement
-      import Affinity.NodeSelectorRequirements
+      import Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTerm.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
@@ -450,10 +441,7 @@ import Pod._
     }
 
     "NodeSelectorTerm with no matchExpressions be properly read and written as json" >> {
-      import Affinity.NodeSelectorTerm
-      import Affinity.NodeSelectorOperator
-      import Affinity.NodeSelectorRequirement
-      import Affinity.NodeSelectorRequirements
+      import Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchExpressions.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
@@ -468,10 +456,7 @@ import Pod._
     }
 
     "NodeSelectorTerm with no matchFields be properly read and written as json" >> {
-      import Affinity.NodeSelectorTerm
-      import Affinity.NodeSelectorOperator
-      import Affinity.NodeSelectorRequirement
-      import Affinity.NodeSelectorRequirements
+      import Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchFields.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
@@ -497,10 +482,8 @@ import Pod._
     }
 
     "NodeAffinity be properly read and written as json" >> {
-      import Affinity.NodeAffinity
-      import Affinity.NodeSelectorOperator
-      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+      import Affinity.{NodeAffinity, NodeSelectorOperator}
+      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms, RequiredDuringSchedulingIgnoredDuringExecution}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinity.json"))
       val affinityJsonStr = affinityJsonSource.mkString
@@ -521,10 +504,8 @@ import Pod._
     }
 
     "NodeAffinity without preferences be properly read and written as json" >> {
-      import Affinity.NodeAffinity
-      import Affinity.NodeSelectorOperator
-      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
-      import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
+      import Affinity.{NodeAffinity, NodeSelectorOperator}
+      import NodeAffinity.{PreferredSchedulingTerms, RequiredDuringSchedulingIgnoredDuringExecution}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoPreferences.json"))
       val affinityJsonStr = affinityJsonSource.mkString
@@ -543,9 +524,7 @@ import Pod._
     }
 
     "NodeAffinity without requirements be properly read and written as json" >> {
-      import Affinity.NodeAffinity
-      import Affinity.NodeSelectorOperator
-      import NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+      import Affinity.{NodeAffinity, NodeSelectorOperator}
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
@@ -565,9 +544,7 @@ import Pod._
     }
 
     "PodAffinity can be properly read and written as json" >> {
-      import Affinity.NodeAffinity
-      import Affinity.NodeSelectorOperator
-      import Affinity.{PodAffinity, PodAffinityTerm, WeightedPodAffinityTerm}
+      import Affinity.{NodeAffinity, NodeSelectorOperator}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
       val affinityJsonStr = affinityJsonSource.mkString
@@ -660,6 +637,17 @@ import Pod._
     val json = Json.toJson(pod)
     val readPod = Json.fromJson[Pod](json).get
     readPod mustEqual pod
+
+    val configVolume = pod.spec.get.volumes.find(_.name == "config-volume").get
+    configVolume.source must beAnInstanceOf[Volume.ProjectedVolumeSource]
+    configVolume.source.asInstanceOf[Volume.ProjectedVolumeSource].defaultMode mustEqual Some(128)
+    configVolume.source.asInstanceOf[Volume.ProjectedVolumeSource].sources mustEqual
+      List(SecretProjection("verysecret",Some(List(KeyToPath("host-key-pub", "host_key.pub"), KeyToPath("other-key","worker_key"))),Some(false)),
+      ConfigMapProjection("justConfig",Some(List(KeyToPath("host-key-pub", "host_key.pub"), KeyToPath("other-key", "worker_key"))),Some(false)),
+      ServiceAccountTokenProjection(Some("vault"),Some(7200),"vault-token")
+    )
+
+
   }
 
 }

@@ -593,8 +593,38 @@ package object format {
      JsPath.read[JsValue].map[PersistentSource](j => GenericVolumeSource(j.toString))
    )
 
+
+  implicit val secretProjectionFormat: Format[Volume.SecretProjection] = Json.format[SecretProjection]
+  implicit val configMapProjectionFormat: Format[Volume.ConfigMapProjection] = Json.format[ConfigMapProjection]
+  implicit val downwardApiProjectionFormat: Format[Volume.DownwardAPIProjection] = Json.format[DownwardAPIProjection]
+  implicit val serviceAccountTokenProjectionFormat: Format[Volume.ServiceAccountTokenProjection] = Json.format[ServiceAccountTokenProjection]
+
+  implicit val projectedVolumeSourceWrites: Writes[VolumeProjection] = Writes[VolumeProjection] {
+    case s: SecretProjection => (JsPath \ "secret").write[SecretProjection](secretProjectionFormat).writes(s)
+    case cm: ConfigMapProjection => (JsPath \ "configMap").write[ConfigMapProjection](configMapProjectionFormat).writes(cm)
+    case dapi: DownwardAPIProjection => (JsPath \ "downwardAPI").write[DownwardAPIProjection](downwardApiProjectionFormat).writes(dapi)
+    case sa: ServiceAccountTokenProjection => (JsPath \ "serviceAccountToken").write[ServiceAccountTokenProjection](serviceAccountTokenProjectionFormat).writes(sa)
+  }
+
+  implicit val projectedFormat: Format[ProjectedVolumeSource] = new Format[ProjectedVolumeSource] {
+    override def writes(o: ProjectedVolumeSource): JsValue = Json.writes[ProjectedVolumeSource].writes(o)
+
+    override def reads(json: JsValue): JsResult[ProjectedVolumeSource] =
+      JsSuccess(ProjectedVolumeSource(
+        (json \ "defaultMode").asOpt[Int],
+        (json \ "sources").as[List[JsObject]].flatMap(s => {
+          s.keys.headOption map {
+            case "secret" => s.value("secret").as[Volume.SecretProjection]
+            case "configMap" => s.value("configMap").as[Volume.ConfigMapProjection]
+            case "downwardAPI" => s.value("downwardAPI").as[Volume.DownwardAPIProjection]
+            case "serviceAccountToken" => s.value("serviceAccountToken").as[Volume.ServiceAccountTokenProjection]
+          }
+        })))
+  }
+
    implicit val volumeSourceReads: Reads[Source] = (
      (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
+     (JsPath \ "projected").read[ProjectedVolumeSource].map(x => x: Source) |
      (JsPath \ "secret").read[skuber.Volume.Secret].map(x => x: Source) |
      (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
      (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
@@ -615,15 +645,14 @@ package object format {
    }
 
    implicit val volumeSourceWrites: Writes[Source] = Writes[Source] {
-     source => source match {
        case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
        case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
+       case p: ProjectedVolumeSource => (JsPath \ "projected").write[ProjectedVolumeSource](projectedFormat).writes(p)
        case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
        case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
        case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
        case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
        case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
-     }
    }
 
    implicit val volumeReads: Reads[Volume] = (
