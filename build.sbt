@@ -10,7 +10,7 @@ val mockito = "org.mockito" % "mockito-core" % "3.4.4"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.25"
-val commonsIO = "commons-io" % "commons-io" % "2.6"
+val commonsIO = "commons-io" % "commons-io" % "2.7"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
 
@@ -53,7 +53,7 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 lazy val commonSettings = Seq(
   organization := "io.skuber",
   crossScalaVersions := Seq("2.12.10", "2.13.3"),
-  scalaVersion := "2.13.3",
+  scalaVersion := "2.12.10",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
