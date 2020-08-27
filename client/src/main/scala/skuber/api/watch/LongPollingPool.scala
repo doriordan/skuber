@@ -1,31 +1,35 @@
 package skuber.api.watch
 
-import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.stream.Materializer
+import akka.stream.scaladsl.Flow
 import skuber.api.client.Pool
 
 import scala.concurrent.duration._
+import scala.util.Success
 
 private[api] object LongPollingPool {
   def apply[T](schema: String, host: String, port: Int,
                poolIdleTimeout: Duration,
                httpsConnectionContext: Option[HttpsConnectionContext],
                clientConnectionSettings: ClientConnectionSettings)(implicit system: ActorSystem): Pool[T] = {
+    implicit val ec = system.dispatcher
     schema match {
-      case "http" =>
-        Http().newHostConnectionPool[T](
-          host, port,
-          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
-        ).mapMaterializedValue(_ => NotUsed)
-      case "https" =>
-        Http().newHostConnectionPoolHttps[T](
-          host, port,
-          httpsConnectionContext.getOrElse(Http().defaultClientHttpsContext),
-          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
-        ).mapMaterializedValue(_ => NotUsed)
+      case "http" | "https" =>
+        Flow[(HttpRequest, T)]
+          .mapAsync(1) {
+            case (request, userdata) =>
+              Http()
+                .singleRequest(
+                  request,
+                  httpsConnectionContext.getOrElse(Http().defaultClientHttpsContext),
+                  buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
+                )
+                .map(response => (Success(response), userdata))
+          }
       case unsupported =>
         throw new IllegalArgumentException(s"Schema $unsupported is not supported")
     }

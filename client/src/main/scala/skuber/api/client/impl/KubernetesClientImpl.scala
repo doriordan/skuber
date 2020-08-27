@@ -43,19 +43,12 @@ class KubernetesClientImpl private[client] (
   val watchPoolIdleTimeout: Duration,
   val watchSettings: ConnectionPoolSettings,
   val podLogSettings: ConnectionPoolSettings,
-  val sslContext: Option[SSLContext], // provides the Akka client with the SSL details needed for https connections to the API server
+  val httpsConnectionContext: Option[HttpsConnectionContext], // provides the Akka client with the SSL details needed for https connections to the API server
   override val logConfig: LoggingConfig,
   val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val executionContext: ExecutionContext)
     extends KubernetesClient
 {
   val log = Logging.getLogger(actorSystem, "skuber.api")
-
-  val connectionContext = sslContext
-      .map { ssl =>
-        ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
-      }
-      .getOrElse(Http().defaultClientHttpsContext)
-
 
   private val clusterServerUri = Uri(clusterServer)
 
@@ -69,7 +62,7 @@ class KubernetesClientImpl private[client] (
       throw new IllegalStateException("Request context has been closed")
     }
     logInfo(logConfig.logRequestBasic, s"about to send HTTP request: ${request.method.value} ${request.uri.toString}")
-    val responseFut = Http().singleRequest(request, settings = settings, connectionContext = connectionContext)
+    val responseFut = Http().singleRequest(request, settings = settings, connectionContext = httpsConnectionContext.getOrElse(Http().defaultClientHttpsContext))
     responseFut onComplete {
       case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
       case Failure(ex) => logError("HTTP request resulted in an unexpected exception",ex)
@@ -513,7 +506,7 @@ class KubernetesClientImpl private[client] (
       clusterServerUri.authority.host.address(),
       clusterServerUri.effectivePort,
       watchPoolIdleTimeout,
-      sslContext.map(new HttpsConnectionContext(_)),
+      httpsConnectionContext,
       ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
     )
   }
@@ -637,7 +630,7 @@ class KubernetesClientImpl private[client] (
   override def usingNamespace(newNamespace: String): KubernetesClientImpl =
     new KubernetesClientImpl(requestMaker, clusterServer, requestAuth,
       newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
+      watchPoolIdleTimeout, watchSettings, podLogSettings, httpsConnectionContext, logConfig, closeHook
     )
 
   private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
@@ -741,7 +734,10 @@ object KubernetesClientImpl {
       log.info("Using following context for connecting to Kubernetes cluster: {}", k8sContext)
     }
 
-    val sslContext = TLS.establishSSLContext(k8sContext)
+    val httpsConnectionContext = TLS.establishSSLContext(k8sContext)
+      .map { ssl =>
+        ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
+      }
 
     val theNamespaceName = k8sContext.namespace.name match {
       case "" => "default"
@@ -760,7 +756,7 @@ object KubernetesClientImpl {
     new KubernetesClientImpl(
       requestMaker, k8sContext.cluster.server, k8sContext.authInfo,
       theNamespaceName, watchContinuouslyRequestTimeout, watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
+      watchPoolIdleTimeout, watchSettings, podLogSettings, httpsConnectionContext, logConfig, closeHook
     )
   }
 }
