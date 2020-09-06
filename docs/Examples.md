@@ -14,10 +14,8 @@ import skuber.json.format._
 
 // Some standard Akka implicits that are required by the skuber v2 client API
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
 implicit val dispatcher = system.dispatcher
 ```
 

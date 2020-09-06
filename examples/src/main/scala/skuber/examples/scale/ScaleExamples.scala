@@ -1,7 +1,6 @@
 package skuber.examples.scale
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import skuber._
 import skuber.autoscaling.HorizontalPodAutoscaler
@@ -47,7 +46,6 @@ object ScaleExamples extends App {
     val nginxStsService: Service=Service(nginxStatefulSet.spec.get.serviceName.get, nginxStsLabels, 80).isHeadless
 
     implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
     implicit val dispatcher = system.dispatcher
 
     val k8s = k8sInit

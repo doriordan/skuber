@@ -5,7 +5,6 @@ import skuber.ResourceSpecification.Scope
 import skuber.apiextensions.CustomResourceDefinition
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import scala.util.{Success, Failure}
 
@@ -32,7 +31,6 @@ object CreateCRD extends App {
     shortNames = "sup" :: Nil)
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

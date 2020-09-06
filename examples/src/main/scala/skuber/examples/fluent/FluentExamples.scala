@@ -6,8 +6,7 @@ import skuber.json.format._
 import scala.concurrent.Future
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-  
+
 /**
  * @author David O'Riordan
  * 
@@ -46,7 +45,6 @@ object FluentExamples extends App {
   val prodExternalSelector = Map(prodLabel, prodExternalZoneLabel)
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

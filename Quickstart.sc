@@ -8,7 +8,6 @@
 import $ivy.`io.skuber::skuber:2.0.10`, skuber._, skuber.json.format._
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import api.Configuration
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
@@ -16,7 +15,6 @@ import skuber.apps.v1.Deployment
 
 // Some standard Akka implicits that are required by the skuber v2 client API
 implicit val system = ActorSystem()
-implicit val materializer = ActorMaterializer()
 implicit val dispatcher = system.dispatcher
 
 val cfg: Configuration = api.Configuration.parseKubeconfigFile().get

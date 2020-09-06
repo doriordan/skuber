@@ -4,11 +4,11 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
-import akka.stream.{Materializer, SourceShape}
+import akka.stream.SourceShape
 import play.api.libs.json.Format
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
-import skuber.{K8SRequestContext, ObjectResource, ResourceDefinition, ListOptions}
+import skuber.{ObjectResource, ResourceDefinition, ListOptions}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -32,7 +32,6 @@ private[api] object WatchSource {
                                  name: Option[String],
                                  options: ListOptions,
                                  bufSize: Int)(implicit sys: ActorSystem,
-                                               fm: Materializer,
                                                format: Format[O],
                                                rd: ResourceDefinition[O],
                                                lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
@@ -77,20 +76,17 @@ private[api] object WatchSource {
           case (Success(HttpResponse(sc, _, entity, _)), _) =>
             client.logWarn(s"Error watching resource. Received a status of ${sc.intValue()}")
             entity.discardBytes()
-            throw new K8SException(Status(message = Some("Error watching resource"), code = Some(sc.intValue())))
+            throw new K8SException(Status(message = Some("Error watching resource 1"), code = Some(sc.intValue())))
           case (Failure(f), _) =>
             client.logError("Error watching resource.", f)
-            throw new K8SException(Status(message = Some("Error watching resource"), details = Some(f.getMessage)))
+            throw new K8SException(Status(message = Some("Error watching resource 2"), details = Some(f.getMessage)))
         }
 
       val outboundFlow: Flow[StreamElement[O], WatchEvent[O], NotUsed] =
         Flow[StreamElement[O]]
-          .filter(_.isInstanceOf[Result[O]])
-          .map{
+          .collect {
             case Result(_, event) => event
-            case _ => throw new K8SException(Status(message = Some("Error processing watch events.")))
           }
-
 
       val feedbackFlow: Flow[StreamElement[O], (HttpRequest, Start[O]), NotUsed] =
         Flow[StreamElement[O]].scan(StreamContext(None, Waiting)){(cxt, next) =>

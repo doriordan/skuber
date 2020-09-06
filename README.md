@@ -26,11 +26,9 @@ This example lists pods in `kube-system` namespace:
   import skuber._
   import skuber.json.format._
   import akka.actor.ActorSystem
-  import akka.stream.ActorMaterializer
   import scala.util.{Success, Failure}
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit
@@ -116,7 +114,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 
 ## Release
 
-You can use the latest release (for Scala 2.11, 2.12 or 2.13) by adding to your build:
+You can use the latest release (for 2.12 or 2.13) by adding to your build:
 
 ```sbt
 libraryDependencies += "io.skuber" %% "skuber" % "2.5.0"
@@ -128,7 +126,7 @@ Meanwhile users of skuber v1 can continue to use the final v1.x release, which i
 libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
 ```
 
-NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 is now deprecated and will be removed in a future release.
+NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 has now been removed.
 
 ## Migrating to release v2
 

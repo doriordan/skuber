@@ -10,7 +10,6 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
@@ -25,7 +24,6 @@ import scala.util.Success
 
 class LongPollingPoolSpec extends Specification with ScalaFutures {
   implicit val system: ActorSystem = ActorSystem("watch-source-spec")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(3, Seconds), interval = Span(5, Millis))
 

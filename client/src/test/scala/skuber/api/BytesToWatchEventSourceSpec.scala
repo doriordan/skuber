@@ -5,7 +5,6 @@ import skuber.json.format._
 import skuber.ReplicationController
 import org.specs2.mutable.Specification
 import akka.util.ByteString
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import akka.actor.ActorSystem
 import skuber.api.watch.BytesToWatchEventSource
@@ -21,7 +20,6 @@ class BytesToWatchEventSourceSpec extends Specification {
 
   implicit val system: ActorSystem = ActorSystem("test")
   implicit val ec: ExecutionContext = system.dispatcher
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
 
   "A single chunk containing a single Watch event can be read correctly" >> {

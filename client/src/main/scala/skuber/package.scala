@@ -284,28 +284,28 @@ package object skuber {
   /**
     * Initialise Skuber using default Kubernetes and application configuration.
     */
-  def k8sInit(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def k8sInit(implicit actorSystem: ActorSystem): KubernetesClient = {
     skuber.api.client.init
   }
 
   /**
     * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
     */
-  def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem): KubernetesClient = {
     skuber.api.client.init(config)
   }
 
   /**
     * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
     */
-  def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer): KubernetesClient = {
+  def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem): KubernetesClient = {
     skuber.api.client.init(appConfig)
   }
 
   /**
     * Initialise Skuber using the specified Kubernetes and application configuration.
     */
-  def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem, materializer: Materializer)
+  def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem)
       : KubernetesClient =
   {
     skuber.api.client.init(config, appConfig)

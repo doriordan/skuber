@@ -1,7 +1,6 @@
 package skuber.examples.list
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import skuber.Pod.Phase
 import skuber._
 
@@ -37,7 +36,6 @@ object ListExamples extends App {
   }
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

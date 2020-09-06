@@ -1,7 +1,6 @@
 package skuber.examples.job
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import skuber.{Container, Pod, RestartPolicy, k8sInit}
 import skuber.batch.Job
@@ -19,7 +18,6 @@ object PrintPiJob extends App {
 
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

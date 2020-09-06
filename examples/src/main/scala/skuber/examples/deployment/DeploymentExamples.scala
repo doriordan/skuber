@@ -5,7 +5,6 @@ import skuber.ext.Deployment
 import skuber.json.ext.format._
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
@@ -32,7 +31,6 @@ object DeploymentExamples extends App {
   val nginxDeploymentName="nginx-deployment"
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit

@@ -4,7 +4,7 @@ import java.io.Serializable
 import java.net.HttpURLConnection
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+
 import skuber._
 import skuber.ext.ReplicaSet
 import skuber.networking.Ingress
@@ -242,7 +242,6 @@ object NginxIngress extends App {
   def run = {
 
     implicit val system = ActorSystem()
-    implicit val materializer = ActorMaterializer()
     implicit val dispatcher = system.dispatcher
 
     implicit val k8s = k8sInit

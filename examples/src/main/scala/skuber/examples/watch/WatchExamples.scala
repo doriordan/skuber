@@ -4,7 +4,6 @@ import skuber._
 import skuber.json.format._
 import skuber.K8SWatchEvent
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 
 
@@ -14,7 +13,6 @@ import akka.stream.scaladsl.Sink
 object WatchExamples extends App {
 
   implicit val system = ActorSystem("watch")
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
   implicit val k8s = k8sInit
 

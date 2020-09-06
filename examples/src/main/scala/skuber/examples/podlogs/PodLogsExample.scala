@@ -4,7 +4,6 @@ import akka.NotUsed
 import skuber._
 import skuber.json.format._
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import skuber.api.client
@@ -29,7 +28,6 @@ object PodLogExample extends App {
 
 
   implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
   val k8s = client.init(
     client.defaultK8sConfig.currentContext,
