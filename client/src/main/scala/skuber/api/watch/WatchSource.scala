@@ -76,10 +76,10 @@ private[api] object WatchSource {
           case (Success(HttpResponse(sc, _, entity, _)), _) =>
             client.logWarn(s"Error watching resource. Received a status of ${sc.intValue()}")
             entity.discardBytes()
-            throw new K8SException(Status(message = Some("Error watching resource 1"), code = Some(sc.intValue())))
+            throw new K8SException(Status(message = Some("Non-OK status code received while watching resource"), code = Some(sc.intValue())))
           case (Failure(f), _) =>
             client.logError("Error watching resource.", f)
-            throw new K8SException(Status(message = Some("Error watching resource 2"), details = Some(f.getMessage)))
+            throw new K8SException(Status(message = Some("Error watching resource"), details = Some(f.getMessage)))
         }
 
       val outboundFlow: Flow[StreamElement[O], WatchEvent[O], NotUsed] =
