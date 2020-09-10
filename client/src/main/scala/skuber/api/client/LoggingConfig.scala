@@ -22,7 +22,7 @@ case class LoggingConfig(
 
 object LoggingConfig {
   private def loggingEnabled(logEventType: String, fallback: Boolean) : Boolean= {
-    sysProps.get(s"skuber.log.$logEventType").map(_ => true).getOrElse(fallback)
+    sysProps.get(s"skuber.log.$logEventType").map(value => value.toBoolean).getOrElse(fallback)
   }
 }
 
