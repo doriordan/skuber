@@ -139,4 +139,3 @@ Building the library from source is very straightforward. Simply run `sbt test`i
 ## License
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
-
