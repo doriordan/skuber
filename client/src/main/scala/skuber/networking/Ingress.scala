@@ -141,7 +141,7 @@ case class Ingress(
 object Ingress {
 
   val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(
-    apiGroup = "extensions",
+    apiGroup = "networking.k8s.io",
     version = "v1beta1",
     scope = Scope.Namespaced,
     names = Names(
