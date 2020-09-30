@@ -498,7 +498,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
                       ),
                       resources = Some(Resource.Requirements()),
                       terminationMessagePath = Some("/var/log/termination"),
-                      imagePullPolicy = Container.PullPolicy.IfNotPresent
+                      imagePullPolicy = Some(Container.PullPolicy.IfNotPresent)
                     )
                   ),
                   restartPolicy = RestartPolicy.Always,

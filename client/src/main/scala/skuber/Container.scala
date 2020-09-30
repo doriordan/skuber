@@ -22,7 +22,7 @@ case class Container(
     lifecycle: Option[Lifecycle] = None,
     terminationMessagePath: Option[String] = None,
     terminationMessagePolicy: Option[Container.TerminationMessagePolicy.Value] = None,
-    imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
+    imagePullPolicy: Option[Container.PullPolicy.Value] = None,
     securityContext: Option[SecurityContext] = None,
     envFrom: List[EnvFromSource] = Nil,
     stdin: Option[Boolean] = None,
@@ -73,7 +73,7 @@ case class Container(
   def mount(name: String, path: String, readOnly: Boolean = false) =
     this.copy(volumeMounts=Volume.Mount(name, path, readOnly) :: this.volumeMounts)
 
-  def withImagePullPolicy(policy: Container.PullPolicy.Value) =
+  def withImagePullPolicy(policy: Option[Container.PullPolicy.Value]) =
     this.copy(imagePullPolicy = policy)
 
   def withLivenessProbe(probe:Probe) =
@@ -174,4 +174,4 @@ object Container {
     names: List[String] = Nil,
     sizeBytes: Option[Long] = None
   )
-}    
+}
