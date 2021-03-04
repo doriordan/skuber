@@ -228,8 +228,7 @@ import Pod._
                   "initialDelaySeconds": 30,
                   "timeoutSeconds": 5
                 },
-                "terminationMessagePath": "/dev/termination-log",
-                "imagePullPolicy": "IfNotPresent"
+                "terminationMessagePath": "/dev/termination-log"
               }
             ],
             "restartPolicy": "Always",
@@ -335,7 +334,7 @@ import Pod._
       val cntrs = myPod.spec.get.containers
       cntrs.length mustEqual 3
       cntrs(0).name mustEqual "etcd"
-      cntrs(0).imagePullPolicy mustEqual Container.PullPolicy.IfNotPresent
+      cntrs(0).imagePullPolicy mustEqual Some(Container.PullPolicy.IfNotPresent)
       cntrs(0).terminationMessagePath mustEqual Some("/dev/termination-log")
       cntrs(0).terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.File)
       cntrs(0).resources.get.limits("cpu") mustEqual Resource.Quantity("100m")
@@ -366,6 +365,7 @@ import Pod._
       tcpDnsPort.name mustEqual "dns-tcp"
       
       cntrs(2).image equals "gcr.io/google_containers/skydns:2015-03-11-001"
+      cntrs(2).imagePullPolicy equals None
       
       val status = myPod.status.get
       status.conditions(0) mustEqual Pod.Condition("Ready","False")

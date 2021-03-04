@@ -51,7 +51,7 @@ object NginxIngress extends App {
     val controllerImage="gcr.io/google_containers/nginx-ingress-controller:0.7"
 
     val nginxContainer = Container(name=name, image=controllerImage)
-        .withImagePullPolicy(Container.PullPolicy.Always)
+        .withImagePullPolicy(Some(Container.PullPolicy.Always))
         .withHttpLivenessProbe("/healthz",10249,initialDelaySeconds=30,timeoutSeconds=5)
         .setEnvVarFromField("POD_NAME", "metadata.name")
         .setEnvVarFromField("POD_NAMESPACE", "metadata.namespace")

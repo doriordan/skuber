@@ -703,7 +703,7 @@ package object format {
     (JsPath \ "lifecycle").formatNullable[Lifecycle] and
     (JsPath \ "terminationMessagePath").formatNullable[String] and
     (JsPath \ "terminationMessagePolicy").formatNullableEnum(Container.TerminationMessagePolicy)  and
-    (JsPath \ "imagePullPolicy").formatEnum(Container.PullPolicy, Some(Container.PullPolicy.IfNotPresent)) and
+    (JsPath \ "imagePullPolicy").formatNullableEnum(Container.PullPolicy) and
     (JsPath \ "securityContext").formatNullable[SecurityContext] and
     (JsPath \ "envFrom").formatMaybeEmptyList[EnvFromSource] and
     (JsPath \ "stdin").formatNullable[Boolean] and
