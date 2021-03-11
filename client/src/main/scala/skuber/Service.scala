@@ -47,6 +47,7 @@ case class Service(
   def withExternalIP(ip: String) = this.copy(spec = Some(copySpec.copy(externalIPs = List(ip))))
   def withExternalIPs(ips: List[String]) = this.copy(spec = Some(copySpec.copy(externalIPs = ips)))
   def addExternalIP(ip: String) = this.copy(spec = Some(copySpec.copy(externalIPs = ip :: copySpec.externalIPs)))
+  def withExternalTrafficPolicy(externalTrafficPolicy: Service.ExternalTrafficPolicy.Value) = this.copy(spec = Some(copySpec.copy(externalTrafficPolicy = Some(externalTrafficPolicy))))
       
   def withSessionAffinity(affinity: Service.Affinity.Value) = this.copy(spec = Some(copySpec.copy(sessionAffinity = affinity)))
       
@@ -93,6 +94,10 @@ object Service {
     type ServiceType = Value
     val ClusterIP, NodePort, LoadBalancer, ExternalName = Value
   }
+  object ExternalTrafficPolicy extends Enumeration {
+    type ExternalTrafficPolicy = Value
+    val Cluster, Local = Value
+  }
    
   case class Port(
     name: String = "",
@@ -109,6 +114,7 @@ object Service {
      _type: ServiceType=ClusterIP,
      externalIPs: List[String] = List(),
      externalName: String = "",
+     externalTrafficPolicy: Option[ExternalTrafficPolicy.Value] = None,
      sessionAffinity: Affinity.Affinity = Affinity.None,
      loadBalancerIP: String = ""
    )

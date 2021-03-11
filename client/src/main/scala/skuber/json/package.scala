@@ -925,6 +925,7 @@ package object format {
       (JsPath \ "type").formatEnum(Service.Type, Some(Service.Type.ClusterIP)) and
       (JsPath \ "externalIPs").formatMaybeEmptyList[String] and
       (JsPath \ "externalName").formatMaybeEmptyString() and
+      (JsPath \ "externalTrafficPolicy").formatNullableEnum(Service.ExternalTrafficPolicy) and
       (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Some(Service.Affinity.None)) and
       (JsPath \ "loadBalancerIP").formatMaybeEmptyString()
    )(Service.Spec.apply _, unlift(Service.Spec.unapply))
