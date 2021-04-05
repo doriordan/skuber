@@ -31,7 +31,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-version in ThisBuild := "2.6.0"
+version in ThisBuild := "2.7.0"
 
 sonatypeProfileName := "io.skuber"
 
@@ -43,8 +43,8 @@ homepage in ThisBuild := Some(url("https://github.com/doriordan"))
 
 scmInfo in ThisBuild := Some(
   ScmInfo(
-    url("https://github.com/doriordan/skuber"),
-    "scm:git@github.com:doriordan/skuber.git"
+    url("https://github.com/hagay3/skuber"),
+    "scm:git@github.com:hagay3/skuber.git"
   )
 )
 
