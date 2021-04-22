@@ -13,13 +13,18 @@ import scala.concurrent.ExecutionContext
   */
 private[api] object BytesToWatchEventSource {
   def apply[O <: ObjectResource](bytesSource: Source[ByteString, _], bufSize: Int)(implicit ec: ExecutionContext, format: Format[O]): Source[WatchEvent[O], _] = {
-    import skuber.json.format.apiobj.watchEventFormat
+    import skuber.json.format.apiobj.watchEventWrapperReads
     bytesSource.via(
       JsonFraming.objectScanner(bufSize)
     ).map { singleEventBytes =>
-      Json.parse(singleEventBytes.utf8String).validate(watchEventFormat[O]) match {
-        case JsSuccess(value, _) => value
-        case JsError(e) => throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(e.toString)))
+      Json.parse(singleEventBytes.utf8String).validate(watchEventWrapperReads[O]) match {
+        case JsSuccess(value, _) => value match {
+          case Left(status) => throw new K8SException(status)
+          case Right(watchEvent) => watchEvent
+        }
+        case JsError(e) =>
+          val details = s"error: $e event: ${singleEventBytes.utf8String}"
+          throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(details)))
       }
     }
   }

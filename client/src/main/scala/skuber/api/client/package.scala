@@ -162,6 +162,8 @@ package object client {
     }
   }
 
+  type WatchEventWrapper[T <: ObjectResource] = Either[Status, WatchEvent[T]]
+
   // for use with the Watch command
   case class WatchEvent[T <: ObjectResource](_type: EventType.Value, _object: T)
 
