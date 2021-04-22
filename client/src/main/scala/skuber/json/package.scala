@@ -1159,10 +1159,14 @@ package object format {
       (JsPath \ "code").readNullable[Int]
     )(Status.apply _)
 
-    def watchEventFormat[T <: ObjectResource](implicit objfmt: Format[T]) : Format[WatchEvent[T]] = (
-      (JsPath \ "type").formatEnum(EventType) and
-      (JsPath \ "object").format[T]
-    )(WatchEvent.apply[T] _, unlift(WatchEvent.unapply[T]))
+    def watchEventWrapperReads[T <: ObjectResource](implicit objreads: Reads[T]) : Reads[WatchEventWrapper[T]] = (
+      (JsPath \ "type").formatEnum(EventType).flatMap { eventType =>
+        if (eventType == EventType.ERROR)
+          (JsPath \ "object").read[Status].map(status => Left(status))
+        else
+          (JsPath \ "object").read[T].map(obj => Right(WatchEvent[T](eventType, obj)))
+      }
+    )
 
   }
 
