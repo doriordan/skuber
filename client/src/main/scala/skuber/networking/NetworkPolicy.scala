@@ -4,7 +4,7 @@ import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{LabelSelector, NameablePort, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, Protocol, ResourceDefinition}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath}
-import skuber.json.format.{objFormat,enumFormatMethods, intOrStringFormat, jsPath2LabelSelFormat, maybeEmptyFormatMethods}
+import skuber.json.format.{objFormat,enumFormatMethods, intOrStringFormat, jsPath2LabelSelFormat, maybeEmptyFormatMethods, ListResourceFormat}
 
 /**
   * @author David O'Riordan
@@ -170,5 +170,7 @@ object NetworkPolicy {
     objFormat and
     (JsPath \ "spec").formatNullable[Spec]
   )(NetworkPolicy.apply _, unlift(NetworkPolicy.unapply))
+
+  implicit val networkPolicyListFmt: Format[NetworkPolicyList] = ListResourceFormat[NetworkPolicy]
 }
 
