@@ -33,13 +33,18 @@ scalacOptions in Test ++= Seq("-Yrangepos")
 
 version in ThisBuild := "2.7.0"
 
-sonatypeProfileName := "io.skuber"
+sonatypeProfileName := "io.github.hagay3"
 
 publishMavenStyle in ThisBuild := true
 
 licenses in ThisBuild := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
-homepage in ThisBuild := Some(url("https://github.com/doriordan"))
+homepage in ThisBuild := Some(url("https://github.com/hagay3"))
+
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+
+
 
 scmInfo in ThisBuild := Some(
   ScmInfo(
@@ -51,7 +56,7 @@ scmInfo in ThisBuild := Some(
 developers in ThisBuild := List(Developer(id="hagay3", name="Hagai Ovadia", email="hagay3@gmail.com", url=url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
-  organization := "io.skuber",
+  organization := "io.github.hagay3",
   crossScalaVersions := Seq("2.12.10", "2.13.3"),
   scalaVersion := "2.12.10",
   publishTo :=  sonatypePublishToBundle.value,
