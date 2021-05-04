@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.com/hagay3/skuber.svg?branch=master)](https://travis-ci.com/github/hagay3/skuber)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.skuber/skuber_2.12/badge.svg)](http://search.maven.org/#search|ga|1|g:%22io.skuber%22a:%22skuber_2.12%22)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.hagay3/skuber_2.12/badge.svg)](https://mvnrepository.com/artifact/io.github.hagay3/skuber_2.12)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/hagay3/skuber/blob/master/LICENSE.txt)
 
 # Skuber
@@ -64,7 +64,7 @@ Provides you with a configured client on startup. It is handy to use this for qu
   > Just handy shortcut to import skuber inside ammonite-repl:
 
   ```scala
-  import $ivy.`io.skuber::skuber:2.6.0`, skuber._, skuber.json.format._
+  import $ivy.`io.skuber::skuber:2.7.0`, skuber._, skuber.json.format._
   ```
 
 ### Interactive with sbt
@@ -117,7 +117,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 You can use the latest release (for 2.12 or 2.13) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.6.0"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.0"
 ```
 
 Meanwhile users of skuber v1 can continue to use the final v1.x release, which is available only on Scala 2.11:

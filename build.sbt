@@ -1,4 +1,4 @@
-
+import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 val akkaVersion = "2.6.8"
@@ -41,10 +41,11 @@ licenses in ThisBuild := Seq("APL2" -> url("http://www.apache.org/licenses/LICEN
 
 homepage in ThisBuild := Some(url("https://github.com/hagay3"))
 
-ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+sonatypeCredentialHost in ThisBuild := "s01.oss.sonatype.org"
+sonatypeRepository in ThisBuild := "https://s01.oss.sonatype.org/service/local"
 
 
+sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
 scmInfo in ThisBuild := Some(
   ScmInfo(
@@ -59,7 +60,11 @@ lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
   crossScalaVersions := Seq("2.12.10", "2.13.3"),
   scalaVersion := "2.12.10",
-  publishTo :=  sonatypePublishToBundle.value,
+  publishTo := {
+    val nexus = "https://s01.oss.sonatype.org/"
+    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
