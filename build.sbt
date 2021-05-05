@@ -11,7 +11,7 @@ val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersi
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.25"
 val commonsIO = "commons-io" % "commons-io" % "2.7"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
 
 // the client API request/response handing uses Akka Http
