@@ -3,10 +3,12 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val akkaVersion = "2.6.14"
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.3"
+
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
+
 val mockito = "org.mockito" % "mockito-core" % "3.4.6"
 
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
@@ -61,8 +63,8 @@ developers in ThisBuild := List(Developer(id="hagay3", name="Hagai Ovadia", emai
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
-  crossScalaVersions := Seq("2.12.10", "2.13.5"),
-  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq("2.12.13", "2.13.5"),
+  scalaVersion := "2.12.13",
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
     if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
