@@ -10,11 +10,12 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
 val mockito = "org.mockito" % "mockito-core" % "3.4.6"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
-val commonsIO = "commons-io" % "commons-io" % "2.7"
 
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
+
+val commonsIO = "commons-io" % "commons-io" % "2.8.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
 
 // the client API request/response handing uses Akka Http
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.14"
