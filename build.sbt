@@ -24,7 +24,7 @@ val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.0"
+val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
