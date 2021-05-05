@@ -1,7 +1,7 @@
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-val akkaVersion = "2.6.8"
+val akkaVersion = "2.6.14"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.3"
 val specs2 = "org.specs2" %% "specs2-core" % "4.8.3"
