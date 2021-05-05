@@ -5,7 +5,7 @@ val akkaVersion = "2.6.8"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.3"
 val specs2 = "org.specs2" %% "specs2-core" % "4.8.3"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
 val mockito = "org.mockito" % "mockito-core" % "3.4.4"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
