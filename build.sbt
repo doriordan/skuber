@@ -9,15 +9,16 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
 
-val mockito = "org.mockito" % "mockito-core" % "3.4.6"
+val mockito = "org.mockito" % "mockito-core" % "3.9.0"
 
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
-val commonsIO = "commons-io" % "commons-io" % "2.7"
 
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
+
+val commonsIO = "commons-io" % "commons-io" % "2.8.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
 
 // the client API request/response handing uses Akka Http
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.14"
@@ -26,7 +27,7 @@ val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-val logback = "ch.qos.logback" % "logback-classic" % "1.1.11" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
