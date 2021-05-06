@@ -3,11 +3,14 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val akkaVersion = "2.6.14"
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
-val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
 
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
+
+val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
+
 val mockito = "org.mockito" % "mockito-core" % "3.9.0"
+
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 
