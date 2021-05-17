@@ -64,7 +64,7 @@ developers in ThisBuild := List(Developer(id="hagay3", name="Hagai Ovadia", emai
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
-  crossScalaVersions := Seq("2.12.13", "2.13.5"),
+  crossScalaVersions := Seq("2.12.13", "2.13.6"),
   scalaVersion := "2.12.13",
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
