@@ -11,7 +11,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ClientConnectionSettings
 import akka.stream.scaladsl.{Sink, Source}
-import com.typesafe.sslconfig.akka.AkkaSSLConfig
+
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -36,9 +36,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
   "LongPollingPool" should {
     "create a http pool" >> {
       val clientConfig = ClientConnectionSettings(system.settings.config)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4321)
+      val bindingFuture = Http().newServerAt("127.0.0.1", 8080).bind(route)
 
-      val pool = LongPollingPool[Int]("http", "localhost", 4321, 30.seconds, None, clientConfig)
+      val pool = LongPollingPool[Int]("http", "localhost", 8080, 30.seconds, None, clientConfig)
 
       val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
         .map(x => x -> 1).via(pool)
@@ -71,16 +71,16 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
       val sslContext: SSLContext = SSLContext.getInstance("TLS")
       sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
 
-      val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4322, connectionContext = https)
+      val https: HttpsConnectionContext = ConnectionContext.httpsServer( sslContext)
+      val bindingFuture = Http().newServerAt("127.0.0.1", 8443).enableHttps(https).bind(route)
 
-      val clientHttps: HttpsConnectionContext = new HttpsConnectionContext(sslContext, Some(
-        AkkaSSLConfig().mapSettings(x => x.withLoose {
-          x.loose.withDisableHostnameVerification(true)
-        })
-      ))
+      val clientHttps: HttpsConnectionContext = ConnectionContext.httpsClient { (host, port) =>
+        val engine = sslContext.createSSLEngine(host, port)
+        engine.setUseClientMode(true)
+        engine
+      }
 
-      val pool = LongPollingPool[Int]("https", "localhost", 4322, 30.seconds, Some(clientHttps), clientConfig)
+      val pool = LongPollingPool[Int]("https", "localhost", 8443, 30.seconds, Some(clientHttps), clientConfig)
 
       val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
         .map(x => x -> 1).via(pool)

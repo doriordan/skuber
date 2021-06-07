@@ -52,7 +52,11 @@ class KubernetesClientImpl private[client] (
 
   val connectionContext = sslContext
       .map { ssl =>
-        ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
+        ConnectionContext.httpsClient { (host, port) =>
+          val engine = ssl.createSSLEngine(host, port)
+          engine.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
+          engine
+        }
       }
       .getOrElse(Http().defaultClientHttpsContext)
 
@@ -513,7 +517,7 @@ class KubernetesClientImpl private[client] (
       clusterServerUri.authority.host.address(),
       clusterServerUri.effectivePort,
       watchPoolIdleTimeout,
-      sslContext.map(new HttpsConnectionContext(_)),
+      sslContext.map(ConnectionContext.httpsClient),
       ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
     )
   }

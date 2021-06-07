@@ -51,7 +51,11 @@ object PodExecImpl {
     // Determine scheme and connection context based on SSL context
     val (scheme, connectionContext) = requestContext.sslContext match {
       case Some(ssl) =>
-        ("wss",ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1"))))
+        ("wss", ConnectionContext.httpsClient { (host, port) =>
+          val engine = ssl.createSSLEngine(host, port)
+          engine.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
+          engine
+        })
       case None =>
         ("ws", Http().defaultClientHttpsContext)
     }

@@ -21,7 +21,7 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.14"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.4"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
