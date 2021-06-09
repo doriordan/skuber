@@ -14,3 +14,6 @@ jdk:
 cache:
   directories:
     - '$HOME/.ivy2/cache'
+script:
+  - sbt skuber/assembly
+  - sbt skuber-examples/assembly
