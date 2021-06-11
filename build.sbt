@@ -36,32 +36,32 @@ val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
 
-scalacOptions in Test ++= Seq("-Yrangepos")
+Test / scalacOptions ++= Seq("-Yrangepos")
 
-version in ThisBuild := "2.7.0"
+ThisBuild / version := "2.7.0"
 
 sonatypeProfileName := "io.github.hagay3"
 
-publishMavenStyle in ThisBuild := true
+ThisBuild / publishMavenStyle := true
 
-licenses in ThisBuild := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
-homepage in ThisBuild := Some(url("https://github.com/hagay3"))
+ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 
-sonatypeCredentialHost in ThisBuild := "s01.oss.sonatype.org"
-sonatypeRepository in ThisBuild := "https://s01.oss.sonatype.org/service/local"
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 
 
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
-scmInfo in ThisBuild := Some(
+ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/hagay3/skuber"),
     "scm:git@github.com:hagay3/skuber.git"
   )
 )
 
-developers in ThisBuild := List(Developer(id="hagay3", name="Hagai Ovadia", email="hagay3@gmail.com", url=url("https://github.com/hagay3")))
+ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", email="hagay3@gmail.com", url=url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
@@ -92,10 +92,10 @@ lazy val examplesSettings = Seq(
 
 // by default run the guestbook example when executing a fat examples JAR
 lazy val examplesAssemblySettings = Seq(
-  mainClass in assembly := Some("skuber.examples.guestbook.Guestbook")
+  assembly / mainClass := Some("skuber.examples.guestbook.Guestbook")
 )
 
-publishArtifact in root := false
+root / publishArtifact := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)
@@ -116,9 +116,10 @@ lazy val examples = (project in file("examples"))
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
 
-assemblyMergeStrategy in assembly := {
-  case "module-info.class" => MergeStrategy.discard
+ThisBuild / assemblyMergeStrategy  := {
+  case PathList("module-info.class") => MergeStrategy.discard
+  case x if x.endsWith("/module-info.class") => MergeStrategy.discard
   case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
     oldStrategy(x)
 }
