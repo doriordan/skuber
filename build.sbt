@@ -38,7 +38,7 @@ scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.7.0"
+ThisBuild / version := "2.7.1"
 
 sonatypeProfileName := "io.github.hagay3"
 
@@ -48,8 +48,10 @@ ThisBuild / licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENS
 
 ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 
-ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+publishTo := sonatypePublishToBundle.value
+sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+sonatypeCredentialHost := "s01.oss.sonatype.org"
+
 
 
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
