@@ -5,8 +5,8 @@ dist: trusty
 sudo: false
 
 scala:
-- 2.12.9
-- 2.13.0
+- 2.12.13
+- 2.13.6
 
 jdk:
 - oraclejdk8
@@ -14,3 +14,6 @@ jdk:
 cache:
   directories:
     - '$HOME/.ivy2/cache'
+script:
+  - sbt skuber/assembly
+  - sbt examples/assembly

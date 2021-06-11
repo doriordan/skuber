@@ -2,10 +2,9 @@ package skuber.api.client
 
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import play.api.libs.json.{Writes,Format}
-import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
+import play.api.libs.json.{Format, Writes}
 import skuber.api.patch.Patch
-
+import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
 import scala.concurrent.{Future, Promise}
 
 /**
