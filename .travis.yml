@@ -14,6 +14,7 @@ jdk:
 cache:
   directories:
     - '$HOME/.ivy2/cache'
+
+# Test/compile covers the compilation of all the following sub-projects and their tests: examples and skuber
 script:
-  - sbt skuber/assembly
-  - sbt examples/assembly
+  - sbt 'Test/compile;It/compile'

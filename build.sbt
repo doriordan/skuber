@@ -18,7 +18,7 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
 
 val commonsIO = "commons-io" % "commons-io" % "2.9.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.69" % "provided"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
 
 
 // the client API request/response handing uses Akka Http
@@ -117,11 +117,3 @@ lazy val examples = (project in file("examples"))
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
-
-ThisBuild / assemblyMergeStrategy  := {
-  case PathList("module-info.class") => MergeStrategy.discard
-  case x if x.endsWith("/module-info.class") => MergeStrategy.discard
-  case x =>
-    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
-    oldStrategy(x)
-}
