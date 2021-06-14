@@ -117,11 +117,3 @@ lazy val examples = (project in file("examples"))
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
-
-ThisBuild / assemblyMergeStrategy  := {
-  case PathList("module-info.class") => MergeStrategy.discard
-  case x if x.endsWith("/module-info.class") => MergeStrategy.discard
-  case x =>
-    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
-    oldStrategy(x)
-}
