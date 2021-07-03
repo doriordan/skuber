@@ -19,6 +19,7 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
 val commonsIO = "commons-io" % "commons-io" % "2.9.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
+val bouncyCastleJdk16 = libraryDependencies += "org.bouncycastle" % "bcprov-jdk16" % "1.46" 
 
 
 // the client API request/response handing uses Akka Http
@@ -81,7 +82,7 @@ lazy val commonSettings = Seq(
 lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
-    akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
+    akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, bouncyCastleJdk16
     scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
