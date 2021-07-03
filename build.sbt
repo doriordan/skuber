@@ -55,6 +55,7 @@ ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 publishTo := sonatypePublishToBundle.value
 sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 sonatypeCredentialHost := "s01.oss.sonatype.org"
+updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
 
 
 
