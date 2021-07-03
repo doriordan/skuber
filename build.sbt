@@ -44,8 +44,6 @@ scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.7.1"
-
 sonatypeProfileName := "io.github.hagay3"
 
 ThisBuild / publishMavenStyle := true
