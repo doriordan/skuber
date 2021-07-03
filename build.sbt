@@ -1,7 +1,13 @@
 import xerial.sbt.Sonatype._
+import ReleaseTransformations._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-val akkaVersion = "2.6.14"
+val scala12Version = "2.12.13"
+val scala13Version = "2.13.6"
+val currentScalaVersion = scala13Version
+val supportedScalaVersion = Seq(scala12Version, scala13Version)
+
+val akkaVersion = "2.6.15"
 
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
@@ -19,7 +25,6 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
 val commonsIO = "commons-io" % "commons-io" % "2.9.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
-val bouncyCastleJdk16 = "org.bouncycastle" % "bcprov-jdk16" % "1.46"
 
 
 // the client API request/response handing uses Akka Http
@@ -68,8 +73,7 @@ ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", emai
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
-  crossScalaVersions := Seq("2.12.13", "2.13.6"),
-  scalaVersion := "2.12.13",
+  scalaVersion := currentScalaVersion,
   publishTo := {
     val nexus = "https://s01.oss.sonatype.org/"
     if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
@@ -82,7 +86,7 @@ lazy val commonSettings = Seq(
 lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
-    akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle, bouncyCastleJdk16,
+    akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
     scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
@@ -101,20 +105,41 @@ lazy val examplesAssemblySettings = Seq(
 root / publishArtifact := false
 
 lazy val root = (project in file("."))
-  .settings(commonSettings: _*)
+  .settings(commonSettings,
+    crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
 lazy val skuber= (project in file("client"))
   .configs(IntegrationTest)
   .settings(
     commonSettings,
+    crossScalaVersions := supportedScalaVersion,
     skuberSettings,
     Defaults.itSettings,
     libraryDependencies += scalaTest % "it"
   )
 
 lazy val examples = (project in file("examples"))
-  .settings(commonSettings: _*)
+  .settings(
+    commonSettings,
+    crossScalaVersions := supportedScalaVersion)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
+
+
+releaseCrossBuild := true
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies, // check that there are no SNAPSHOT dependencies
+  inquireVersions, // ask user to enter the current and next verion
+  runClean, // clean
+  runTest, // run tests
+  setReleaseVersion, // set release version in version.sbt
+  commitReleaseVersion, // commit the release version
+  tagRelease, // create git tag
+  releaseStepCommandAndRemaining("+publishSigned"), // run +publishSigned command to sonatype stage release
+  setNextVersion, // set next version in version.sbt
+  commitNextVersion, // commint next version
+  releaseStepCommand("sonatypeRelease"), // run sonatypeRelease and publish to maven central
+  pushChanges // push changes to git
+)
