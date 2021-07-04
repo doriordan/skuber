@@ -56,6 +56,7 @@ publishTo := sonatypePublishToBundle.value
 sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 sonatypeCredentialHost := "s01.oss.sonatype.org"
 updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
+usePgpKeyHex("6DEC2D58A158F02CEF37DE9F756082568B2E9DDA")
 
 
 
