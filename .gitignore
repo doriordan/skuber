@@ -11,8 +11,8 @@ target/
 .metals/
 *.sc
 *.launch
-*.s??
 *~
 *.log
 *.txt
 bin/
+lib

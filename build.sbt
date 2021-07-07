@@ -1,7 +1,12 @@
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-val akkaVersion = "2.6.14"
+val scala12Version = "2.12.13"
+val scala13Version = "2.13.6"
+val currentScalaVersion = scala13Version
+val supportedScalaVersion = Seq(scala12Version, scala13Version)
+
+val akkaVersion = "2.6.15"
 
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
@@ -38,8 +43,6 @@ scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.7.1"
-
 sonatypeProfileName := "io.github.hagay3"
 
 ThisBuild / publishMavenStyle := true
@@ -49,8 +52,8 @@ ThisBuild / licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENS
 ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 
 publishTo := sonatypePublishToBundle.value
-sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
-sonatypeCredentialHost := "s01.oss.sonatype.org"
+sonatypeCredentialHost := Sonatype.sonatype01
+updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
 
 
 
@@ -67,16 +70,27 @@ ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", emai
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
-  crossScalaVersions := Seq("2.12.13", "2.13.6"),
-  scalaVersion := "2.12.13",
-  publishTo := {
-    val nexus = "https://s01.oss.sonatype.org/"
-    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  },
+  scalaVersion := currentScalaVersion,
+  publishConfiguration := publishConfiguration.value.withOverwrite(true),
+  publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   pomIncludeRepository := { _ => false },
-  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+  sonatypeCredentialHost := Sonatype.sonatype01
 )
+// run sbt githubWorkflowGenerate in order to generate github actions files
+inThisBuild(List(
+  githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+  githubWorkflowTargetTags ++= Seq("v*"),
+   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("Test/compile", "It/compile"))),
+  githubWorkflowPublish := Seq(
+    WorkflowStep.Sbt(
+      List("ci-release"),
+      env = Map(
+        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")))))
+
 
 lazy val skuberSettings = Seq(
   name := "skuber",
@@ -100,20 +114,24 @@ lazy val examplesAssemblySettings = Seq(
 root / publishArtifact := false
 
 lazy val root = (project in file("."))
-  .settings(commonSettings: _*)
+  .settings(commonSettings,
+    crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
 lazy val skuber= (project in file("client"))
   .configs(IntegrationTest)
   .settings(
     commonSettings,
+    crossScalaVersions := supportedScalaVersion,
     skuberSettings,
     Defaults.itSettings,
     libraryDependencies += scalaTest % "it"
   )
 
 lazy val examples = (project in file("examples"))
-  .settings(commonSettings: _*)
+  .settings(
+    commonSettings,
+    crossScalaVersions := supportedScalaVersion)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
