@@ -1,5 +1,4 @@
 import xerial.sbt.Sonatype._
-import ReleaseTransformations._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 val scala12Version = "2.12.13"
@@ -53,10 +52,8 @@ ThisBuild / licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENS
 ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 
 publishTo := sonatypePublishToBundle.value
-sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
-sonatypeCredentialHost := "s01.oss.sonatype.org"
+sonatypeCredentialHost := Sonatype.sonatype01
 updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
-usePgpKeyHex("6DEC2D58A158F02CEF37DE9F756082568B2E9DDA")
 
 
 
@@ -74,16 +71,26 @@ ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", emai
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
   scalaVersion := currentScalaVersion,
-  publishTo := {
-    val nexus = "https://s01.oss.sonatype.org/"
-    if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  },
   publishConfiguration := publishConfiguration.value.withOverwrite(true),
   publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   pomIncludeRepository := { _ => false },
-  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+  sonatypeCredentialHost := Sonatype.sonatype01
 )
+// run sbt githubWorkflowGenerate in order to generate github actions files
+inThisBuild(List(
+  githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+  githubWorkflowTargetTags ++= Seq("v*"),
+   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("Test/compile", "It/compile"))),
+  githubWorkflowPublish := Seq(
+    WorkflowStep.Sbt(
+      List("ci-release"),
+      env = Map(
+        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")))))
+
 
 lazy val skuberSettings = Seq(
   name := "skuber",
@@ -128,20 +135,3 @@ lazy val examples = (project in file("examples"))
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
-
-
-releaseCrossBuild := true
-releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies, // check that there are no SNAPSHOT dependencies
-  inquireVersions, // ask user to enter the current and next verion
-  runClean, // clean
-  runTest, // run tests
-  setReleaseVersion, // set release version in version.sbt
-  commitReleaseVersion, // commit the release version
-  tagRelease, // create git tag
-  releaseStepCommandAndRemaining("+publishSigned"), // run +publishSigned command to sonatype stage release
-  setNextVersion, // set next version in version.sbt
-  commitNextVersion, // commint next version
-  releaseStepCommand("sonatypeRelease"), // run sonatypeRelease and publish to maven central
-  pushChanges // push changes to git
-)
