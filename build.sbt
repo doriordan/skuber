@@ -81,7 +81,7 @@ lazy val commonSettings = Seq(
 inThisBuild(List(
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
-   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("Test/compile", "It/compile"))),
+   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
       List("ci-release"),
