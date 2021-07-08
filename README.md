@@ -2,10 +2,12 @@
 ![Build Status](https://github.com/hagay3/skuber/actions/workflows/ci.yml/badge.svg?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.hagay3/skuber_2.12/badge.svg)](https://mvnrepository.com/artifact/io.github.hagay3/skuber_2.12)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/hagay3/skuber/blob/master/LICENSE.txt)
+[![Discord](https://img.shields.io/badge/JOIN%20US%20ON%20DISCORD-help-green)](https://discord.gg/9VnWmnX2)
 
 # Skuber
 
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
+
 
 ## Features
 
