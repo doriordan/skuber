@@ -142,3 +142,10 @@ Building the library from source is very straightforward. Simply run `sbt test`i
 ## License
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
+
+## Support
+I'm trying to be responsive to any new issues, you can create github issue or contact me.
+
+Skuber chat on discord: https://discord.gg/9VnWmnX2
+
+Email: hagay3@gmail.com
