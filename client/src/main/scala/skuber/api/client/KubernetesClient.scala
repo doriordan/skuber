@@ -1,9 +1,10 @@
 package skuber.api.client
 
+import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import play.api.libs.json.{Writes,Format}
-import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
+import play.api.libs.json.{Format, Writes}
+import skuber.{DeleteOptions, HasStatusSubresource, KListItem, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
 import skuber.api.patch.Patch
 
 import scala.concurrent.{Future, Promise}
@@ -365,6 +366,13 @@ trait KubernetesClient {
     * @return
     */
   def usingNamespace(newNamespace: String): KubernetesClient
+
+  /**
+    * Get a streaming collection of the specified resource type
+    */
+  def stream[K <: KListItem](
+    implicit fmt: Format[ListResource[K]], rd: ResourceDefinition[ListResource[K]], lc: LoggingContext
+  ): ChunkingStreamingCollection[K]
 
   /**
     * Closes the client. Any requests to the client after this is called will be rejected.

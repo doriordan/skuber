@@ -1,5 +1,6 @@
 package skuber.api.client.impl
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
@@ -12,7 +13,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.net.ssl.SSLContext
-import play.api.libs.json.{Format, Writes, Reads}
+import play.api.libs.json.{Format, Reads, Writes}
 import skuber._
 import skuber.api.client.exec.PodExecImpl
 import skuber.api.client.{K8SException => _, _}
@@ -639,6 +640,13 @@ class KubernetesClientImpl private[client] (
       newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
       watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
     )
+
+  override def streaming[K : KListItem](
+    implicit fmt: Format[ListResource[K]], rd: ResourceDefinition[ListResource[K]], lc: LoggingContext
+  ): Source[K, NotUsed] = {
+    val collection=new StreamingResourceCollection[K](this, ListOptions())
+    collection.retrieve
+  }
 
   private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
   {
