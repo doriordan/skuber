@@ -113,6 +113,7 @@ import Service._
       mySvc.kind mustEqual "Service"
       mySvc.name mustEqual "kube-dns"
       val spec = mySvc.spec.get
+      spec.externalTrafficPolicy mustEqual None
       val ports = spec.ports
       ports.length mustEqual 2
       val udpDnsPort = ports(0)
