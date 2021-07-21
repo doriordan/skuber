@@ -6,6 +6,7 @@ package skuber.api.client
   */
 
 import LoggingConfig.loggingEnabled
+import scala.util.{Failure, Success, Try}
 
 case class LoggingConfig(
   logConfiguration: Boolean=loggingEnabled("config", true), // outputs configuration on initialisation)
@@ -22,7 +23,12 @@ case class LoggingConfig(
 
 object LoggingConfig {
   private def loggingEnabled(logEventType: String, fallback: Boolean) : Boolean= {
-    sysProps.get(s"skuber.log.$logEventType").map(_ => true).getOrElse(fallback)
+    sysProps.get(s"skuber.log.$logEventType").map {
+      value => Try(value.toBoolean) match {
+        case Success(value) => value
+        case Failure(_) => throw new IllegalArgumentException(s"argument skuber.log.$logEventType:$value can't be parsed to boolean")
+      }
+    }.getOrElse(fallback)
   }
 }
 
