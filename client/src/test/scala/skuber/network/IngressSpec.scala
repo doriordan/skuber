@@ -52,6 +52,12 @@ class IngressSpec extends Specification {
         |                "serviceName": "service",
         |                "servicePort": "http"
         |              }
+        |            },
+        |            {
+        |              "backend": {
+        |                "serviceName": "ssh",
+        |                "servicePort": 22
+        |              }
         |            }
         |          ]
         |        }
@@ -79,10 +85,10 @@ class IngressSpec extends Specification {
     ing.name mustEqual "example-ingress"
 
     ing.spec.get.rules.head.host must beSome("example.com")
-    ing.spec.get.rules.head.http.paths must_== List(Ingress.Path(
-      path = "",
-      backend = Ingress.Backend("service", "http")
-    ))
+    ing.spec.get.rules.head.http.paths must_== List(
+      Ingress.Path(path = "", backend = Ingress.Backend("service", "http")),
+      Ingress.Path(path = "", backend = Ingress.Backend("ssh", 22))
+    )
     ing.spec.get.tls must_== List(Ingress.TLS(
       hosts = List("abc","def"),
       secretName = None

@@ -6,6 +6,7 @@ package skuber.networking
 
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
+import scala.util.Try
 
 case class Ingress(
   kind: String ="Ingress",
@@ -96,7 +97,7 @@ case class Ingress(
     val paths: List[Ingress.Path] = pathsMap.map { case (path: String, backend: String) =>
       backend match {
         case backendSpec(serviceName, servicePort) =>
-          Ingress.Path(path,Ingress.Backend(serviceName, servicePort))
+          Ingress.Path(path,Ingress.Backend(serviceName, toNameablePort(servicePort)))
         case _ => throw new Exception(s"invalid backend format: expected 'serviceName:servicePort' (got '$backend', for host: $host)")
       }
 
@@ -115,7 +116,7 @@ case class Ingress(
   def withDefaultBackendService(serviceNameAndPort: String): Ingress = {
     serviceNameAndPort match {
       case backendSpec(serviceName, servicePort) =>
-        withDefaultBackendService(serviceName, servicePort)
+        withDefaultBackendService(serviceName, toNameablePort(servicePort))
       case _ => throw new Exception(s"invalid default backend format: expected 'serviceName:servicePort' (got '$serviceNameAndPort')")
     }
   }
@@ -126,7 +127,7 @@ case class Ingress(
    * @param servicePort - service port
    * @return copy of this Ingress with default backend set
    */
-  def withDefaultBackendService(serviceName: String, servicePort: String): Ingress = {
+  def withDefaultBackendService(serviceName: String, servicePort: NameablePort): Ingress = {
     val be = Backend(serviceName, servicePort)
     this.copy(spec=Some(copySpec.copy(backend = Some(be)))
     )
@@ -135,13 +136,14 @@ case class Ingress(
   def addAnnotations(newAnnos: Map[String, String]): Ingress =
     this.copy(metadata = this.metadata.copy(annotations = this.metadata.annotations ++ newAnnos))
 
-
+  private def toNameablePort(port: String): NameablePort =
+    Try(port.toInt).toEither.left.map(_ => port).swap
 }
 
 object Ingress {
 
   val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(
-    apiGroup = "extensions",
+    apiGroup = "networking.k8s.io",
     version = "v1beta1",
     scope = Scope.Namespaced,
     names = Names(
@@ -156,7 +158,7 @@ object Ingress {
 
   def apply(name: String) : Ingress = Ingress(metadata=ObjectMeta(name=name))
 
-  case class Backend(serviceName: String, servicePort: String)
+  case class Backend(serviceName: String, servicePort: NameablePort)
   case class Path(path: String, backend: Backend)
   case class HttpRule(paths: List[Path] = List())
   case class Rule(host: Option[String], http: HttpRule)
