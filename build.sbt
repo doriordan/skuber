@@ -1,30 +1,30 @@
 
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-val akkaVersion = "2.6.8"
+val akkaVersion = "2.6.15"
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.3"
-val specs2 = "org.specs2" %% "specs2-core" % "4.8.3"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.8"
-val mockito = "org.mockito" % "mockito-core" % "3.4.4"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
+val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
+val mockito = "org.mockito" % "mockito-core" % "3.11.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.25"
-val commonsIO = "commons-io" % "commons-io" % "2.7"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.14"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.66"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.29"
+val commonsIO = "commons-io" % "commons-io" % "2.9.0"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.68"
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.1.12"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.4"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-val logback = "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.0"
+val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
@@ -52,8 +52,8 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.12.10", "2.13.3"),
-  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq("2.12.13", "2.13.6"),
+  scalaVersion := "2.13.6",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
