@@ -42,6 +42,8 @@ import Service._
                     service("mySvc",Spec(ports=List(Port(name="myPort",port=5654))))
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
       mySvc mustEqual readSvc
+      val spec = readSvc.spec.get
+      spec.publishNotReadyAddresses mustEqual false
     }
     "this can be done for a Service with a more complex spec" >> {
       val ports=List(Port(port=9081,targetPort=Some(8080)),
