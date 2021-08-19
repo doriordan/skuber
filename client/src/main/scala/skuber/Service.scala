@@ -110,7 +110,8 @@ object Service {
      externalIPs: List[String] = List(),
      externalName: String = "",
      sessionAffinity: Affinity.Affinity = Affinity.None,
-     loadBalancerIP: String = ""
+     loadBalancerIP: String = "",
+     publishNotReadyAddresses: Boolean = false
    )
    {
      def withSelector(sel: Map[String, String]) : Spec = this.copy(selector = sel)

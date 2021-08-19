@@ -102,7 +102,8 @@ import Service._
                 },
                 "clusterIP": "10.247.0.10",
                 "type": "ClusterIP",
-                "sessionAffinity": "None"
+                "sessionAffinity": "None",
+                "publishNotReadyAddresses": true
               },
               "status": {
                 "loadBalancer": {}
@@ -113,6 +114,7 @@ import Service._
       mySvc.kind mustEqual "Service"
       mySvc.name mustEqual "kube-dns"
       val spec = mySvc.spec.get
+      spec.publishNotReadyAddresses mustEqual true
       val ports = spec.ports
       ports.length mustEqual 2
       val udpDnsPort = ports(0)
