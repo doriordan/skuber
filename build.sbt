@@ -11,7 +11,7 @@ val akkaVersion = "2.6.15"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
-val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
+val specs2 = "org.specs2" %% "specs2-core" % "4.12.12"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
 
 val mockito = "org.mockito" % "mockito-core" % "3.11.0"
