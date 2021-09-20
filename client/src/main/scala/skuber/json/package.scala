@@ -927,7 +927,8 @@ package object format {
       (JsPath \ "externalName").formatMaybeEmptyString() and
       (JsPath \ "externalTrafficPolicy").formatNullableEnum(Service.ExternalTrafficPolicy) and
       (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Some(Service.Affinity.None)) and
-      (JsPath \ "loadBalancerIP").formatMaybeEmptyString()
+      (JsPath \ "loadBalancerIP").formatMaybeEmptyString() and
+      (JsPath \ "publishNotReadyAddresses").formatMaybeEmptyBoolean()
    )(Service.Spec.apply _, unlift(Service.Spec.unapply))
 
   implicit val serviceFmt: Format[Service] = (
