@@ -6,23 +6,22 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.stream.Materializer
+import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-import javax.net.ssl.SSLContext
-import play.api.libs.json.{Format, Writes, Reads}
+import play.api.libs.json.{Format, Reads, Writes}
 import skuber._
 import skuber.api.client.exec.PodExecImpl
 import skuber.api.client.{K8SException => _, _}
+import skuber.api.patch._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
-import skuber.api.patch._
 
+import javax.net.ssl.SSLContext
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -54,6 +53,7 @@ class KubernetesClientImpl private[client] (
       .map { ssl =>
         ConnectionContext.httpsClient { (host, port) =>
           val engine = ssl.createSSLEngine(host, port)
+          engine.setUseClientMode(true)
           engine.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
           engine
         }
