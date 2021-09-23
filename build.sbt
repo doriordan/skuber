@@ -6,12 +6,12 @@ val scala13Version = "2.13.6"
 val currentScalaVersion = scala13Version
 val supportedScalaVersion = Seq(scala12Version, scala13Version)
 
-val akkaVersion = "2.6.15"
+val akkaVersion = "2.6.16"
 
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
-val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
+val specs2 = "org.specs2" %% "specs2-core" % "4.12.12"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
 
 val mockito = "org.mockito" % "mockito-core" % "3.11.0"
@@ -33,7 +33,7 @@ val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-val logback = "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.2.6" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
