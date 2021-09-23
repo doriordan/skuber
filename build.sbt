@@ -19,7 +19,7 @@ val mockito = "org.mockito" % "mockito-core" % "3.11.2"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.28"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.29"
 
 val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
