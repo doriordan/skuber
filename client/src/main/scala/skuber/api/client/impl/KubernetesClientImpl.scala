@@ -399,11 +399,11 @@ class KubernetesClientImpl private[client] (
     val marshalledOptions = Marshal(options)
     for {
       requestEntity <- marshalledOptions.to[RequestEntity]
-      request       = buildRequest(HttpMethods.DELETE, rd, Some(name))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      response      <- invoke(request)
-      _             <- checkResponseStatus(response)
-      _             <- ignoreResponseBody(response)
+      request = buildRequest(HttpMethods.DELETE, rd, Some(name))
+        .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      response <- invoke(request)
+      responseStatusOpt <- checkResponseStatus(response)
+      _ <- ignoreResponseBody(response, responseStatusOpt)
     } yield ()
   }
 
@@ -696,9 +696,15 @@ class KubernetesClientImpl private[client] (
     * @param response the Http Response that we need to drain
     * @return A Future[Unit] that will be set to Success or Failure depending on outcome of draining
     */
-  private def ignoreResponseBody(response: HttpResponse): Future[Unit] = {
-    response.discardEntityBytes().future.map(done => ())
+  private def ignoreResponseBody(response: HttpResponse, responseStatusOpt: Option[Status]): Future[Unit] = {
+    responseStatusOpt match {
+      case Some(status) =>
+        throw new K8SException(status)
+      case _ =>
+        response.discardEntityBytes().future.map(done => ())
+    }
   }
+
 }
 
 object KubernetesClientImpl {
