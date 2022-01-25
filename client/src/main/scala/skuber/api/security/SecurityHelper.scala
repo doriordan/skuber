@@ -6,7 +6,7 @@ import java.security.{KeyStore, PrivateKey}
 import java.security.cert.{CertificateFactory, X509Certificate}
 
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
-import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import org.bouncycastle.openssl.{PEMKeyPair, PEMParser}
 
@@ -64,7 +64,7 @@ object SecurityHelper {
    */
   
   def readPrivateKey(is: InputStream): PrivateKey = {
-    val provider = new BouncyCastleProvider()
+    val provider = new BouncyCastleFipsProvider()
     val converter = new JcaPEMKeyConverter().setProvider(provider);
     Option(new PEMParser(new InputStreamReader(is)).readObject()) match {
       case Some(obj) => obj match {
