@@ -30,7 +30,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.6.4-rc1"
+ThisBuild / version := "2.6.4"
 
 sonatypeProfileName := "io.skuber"
 

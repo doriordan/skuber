@@ -64,7 +64,7 @@ Provides you with a configured client on startup. It is handy to use this for qu
   > Just handy shortcut to import skuber inside ammonite-repl:
 
   ```scala
-  import $ivy.`io.skuber::skuber:2.6.3`, skuber._, skuber.json.format._
+  import $ivy.`io.skuber::skuber:2.6.4`, skuber._, skuber.json.format._
   ```
 
 ### Interactive with sbt
@@ -117,7 +117,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 You can use the latest release (for 2.12 or 2.13) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.6.3"
+libraryDependencies += "io.skuber" %% "skuber" % "2.6.4"
 ```
 
 Meanwhile users of skuber v1 can continue to use the final v1.x release, which is available only on Scala 2.11:
