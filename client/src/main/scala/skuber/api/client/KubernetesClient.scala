@@ -3,7 +3,7 @@ package skuber.api.client
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import play.api.libs.json.{Writes,Format}
-import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
+import skuber.{APIGroup, DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
 import skuber.api.patch.Patch
 
 import scala.concurrent.{Future, Promise}
@@ -356,6 +356,13 @@ trait KubernetesClient {
     * @return a future containing the list of API versions
     */
   def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]]
+
+  /**
+    * Return list of API groups with their versions supported by the server
+    * @param lc
+    * @return a future containing the list of API groups
+    */
+  def getAPIGroupList(implicit lc: LoggingContext): Future[List[APIGroup]]
 
   /**
     * Create a new KubernetesClient instance that reuses this clients configuration and connection resources, but with a different

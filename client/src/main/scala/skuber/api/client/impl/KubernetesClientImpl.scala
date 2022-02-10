@@ -20,7 +20,7 @@ import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
-import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
+import skuber.json.format.{apiGroupListFormat, apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
 import skuber.api.patch._
 
 import scala.concurrent.duration._
@@ -604,6 +604,17 @@ class KubernetesClientImpl private[client] (
       response <- invoke(request)
       apiVersionResource <- toKubernetesResponse[APIVersions](response)
     } yield apiVersionResource.versions
+  }
+
+  // get API groups with versions supported by the cluster
+  override def getAPIGroupList(implicit lc: LoggingContext): Future[List[APIGroup]] = {
+    val url = clusterServer + "/apis"
+    val noAuthReq = requestMaker(Uri(url), HttpMethods.GET)
+    val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
+    for {
+      response <- invoke(request)
+      getAPIGroupListResource <- toKubernetesResponse[APIGroupList](response)
+    } yield getAPIGroupListResource.groups
   }
 
   /*

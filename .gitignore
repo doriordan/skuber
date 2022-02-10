@@ -8,6 +8,8 @@ target/
 .idea/
 .bloop/
 .metals/
+.bsp/
+.vscode/
 *.sc
 *.launch
 *.s??

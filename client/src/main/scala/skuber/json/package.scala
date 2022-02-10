@@ -216,6 +216,10 @@ package object format {
 
   implicit val apiVersionsFormat = Json.format[APIVersions]
 
+  implicit val apiGroupVersionFormat: Format[APIGroupVersion] = Json.format[APIGroupVersion]
+  implicit val apiGroupFormat       : Format[APIGroup]        = Json.format[APIGroup]
+  implicit val apiGroupListFormat   : Format[APIGroupList]    = Json.format[APIGroupList]
+
   implicit val objRefFormat: Format[ObjectReference] = (
     (JsPath \ "kind").formatMaybeEmptyString() and
     (JsPath \ "apiVersion").formatMaybeEmptyString() and
