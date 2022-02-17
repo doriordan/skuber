@@ -35,12 +35,13 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
 
   "LongPollingPool" should {
     "create a http pool" >> {
+      val port = 4321
       val clientConfig = ClientConnectionSettings(system.settings.config)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4321)
+      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port)
 
-      val pool = LongPollingPool[Int]("http", "localhost", 4321, 30.seconds, None, clientConfig)
+      val pool = LongPollingPool[Int]("http", "localhost", port, 30.seconds, None, clientConfig)
 
-      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
+      val result = Source.single(HttpRequest(HttpMethods.GET, Uri(s"http://localhost:$port/ping")))
         .map(x => x -> 1).via(pool)
         .map(_._1).runWith(Sink.head)
         .futureValue
@@ -71,8 +72,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
       val sslContext: SSLContext = SSLContext.getInstance("TLS")
       sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
 
+      val port = 4322
       val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4322, connectionContext = https)
+      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port, connectionContext = https)
 
       val clientHttps: HttpsConnectionContext = new HttpsConnectionContext(sslContext, Some(
         AkkaSSLConfig().mapSettings(x => x.withLoose {
@@ -80,9 +82,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
         })
       ))
 
-      val pool = LongPollingPool[Int]("https", "localhost", 4322, 30.seconds, Some(clientHttps), clientConfig)
+      val pool = LongPollingPool[Int]("https", "localhost", port, 30.seconds, Some(clientHttps), clientConfig)
 
-      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
+      val result = Source.single(HttpRequest(HttpMethods.GET, Uri(s"http://localhost:$port/ping")))
         .map(x => x -> 1).via(pool)
         .map(_._1).runWith(Sink.head)
         .futureValue

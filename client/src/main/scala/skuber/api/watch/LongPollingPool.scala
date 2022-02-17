@@ -1,42 +1,42 @@
 package skuber.api.watch
 
-import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.{Http, HttpsConnectionContext}
-import akka.stream.Materializer
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import skuber.api.client.Pool
 
 import scala.concurrent.duration._
+import scala.util.Success
 
 private[api] object LongPollingPool {
   def apply[T](schema: String, host: String, port: Int,
                poolIdleTimeout: Duration,
                httpsConnectionContext: Option[HttpsConnectionContext],
                clientConnectionSettings: ClientConnectionSettings)(implicit system: ActorSystem): Pool[T] = {
+    implicit val ec = system.dispatcher
     schema match {
       case "http" =>
-        Http().newHostConnectionPool[T](
-          host, port,
-          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
-        ).mapMaterializedValue(_ => NotUsed)
+        Flow[(HttpRequest, T)]
+          .mapAsync(1) {
+            case (request, userdata) =>
+              Source.single(request)
+                .via(Http().outgoingConnection(host, port, settings = clientConnectionSettings))
+                .map(response => (Success(response), userdata))
+                .runWith(Sink.head)
+          }
       case "https" =>
-        Http().newHostConnectionPoolHttps[T](
-          host, port,
-          httpsConnectionContext.getOrElse(Http().defaultClientHttpsContext),
-          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
-        ).mapMaterializedValue(_ => NotUsed)
+        Flow[(HttpRequest, T)]
+          .mapAsync(1) {
+            case (request, userdata) =>
+              Source.single(request)
+                .via(Http().outgoingConnectionHttps(host, port, httpsConnectionContext.get, settings = clientConnectionSettings))
+                .map(response => (Success(response), userdata))
+                .runWith(Sink.head)
+          }
       case unsupported =>
         throw new IllegalArgumentException(s"Schema $unsupported is not supported")
     }
-  }
-
-  private def buildHostConnectionPool[T](poolIdleTimeout: Duration, clientConnectionSettings: ClientConnectionSettings, system: ActorSystem) = {
-    ConnectionPoolSettings(system)
-      .withMaxConnections(1)              // Limit number the of open connections to one
-      .withPipeliningLimit(1)             // Limit pipelining of requests to one
-      .withMaxRetries(0)                  // Disables retries
-      .withIdleTimeout(poolIdleTimeout)   // Automatically shutdown connection pool after timeout
-      .withConnectionSettings(clientConnectionSettings)
   }
 }
