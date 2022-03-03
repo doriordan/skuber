@@ -27,7 +27,7 @@ val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.69"
 
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.6"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
