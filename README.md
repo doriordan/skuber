@@ -139,6 +139,13 @@ If you have an application using the legacy version v1 of Skuber and want to mov
 
 Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
 
+## CI + Build
+The CI parameters defined in `build.sbt`.
+
+ci.yaml and clean.yaml are generated automatically with [sbt-github-actions](https://github.com/djspiewak/sbt-github-actions) plugin.  
+
+Run `sbt githubWorkflowGenerate` in order to regenerate ci.yaml and clean.yaml.
+
 ## License
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
