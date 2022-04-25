@@ -79,9 +79,10 @@ lazy val commonSettings = Seq(
 )
 // run sbt githubWorkflowGenerate in order to generate github actions files
 inThisBuild(List(
+  githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
-   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
+  githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
       List("ci-release"),
