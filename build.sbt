@@ -6,7 +6,7 @@ val scala13Version = "2.13.6"
 val currentScalaVersion = scala13Version
 val supportedScalaVersion = Seq(scala12Version, scala13Version)
 
-val akkaVersion = "2.6.16"
+val akkaVersion = "2.6.19"
 
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
@@ -27,13 +27,13 @@ val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk15on" % "1.69"
 
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.6"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-val logback = "ch.qos.logback" % "logback-classic" % "1.2.6" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
@@ -79,9 +79,10 @@ lazy val commonSettings = Seq(
 )
 // run sbt githubWorkflowGenerate in order to generate github actions files
 inThisBuild(List(
+  githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
-   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
+  githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
       List("ci-release"),
