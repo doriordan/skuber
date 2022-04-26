@@ -67,7 +67,7 @@ Provides you with a configured client on startup. It is handy to use this for qu
   > Just handy shortcut to import skuber inside ammonite-repl:
 
   ```scala
-  import $ivy.`io.github.hagay3::skuber:2.7.3`, skuber._, skuber.json.format._
+  import $ivy.`io.github.hagay3::skuber:2.7.4`, skuber._, skuber.json.format._
   ```
 
 ### Interactive with sbt
@@ -120,7 +120,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 You can use the latest release (for 2.12 or 2.13) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.3"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.4"
 ```
 
 Meanwhile users of skuber v1 can continue to use the final v1.x release, which is available only on Scala 2.11:
@@ -138,6 +138,13 @@ If you have an application using the legacy version v1 of Skuber and want to mov
 ## Building
 
 Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
+
+## CI + Build
+The CI parameters defined in `build.sbt`.
+
+ci.yaml and clean.yaml are generated automatically with [sbt-github-actions](https://github.com/djspiewak/sbt-github-actions) plugin.  
+
+Run `sbt githubWorkflowGenerate` in order to regenerate ci.yaml and clean.yaml.
 
 ## License
 
