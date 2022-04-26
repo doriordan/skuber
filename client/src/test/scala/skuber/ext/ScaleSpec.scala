@@ -1,8 +1,8 @@
-package skuber.apps
+package skuber.ext
 
 import org.specs2.mutable.Specification
-import skuber.{Container, LabelSelector, ObjectMeta, Pod, ReplicationController, Scale}
 import play.api.libs.json.Json
+import skuber.{ObjectMeta, Scale}
 
 /**
  * @author David O'Riordan
@@ -22,7 +22,8 @@ class ScaleSpec extends Specification {
       val scale= Scale(
         apiVersion="autoscaling/v1",
         metadata=ObjectMeta(name="example", namespace="na"),
-        spec=Scale.Spec(replicas=Some(10))
+        spec=Scale.Spec(replicas=Some(10)),
+        status = Some(Scale.Status(replicas = 10, selector = Some("env=prod,app=app1")))
       )
       
       val readScale = Json.fromJson[Scale](Json.toJson(scale)).get
@@ -45,15 +46,17 @@ class ScaleSpec extends Specification {
   },
   "status": {
     "replicas": 1,
-    "targetSelector": "redis-master"
+    "targetSelector": "redis-master",
+    "selector": "app=service1,environment=dev"
   }
 }
 """
     val scale = Json.parse(scaleJsonStr).as[Scale]
     scale.kind mustEqual "Scale"
     scale.name mustEqual "redis-master"
-    scale.spec.replicas mustEqual Some(1)
-    scale.status mustEqual Some(Scale.Status(replicas=1, selector=None, targetSelector=Some("redis-master")))
+    scale.spec.replicas must beSome(1)
+    scale.status must beSome(Scale.Status(replicas=1, selector=Some("app=service1,environment=dev"), targetSelector=Some("redis-master")))
+    scale.statusSelectorLabels mustEqual Map("app" -> "service1", "environment" -> "dev")
   }
 
   "A scale object can contain NO replicas" >> {
@@ -80,5 +83,62 @@ class ScaleSpec extends Specification {
     scale.kind mustEqual "Scale"
     scale.name mustEqual "redis-master"
     scale.spec.replicas mustEqual None
+  }
+
+  "A scale json with single key->value in status selector" >> {
+    val scaleJsonStr = """
+{
+  "kind": "Scale",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "redis-master",
+    "namespace": "default",
+    "selfLink": "/apis/extensions/v1beta1/namespaces/default/replicationcontrollers/redis-master/scale",
+    "creationTimestamp": "2015-12-29T11:55:14Z"
+  },
+  "spec": {
+    "replicas": 1
+  },
+  "status": {
+    "replicas": 1,
+    "targetSelector": "redis-master",
+    "selector": "app=service1"
+  }
+}
+"""
+    val scale = Json.parse(scaleJsonStr).as[Scale]
+    scale.kind mustEqual "Scale"
+    scale.name mustEqual "redis-master"
+    scale.spec.replicas must beSome(1)
+    scale.status must beSome(Scale.Status(replicas=1, selector=Some("app=service1"), targetSelector=Some("redis-master")))
+    scale.statusSelectorLabels mustEqual Map("app" -> "service1")
+  }
+
+  "A scale json with wrong spec status string should not produce errors" >> {
+    val scaleJsonStr = """
+{
+  "kind": "Scale",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "redis-master",
+    "namespace": "default",
+    "selfLink": "/apis/extensions/v1beta1/namespaces/default/replicationcontrollers/redis-master/scale",
+    "creationTimestamp": "2015-12-29T11:55:14Z"
+  },
+  "spec": {
+    "replicas": 1
+  },
+  "status": {
+    "replicas": 1,
+    "targetSelector": "redis-master",
+    "selector": "app==se,,rvice1,==environment=dev,,"
+  }
+}
+"""
+    val scale = Json.parse(scaleJsonStr).as[Scale]
+    scale.kind mustEqual "Scale"
+    scale.name mustEqual "redis-master"
+    scale.spec.replicas must beSome(1)
+    scale.status must beSome(Scale.Status(replicas=1, selector=Some("app==se,,rvice1,==environment=dev,,"), targetSelector=Some("redis-master")))
   }
 }

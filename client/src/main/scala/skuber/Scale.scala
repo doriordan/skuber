@@ -20,6 +20,18 @@ case class Scale(
     val newStatus = this.status.map(_.copy(replicas = count)).getOrElse(Scale.Status(replicas=count))
     this.copy(status=Some(newStatus))
   }
+
+  val statusSelectorLabels: Map[String, String] =
+    status.flatMap(_.selector.map { labels =>
+      val labelsArr = labels.split(",")
+      labelsArr.map { singleLabel =>
+        singleLabel.split("=") match {
+          case Array(key, value) => key -> value
+          case _=> singleLabel -> singleLabel
+        }
+      }.toMap
+    }).getOrElse(Map.empty)
+
 }
     
 object Scale {
@@ -33,14 +45,14 @@ object Scale {
 
   case class Status(
     replicas: Int = 0,
-    selector: Option[LabelSelector] = None,
+    selector: Option[String] = None,
     targetSelector: Option[String] = None
   )
 
   object Status {
     implicit val scaleStatusFormat: Format[Scale.Status] = (
       (JsPath \ "replicas").formatMaybeEmptyInt() and
-      (JsPath \ "selector").formatNullableLabelSelector and
+      (JsPath \ "selector").formatNullable[String] and
       (JsPath \ "targetSelector").formatNullable[String]
     )(Scale.Status.apply _, unlift(Scale.Status.unapply))
   }
