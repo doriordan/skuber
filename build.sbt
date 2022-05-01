@@ -83,6 +83,22 @@ inThisBuild(List(
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
+  githubWorkflowAddedJobs := Seq(WorkflowJob(
+    id = "integration-kubernetes-v1-22",
+    name = "integration-kubernetes-v1-22",
+    steps = List(
+      WorkflowStep.Checkout,
+      WorkflowStep.Use(
+        ref = UseRef.Docker(image = "manusa/actions-setup-minikube", tag = "v2.4.3"),
+        params = Map(
+         "minikube_version" -> "v1.23.2",
+         "kubernetes version" -> "v1.22.1",
+         "github token" -> "${{ secrets.GITHUB_TOKEN }}")),
+      WorkflowStep.Sbt(
+        List("It/test")
+      )
+    )
+  )),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
       List("ci-release"),
