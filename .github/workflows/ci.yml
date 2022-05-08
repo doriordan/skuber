@@ -135,10 +135,10 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: docker://manusa/actions-setup-minikube:v2.4.3
+      - uses: manusa/actions-setup-minikube@v2.5.0
         with:
           minikube version: v1.23.2
           kubernetes version: v1.22.1
-          githubtoken: ${{ secrets.GITHUB_TOKEN }}
+          github token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: sbt ++${{ matrix.scala }} It/test

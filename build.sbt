@@ -89,7 +89,7 @@ inThisBuild(List(
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.Use(
-        ref = UseRef.Docker(image = "manusa/actions-setup-minikube", tag = "v2.4.3"),
+        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.5.0"),
         params = Map(
          "minikubeversion" -> "v1.23.2",
          "kubernetesversion" -> "v1.22.1",
