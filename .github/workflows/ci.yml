@@ -122,3 +122,23 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         run: sbt ++${{ matrix.scala }} ci-release
+
+  integration-kubernetes-v1-22:
+    name: integration-kubernetes-v1-22
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - uses: docker://manusa/actions-setup-minikube:v2.4.3
+        with:
+          minikube version: v1.23.2
+          kubernetes version: v1.22.1
+          githubtoken: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: sbt ++${{ matrix.scala }} It/test

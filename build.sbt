@@ -91,9 +91,9 @@ inThisBuild(List(
       WorkflowStep.Use(
         ref = UseRef.Docker(image = "manusa/actions-setup-minikube", tag = "v2.4.3"),
         params = Map(
-         "minikube version" -> "v1.23.2",
-         "kubernetes version" -> "v1.22.1",
-         "github token" -> "${{ secrets.GITHUB_TOKEN }}")),
+         "minikubeversion" -> "v1.23.2",
+         "kubernetesversion" -> "v1.22.1",
+         "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
       WorkflowStep.Sbt(
         List("It/test")
       )
