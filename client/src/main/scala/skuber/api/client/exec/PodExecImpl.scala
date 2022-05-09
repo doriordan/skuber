@@ -54,6 +54,7 @@ object PodExecImpl {
         ("wss", ConnectionContext.httpsClient { (host, port) =>
           val engine = ssl.createSSLEngine(host, port)
           engine.setEnabledProtocols(Array("TLSv1.2", "TLSv1"))
+          engine.setUseClientMode(true)
           engine
         })
       case None =>
