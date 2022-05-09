@@ -93,7 +93,8 @@ inThisBuild(List(
         params = Map(
          "minikubeversion" -> "v1.23.2",
          "kubernetesversion" -> "v1.22.1",
-         "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
+         "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}",
+         "startargs" -> "--feature-gates=CustomResourceSubresources=true")),
       WorkflowStep.Sbt(
         List("It/test")
       )
