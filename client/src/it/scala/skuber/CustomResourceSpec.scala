@@ -99,9 +99,6 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
     behavior of "CustomResource"
 
     it should "create a crd" in { k8s =>
-      k8s.delete(TestResource.crd.name)(CustomResourceDefinition.crdDef, LoggingContext.lc).recover {
-        _ => ()
-      }
 
       k8s.create(TestResource.crd) map { c =>
         assert(c.name == TestResource.crd.name)
