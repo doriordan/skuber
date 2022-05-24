@@ -120,7 +120,7 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         run: sbt ++${{ matrix.scala }} ci-release
 
-  integration-kubernetes-v1-22:
+  integration-kubernetes-v1-19:
     name: integration-kubernetes-v1-19
     strategy:
       matrix:

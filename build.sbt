@@ -84,8 +84,8 @@ inThisBuild(List(
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
   githubWorkflowAddedJobs := Seq(WorkflowJob(
-    id = "integration-kubernetes-v1-22",
-    name = "integration-kubernetes-v1-22",
+    id = "integration-kubernetes-v1-19",
+    name = "integration-kubernetes-v1-19",
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.Use(
