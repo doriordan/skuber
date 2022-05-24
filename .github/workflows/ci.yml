@@ -121,7 +121,7 @@ jobs:
         run: sbt ++${{ matrix.scala }} ci-release
 
   integration-kubernetes-v1-22:
-    name: integration-kubernetes-v1-22
+    name: integration-kubernetes-v1-19
     strategy:
       matrix:
         os: [ubuntu-latest]
