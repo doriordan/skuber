@@ -7,7 +7,6 @@ import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
 import skuber.ResourceSpecification.{ScaleSubresource, Subresources}
-import skuber.api.client.LoggingContext
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
