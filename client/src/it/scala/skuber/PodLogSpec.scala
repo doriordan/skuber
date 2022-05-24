@@ -26,7 +26,7 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
     val k8s = k8sInit(config)
     Await.result(k8s.create(getNginxPod(podName, "1.7.9")), 3.second)
     // Let the pod running
-    Thread.sleep(3000)
+    Thread.sleep(15000)
     k8s.close
   }
 

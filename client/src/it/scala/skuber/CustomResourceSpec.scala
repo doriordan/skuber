@@ -6,11 +6,11 @@ import skuber.apiextensions.CustomResourceDefinition
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
-import skuber.ResourceSpecification.{Subresources,ScaleSubresource}
-
+import skuber.ResourceSpecification.{ScaleSubresource, Subresources}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
+
 
 /**
   * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined

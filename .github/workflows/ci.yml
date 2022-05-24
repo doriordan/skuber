@@ -49,9 +49,6 @@ jobs:
             ~/Library/Caches/Coursier/v1
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
-      - name: Check that workflows are up to date
-        run: sbt ++${{ matrix.scala }} githubWorkflowCheck
-
       - run: sbt ++${{ matrix.scala }} test It/compile
 
       - name: Compress target directories
@@ -122,3 +119,23 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         run: sbt ++${{ matrix.scala }} ci-release
+
+  integration-kubernetes-v1-19:
+    name: integration-kubernetes-v1-19
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - uses: manusa/actions-setup-minikube@v2.5.0
+        with:
+          minikube version: v1.23.2
+          kubernetes version: v1.19.6
+          githubtoken: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: sbt ++${{ matrix.scala }} It/test
