@@ -6,8 +6,8 @@ import skuber.apiextensions.CustomResourceDefinition
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
-import skuber.ResourceSpecification.{Subresources,ScaleSubresource}
-
+import skuber.ResourceSpecification.{ScaleSubresource, Subresources}
+import skuber.api.client.LoggingContext
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
@@ -99,6 +99,9 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
     behavior of "CustomResource"
 
     it should "create a crd" in { k8s =>
+      k8s.delete(TestResource.crd.name)(CustomResourceDefinition.crdDef, LoggingContext.lc).recover {
+        _ => ()
+      }
 
       k8s.create(TestResource.crd) map { c =>
         assert(c.name == TestResource.crd.name)

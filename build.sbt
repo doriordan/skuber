@@ -92,7 +92,7 @@ inThisBuild(List(
         ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.5.0"),
         params = Map(
          "minikubeversion" -> "v1.23.2",
-         "kubernetesversion" -> "v1.22.1",
+         "kubernetesversion" -> "v1.19.6",
          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
       WorkflowStep.Sbt(
         List("It/test")
