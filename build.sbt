@@ -77,28 +77,37 @@ lazy val commonSettings = Seq(
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   sonatypeCredentialHost := Sonatype.sonatype01
 )
-// run sbt githubWorkflowGenerate in order to generate github actions files
-inThisBuild(List(
-  githubWorkflowScalaVersions := supportedScalaVersion,
-  githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
-  githubWorkflowTargetTags ++= Seq("v*"),
-  githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
-  githubWorkflowAddedJobs := Seq(WorkflowJob(
-    id = "integration-kubernetes-v1-19",
-    name = "integration-kubernetes-v1-19",
+
+/** run the following command in order to generate github actions files:
+ * sbt githubWorkflowGenerate && ./fix-workflows.sh
+ */
+def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
+  WorkflowJob(
+    id = jobName,
+    name = jobName,
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.Use(
         ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.5.0"),
         params = Map(
-         "minikubeversion" -> "v1.23.2",
-         "kubernetesversion" -> "v1.19.6",
-         "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
+          "minikubeversion" -> "v1.23.2",
+          "kubernetesversion" -> k8sServerVersion,
+          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
       WorkflowStep.Sbt(
         List("It/test")
       )
     )
-  )),
+  )
+}
+inThisBuild(List(
+  githubWorkflowScalaVersions := supportedScalaVersion,
+  githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+  githubWorkflowTargetTags ++= Seq("v*"),
+  githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
+  githubWorkflowAddedJobs := Seq(
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6"),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11")
+  ),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
       List("ci-release"),
