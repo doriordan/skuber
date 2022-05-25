@@ -33,7 +33,10 @@ class PodDisruptionBudgetSpec extends K8SFixture with Eventually with Matchers {
       ).flatMap(pdb =>
         eventually(
           k8s.get[PodDisruptionBudget](pdb.name).flatMap { updatedPdb =>
-            k8s.update(updatedPdb).map { result => //PodDisruptionBudget are immutable at the moment.
+            val cleanUpdatePdb = updatedPdb.copy(
+              metadata = updatedPdb.metadata.copy(creationTimestamp = None, resourceVersion = "", selfLink = "", uid = "")
+            )
+            k8s.update(cleanUpdatePdb).map { result => //PodDisruptionBudget are immutable at the moment.
               assert(result.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
               assert(result.name == name)
             }
