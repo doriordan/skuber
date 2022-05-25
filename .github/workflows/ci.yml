@@ -49,8 +49,8 @@ jobs:
             ~/Library/Caches/Coursier/v1
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
-      - name: Check that workflows are up to date
-        run: sbt ++${{ matrix.scala }} githubWorkflowCheck
+
+
 
       - run: sbt ++${{ matrix.scala }} test It/compile
 
@@ -137,9 +137,9 @@ jobs:
 
       - uses: manusa/actions-setup-minikube@v2.5.0
         with:
-          minikubeversion: v1.23.2
-          kubernetesversion: v1.19.6
-          githubtoken: ${{ secrets.GITHUB_TOKEN }}
+          minikube version: v1.23.2
+          kubernetes version: v1.19.6
+          github token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: sbt ++${{ matrix.scala }} It/test
 
@@ -157,8 +157,8 @@ jobs:
 
       - uses: manusa/actions-setup-minikube@v2.5.0
         with:
-          minikubeversion: v1.23.2
-          kubernetesversion: v1.20.11
-          githubtoken: ${{ secrets.GITHUB_TOKEN }}
+          minikube version: v1.23.2
+          kubernetes version: v1.20.11
+          github token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: sbt ++${{ matrix.scala }} It/test
