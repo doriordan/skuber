@@ -79,7 +79,7 @@ lazy val commonSettings = Seq(
 )
 
 /** run the following command in order to generate github actions files:
- * sbt githubWorkflowGenerate && bash fix-workflows.sh
+sbt githubWorkflowGenerate && bash fix-workflows.sh
  */
 def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
   WorkflowJob(
@@ -104,6 +104,7 @@ inThisBuild(List(
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
+  githubWorkflowOSes := Seq("self-hosted"),
   githubWorkflowAddedJobs := Seq(
     workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6"),
     workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11")
