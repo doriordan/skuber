@@ -155,6 +155,7 @@ lazy val skuber= (project in file("client"))
     libraryDependencies += scalaTest % "it"
   )
 
+
 lazy val examples = (project in file("examples"))
   .settings(
     commonSettings,
