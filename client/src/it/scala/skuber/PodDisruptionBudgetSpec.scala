@@ -50,9 +50,12 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     import LabelSelector.dsl._
     val firstPdb = k8s.create(PodDisruptionBudget(name2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).futureValue
 
+    Thread.sleep(5000)
+
     val finalPdb = k8s.get[PodDisruptionBudget](firstPdb.name).map {
       updatedPdb => updatedPdb.copy(metadata = updatedPdb.metadata.copy(creationTimestamp = None, selfLink = "", uid = ""))
     }.futureValue
+
     val updatedPdb = k8s.update(finalPdb).futureValue
     assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
     assert(updatedPdb.name == name2)
