@@ -99,6 +99,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
     )
   )
 }
+
 inThisBuild(List(
   githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
