@@ -83,6 +83,7 @@ sbt githubWorkflowGenerate && bash fix-workflows.sh
  */
 def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
   WorkflowJob(
+    oses = List("self-hosted"),
     id = jobName,
     name = jobName,
     steps = List(
