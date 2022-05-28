@@ -5,8 +5,8 @@ import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
 import skuber.policy.v1beta1.PodDisruptionBudget
 import skuber.policy.v1beta1.PodDisruptionBudget._
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAfterAll with ScalaFutures {
   behavior of "PodDisruptionBudget"
@@ -24,6 +24,8 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
       }
     }
 
+    results.futureValue
+    
     results.onComplete { _ =>
       k8s.close
     }

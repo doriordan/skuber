@@ -1,47 +1,54 @@
 package skuber
 
 import org.scalatest.{BeforeAndAfterAll, Matchers}
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.json.format._
-
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import scala.util.{Failure, Success}
+import java.util.UUID.randomUUID
 
+class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
-class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
-  val nginxPodName: String = java.util.UUID.randomUUID().toString
   val defaultLabels = Map("app" -> this.suiteName)
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
   override def afterAll() = {
     val k8s = k8sInit
     val requirements = defaultLabels.toSeq.map { case (k, v) => LabelSelector.IsEqualRequirement(k, v) }
     val labelSelector = LabelSelector(requirements: _*)
-    Await.result(k8s.deleteAllSelected[PodList](labelSelector), 5.seconds)
+    val results = k8s.deleteAllSelected[PodList](labelSelector)
+    results.futureValue
+
+    results.onComplete { _ =>
+      k8s.close
+    }
   }
 
   behavior of "Pod"
 
   it should "create a pod" in { k8s =>
-    k8s.create(getNginxPod(nginxPodName, "1.7.9")) map { p =>
-      assert(p.name == nginxPodName)
-    }
+    val podName1: String = randomUUID().toString
+    val p = k8s.create(getNginxPod(podName1, "1.7.9")).futureValue
+    p.name shouldBe podName1
   }
 
   it should "get the newly created pod" in { k8s =>
-    k8s.get[Pod](nginxPodName) map { p =>
-      assert(p.name == nginxPodName)
-    }
+    val podName2: String = randomUUID().toString
+    k8s.create(getNginxPod(podName2, "1.7.9")).futureValue
+    val p = k8s.get[Pod](podName2).futureValue
+    p.name shouldBe podName2
   }
 
   it should "check for newly created pod and container to be ready" in { k8s =>
-    eventually(timeout(100.seconds), interval(3.seconds)) {
-      val retrievePod = k8s.get[Pod](nginxPodName)
+    val podName3: String = randomUUID().toString
+    k8s.create(getNginxPod(podName3, "1.7.9")).futureValue
+    eventually(timeout(20.seconds), interval(3.seconds)) {
+      val retrievePod = k8s.get[Pod](podName3)
       val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
       val podStatus = podRetrieved.get.status.get
       val nginxContainerStatus = podStatus.containerStatuses(0)
       podStatus.phase should contain(Pod.Phase.Running)
-      nginxContainerStatus.name should be(nginxPodName)
+      nginxContainerStatus.name should be(podName3)
       nginxContainerStatus.state.get shouldBe a[Container.Running]
       val isUnschedulable = podStatus.conditions.exists { c =>
         c._type == "PodScheduled" && c.status == "False" && c.reason == Some("Unschedulable")
@@ -62,31 +69,34 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
   }
 
   it should "delete a pod" in { k8s =>
-    k8s.delete[Pod](nginxPodName).map { _ =>
-      eventually(timeout(100.seconds), interval(3.seconds)) {
-        val retrievePod = k8s.get[Pod](nginxPodName)
-        val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
-        podRetrieved match {
-          case s: Success[_] => assert(false)
-          case Failure(ex) => ex match {
-            case ex: K8SException if ex.status.code.contains(404) => assert(true)
-            case _ => assert(false)
-          }
-        }
+    val podName4: String = randomUUID().toString
+    k8s.create(getNginxPod(podName4, "1.7.9")).futureValue
+    k8s.delete[Pod](podName4).futureValue
+
+    whenReady(
+      k8s.get[Namespace](podName4).failed
+    ) { result =>
+      result shouldBe a[K8SException]
+      result match {
+        case ex: K8SException => ex.status.code shouldBe Some(404)
+        case _ => assert(false)
       }
     }
   }
 
   it should "delete selected pods" in { k8s =>
-    for {
-      _ <- k8s.create(getNginxPod(nginxPodName + "-foo", "1.7.9", labels = Map("foo" -> "1")))
-      _ <- k8s.create(getNginxPod(nginxPodName + "-bar", "1.7.9", labels = Map("bar" -> "2")))
-      _ <- k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo")))
-    } yield eventually(timeout(100.seconds), interval(3.seconds)) {
+    val podName5: String = randomUUID().toString + "-foo"
+    val podName6: String = randomUUID().toString + "-bar"
+    k8s.create(getNginxPod(podName5, "1.7.9", labels = Map("foo" -> "1"))).futureValue
+    k8s.create(getNginxPod(podName6, "1.7.9", labels = Map("bar" -> "2"))).futureValue
+    Thread.sleep(5000)
+    k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo"))).futureValue
+
+    eventually(timeout(20.seconds), interval(3.seconds)) {
       val retrievePods = k8s.list[PodList]()
-      val podsRetrieved = Await.result(retrievePods, 2.seconds)
+      val podsRetrieved = retrievePods.futureValue
       val podNamesRetrieved = podsRetrieved.items.map(_.name)
-      assert(!podNamesRetrieved.contains(nginxPodName + "-foo") && podNamesRetrieved.contains(nginxPodName + "-bar"))
+      assert(!podNamesRetrieved.contains(podName5) && podNamesRetrieved.contains(podName6))
     }
   }
 
@@ -95,7 +105,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
   def getNginxPod(name: String, version: String, labels: Map[String, String] = Map()): Pod = {
     val nginxContainer = getNginxContainer(name, version)
     val nginxPodSpec = Pod.Spec(containers = List((nginxContainer)))
-    val podMeta=ObjectMeta(name = name, labels = labels ++ defaultLabels)
+    val podMeta = ObjectMeta(name = name, labels = labels ++ defaultLabels)
     Pod(metadata = podMeta, spec = Some(nginxPodSpec))
   }
 }
