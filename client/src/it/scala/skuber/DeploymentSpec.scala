@@ -1,12 +1,10 @@
 package skuber
 
-import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
-import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success}
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
