@@ -6,10 +6,7 @@ import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Seconds, Span}
 import skuber.apps.v1.{Deployment, DeploymentList}
-
 import scala.concurrent.duration._
-import scala.concurrent.Await
-
 import scala.language.postfixOps
 
 class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers with ScalaFutures {
@@ -35,7 +32,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     }
 
     // Wait for watch to be confirmed before performing the actions that create new events to be watched
-    Await.result(stream, 5.seconds)
+    stream.futureValue
 
     //Create first deployment and delete it.
     k8s.create(deploymentOne).futureValue.name shouldBe deploymentOneName
@@ -50,7 +47,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      * This will ensure multiple requests are performed by
      * the source including empty responses
      */
-    pause(62.seconds)
+    pause(10.seconds)
 
     //Create second deployment and delete it.
     k8s.create(deploymentTwo).futureValue.name shouldBe deploymentTwoName
@@ -100,7 +97,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      * This will ensure multiple requests are performed by
      * the source including empty responses
      */
-    pause(62.seconds)
+    pause(20.seconds)
 
     k8s.delete[Deployment](deploymentName).futureValue
 
@@ -146,7 +143,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      * This will ensure multiple requests are performed by
      * the source including empty responses
      */
-    pause(62.seconds)
+    pause(20.seconds)
 
     k8s.delete[Deployment](deploymentName).futureValue
 
@@ -189,7 +186,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      * This will ensure multiple requests are performed by
      * the source including empty responses
      */
-    pause(62.seconds)
+    pause(20.seconds)
 
     k8s.delete[Deployment](deploymentName).futureValue
 
