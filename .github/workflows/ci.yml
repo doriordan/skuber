@@ -135,7 +135,7 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.5.0
+      - uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.23.2
           kubernetes version: v1.19.6
@@ -155,10 +155,30 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.5.0
+      - uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.23.2
           kubernetes version: v1.20.11
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: sbt ++${{ matrix.scala }} It/test
+
+  integration-kubernetes-v1-21:
+    name: integration-kubernetes-v1-21
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.23.2
+          kubernetes version: v1.21.5
           github token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: sbt ++${{ matrix.scala }} It/test
