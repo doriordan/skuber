@@ -90,7 +90,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
       WorkflowStep.Use(
         ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.6.0"),
         params = Map(
-          "minikubeversion" -> "v1.23.2",
+          "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
           "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
       WorkflowStep.Sbt(
@@ -108,7 +108,8 @@ inThisBuild(List(
   githubWorkflowAddedJobs := Seq(
     workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6"),
     workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11"),
-    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5")
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5"),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1")
   ),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
