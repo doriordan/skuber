@@ -1,57 +1,80 @@
 package skuber
 
-import org.scalatest.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import skuber.LabelSelector.IsEqualRequirement
+import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
-
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success}
 
-class DeploymentSpec extends K8SFixture with Eventually with Matchers {
-  val nginxDeploymentName: String = java.util.UUID.randomUUID().toString
+class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+
+
+  val deploymentName1: String = java.util.UUID.randomUUID().toString
+  val deploymentName2: String = java.util.UUID.randomUUID().toString
+  val deploymentName3: String = java.util.UUID.randomUUID().toString
+
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
+
+  override def afterAll(): Unit = {
+    val k8s = k8sInit(config)
+
+    val results = Future.sequence(List(deploymentName1, deploymentName2, deploymentName3).map { name =>
+      k8s.delete[Deployment](name).recover { case _ => () }
+    })
+
+    results.futureValue
+
+    results.onComplete { r =>
+      k8s.close
+    }
+
+    super.afterAll()
+  }
 
   behavior of "Deployment"
 
+
   it should "create a deployment" in { k8s =>
-    k8s.create(getNginxDeployment(nginxDeploymentName, "1.7.9")) map { d =>
-      assert(d.name == nginxDeploymentName)
-    }
+
+    val createdDeployment = k8s.create(getNginxDeployment(deploymentName1, "1.7.9")).futureValue
+    assert(createdDeployment.name == deploymentName1)
+
+    val getDeployment = k8s.get[Deployment](deploymentName1).futureValue
+    assert(getDeployment.name == deploymentName1)
   }
 
-  it should "get the newly created deployment" in { k8s =>
-    k8s.get[Deployment](nginxDeploymentName) map { d =>
-      assert(d.name == nginxDeploymentName)
-    }
-  }
 
   it should "upgrade the newly created deployment" in { k8s =>
-    k8s.get[Deployment](nginxDeploymentName).flatMap { d =>
-      println(s"DEPLOYMENT TO UPDATE ==> $d")
-      val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
-      k8s.update(updatedDeployment).flatMap { _ =>
-        eventually(timeout(200.seconds), interval(5.seconds)) {
-          val retrieveDeployment=k8s.get[Deployment](nginxDeploymentName)
-          ScalaFutures.whenReady(retrieveDeployment, timeout(2.seconds), interval(1.second)) { deployment =>
-            deployment.status.get.updatedReplicas shouldBe 1
-          }
-        }
-      }
-    }
+    k8s.create(getNginxDeployment(deploymentName2, "1.7.9")).futureValue
+    Thread.sleep(5000)
+    val getDeployment = k8s.get[Deployment](deploymentName2).futureValue
+    println(s"DEPLOYMENT TO UPDATE ==> $getDeployment")
+
+    val updatedDeployment = getDeployment.updateContainer(getNginxContainer("1.9.1"))
+
+    k8s.update(updatedDeployment).futureValue
+
+    val deployment = k8s.get[Deployment](deploymentName2).futureValue
+
+    val actualImages: List[String] = deployment.spec.flatMap(_.template.spec.map(_.containers.map(_.image))).toList.flatten
+    actualImages shouldBe List("nginx:1.9.1")
+
   }
 
+
   it should "delete a deployment" in { k8s =>
-    k8s.deleteWithOptions[Deployment](nginxDeploymentName, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).map { _ =>
-      eventually(timeout(200.seconds), interval(3.seconds)) {
-        val retrieveDeployment = k8s.get[Deployment](nginxDeploymentName)
-        val deploymentRetrieved=Await.ready(retrieveDeployment, 2.seconds).value.get
-        deploymentRetrieved match {
-          case s: Success[_] => assert(false)
-          case Failure(ex) => ex match {
-            case ex: K8SException if ex.status.code.contains(404) => assert(true)
-            case _ => assert(false)
-          }
+    val d = k8s.create(getNginxDeployment(deploymentName3, "1.7.9")).futureValue
+    assert(d.name == deploymentName3)
+
+    k8s.deleteWithOptions[Deployment](deploymentName3, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).futureValue
+    eventually(timeout(20.seconds), interval(3.seconds)) {
+      whenReady(
+        k8s.get[Deployment](deploymentName3).failed
+      ) { result =>
+        result shouldBe a[K8SException]
+        result match {
+          case ex: K8SException => ex.status.code shouldBe Some(404)
+          case _ => assert(false)
         }
       }
     }

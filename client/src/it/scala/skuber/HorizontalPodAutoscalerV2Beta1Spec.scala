@@ -1,27 +1,51 @@
 package skuber
 
-import org.scalatest.Matchers
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler.ResourceMetricSource
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
-class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with Matchers {
+class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+
+  val horizontalPodAutoscaler1: String = java.util.UUID.randomUUID().toString
+  val horizontalPodAutoscaler2: String = java.util.UUID.randomUUID().toString
+  val horizontalPodAutoscaler3: String = java.util.UUID.randomUUID().toString
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
+
+  override def afterAll(): Unit = {
+    val k8s = k8sInit(config)
+
+    val results = Future.sequence(List(horizontalPodAutoscaler1, horizontalPodAutoscaler2).map { name =>
+      k8s.delete[HorizontalPodAutoscaler](name).recover { case _ => () }
+    })
+
+    results.futureValue
+
+    results.onComplete { r =>
+      k8s.close
+    }
+
+  }
+
+
   behavior of "HorizontalPodAutoscalerV2Beta1"
 
   it should "create a HorizontalPodAutoscaler" in { k8s =>
-    val name: String = java.util.UUID.randomUUID().toString
-    println(name)
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
+
+    println(horizontalPodAutoscaler1)
+    k8s.create(getNginxDeployment(horizontalPodAutoscaler1, "1.7.9")) flatMap { d =>
       k8s.create(
-        HorizontalPodAutoscaler(name).withSpec(
+        HorizontalPodAutoscaler(horizontalPodAutoscaler1).withSpec(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
             .withMinReplicas(1)
             .withMaxReplicas(2)
             .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
         )
       ).map { result =>
-        assert(result.name == name)
+        assert(result.name == horizontalPodAutoscaler1)
         assert(result.spec.contains(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
             .withMinReplicas(1)
@@ -66,10 +90,10 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
   }
 
   it should "delete a HorizontalPodAutoscaler" in { k8s =>
-    val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
+
+    k8s.create(getNginxDeployment(horizontalPodAutoscaler3, "1.7.9")) flatMap { d =>
       k8s.create(
-        HorizontalPodAutoscaler(name).withSpec(
+        HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
             .withMinReplicas(1)
             .withMaxReplicas(2)

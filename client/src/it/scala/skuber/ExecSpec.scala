@@ -2,12 +2,10 @@ package skuber
 
 import akka.Done
 import akka.stream.scaladsl.{Sink, Source}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.Eventually
+import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.json.format._
-
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future, Promise}
 
 
@@ -24,6 +22,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     // Let the pod running
     Thread.sleep(15000)
     k8s.close
+
   }
 
   override def afterAll(): Unit = {
@@ -32,7 +31,6 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     Thread.sleep(3000)
     k8s.close
 
-    super.afterAll()
   }
 
   it should "execute a command in the running pod" in { k8s =>
