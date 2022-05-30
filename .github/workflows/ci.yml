@@ -141,7 +141,7 @@ jobs:
           kubernetes version: v1.19.6
           github token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: sbt ++${{ matrix.scala }} It/test
+      - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly "'''
 
   integration-kubernetes-v1-20:
     name: integration-kubernetes-v1-20
@@ -161,7 +161,7 @@ jobs:
           kubernetes version: v1.20.11
           github token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: sbt ++${{ matrix.scala }} It/test
+      - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly "'''
 
   integration-kubernetes-v1-21:
     name: integration-kubernetes-v1-21
@@ -181,7 +181,7 @@ jobs:
           kubernetes version: v1.21.5
           github token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: sbt ++${{ matrix.scala }} It/test
+      - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly "'''
 
   integration-kubernetes-v1-24:
     name: integration-kubernetes-v1-24
@@ -201,4 +201,4 @@ jobs:
           kubernetes version: v1.24.1
           github token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: sbt ++${{ matrix.scala }} It/test
+      - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly * -- -l CustomResourceTag"'''
