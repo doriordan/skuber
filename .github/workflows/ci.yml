@@ -183,6 +183,46 @@ jobs:
 
       - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly "'''
 
+  integration-kubernetes-v1-22:
+    name: integration-kubernetes-v1-22
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.22.9
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly * -- -l CustomResourceTag"'''
+
+  integration-kubernetes-v1-23:
+    name: integration-kubernetes-v1-23
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.23.6
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} ''"it:testOnly * -- -l CustomResourceTag"'''
+
   integration-kubernetes-v1-24:
     name: integration-kubernetes-v1-24
     strategy:
