@@ -92,7 +92,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
       }
     }
 
-    "\"it:testOnly " + additionalFlags + "\""
+    "it:testOnly " + additionalFlags
   }
 
   WorkflowJob(
@@ -112,6 +112,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
 }
 
 inThisBuild(List(
+  githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
