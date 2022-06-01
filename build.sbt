@@ -1,6 +1,6 @@
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
-
+logBuffered := false
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
 val currentScalaVersion = scala13Version
