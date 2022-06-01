@@ -2,15 +2,16 @@ package skuber
 
 import akka.Done
 import akka.stream.scaladsl.{Sink, Source}
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.json.format._
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future, Promise}
 
 
-class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
+class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
   val nginxPodName: String = java.util.UUID.randomUUID().toString
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
   behavior of "Exec"
 
@@ -38,10 +39,11 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(nginxPodName, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).map { _ =>
-      assert(output == "root\n")
-      assert(errorOutput == "")
-    }
+    k8s.exec(nginxPodName, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).futureValue
+
+    assert(output == "root\n")
+    assert(errorOutput == "")
+
   }
 
   it should "execute a command in the specified container of the running pod" in { k8s =>
@@ -75,11 +77,12 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
     k8s.exec(nginxPodName, Seq("sh"), maybeStdin = Some(stdin),
-      maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).map { _ =>
-      output should include("whoami")
-      output should include("root")
-      assert(errorOutput == "")
-    }
+      maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).futureValue
+
+    output should include("whoami")
+    output should include("root")
+    assert(errorOutput == "")
+
   }
 
   it should "throw an exception without stdin, stdout nor stderr in the running pod" in { k8s =>

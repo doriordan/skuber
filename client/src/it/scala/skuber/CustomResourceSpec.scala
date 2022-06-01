@@ -10,7 +10,7 @@ import skuber.ResourceSpecification.{ScaleSubresource, Subresources}
 import scala.concurrent.duration._
 import scala.concurrent.Future
 import scala.language.postfixOps
-
+import org.scalatest.Tag
 
 /**
  * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
@@ -34,10 +34,12 @@ import scala.language.postfixOps
  *
  * Initially tested using minikube initialised as follows:
  * 'minikube start --kubernetes-version=v1.10.0 --feature-gates=CustomResourceSubresources=true'
- *
+ * CustomResourceSpec tests are supported for k8s versions: 1.19,1.20,1.21
  */
-class CustomResourceSpec extends K8SFixture with Eventually with Matchers with Futures with BeforeAndAfterAll with ScalaFutures {
 
+class CustomResourceSpec extends K8SFixture with Eventually with Matchers with Futures with BeforeAndAfterAll with ScalaFutures {
+  // Tagging the tests in order to exclude them in later CI k8s versions (1.22, 1.23, etc)
+  object CustomResourceTag extends Tag("CustomResourceTag")
 
   // Convenient aliases for the custom object and list resource types to be passed to the skuber API methods
   type TestResource = CustomResource[TestResource.Spec, TestResource.Status]
@@ -119,13 +121,13 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     k8s.create(testResource1).futureValue
   }
 
-  it should "get a crd" in { k8s =>
+  it should "get a crd" taggedAs(CustomResourceTag)  in { k8s =>
     val getResource = k8s.get[CustomResourceDefinition](TestResource.crd.name).futureValue
     assert(getResource.name == TestResource.crd.name)
   }
 
 
-  it should "create a new custom resource defined by the crd" in { k8s =>
+  it should "create a new custom resource defined by the crd" taggedAs(CustomResourceTag) in { k8s =>
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     val testResourceCreated = createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
 
@@ -141,7 +143,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
   }
 
-  it should "scale the desired replicas on the spec of the custom resource" in { k8s =>
+  it should "scale the desired replicas on the spec of the custom resource" taggedAs(CustomResourceTag) in { k8s =>
     val modifiedDesiredReplicas = 2
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
@@ -153,7 +155,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     assert(updated.spec.desiredReplicas == modifiedDesiredReplicas)
   }
 
-  it should "update the status on the custom resource with a modified actual replicas count" in { k8s =>
+  it should "update the status on the custom resource with a modified actual replicas count" taggedAs(CustomResourceTag) in { k8s =>
     val specReplicas = 1
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = specReplicas)
@@ -170,7 +172,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     scale.status.get.replicas shouldBe modifiedActualReplicas
   }
 
-  it should "delete the custom resource" in { k8s =>
+  it should "delete the custom resource" taggedAs(CustomResourceTag) in { k8s =>
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
     k8s.delete[TestResource](testResourceName1).futureValue
@@ -186,7 +188,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     }
   }
 
-  it should "watch the custom resources" in { k8s =>
+  it should "watch the custom resources" taggedAs(CustomResourceTag) in { k8s =>
     import skuber.api.client.{EventType, WatchEvent}
     import scala.collection.mutable.ListBuffer
 

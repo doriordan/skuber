@@ -9,3 +9,4 @@ sed -i ''  -E 's/kubernetesversion/kubernetes version/' .github/workflows/ci.yml
 sed -i ''  -E 's/githubtoken/github token/' .github/workflows/ci.yml
 sed -i ''  -E '1,/branches.*/s/branches.*//' .github/workflows/ci.yml
 sed -i ''  -E 's/pull_request://' .github/workflows/ci.yml
+sed -i ''  -E "s/''/\"/g" .github/workflows/ci.yml

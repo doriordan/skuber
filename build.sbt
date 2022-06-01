@@ -79,9 +79,22 @@ lazy val commonSettings = Seq(
 )
 
 /** run the following command in order to generate github actions files:
-sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
+ * sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
  */
-def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
+def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTestsTags: List[String] = List.empty): WorkflowJob = {
+
+  val finalSbtCommand: String = {
+    val additionalFlags: String = {
+      if (excludedTestsTags.nonEmpty) {
+        s"* -- -l ${excludedTestsTags.mkString(" ")}"
+      } else {
+        ""
+      }
+    }
+
+    "it:testOnly " + additionalFlags
+  }
+
   WorkflowJob(
     id = jobName,
     name = jobName,
@@ -90,17 +103,16 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String) = {
       WorkflowStep.Use(
         ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.6.0"),
         params = Map(
-          "minikubeversion" -> "v1.23.2",
+          "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
           "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
-      WorkflowStep.Sbt(
-        List("It/test")
-      )
+      WorkflowStep.Sbt(List(finalSbtCommand))
     )
   )
 }
 
 inThisBuild(List(
+  githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
@@ -108,7 +120,10 @@ inThisBuild(List(
   githubWorkflowAddedJobs := Seq(
     workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6"),
     workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11"),
-    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5")
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5"),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-22", k8sServerVersion = "v1.22.9", List("CustomResourceTag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-23", k8sServerVersion = "v1.23.6", List("CustomResourceTag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1", List("CustomResourceTag"))
   ),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
@@ -146,7 +161,7 @@ lazy val root = (project in file("."))
     crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
-lazy val skuber= (project in file("client"))
+lazy val skuber = (project in file("client"))
   .configs(IntegrationTest)
   .settings(
     commonSettings,
