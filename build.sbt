@@ -1,13 +1,14 @@
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
-logBuffered := false
+
+Test / logBuffered := false
+
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
 val currentScalaVersion = scala13Version
 val supportedScalaVersion = Seq(scala12Version, scala13Version)
 
 val akkaVersion = "2.6.19"
-
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
@@ -54,8 +55,6 @@ ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 publishTo := sonatypePublishToBundle.value
 sonatypeCredentialHost := Sonatype.sonatype01
 updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
-
-
 
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
