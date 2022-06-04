@@ -51,13 +51,12 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
     println("START: create pod1 in namespace2")
     val pod = getPod(namespace2)
     k8s.create(Namespace(namespace2)).futureValue
-
-    val p = k8s.usingNamespace(namespace2).create(pod).futureValue
-
-    println("FINISH: create pod1 in namespace2")
-    p.name shouldBe pod.name
-    p.namespace shouldBe namespace2
-
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      val p = k8s.usingNamespace(namespace2).create(pod).futureValue
+      println("FINISH: create pod1 in namespace2")
+      p.name shouldBe pod.name
+      p.namespace shouldBe namespace2
+    }
   }
 
   it should "not find a a non exist namespace" in { k8s =>
