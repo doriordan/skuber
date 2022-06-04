@@ -1,6 +1,6 @@
 package skuber
 
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
 import skuber.policy.v1beta1.PodDisruptionBudget
@@ -8,7 +8,7 @@ import skuber.policy.v1beta1.PodDisruptionBudget._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAfterAll with ScalaFutures {
+class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAfterAll with ScalaFutures with Eventually {
   behavior of "PodDisruptionBudget"
   val name1: String = java.util.UUID.randomUUID().toString
   val name2: String = java.util.UUID.randomUUID().toString
@@ -18,7 +18,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     val k8s = k8sInit(config)
 
     val results = {
-      val futures = Future.sequence(List(name1, name2, name3).map(name => k8s.delete[Deployment](name)))
+      val futures = Future.sequence(List(name1, name2, name3).map(name => k8s.delete[PodDisruptionBudget](name)))
       futures.recover { case _ =>
         ()
       }
@@ -53,14 +53,15 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     val firstPdb = k8s.create(PodDisruptionBudget(name2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).futureValue
 
     Thread.sleep(5000)
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      val finalPdb = k8s.get[PodDisruptionBudget](firstPdb.name).map {
+        updatedPdb => updatedPdb.copy(metadata = updatedPdb.metadata.copy(creationTimestamp = None, selfLink = "", uid = ""))
+      }.futureValue
 
-    val finalPdb = k8s.get[PodDisruptionBudget](firstPdb.name).map {
-      updatedPdb => updatedPdb.copy(metadata = updatedPdb.metadata.copy(creationTimestamp = None, selfLink = "", uid = ""))
-    }.futureValue
-
-    val updatedPdb = k8s.update(finalPdb).futureValue
-    assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
-    assert(updatedPdb.name == name2)
+      val updatedPdb = k8s.update(finalPdb).futureValue
+      assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
+      assert(updatedPdb.name == name2)
+    }
 
   }
 

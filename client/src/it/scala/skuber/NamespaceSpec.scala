@@ -14,11 +14,10 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   val nginxPodName1: String = randomUUID().toString
 
-  val namespace1Name: String = randomUUID().toString
-  val namespace2Name: String = randomUUID().toString
-  val namespace3Name: String = randomUUID().toString
-  val namespace4Name: String = randomUUID().toString
-  val namespace5Name: String = randomUUID().toString
+  val namespace1: String = randomUUID().toString
+  val namespace2: String = randomUUID().toString
+  val namespace3: String = randomUUID().toString
+  val namespace4: String = randomUUID().toString
 
   def getPod(namespace: String): Pod = getNginxPod(namespace, nginxPodName1)
 
@@ -28,7 +27,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
     val k8s = k8sInit(config)
 
     val results = Future.sequence(
-      List(namespace1Name, namespace2Name, namespace2Name, namespace4Name, namespace5Name).map { name =>
+      List(namespace1, namespace2, namespace3, namespace4).map { name =>
         k8s.delete[Namespace](name).recover { case _ => () }
       })
 
@@ -42,25 +41,32 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
   behavior of "Namespace"
 
   it should "create namespace1" in { k8s =>
-    val ns = k8s.create(Namespace(namespace1Name)).futureValue
-    assert(ns.name == namespace1Name)
+    println("START: create namespace1")
+    val ns = k8s.create(Namespace(namespace1)).futureValue
+    println("FINISH: create namespace1")
+    assert(ns.name == namespace1)
   }
 
-  it should "create pod1 in namespace4" in { k8s =>
-    val pod = getPod(namespace2Name)
-    k8s.create(Namespace(namespace2Name)).futureValue
+  it should "create pod1 in namespace2" in { k8s =>
+    println("START: create pod1 in namespace2")
+    val pod = getPod(namespace2)
+    k8s.create(Namespace(namespace2)).futureValue
 
-    val p = k8s.usingNamespace(namespace2Name).create(pod).futureValue
+    val p = k8s.usingNamespace(namespace2).create(pod).futureValue
+
+    println("FINISH: create pod1 in namespace2")
     p.name shouldBe pod.name
-    p.namespace shouldBe namespace2Name
+    p.namespace shouldBe namespace2
 
   }
 
   it should "not find a a non exist namespace" in { k8s =>
+    println("START: not find a a non exist namespace")
     val nonExistNamespace: String = randomUUID().toString
     whenReady(
       k8s.get[Namespace](nonExistNamespace).failed
     ) { result =>
+      println("FINISH: not find a a non exist namespace")
       result shouldBe a[K8SException]
       result match {
         case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -69,28 +75,29 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
     }
   }
 
-  it should "find the pod1 in namespace1" in { k8s =>
-    val pod = getPod(namespace4Name)
-    k8s.create(Namespace(namespace4Name)).futureValue
-    k8s.usingNamespace(namespace4Name).create(pod).futureValue
+  it should "find the pod1 in namespace3" in { k8s =>
+    println("START: find the pod1 in namespace3")
+    val pod = getPod(namespace3)
+    k8s.create(Namespace(namespace3)).futureValue
+    k8s.usingNamespace(namespace3).create(pod).futureValue
 
-    val actualPod = k8s.usingNamespace(namespace4Name).get[Pod](pod.name).futureValue
-
+    val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).futureValue
+    println("FINISH: find the pod1 in namespace3")
     actualPod.name shouldBe pod.name
   }
 
-  it should "delete namespace" in { k8s =>
-    k8s.create(Namespace(namespace5Name)).futureValue
-
+  it should "delete namespace4" in { k8s =>
+    println("START: delete namespace4")
+    k8s.create(Namespace(namespace4)).futureValue
+    Thread.sleep(5000)
     // Delete namespaces
-    k8s.delete[Namespace](namespace5Name).futureValue
+    k8s.delete[Namespace](namespace4).futureValue
 
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      k8s.get[Namespace](namespace5Name)
-
       whenReady(
-        k8s.get[Namespace](namespace5Name).failed
+        k8s.get[Namespace](namespace4).failed
       ) { result =>
+        println("FINISH: delete namespace4")
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
