@@ -9,12 +9,12 @@ import java.util.UUID.randomUUID
 
 class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
-  val defaultLabels = Map("app" -> this.suiteName)
+  val defaultLabels = Map("PodSpec" -> this.suiteName)
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
   override def afterAll() = {
     val k8s = k8sInit
-    val requirements = defaultLabels.toSeq.map { case (k, v) => LabelSelector.IsEqualRequirement(k, v) }
+    val requirements = defaultLabels.toSeq.map { case (k, _) => LabelSelector.ExistsRequirement(k) }
     val labelSelector = LabelSelector(requirements: _*)
     val results = k8s.deleteAllSelected[PodList](labelSelector)
     results.futureValue
@@ -35,8 +35,10 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
   it should "get the newly created pod" in { k8s =>
     val podName2: String = randomUUID().toString
     k8s.create(getNginxPod(podName2, "1.7.9")).futureValue
-    val p = k8s.get[Pod](podName2).futureValue
-    p.name shouldBe podName2
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      val p = k8s.get[Pod](podName2).futureValue
+      p.name shouldBe podName2
+    }
   }
 
   it should "check for newly created pod and container to be ready" in { k8s =>

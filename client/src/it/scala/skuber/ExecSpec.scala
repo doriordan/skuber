@@ -58,16 +58,19 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     println("START: execute a command in the specified container of the running pod")
     k8s.create(getNginxPod(podName2, "1.7.9")).futureValue
     Thread.sleep(5000)
-    var output = ""
-    val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
-    var errorOutput = ""
-    val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(podName2, Seq("whoami"), maybeContainerName = Some("nginx"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).futureValue
 
-    println("FINISH: execute a command in the specified container of the running pod")
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      var output = ""
+      val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
+      var errorOutput = ""
+      val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
+      k8s.exec(podName2, Seq("whoami"), maybeContainerName = Some("nginx"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).futureValue
 
-    assert(output == "root\n")
-    assert(errorOutput == "")
+      println("FINISH: execute a command in the specified container of the running pod")
+
+      assert(output == "root\n")
+      assert(errorOutput == "")
+    }
   }
 
   it should "execute a command that outputs to stderr in the running pod" in { k8s =>

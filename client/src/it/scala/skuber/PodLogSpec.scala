@@ -1,14 +1,10 @@
 package skuber
 
-import java.time.ZonedDateTime
-
-import akka.stream.scaladsl.TcpIdleTimeoutException
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.Eventually
+import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.Pod.LogQueryParams
 import skuber.json.format._
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -44,19 +40,6 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
       source.map(_.utf8String).runReduce(_ + _).map { s =>
         assert(s == "foo\n")
       }
-    }
-  }
-
-  it should "tail log of a pod and timeout after a while" in { k8s =>
-    var log = ""
-    var start = ZonedDateTime.now()
-    k8s.getPodLogSource(podName, LogQueryParams(follow = Some(true))).flatMap { source =>
-      source.map(_.utf8String).runForeach(log += _)
-    }.failed.map { case e: TcpIdleTimeoutException =>
-      val msgPattern = s"TCP idle-timeout encountered on connection to [^,]+, no bytes passed in the last ${idleTimeout}"
-      assert(e.getMessage.matches(msgPattern), s"""["${e.getMessage}"] does not match ["${msgPattern}"]""")
-      assert(log == "foo\n")
-      assert(ZonedDateTime.now().isAfter(start.withSecond(idleTimeout.toSeconds.toInt)))
     }
   }
 

@@ -1,9 +1,6 @@
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-IntegrationTest / logBuffered := false
-IntegrationTest / testForkedParallel := false
-
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
 val currentScalaVersion = scala13Version
@@ -105,7 +102,9 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
         params = Map(
           "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
-          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
+          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}"),
+        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G")
+      ),
       WorkflowStep.Sbt(List(finalSbtCommand))
     )
   )

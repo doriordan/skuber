@@ -136,7 +136,9 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.6.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.25.2
           kubernetes version: v1.19.6
@@ -156,7 +158,9 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.6.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.25.2
           kubernetes version: v1.20.11
@@ -176,7 +180,9 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.6.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.25.2
           kubernetes version: v1.21.5
@@ -196,7 +202,9 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.6.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.25.2
           kubernetes version: v1.22.9
@@ -216,7 +224,9 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.6.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.25.2
           kubernetes version: v1.23.6
@@ -236,7 +246,9 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.6.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
           minikube version: v1.25.2
           kubernetes version: v1.24.1
