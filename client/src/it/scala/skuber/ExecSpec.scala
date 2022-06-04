@@ -26,7 +26,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
   override def afterAll(): Unit = {
     val k8s = k8sInit
     val results = Future.sequence(
-      List(podName1, podName2, podName3, podName4, podName6).map { name =>
+      List(podName1, podName2, podName3, podName4, podName5, podName6).map { name =>
         k8s.delete[Pod](name).recover { case _ => () }
       })
     results.futureValue
@@ -40,15 +40,18 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     println("START: execute a command in the running pod")
     k8s.create(getNginxPod(podName1, "1.7.9")).futureValue
     Thread.sleep(5000)
-    var output = ""
-    val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
-    var errorOutput = ""
-    val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(podName1, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).futureValue
 
-    println("FINISH: execute a command in the running pod")
-    assert(output == "root\n")
-    assert(errorOutput == "")
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      var output = ""
+      var errorOutput = ""
+      val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
+      val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
+      k8s.exec(podName1, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).futureValue
+
+      println("FINISH: execute a command in the running pod")
+      assert(output == "root\n")
+      assert(errorOutput == "")
+    }
   }
 
   it should "execute a command in the specified container of the running pod" in { k8s =>
