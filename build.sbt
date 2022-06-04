@@ -1,7 +1,8 @@
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-Test / logBuffered := false
+IntegrationTest / logBuffered := false
+IntegrationTest / testForkedParallel := false
 
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"

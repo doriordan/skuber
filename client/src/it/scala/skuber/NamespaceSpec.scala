@@ -12,7 +12,7 @@ import scala.concurrent.duration._
  */
 class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll {
 
-  val nginxPodName1: String = randomUUID().toString
+  def nginxPodName1: String = randomUUID().toString
 
   val namespace1: String = randomUUID().toString
   val namespace2: String = randomUUID().toString
@@ -76,13 +76,16 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "find the pod1 in namespace3" in { k8s =>
     println("START: find the pod1 in namespace3")
-    val pod = getPod(namespace3)
     k8s.create(Namespace(namespace3)).futureValue
-    k8s.usingNamespace(namespace3).create(pod).futureValue
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      val pod = getPod(namespace3)
+      k8s.usingNamespace(namespace3).create(pod).futureValue
+      Thread.sleep(5000)
 
-    val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).futureValue
-    println("FINISH: find the pod1 in namespace3")
-    actualPod.name shouldBe pod.name
+      val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).futureValue
+      println("FINISH: find the pod1 in namespace3")
+      actualPod.name shouldBe pod.name
+    }
   }
 
   it should "delete namespace4" in { k8s =>
