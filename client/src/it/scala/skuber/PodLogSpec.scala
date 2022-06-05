@@ -36,9 +36,11 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
   }
 
   it should "get log of a pod" in { k8s =>
-    k8s.getPodLogSource(podName, LogQueryParams(follow = Some(false))).flatMap { source =>
-      source.map(_.utf8String).runReduce(_ + _).map { s =>
-        assert(s == "foo\n")
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      k8s.getPodLogSource(podName, LogQueryParams(follow = Some(false))).flatMap { source =>
+        source.map(_.utf8String).runReduce(_ + _).map { s =>
+          assert(s == "foo\n")
+        }
       }
     }
   }

@@ -10,13 +10,13 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
-  val defaultLabels = Map("app" -> this.suiteName)
+  val defaultLabels = Map("ServiceSpec" -> this.suiteName)
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
-    val requirements = defaultLabels.toSeq.map { case (k, v) => LabelSelector.IsEqualRequirement(k, v) }
+    val requirements = defaultLabels.toSeq.map { case (k, _) => LabelSelector.ExistsRequirement(k) }
     val labelSelector = LabelSelector(requirements: _*)
-    val results = k8s.deleteAllSelected[ServiceList](labelSelector).recover{ case _ => () }
+    val results = k8s.deleteAllSelected[ServiceList](labelSelector).recover { case _ => () }
     results.futureValue
 
     results.onComplete { _ =>
@@ -51,7 +51,6 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     k8s.create(getService(serviceName3)).futureValue
     k8s.delete[Service](serviceName3).futureValue
     eventually(timeout(20.seconds), interval(3.seconds)) {
-
       whenReady(
         k8s.get[Service](serviceName3).failed
       ) { result =>

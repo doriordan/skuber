@@ -1,5 +1,6 @@
 package skuber
 
+import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
@@ -9,9 +10,9 @@ import scala.concurrent.duration._
 class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
 
-  val deploymentName1: String = java.util.UUID.randomUUID().toString
-  val deploymentName2: String = java.util.UUID.randomUUID().toString
-  val deploymentName3: String = java.util.UUID.randomUUID().toString
+  val deploymentName1: String = randomUUID().toString
+  val deploymentName2: String = randomUUID().toString
+  val deploymentName3: String = randomUUID().toString
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
@@ -28,7 +29,6 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
       k8s.close
     }
 
-    super.afterAll()
   }
 
   behavior of "Deployment"
