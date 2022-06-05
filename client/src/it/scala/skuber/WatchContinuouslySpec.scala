@@ -19,11 +19,13 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
   val deployment1: String = randomUUID().toString
   val deployment2: String = randomUUID().toString
   val deployment3: String = randomUUID().toString
+  val deployment4: String = randomUUID().toString
+  val deployment5: String = randomUUID().toString
 
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(List(deployment1, deployment2, deployment3).map { name =>
+    val results = Future.sequence(List(deployment1, deployment2, deployment3, deployment4, deployment5).map { name =>
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
     })
 
@@ -94,18 +96,17 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
   it should "continuously watch changes on a named resource obj from the beginning - deployment" in { k8s =>
     import skuber.api.client.EventType
 
-    val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+    val deployment = getNginxDeployment(deployment3, "1.7.9")
 
-    k8s.create(deployment).withTimeout().futureValue.name shouldBe deploymentName
+    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment3
     eventually {
-      k8s.get[Deployment](deploymentName).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment3).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deploymentName).withTimeout().map { d =>
+    val stream = k8s.get[Deployment](deployment3).withTimeout().map { d =>
       k8s.watchContinuously[Deployment](d)
         .viaMat(KillSwitches.single)(Keep.right)
-        .filter(event => event._object.name == deploymentName)
+        .filter(event => event._object.name == deployment3)
         .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
         .toMat(Sink.collection)(Keep.both)
         .run()
@@ -119,7 +120,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deploymentName).withTimeout().futureValue
+    k8s.delete[Deployment](deployment3).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>
@@ -133,25 +134,25 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     f2.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
-      (EventType.ADDED, deploymentName),
-      (EventType.DELETED, deploymentName)
+      (EventType.ADDED, deployment3),
+      (EventType.DELETED, deployment3)
     )
   }
 
   it should "continuously watch changes on a named resource from the beginning - deployment" in { k8s =>
     import skuber.api.client.EventType
 
-    val deployment = getNginxDeployment(deployment3, "1.7.9")
+    val deployment = getNginxDeployment(deployment4, "1.7.9")
 
-    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment3
+    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment4
     eventually {
-      k8s.get[Deployment](deployment3).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment4).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deployment3).withTimeout().map { d =>
-      k8s.watchContinuously[Deployment](deployment3, None)
+    val stream = k8s.get[Deployment](deployment4).withTimeout().map { d =>
+      k8s.watchContinuously[Deployment](deployment4, None)
         .viaMat(KillSwitches.single)(Keep.right)
-        .filter(event => event._object.name == deployment3)
+        .filter(event => event._object.name == deployment4)
         .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
         .toMat(Sink.collection)(Keep.both)
         .run()
@@ -164,7 +165,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment3).withTimeout().futureValue
+    k8s.delete[Deployment](deployment4).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>
@@ -174,26 +175,25 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     stream.futureValue._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
-      (EventType.ADDED, deployment3),
-      (EventType.DELETED, deployment3)
+      (EventType.ADDED, deployment4),
+      (EventType.DELETED, deployment4)
     )
   }
 
   it should "continuously watch changes on a named resource from a point in time - deployment" in { k8s =>
     import skuber.api.client.EventType
 
+    val deployment = getNginxDeployment(deployment5, "1.7.9")
 
-    val deployment = getNginxDeployment(deployment3, "1.7.9")
-
-    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment3
+    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment5
     eventually {
-      k8s.get[Deployment](deployment3).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment5).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deployment3).withTimeout().map { d =>
-      k8s.watchContinuously[Deployment](deployment3, Some(d.resourceVersion))
+    val stream = k8s.get[Deployment](deployment5).withTimeout().map { d =>
+      k8s.watchContinuously[Deployment](deployment5, Some(d.resourceVersion))
         .viaMat(KillSwitches.single)(Keep.right)
-        .filter(event => event._object.name == deployment3)
+        .filter(event => event._object.name == deployment5)
         .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
         .toMat(Sink.collection)(Keep.both)
         .run()
@@ -207,7 +207,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment3).withTimeout().futureValue
+    k8s.delete[Deployment](deployment5).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>
@@ -217,7 +217,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     stream.futureValue._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
-      (EventType.DELETED, deployment3)
+      (EventType.DELETED, deployment5)
     )
   }
 
