@@ -4,7 +4,6 @@ import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.json.format._
 import scala.concurrent.duration._
-import scala.concurrent.Await
 import java.util.UUID.randomUUID
 import skuber.FutureUtil.FutureOps
 
@@ -46,9 +45,8 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     val podName3: String = randomUUID().toString
     k8s.create(getNginxPod(podName3, "1.7.9")).withTimeout().futureValue
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      val retrievePod = k8s.get[Pod](podName3).withTimeout()
-      val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
-      val podStatus = podRetrieved.get.status.get
+      val podRetrieved = k8s.get[Pod](podName3).withTimeout().futureValue
+      val podStatus = podRetrieved.status.get
       val nginxContainerStatus = podStatus.containerStatuses(0)
       podStatus.phase should contain(Pod.Phase.Running)
       nginxContainerStatus.name should be(podName3)
