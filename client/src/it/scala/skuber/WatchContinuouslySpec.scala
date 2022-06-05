@@ -149,14 +149,14 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
       k8s.get[Deployment](deployment4).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deployment4).withTimeout().map { d =>
-      k8s.watchContinuously[Deployment](deployment4, None)
-        .viaMat(KillSwitches.single)(Keep.right)
-        .filter(event => event._object.name == deployment4)
-        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
-        .toMat(Sink.collection)(Keep.both)
-        .run()
-    }
+    k8s.get[Deployment](deployment4).withTimeout().futureValue
+    val stream = k8s.watchContinuously[Deployment](deployment4, None)
+      .viaMat(KillSwitches.single)(Keep.right)
+      .filter(event => event._object.name == deployment4)
+      .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
+      .toMat(Sink.collection)(Keep.both)
+      .run()
+
 
     /*
      * Request times for request is defaulted to 30 seconds.
@@ -168,11 +168,10 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     k8s.delete[Deployment](deployment4).withTimeout().futureValue
 
     // cleanup
-    stream.map { killSwitch =>
-      killSwitch._1.shutdown()
-    }
+    stream._1.shutdown()
 
-    stream.futureValue._2.futureValue.toList.map { d =>
+
+    stream._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
       (EventType.ADDED, deployment4),
@@ -190,14 +189,15 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
       k8s.get[Deployment](deployment5).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deployment5).withTimeout().map { d =>
-      k8s.watchContinuously[Deployment](deployment5, Some(d.resourceVersion))
-        .viaMat(KillSwitches.single)(Keep.right)
-        .filter(event => event._object.name == deployment5)
-        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
-        .toMat(Sink.collection)(Keep.both)
-        .run()
-    }
+    val d = k8s.get[Deployment](deployment5).withTimeout().futureValue
+
+    val stream = k8s.watchContinuously[Deployment](deployment5, Some(d.resourceVersion))
+      .viaMat(KillSwitches.single)(Keep.right)
+      .filter(event => event._object.name == deployment5)
+      .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
+      .toMat(Sink.collection)(Keep.both)
+      .run()
+
 
     /*
      * Request times for request is defaulted to 30 seconds.
@@ -210,18 +210,16 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     k8s.delete[Deployment](deployment5).withTimeout().futureValue
 
     // cleanup
-    stream.map { killSwitch =>
-      killSwitch._1.shutdown()
-    }
+    stream._1.shutdown()
 
-    stream.futureValue._2.futureValue.toList.map { d =>
+    stream._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
       (EventType.DELETED, deployment5)
     )
   }
 
-  def pause(length: Duration): Unit ={
+  def pause(length: Duration): Unit = {
     Thread.sleep(length.toMillis)
   }
 
