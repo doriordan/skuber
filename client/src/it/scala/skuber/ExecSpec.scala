@@ -34,7 +34,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
     results.onComplete { _ =>
       k8s.close
-      system.terminate()
+      system.terminate().recover { case _ => () }.withTimeout().futureValue
     }
   }
 

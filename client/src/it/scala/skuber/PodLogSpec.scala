@@ -24,9 +24,9 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
     val k8s = k8sInit(config)
     val result = k8s.delete[Pod](podName).withTimeout().recover{ case _ => () }
     result.futureValue
-    result.onComplete{ _ =>
+    result.onComplete { _ =>
       k8s.close
-      system.terminate()
+      system.terminate().recover { case _ => () }.withTimeout().futureValue
     }
   }
 

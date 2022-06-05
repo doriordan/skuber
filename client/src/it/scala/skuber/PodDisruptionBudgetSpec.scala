@@ -47,7 +47,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
       _ <- results2
     } yield {
       k8s.close
-      system.terminate()
+      system.terminate().recover { case _ => () }.withTimeout().futureValue
     }
 
   }

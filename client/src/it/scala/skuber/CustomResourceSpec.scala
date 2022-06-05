@@ -57,7 +57,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     results.futureValue
     results.onComplete { _ =>
       k8s.close
-      system.terminate()
+      system.terminate().recover { case _ => () }.withTimeout().futureValue
     }
 
   }
