@@ -6,6 +6,7 @@ import akka.stream.scaladsl.{Keep, Sink}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Seconds, Span}
+import skuber.FutureUtil.FutureOps
 import skuber.apps.v1.{Deployment, DeploymentList}
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -23,7 +24,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     val k8s = k8sInit(config)
 
     val results = Future.sequence(List(deployment1, deployment2, deployment3).map { name =>
-      k8s.delete[Deployment](name).recover { case _ => () }
+      k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
     })
 
     results.futureValue
@@ -40,7 +41,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     val deploymentOne = getNginxDeployment(deployment1, "1.7.9")
     val deploymentTwo = getNginxDeployment(deployment2, "1.7.9")
 
-    val stream = k8s.list[DeploymentList].map { l =>
+    val stream = k8s.list[DeploymentList].withTimeout().map { l =>
       k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
         .viaMat(KillSwitches.single)(Keep.right)
         .filter(event => event._object.name == deployment1 || event._object.name == deployment2)
@@ -53,11 +54,11 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     stream.futureValue
 
     //Create first deployment and delete it.
-    k8s.create(deploymentOne).futureValue.name shouldBe deployment1
+    k8s.create(deploymentOne).withTimeout().futureValue.name shouldBe deployment1
     eventually {
-      k8s.get[Deployment](deployment1).futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment1).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
-    k8s.delete[Deployment](deployment1).futureValue
+    k8s.delete[Deployment](deployment1).withTimeout().futureValue
 
     /*
      * Request times for request is defaulted to 30 seconds.
@@ -68,11 +69,11 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     pause(10.seconds)
 
     //Create second deployment and delete it.
-    k8s.create(deploymentTwo).futureValue.name shouldBe deployment2
+    k8s.create(deploymentTwo).withTimeout().futureValue.name shouldBe deployment2
     eventually {
-      k8s.get[Deployment](deployment2).futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment2).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
-    k8s.delete[Deployment](deployment2).futureValue
+    k8s.delete[Deployment](deployment2).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>
@@ -95,12 +96,12 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     val deploymentName = java.util.UUID.randomUUID().toString
     val deployment = getNginxDeployment(deploymentName, "1.7.9")
 
-    k8s.create(deployment).futureValue.name shouldBe deploymentName
+    k8s.create(deployment).withTimeout().futureValue.name shouldBe deploymentName
     eventually {
-      k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deploymentName).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deploymentName).map { d =>
+    val stream = k8s.get[Deployment](deploymentName).withTimeout().map { d =>
       k8s.watchContinuously[Deployment](d)
         .viaMat(KillSwitches.single)(Keep.right)
         .filter(event => event._object.name == deploymentName)
@@ -117,7 +118,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deploymentName).futureValue
+    k8s.delete[Deployment](deploymentName).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>
@@ -141,12 +142,12 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     val deployment = getNginxDeployment(deployment3, "1.7.9")
 
-    k8s.create(deployment).futureValue.name shouldBe deployment3
+    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment3
     eventually {
-      k8s.get[Deployment](deployment3).futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment3).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deployment3).map { d =>
+    val stream = k8s.get[Deployment](deployment3).withTimeout().map { d =>
       k8s.watchContinuously[Deployment](deployment3, None)
         .viaMat(KillSwitches.single)(Keep.right)
         .filter(event => event._object.name == deployment3)
@@ -162,7 +163,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment3).futureValue
+    k8s.delete[Deployment](deployment3).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>
@@ -183,12 +184,12 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     val deployment = getNginxDeployment(deployment3, "1.7.9")
 
-    k8s.create(deployment).futureValue.name shouldBe deployment3
+    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment3
     eventually {
-      k8s.get[Deployment](deployment3).futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment3).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
     }
 
-    val stream = k8s.get[Deployment](deployment3).map { d =>
+    val stream = k8s.get[Deployment](deployment3).withTimeout().map { d =>
       k8s.watchContinuously[Deployment](deployment3, Some(d.resourceVersion))
         .viaMat(KillSwitches.single)(Keep.right)
         .filter(event => event._object.name == deployment3)
@@ -205,7 +206,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment3).futureValue
+    k8s.delete[Deployment](deployment3).withTimeout().futureValue
 
     // cleanup
     stream.map { killSwitch =>

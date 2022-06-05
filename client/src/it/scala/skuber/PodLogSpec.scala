@@ -4,6 +4,7 @@ import java.util.UUID.randomUUID
 import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
+import skuber.FutureUtil.FutureOps
 import skuber.Pod.LogQueryParams
 import skuber.json.format._
 import scala.concurrent.Await
@@ -22,13 +23,13 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
 
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
-    val result = k8s.delete[Pod](podName).recover{ case _ => () }
+    val result = k8s.delete[Pod](podName).withTimeout().recover{ case _ => () }
     result.futureValue
     result.onComplete(_ => k8s.close )
   }
 
   it should "get log of a pod" in { k8s =>
-    k8s.create(getNginxPod(podName, "1.7.9"))
+    k8s.create(getNginxPod(podName, "1.7.9")).withTimeout().futureValue
     Thread.sleep(3000)
     eventually(timeout(30.seconds), interval(3.seconds)) {
       val source = k8s.getPodLogSource(podName, LogQueryParams(follow = Some(false))).futureValue

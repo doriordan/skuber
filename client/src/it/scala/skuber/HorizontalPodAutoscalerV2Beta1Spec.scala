@@ -8,6 +8,7 @@ import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler.ResourceMetricSource
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import skuber.FutureUtil.FutureOps
 
 class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
@@ -25,11 +26,11 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
     val k8s = k8sInit(config)
 
     val results1 = Future.sequence(List(horizontalPodAutoscaler1, horizontalPodAutoscaler2, horizontalPodAutoscaler3).map { name =>
-      k8s.delete[HorizontalPodAutoscaler](name).recover { case _ => () }
+      k8s.delete[HorizontalPodAutoscaler](name).withTimeout().recover { case _ => () }
     })
 
     val results2 = {
-      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name)))
+      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name).withTimeout()))
       futures.recover { case _ =>
         ()
       }
@@ -51,7 +52,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
   it should "create a HorizontalPodAutoscaler" in { k8s =>
 
     println(horizontalPodAutoscaler1)
-    k8s.create(getNginxDeployment(deployment1, "1.7.9")) flatMap { d =>
+    k8s.create(getNginxDeployment(deployment1, "1.7.9")).withTimeout().flatMap { d =>
       k8s.create(
         HorizontalPodAutoscaler(horizontalPodAutoscaler1).withSpec(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -59,7 +60,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
             .withMaxReplicas(2)
             .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
         )
-      ).map { result =>
+      ).withTimeout().map { result =>
         assert(result.name == horizontalPodAutoscaler1)
         assert(result.spec.contains(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -73,7 +74,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
 
   it should "update a HorizontalPodAutoscaler" in { k8s =>
 
-    k8s.create(getNginxDeployment(deployment2, "1.7.9")) flatMap { d =>
+    k8s.create(getNginxDeployment(deployment2, "1.7.9")).withTimeout().flatMap { d =>
       k8s.create(
         HorizontalPodAutoscaler(horizontalPodAutoscaler2).withSpec(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -81,15 +82,15 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
             .withMaxReplicas(2)
             .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
         )
-      ).flatMap(created =>
+      ).withTimeout().flatMap(created =>
         eventually(
-          k8s.get[HorizontalPodAutoscaler](created.name).flatMap { existing =>
+          k8s.get[HorizontalPodAutoscaler](created.name).withTimeout().flatMap { existing =>
             val udpated = existing.withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
               .withMinReplicas(1)
               .withMaxReplicas(3)
               .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))
 
-            k8s.update(udpated).map { result =>
+            k8s.update(udpated).withTimeout().map { result =>
               assert(result.name == horizontalPodAutoscaler2)
               assert(result.spec.contains(
                 HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -106,7 +107,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
 
   it should "delete a HorizontalPodAutoscaler" in { k8s =>
 
-    k8s.create(getNginxDeployment(deployment3, "1.7.9")) flatMap { d =>
+    k8s.create(getNginxDeployment(deployment3, "1.7.9")).withTimeout().flatMap { d =>
       k8s.create(
         HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(
           HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -114,9 +115,9 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
             .withMaxReplicas(2)
             .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
         )
-      ).flatMap { created =>
-        k8s.delete[HorizontalPodAutoscaler](created.name).flatMap { deleteResult =>
-          k8s.get[HorizontalPodAutoscaler](created.name).map { x =>
+      ).withTimeout().flatMap { created =>
+        k8s.delete[HorizontalPodAutoscaler](created.name).withTimeout().flatMap { deleteResult =>
+          k8s.get[HorizontalPodAutoscaler](created.name).withTimeout().map { x =>
             assert(false)
           } recoverWith {
             case ex: K8SException if ex.status.code.contains(404) => assert(true)

@@ -3,6 +3,7 @@ package skuber
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
+import skuber.FutureUtil.FutureOps
 import skuber.json.format.{namespaceFormat, podFormat}
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -28,7 +29,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
     val results = Future.sequence(
       List(namespace1, namespace2, namespace3, namespace4).map { name =>
-        k8s.delete[Namespace](name).recover { case _ => () }
+        k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
       })
 
     results.futureValue
@@ -42,7 +43,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "create namespace1" in { k8s =>
     println("START: create namespace1")
-    val ns = k8s.create(Namespace(namespace1)).futureValue
+    val ns = k8s.create(Namespace(namespace1)).withTimeout().futureValue
     println("FINISH: create namespace1")
     assert(ns.name == namespace1)
   }
@@ -50,9 +51,9 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
   it should "create pod1 in namespace2" in { k8s =>
     println("START: create pod1 in namespace2")
     val pod = getPod(namespace2)
-    k8s.create(Namespace(namespace2)).futureValue
+    k8s.create(Namespace(namespace2)).withTimeout().futureValue
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val p = k8s.usingNamespace(namespace2).create(pod).futureValue
+      val p = k8s.usingNamespace(namespace2).create(pod).withTimeout().futureValue
       println("FINISH: create pod1 in namespace2")
       p.name shouldBe pod.name
       p.namespace shouldBe namespace2
@@ -63,7 +64,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
     println("START: not find a a non exist namespace")
     val nonExistNamespace: String = randomUUID().toString
     whenReady(
-      k8s.get[Namespace](nonExistNamespace).failed
+      k8s.get[Namespace](nonExistNamespace).withTimeout().failed
     ) { result =>
       println("FINISH: not find a a non exist namespace")
       result shouldBe a[K8SException]
@@ -76,13 +77,13 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "find the pod1 in namespace3" in { k8s =>
     println("START: find the pod1 in namespace3")
-    k8s.create(Namespace(namespace3)).futureValue
+    k8s.create(Namespace(namespace3)).withTimeout().futureValue
     eventually(timeout(30.seconds), interval(3.seconds)) {
       val pod = getPod(namespace3)
-      k8s.usingNamespace(namespace3).create(pod).futureValue
+      k8s.usingNamespace(namespace3).create(pod).withTimeout().futureValue
       Thread.sleep(5000)
 
-      val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).futureValue
+      val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).withTimeout().futureValue
       println("FINISH: find the pod1 in namespace3")
       actualPod.name shouldBe pod.name
     }
@@ -90,14 +91,14 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "delete namespace4" in { k8s =>
     println("START: delete namespace4")
-    k8s.create(Namespace(namespace4)).futureValue
+    k8s.create(Namespace(namespace4)).withTimeout().futureValue
     Thread.sleep(5000)
     // Delete namespaces
-    k8s.delete[Namespace](namespace4).futureValue
+    k8s.delete[Namespace](namespace4).withTimeout().futureValue
 
     eventually(timeout(20.seconds), interval(3.seconds)) {
       whenReady(
-        k8s.get[Namespace](namespace4).failed
+        k8s.get[Namespace](namespace4).withTimeout().failed
       ) { result =>
         println("FINISH: delete namespace4")
         result shouldBe a[K8SException]

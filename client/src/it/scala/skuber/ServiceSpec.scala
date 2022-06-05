@@ -2,6 +2,7 @@ package skuber
 
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
+import skuber.FutureUtil.FutureOps
 import skuber.json.format.{serviceFmt, serviceListFmt}
 import scala.concurrent.duration._
 import scala.util.Random
@@ -16,7 +17,7 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     val k8s = k8sInit
     val requirements = defaultLabels.toSeq.map { case (k, _) => LabelSelector.ExistsRequirement(k) }
     val labelSelector = LabelSelector(requirements: _*)
-    val results = k8s.deleteAllSelected[ServiceList](labelSelector).recover { case _ => () }
+    val results = k8s.deleteAllSelected[ServiceList](labelSelector).withTimeout().recover { case _ => () }
     results.futureValue
 
     results.onComplete { _ =>
@@ -31,15 +32,15 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
 
   it should "create a service" in { k8s =>
     val serviceName1: String = nginxServiceName
-    val p = k8s.create(getService(serviceName1)).futureValue
+    val p = k8s.create(getService(serviceName1)).withTimeout().futureValue
     assert(p.name == serviceName1)
 
   }
 
   it should "get the newly created service" in { k8s =>
     val serviceName2: String = nginxServiceName
-    k8s.create(getService(serviceName2)).futureValue
-    val d = k8s.get[Service](serviceName2).futureValue
+    k8s.create(getService(serviceName2)).withTimeout().futureValue
+    val d = k8s.get[Service](serviceName2).withTimeout().futureValue
     assert(d.name == serviceName2)
     // Default ServiceType is ClusterIP
     assert(d.spec.map(_._type) == Option(Service.Type.ClusterIP))
@@ -48,11 +49,11 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
 
   it should "delete a service" in { k8s =>
     val serviceName3: String = nginxServiceName
-    k8s.create(getService(serviceName3)).futureValue
-    k8s.delete[Service](serviceName3).futureValue
+    k8s.create(getService(serviceName3)).withTimeout().futureValue
+    k8s.delete[Service](serviceName3).withTimeout().futureValue
     eventually(timeout(20.seconds), interval(3.seconds)) {
       whenReady(
-        k8s.get[Service](serviceName3).failed
+        k8s.get[Service](serviceName3).withTimeout().failed
       ) { result =>
         result shouldBe a[K8SException]
         result match {

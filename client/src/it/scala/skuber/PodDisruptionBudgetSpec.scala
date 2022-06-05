@@ -3,6 +3,7 @@ package skuber
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
+import skuber.FutureUtil.FutureOps
 import skuber.apps.v1.Deployment
 import skuber.policy.v1beta1.PodDisruptionBudget
 import skuber.policy.v1beta1.PodDisruptionBudget._
@@ -25,14 +26,14 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     val k8s = k8sInit(config)
 
     val results1 = {
-      val futures = Future.sequence(List(budget1, budget2, budget3).map(name => k8s.delete[PodDisruptionBudget](name)))
+      val futures = Future.sequence(List(budget1, budget2, budget3).map(name => k8s.delete[PodDisruptionBudget](name).withTimeout()))
       futures.recover { case _ =>
         ()
       }
     }
 
     val results2 = {
-      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name)))
+      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name).withTimeout()))
       futures.recover { case _ =>
         ()
       }
@@ -50,9 +51,9 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
 
   it should "create a PodDisruptionBudget" in { k8s =>
     println("START: create a PodDisruptionBudget")
-    k8s.create(getNginxDeployment(deployment1, "1.7.9")).futureValue
+    k8s.create(getNginxDeployment(deployment1, "1.7.9")).withTimeout().futureValue
     import LabelSelector.dsl._
-    val result = k8s.create(PodDisruptionBudget(budget1).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).futureValue
+    val result = k8s.create(PodDisruptionBudget(budget1).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).withTimeout().futureValue
     Thread.sleep(5000)
 
     println("FINISH: create a PodDisruptionBudget")
@@ -63,18 +64,18 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
 
   it should "update a PodDisruptionBudget" in { k8s =>
     println("START: update a PodDisruptionBudget")
-    val deployment = k8s.create(getNginxDeployment(deployment2, "1.7.9"))
+    val deployment = k8s.create(getNginxDeployment(deployment2, "1.7.9")).withTimeout()
     deployment.futureValue
     import LabelSelector.dsl._
-    val firstPdb = k8s.create(PodDisruptionBudget(budget2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).futureValue
+    val firstPdb = k8s.create(PodDisruptionBudget(budget2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).withTimeout().futureValue
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val finalPdb = k8s.get[PodDisruptionBudget](firstPdb.name).map {
+      val finalPdb = k8s.get[PodDisruptionBudget](firstPdb.name).withTimeout().map {
         updatedPdb => updatedPdb.copy(metadata = updatedPdb.metadata.copy(creationTimestamp = None, selfLink = "", uid = ""))
       }.futureValue
 
-      val updatedPdb = k8s.update(finalPdb).futureValue
+      val updatedPdb = k8s.update(finalPdb).withTimeout().futureValue
 
       println("FINISH: update a PodDisruptionBudget")
       assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
@@ -86,15 +87,15 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
 
   it should "delete a PodDisruptionBudget" in { k8s =>
     println("START: delete a PodDisruptionBudget")
-    k8s.create(getNginxDeployment(deployment3, "1.7.9")).futureValue
+    k8s.create(getNginxDeployment(deployment3, "1.7.9")).withTimeout().futureValue
     import LabelSelector.dsl._
-    val pdb = k8s.create(PodDisruptionBudget(budget3).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).futureValue
-    k8s.delete[PodDisruptionBudget](pdb.name).futureValue
+    val pdb = k8s.create(PodDisruptionBudget(budget3).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).withTimeout().futureValue
+    k8s.delete[PodDisruptionBudget](pdb.name).withTimeout().futureValue
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
       whenReady(
-        k8s.get[PodDisruptionBudget](pdb.name).failed
+        k8s.get[PodDisruptionBudget](pdb.name).withTimeout().failed
       ) { result =>
         println("FINISH: delete a PodDisruptionBudget")
         result shouldBe a[K8SException]

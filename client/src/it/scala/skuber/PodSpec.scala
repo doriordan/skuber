@@ -6,6 +6,7 @@ import skuber.json.format._
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import java.util.UUID.randomUUID
+import skuber.FutureUtil.FutureOps
 
 class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
@@ -16,7 +17,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     val k8s = k8sInit
     val requirements = defaultLabels.toSeq.map { case (k, _) => LabelSelector.ExistsRequirement(k) }
     val labelSelector = LabelSelector(requirements: _*)
-    val results = k8s.deleteAllSelected[PodList](labelSelector)
+    val results = k8s.deleteAllSelected[PodList](labelSelector).withTimeout()
     results.futureValue
 
     results.onComplete { _ =>
@@ -28,24 +29,24 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
 
   it should "create a pod" in { k8s =>
     val podName1: String = randomUUID().toString
-    val p = k8s.create(getNginxPod(podName1, "1.7.9")).futureValue
+    val p = k8s.create(getNginxPod(podName1, "1.7.9")).withTimeout().futureValue
     p.name shouldBe podName1
   }
 
   it should "get the newly created pod" in { k8s =>
     val podName2: String = randomUUID().toString
-    k8s.create(getNginxPod(podName2, "1.7.9")).futureValue
+    k8s.create(getNginxPod(podName2, "1.7.9")).withTimeout().futureValue
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val p = k8s.get[Pod](podName2).futureValue
+      val p = k8s.get[Pod](podName2).withTimeout().futureValue
       p.name shouldBe podName2
     }
   }
 
   it should "check for newly created pod and container to be ready" in { k8s =>
     val podName3: String = randomUUID().toString
-    k8s.create(getNginxPod(podName3, "1.7.9")).futureValue
+    k8s.create(getNginxPod(podName3, "1.7.9")).withTimeout().futureValue
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      val retrievePod = k8s.get[Pod](podName3)
+      val retrievePod = k8s.get[Pod](podName3).withTimeout()
       val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
       val podStatus = podRetrieved.get.status.get
       val nginxContainerStatus = podStatus.containerStatuses(0)
@@ -72,11 +73,11 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
 
   it should "delete a pod" in { k8s =>
     val podName4: String = randomUUID().toString
-    k8s.create(getNginxPod(podName4, "1.7.9")).futureValue
-    k8s.delete[Pod](podName4).futureValue
+    k8s.create(getNginxPod(podName4, "1.7.9")).withTimeout().futureValue
+    k8s.delete[Pod](podName4).withTimeout().futureValue
 
     whenReady(
-      k8s.get[Namespace](podName4).failed
+      k8s.get[Namespace](podName4).withTimeout().failed
     ) { result =>
       result shouldBe a[K8SException]
       result match {
@@ -89,13 +90,13 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
   it should "delete selected pods" in { k8s =>
     val podName5: String = randomUUID().toString + "-foo"
     val podName6: String = randomUUID().toString + "-bar"
-    k8s.create(getNginxPod(podName5, "1.7.9", labels = Map("foo" -> "1"))).futureValue
-    k8s.create(getNginxPod(podName6, "1.7.9", labels = Map("bar" -> "2"))).futureValue
+    k8s.create(getNginxPod(podName5, "1.7.9", labels = Map("foo" -> "1"))).withTimeout().futureValue
+    k8s.create(getNginxPod(podName6, "1.7.9", labels = Map("bar" -> "2"))).withTimeout().futureValue
     Thread.sleep(5000)
-    k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo"))).futureValue
+    k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo"))).withTimeout().futureValue
 
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      val retrievePods = k8s.list[PodList]()
+      val retrievePods = k8s.list[PodList]().withTimeout()
       val podsRetrieved = retrievePods.futureValue
       val podNamesRetrieved = podsRetrieved.items.map(_.name)
       assert(!podNamesRetrieved.contains(podName5) && podNamesRetrieved.contains(podName6))
