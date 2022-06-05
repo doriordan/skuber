@@ -7,6 +7,7 @@ import skuber.apps.v1.Deployment
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import skuber.FutureUtil.FutureOps
+import scala.util.Try
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
@@ -53,13 +54,16 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     println(s"DEPLOYMENT TO UPDATE ==> $getDeployment")
 
     val updatedDeployment = getDeployment.updateContainer(getNginxContainer("1.9.1"))
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      Try {
+        k8s.update(updatedDeployment).withTimeout().futureValue
+      }.recover { case _ => () }
 
-    k8s.update(updatedDeployment).withTimeout().futureValue
+      val deployment = k8s.get[Deployment](deploymentName2).withTimeout().futureValue
 
-    val deployment = k8s.get[Deployment](deploymentName2).withTimeout().futureValue
-
-    val actualImages: List[String] = deployment.spec.flatMap(_.template.spec.map(_.containers.map(_.image))).toList.flatten
-    actualImages shouldBe List("nginx:1.9.1")
+      val actualImages: List[String] = deployment.spec.flatMap(_.template.spec.map(_.containers.map(_.image))).toList.flatten
+      actualImages shouldBe List("nginx:1.9.1")
+    }
 
   }
 
