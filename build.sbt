@@ -103,7 +103,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
           "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
           "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}"),
-        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G")
+        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -Xmx8G -Xms6G")
       ),
       WorkflowStep.Sbt(List(finalSbtCommand))
     )

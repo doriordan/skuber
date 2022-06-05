@@ -29,12 +29,12 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     val results = Future.sequence(
       List(podName1, podName2, podName3, podName4, podName5, podName6).map { name =>
         k8s.delete[Pod](name).withTimeout().recover { case _ => () }
-      })
+      }).withTimeout()
     results.futureValue
 
     results.onComplete { _ =>
       k8s.close
-      system.terminate()
+      system.terminate().recover { case _ => () }.withTimeout().futureValue
     }
   }
 

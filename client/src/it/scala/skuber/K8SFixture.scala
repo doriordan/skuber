@@ -1,25 +1,25 @@
 package skuber
 
 import akka.actor.ActorSystem
-import org.scalatest.{FutureOutcome, fixture}
-import skuber.api.client._
-import com.typesafe.config.ConfigFactory
-import skuber.api.client.impl.KubernetesClientImpl
+import com.typesafe.config.{Config, ConfigFactory}
+import org.scalatest.{Outcome, fixture}
+import scala.concurrent.ExecutionContextExecutor
 
-trait K8SFixture extends fixture.AsyncFlatSpec {
 
-  override type FixtureParam =  K8SRequestContext
+trait K8SFixture extends fixture.FlatSpec {
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  override type FixtureParam = K8SRequestContext
 
-  val config = ConfigFactory.load()
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
-  override def withFixture(test: OneArgAsyncTest): FutureOutcome = {
+  val config: Config = ConfigFactory.load()
+
+  override def withFixture(test: OneArgTest): Outcome = {
     val k8s = k8sInit(config)
-    complete {
-      withFixture(test.toNoArgAsyncTest(k8s))
-    } lastly {
+    try {
+      test(k8s)
+    } finally {
       k8s.close
     }
   }

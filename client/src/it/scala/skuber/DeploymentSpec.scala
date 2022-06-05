@@ -22,13 +22,13 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
 
     val results = Future.sequence(List(deploymentName1, deploymentName2, deploymentName3).map { name =>
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
-    })
+    }).withTimeout()
 
     results.futureValue
 
     results.onComplete { r =>
       k8s.close
-      system.terminate()
+      system.terminate().recover { case _ => () }.withTimeout().futureValue
     }
 
   }
@@ -68,8 +68,9 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     val d = k8s.create(getNginxDeployment(deploymentName3, "1.7.9")).withTimeout().futureValue
     assert(d.name == deploymentName3)
 
-    k8s.deleteWithOptions[Deployment](deploymentName3, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).withTimeout().futureValue
-    eventually(timeout(20.seconds), interval(3.seconds)) {
+    k8s.delete[Deployment](deploymentName3).withTimeout().futureValue
+
+    eventually(timeout(30.seconds), interval(3.seconds)) {
       whenReady(
         k8s.get[Deployment](deploymentName3).withTimeout().failed
       ) { result =>
