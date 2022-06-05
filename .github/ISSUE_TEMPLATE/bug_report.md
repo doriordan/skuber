@@ -15,5 +15,14 @@ Example code to reproduce the behavior.
 A clear and concise description of what you expected to happen.
 
 
+**skuber version**
+Skuber library version
+
+**kubernetes server version**
+Kubernetes server version
+
+**Cloud Platform**
+GCP / AWS / Azure / etc
+
 **Additional context**
 Add any other context about the problem here.
