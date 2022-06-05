@@ -8,7 +8,6 @@ val supportedScalaVersion = Seq(scala12Version, scala13Version)
 
 val akkaVersion = "2.6.19"
 
-
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.12.12"
@@ -54,8 +53,6 @@ ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 publishTo := sonatypePublishToBundle.value
 sonatypeCredentialHost := Sonatype.sonatype01
 updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
-
-
 
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
@@ -105,7 +102,9 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
         params = Map(
           "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
-          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
+          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}"),
+        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G")
+      ),
       WorkflowStep.Sbt(List(finalSbtCommand))
     )
   )

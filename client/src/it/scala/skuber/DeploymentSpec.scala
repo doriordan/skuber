@@ -1,17 +1,19 @@
 package skuber
 
+import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.apps.v1.Deployment
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import skuber.FutureUtil.FutureOps
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
 
-  val deploymentName1: String = java.util.UUID.randomUUID().toString
-  val deploymentName2: String = java.util.UUID.randomUUID().toString
-  val deploymentName3: String = java.util.UUID.randomUUID().toString
+  val deploymentName1: String = randomUUID().toString
+  val deploymentName2: String = randomUUID().toString
+  val deploymentName3: String = randomUUID().toString
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
@@ -19,16 +21,16 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     val k8s = k8sInit(config)
 
     val results = Future.sequence(List(deploymentName1, deploymentName2, deploymentName3).map { name =>
-      k8s.delete[Deployment](name).recover { case _ => () }
+      k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
     })
 
     results.futureValue
 
     results.onComplete { r =>
       k8s.close
+      system.terminate()
     }
 
-    super.afterAll()
   }
 
   behavior of "Deployment"
@@ -36,25 +38,25 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
 
   it should "create a deployment" in { k8s =>
 
-    val createdDeployment = k8s.create(getNginxDeployment(deploymentName1, "1.7.9")).futureValue
+    val createdDeployment = k8s.create(getNginxDeployment(deploymentName1, "1.7.9")).withTimeout().futureValue
     assert(createdDeployment.name == deploymentName1)
 
-    val getDeployment = k8s.get[Deployment](deploymentName1).futureValue
+    val getDeployment = k8s.get[Deployment](deploymentName1).withTimeout().futureValue
     assert(getDeployment.name == deploymentName1)
   }
 
 
   it should "upgrade the newly created deployment" in { k8s =>
-    k8s.create(getNginxDeployment(deploymentName2, "1.7.9")).futureValue
+    k8s.create(getNginxDeployment(deploymentName2, "1.7.9")).withTimeout().futureValue
     Thread.sleep(5000)
-    val getDeployment = k8s.get[Deployment](deploymentName2).futureValue
+    val getDeployment = k8s.get[Deployment](deploymentName2).withTimeout().futureValue
     println(s"DEPLOYMENT TO UPDATE ==> $getDeployment")
 
     val updatedDeployment = getDeployment.updateContainer(getNginxContainer("1.9.1"))
 
-    k8s.update(updatedDeployment).futureValue
+    k8s.update(updatedDeployment).withTimeout().futureValue
 
-    val deployment = k8s.get[Deployment](deploymentName2).futureValue
+    val deployment = k8s.get[Deployment](deploymentName2).withTimeout().futureValue
 
     val actualImages: List[String] = deployment.spec.flatMap(_.template.spec.map(_.containers.map(_.image))).toList.flatten
     actualImages shouldBe List("nginx:1.9.1")
@@ -63,13 +65,13 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
 
 
   it should "delete a deployment" in { k8s =>
-    val d = k8s.create(getNginxDeployment(deploymentName3, "1.7.9")).futureValue
+    val d = k8s.create(getNginxDeployment(deploymentName3, "1.7.9")).withTimeout().futureValue
     assert(d.name == deploymentName3)
 
-    k8s.deleteWithOptions[Deployment](deploymentName3, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).futureValue
+    k8s.deleteWithOptions[Deployment](deploymentName3, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).withTimeout().futureValue
     eventually(timeout(20.seconds), interval(3.seconds)) {
       whenReady(
-        k8s.get[Deployment](deploymentName3).failed
+        k8s.get[Deployment](deploymentName3).withTimeout().failed
       ) { result =>
         result shouldBe a[K8SException]
         result match {

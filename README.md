@@ -144,7 +144,21 @@ The CI parameters defined in `build.sbt`.
 
 ci.yaml and clean.yaml are generated automatically with [sbt-github-actions](https://github.com/djspiewak/sbt-github-actions) plugin.  
 
-Run `sbt githubWorkflowGenerate` in order to regenerate ci.yaml and clean.yaml.
+Run `sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh` in order to regenerate ci.yaml and clean.yaml.
+
+CI Running against the following k8s versions
+
+skuber supports all other k8s versions, not all of them tested under CI.
+
+https://kubernetes.io/releases/
+
+* v1.19.6 
+* v1.20.11
+* v1.21.5
+* v1.22.9
+* v1.23.6
+* v1.24.1
+
 
 ## License
 
