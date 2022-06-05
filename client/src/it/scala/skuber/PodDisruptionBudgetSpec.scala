@@ -26,14 +26,14 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     val k8s = k8sInit(config)
 
     val results1 = {
-      val futures = Future.sequence(List(budget1, budget2, budget3).map(name => k8s.delete[PodDisruptionBudget](name).withTimeout()))
+      val futures = Future.sequence(List(budget1, budget2, budget3).map(name => k8s.delete[PodDisruptionBudget](name).withTimeout())).withTimeout()
       futures.recover { case _ =>
         ()
       }
     }
 
     val results2 = {
-      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name).withTimeout()))
+      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name).withTimeout())).withTimeout()
       futures.recover { case _ =>
         ()
       }

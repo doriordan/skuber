@@ -22,7 +22,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
 
     val results = Future.sequence(List(deploymentName1, deploymentName2, deploymentName3).map { name =>
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
-    })
+    }).withTimeout()
 
     results.futureValue
 

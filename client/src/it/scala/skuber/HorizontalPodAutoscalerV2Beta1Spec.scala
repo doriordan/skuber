@@ -30,7 +30,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
     })
 
     val results2 = {
-      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name).withTimeout()))
+      val futures = Future.sequence(List(deployment1, deployment2, deployment3).map(name => k8s.delete[Deployment](name).withTimeout())).withTimeout()
       futures.recover { case _ =>
         ()
       }

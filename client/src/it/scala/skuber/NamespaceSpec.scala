@@ -30,7 +30,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
     val results = Future.sequence(
       List(namespace1, namespace2, namespace3, namespace4).map { name =>
         k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
-      })
+      }).withTimeout()
 
     results.futureValue
 

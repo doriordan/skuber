@@ -55,7 +55,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
     val results = k8s.delete[CustomResourceDefinition](TestResource.crd.name).withTimeout().recover { case _ => () }
     results.futureValue
-    results.onComplete { r =>
+    results.onComplete { _ =>
       k8s.close
       system.terminate()
     }

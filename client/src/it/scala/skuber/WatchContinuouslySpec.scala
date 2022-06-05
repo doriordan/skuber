@@ -27,11 +27,11 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     val results = Future.sequence(List(deployment1, deployment2, deployment3, deployment4, deployment5).map { name =>
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
-    })
+    }).withTimeout()
 
     results.futureValue
 
-    results.onComplete { r =>
+    results.onComplete { _ =>
       k8s.close
       system.terminate()
     }

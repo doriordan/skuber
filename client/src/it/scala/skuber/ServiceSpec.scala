@@ -23,7 +23,7 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     val results = Future.sequence(
       List(serviceName1, serviceName2, serviceName3).map { name =>
         k8s.delete[Service](name).withTimeout().recover { case _ => () }
-      })
+      }).withTimeout()
 
     results.futureValue
 
