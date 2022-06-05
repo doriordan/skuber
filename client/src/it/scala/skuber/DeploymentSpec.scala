@@ -68,8 +68,9 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     val d = k8s.create(getNginxDeployment(deploymentName3, "1.7.9")).withTimeout().futureValue
     assert(d.name == deploymentName3)
 
-    k8s.deleteWithOptions[Deployment](deploymentName3, DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))).withTimeout().futureValue
-    eventually(timeout(20.seconds), interval(3.seconds)) {
+    k8s.delete[Deployment](deploymentName3).withTimeout().futureValue
+
+    eventually(timeout(30.seconds), interval(3.seconds)) {
       whenReady(
         k8s.get[Deployment](deploymentName3).withTimeout().failed
       ) { result =>
