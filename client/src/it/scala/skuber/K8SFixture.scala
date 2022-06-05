@@ -21,7 +21,6 @@ trait K8SFixture extends fixture.AsyncFlatSpec {
       withFixture(test.toNoArgAsyncTest(k8s))
     } lastly {
       k8s.close
-      system.terminate()
     }
   }
 }

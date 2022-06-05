@@ -7,7 +7,6 @@ import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.FutureUtil.FutureOps
 import skuber.Pod.LogQueryParams
 import skuber.json.format._
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
@@ -25,7 +24,10 @@ class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAnd
     val k8s = k8sInit(config)
     val result = k8s.delete[Pod](podName).withTimeout().recover{ case _ => () }
     result.futureValue
-    result.onComplete(_ => k8s.close )
+    result.onComplete{ _ =>
+      k8s.close
+      system.terminate()
+    }
   }
 
   it should "get log of a pod" in { k8s =>

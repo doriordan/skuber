@@ -28,6 +28,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
 
     results.onComplete { r =>
       k8s.close
+      system.terminate()
     }
 
   }

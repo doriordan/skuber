@@ -21,6 +21,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
 
     results.onComplete { _ =>
       k8s.close
+      system.terminate()
     }
   }
 
