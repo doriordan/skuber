@@ -8,7 +8,6 @@ val supportedScalaVersion = Seq(scala12Version, scala13Version)
 
 val akkaVersion = "2.6.19"
 
-
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.12.12"
@@ -55,8 +54,6 @@ publishTo := sonatypePublishToBundle.value
 sonatypeCredentialHost := Sonatype.sonatype01
 updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
 
-
-
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
 ThisBuild / scmInfo := Some(
@@ -77,28 +74,56 @@ lazy val commonSettings = Seq(
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
   sonatypeCredentialHost := Sonatype.sonatype01
 )
-// run sbt githubWorkflowGenerate in order to generate github actions files
+
+/** run the following command in order to generate github actions files:
+ * sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
+ */
+def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTestsTags: List[String] = List.empty): WorkflowJob = {
+
+  val finalSbtCommand: String = {
+    val additionalFlags: String = {
+      if (excludedTestsTags.nonEmpty) {
+        s"* -- -l ${excludedTestsTags.mkString(" ")}"
+      } else {
+        ""
+      }
+    }
+
+    "it:testOnly " + additionalFlags
+  }
+
+  WorkflowJob(
+    id = jobName,
+    name = jobName,
+    steps = List(
+      WorkflowStep.Checkout,
+      WorkflowStep.Use(
+        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.6.0"),
+        params = Map(
+          "minikubeversion" -> "v1.25.2",
+          "kubernetesversion" -> k8sServerVersion,
+          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}"),
+        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G")
+      ),
+      WorkflowStep.Sbt(List(finalSbtCommand))
+    )
+  )
+}
+
 inThisBuild(List(
+  githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
-  githubWorkflowAddedJobs := Seq(WorkflowJob(
-    id = "integration-kubernetes-v1-19",
-    name = "integration-kubernetes-v1-19",
-    steps = List(
-      WorkflowStep.Checkout,
-      WorkflowStep.Use(
-        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.5.0"),
-        params = Map(
-         "minikubeversion" -> "v1.23.2",
-         "kubernetesversion" -> "v1.19.6",
-         "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}")),
-      WorkflowStep.Sbt(
-        List("It/test")
-      )
-    )
-  )),
+  githubWorkflowAddedJobs := Seq(
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6"),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11"),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5"),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-22", k8sServerVersion = "v1.22.9", List("CustomResourceTag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-23", k8sServerVersion = "v1.23.6", List("CustomResourceTag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1", List("CustomResourceTag"))
+  ),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(
       List("ci-release"),
@@ -135,7 +160,7 @@ lazy val root = (project in file("."))
     crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
-lazy val skuber= (project in file("client"))
+lazy val skuber = (project in file("client"))
   .configs(IntegrationTest)
   .settings(
     commonSettings,
@@ -144,6 +169,7 @@ lazy val skuber= (project in file("client"))
     Defaults.itSettings,
     libraryDependencies += scalaTest % "it"
   )
+
 
 lazy val examples = (project in file("examples"))
   .settings(

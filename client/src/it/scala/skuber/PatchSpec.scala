@@ -2,9 +2,9 @@ package skuber
 
 import org.scalatest.{BeforeAndAfterAll, Matchers}
 import org.scalatest.concurrent.Eventually
+import skuber.FutureUtil.FutureOps
 import skuber.api.patch._
 import skuber.json.format._
-
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.util.Success
@@ -17,7 +17,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     super.beforeAll()
 
     val k8s = k8sInit
-    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
+    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")).withTimeout(), 3.second)
     // Let the pod running
     Thread.sleep(3000)
     k8s.close
@@ -25,11 +25,10 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
-    Await.result(k8s.delete[Pod](nginxPodName), 3.second)
+    Await.result(k8s.delete[Pod](nginxPodName).withTimeout(), 3.second)
     Thread.sleep(3000)
     k8s.close
-
-    super.afterAll()
+    system.terminate()
   }
 
   behavior of "Patch"
@@ -37,9 +36,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   it should "patch a pod with strategic merge patch by default" in { k8s =>
     val randomString = java.util.UUID.randomUUID().toString
     val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None)
-    k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
+    k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).withTimeout().map { _ =>
       eventually(timeout(10.seconds), interval(1.seconds)) {
-        val retrievePod = k8s.get[Pod](nginxPodName)
+        val retrievePod = k8s.get[Pod](nginxPodName).withTimeout()
         val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
@@ -54,9 +53,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   it should "patch a pod with strategic merge patch" in { k8s =>
     val randomString = java.util.UUID.randomUUID().toString
     val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = StrategicMergePatchStrategy)
-    k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
+    k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).withTimeout().map { _ =>
       eventually(timeout(10.seconds), interval(1.seconds)) {
-        val retrievePod = k8s.get[Pod](nginxPodName)
+        val retrievePod = k8s.get[Pod](nginxPodName).withTimeout()
         val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
@@ -71,9 +70,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   it should "patch a pod with json merge patch" in { k8s =>
     val randomString = java.util.UUID.randomUUID().toString
     val patchData = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = JsonMergePatchStrategy)
-    k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).map { _ =>
+    k8s.patch[MetadataPatch, Pod](nginxPodName, patchData).withTimeout().map { _ =>
       eventually(timeout(10.seconds), interval(1.seconds)) {
-        val retrievePod = k8s.get[Pod](nginxPodName)
+        val retrievePod = k8s.get[Pod](nginxPodName).withTimeout()
         val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>
@@ -93,9 +92,9 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
       JsonPatchOperation.Add("/metadata/annotations", randomString),
       JsonPatchOperation.Remove("/metadata/annotations"),
     ))
-    k8s.patch[JsonPatch, Pod](nginxPodName, patchData).map { _ =>
+    k8s.patch[JsonPatch, Pod](nginxPodName, patchData).withTimeout().map { _ =>
       eventually(timeout(10.seconds), interval(1.seconds)) {
-        val retrievePod = k8s.get[Pod](nginxPodName)
+        val retrievePod = k8s.get[Pod](nginxPodName).withTimeout()
         val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
         podRetrieved match {
           case Success(pod: Pod) =>

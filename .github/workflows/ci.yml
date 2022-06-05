@@ -8,8 +8,8 @@
 name: Continuous Integration
 
 on:
-  pull_request:
-    branches: ['**']
+  
+    
   push:
     branches: ['**']
     tags: [v*]
@@ -21,6 +21,7 @@ jobs:
   build:
     name: Build and Test
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         scala: [2.12.13, 2.13.6]
@@ -48,6 +49,9 @@ jobs:
             ~/AppData/Local/Coursier/Cache/v1
             ~/Library/Caches/Coursier/v1
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+
+
+
 
       - run: sbt ++${{ matrix.scala }} test It/compile
 
@@ -132,10 +136,122 @@ jobs:
       - name: Checkout current branch (fast)
         uses: actions/checkout@v2
 
-      - uses: manusa/actions-setup-minikube@v2.5.0
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
         with:
-          minikube version: v1.23.2
+          minikube version: v1.25.2
           kubernetes version: v1.19.6
-          githubtoken: ${{ secrets.GITHUB_TOKEN }}
+          github token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: sbt ++${{ matrix.scala }} It/test
+      - run: 'sbt ++${{ matrix.scala }} "it:testOnly "'
+
+  integration-kubernetes-v1-20:
+    name: integration-kubernetes-v1-20
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.20.11
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} "it:testOnly "'
+
+  integration-kubernetes-v1-21:
+    name: integration-kubernetes-v1-21
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.21.5
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} "it:testOnly "'
+
+  integration-kubernetes-v1-22:
+    name: integration-kubernetes-v1-22
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.22.9
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} "it:testOnly * -- -l CustomResourceTag"'
+
+  integration-kubernetes-v1-23:
+    name: integration-kubernetes-v1-23
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.23.6
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} "it:testOnly * -- -l CustomResourceTag"'
+
+  integration-kubernetes-v1-24:
+    name: integration-kubernetes-v1-24
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.4]
+        java: [adopt@1.8]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v2
+
+      - env:
+          SBT_OPTS: '-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G'
+        uses: manusa/actions-setup-minikube@v2.6.0
+        with:
+          minikube version: v1.25.2
+          kubernetes version: v1.24.1
+          github token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: 'sbt ++${{ matrix.scala }} "it:testOnly * -- -l CustomResourceTag"'
