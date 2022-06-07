@@ -37,6 +37,10 @@ val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
 
+val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
+val awsJavaSdkSts = "com.amazonaws" % "aws-java-sdk-sts" % "1.12.233"
+val apacheCommonsLogging = "commons-logging" % "commons-logging" % "1.2"
+
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
 
@@ -138,6 +142,7 @@ lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
     akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
+    awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging,
     scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
