@@ -4,16 +4,15 @@ import java.io.File
 import java.net.URL
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-
 import scala.collection.JavaConverters._
 import scala.util.Try
 import scala.util.Failure
 import java.util.{Base64, Date}
-
+import com.amazonaws.regions.Regions
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
 import skuber.api.client._
-
+import skuber.api.client.token.AwsAuthRefreshable
 import scala.io.Source
 
 /**
@@ -149,22 +148,27 @@ object Configuration {
           }
         }
 
-        def topLevelYamlToK8SConfigMap[K8SConfigKind](kind: String, toK8SConfig: YamlMap=> K8SConfigKind) =
-          topLevelList(kind + "s").asScala.map(item => name(item) -> toK8SConfig(child(item, kind))).toMap
+        def topLevelYamlToK8SConfigMap[K8SConfigKind](kind: String, toK8SConfig: (YamlMap, String) => K8SConfigKind): Map[String, K8SConfigKind] = {
+          topLevelList(kind + "s").asScala.map{ item =>
+          val clusterName = name(item)
+          name(item) -> toK8SConfig(child(item, kind), clusterName)
+          }.toMap
+        }
 
 
-        def toK8SCluster(clusterConfig: YamlMap) =
+        def toK8SCluster(clusterConfig: YamlMap, clusterName: String) =
           Cluster(
             apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
             server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
             insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)),
-            certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data")
+            certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data"),
+            clusterName = Some(clusterName)
           )
 
 
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster)
 
-        def toK8SAuthInfo(userConfig:YamlMap): AuthInfo = {
+        def toK8SAuthInfo(userConfig:YamlMap, clusterName: String): AuthInfo = {
 
           def authProviderRead(authProvider: YamlMap): Option[AuthProviderAuth] = {
             val config = child(authProvider, "config")
@@ -178,6 +182,13 @@ object Configuration {
                     expiry = optionalInstantValueAt(config, "expiry"),
                     cmdPath = valueAt(config, "cmd-path"),
                     cmdArgs = valueAt(config, "cmd-args")
+                  )
+                )
+              case "aws" =>
+                Some(
+                  AwsAuthRefreshable(
+                    clusterName = optionalValueAt(config, "cluster-name"),
+                    region = optionalValueAt[String](config, "region").flatMap(rg => Try(Regions.fromName(rg)).toOption)
                   )
                 )
               case _ => None
@@ -207,7 +218,7 @@ object Configuration {
         }
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
-        def toK8SContext(contextConfig: YamlMap) = {
+        def toK8SContext(contextConfig: YamlMap, clusterName: String) = {
           val cluster=contextConfig.asScala.get("cluster").filterNot(_ == "").map { clusterName =>
             k8sClusterMap.get(clusterName.asInstanceOf[String]).get
           }.getOrElse(Cluster())

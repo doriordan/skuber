@@ -9,5 +9,6 @@ case class Cluster(
   apiVersion: String = "v1",
   server: String = defaultApiServerURL,
   insecureSkipTLSVerify: Boolean = false,
-  certificateAuthority: Option[PathOrData] = None
+  certificateAuthority: Option[PathOrData] = None,
+  clusterName: Option[String] = None
 )
