@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import skuber.api.Configuration
 import skuber.api.client.token.AwsAuthRefreshable
 import skuber.api.client.{Context, KubernetesClient}
-import skuber.examples.customresources.CreateCRD.system
 import skuber.{PodList, k8sInit}
 import scala.concurrent.Await
 import scala.concurrent.duration._
