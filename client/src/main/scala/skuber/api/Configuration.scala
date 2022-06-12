@@ -1,6 +1,5 @@
 package skuber.api
 
-import java.io.File
 import java.net.URL
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -8,11 +7,9 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 import scala.util.Failure
 import java.util.{Base64, Date}
-import com.amazonaws.regions.Regions
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
 import skuber.api.client._
-import skuber.api.client.token.AwsAuthRefreshable
 import scala.io.Source
 
 /**
@@ -182,13 +179,6 @@ object Configuration {
                     expiry = optionalInstantValueAt(config, "expiry"),
                     cmdPath = valueAt(config, "cmd-path"),
                     cmdArgs = valueAt(config, "cmd-args")
-                  )
-                )
-              case "aws" =>
-                Some(
-                  AwsAuthRefreshable(
-                    clusterName = optionalValueAt(config, "cluster-name"),
-                    region = optionalValueAt[String](config, "region").flatMap(rg => Try(Regions.fromName(rg)).toOption)
                   )
                 )
               case _ => None
