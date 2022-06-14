@@ -4,14 +4,16 @@ import java.time.Instant
 import java.util.UUID
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.{HttpCharsets, HttpRequest, HttpResponse, MediaType}
 import akka.stream.scaladsl.Flow
 import com.typesafe.config.{Config, ConfigFactory}
+import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import skuber.ObjectResource
 import skuber.api.client.impl.KubernetesClientImpl
+import skuber.api.client.token.RefreshableToken
 import scala.sys.SystemProperties
 import scala.util.Try
 
@@ -81,6 +83,13 @@ package object client {
     def name: String
   }
 
+  trait AuthProviderRefreshableAuth extends AuthProviderAuth {
+    def refreshToken: RefreshableToken
+    def generateToken: String
+    def name: String
+    def isTokenExpired(refreshableToken: RefreshableToken): Boolean
+  }
+
   // 'jwt' supports an oidc id token per https://kubernetes.io/docs/admin/authentication/#option-1---oidc-authenticator
   // - but does not yet support token refresh
   final case class OidcAuth(idToken: String) extends AuthProviderAuth {
@@ -91,24 +100,24 @@ package object client {
     override def toString = """OidcAuth(idToken=<redacted>)"""
   }
 
-  final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderAuth {
+  final case class GcpAuth private(private val config: GcpConfiguration) extends AuthProviderRefreshableAuth {
     override val name = "gcp"
 
-    @volatile private var refresh: Option[GcpRefresh] = config.cachedAccessToken.map(token => GcpRefresh(token.accessToken, token.expiry))
+    @volatile private var refresh: Option[RefreshableToken] = config.cachedAccessToken.map(token => GcpRefresh(token.accessToken, token.expiry).toRefreshableToken)
 
-    private def refreshGcpToken(): GcpRefresh = {
-      val output = config.cmd.execute()
-      val parsed = Json.parse(output).as[GcpRefresh]
+    override def refreshToken: RefreshableToken = {
+      val output = generateToken
+      val parsed = Json.parse(output).as[GcpRefresh].toRefreshableToken
       refresh = Some(parsed)
       parsed
     }
 
     def accessToken: String = this.synchronized {
       refresh match {
-        case Some(expired) if expired.expired =>
-          refreshGcpToken().accessToken
+        case Some(token) if isTokenExpired(token) =>
+          refreshToken.accessToken
         case None =>
-          refreshGcpToken().accessToken
+          refreshToken.accessToken
         case Some(token) =>
           token.accessToken
       }
@@ -116,10 +125,19 @@ package object client {
 
     override def toString =
       """GcpAuth(accessToken=<redacted>)""".stripMargin
+
+    override def isTokenExpired(refreshableToken: RefreshableToken): Boolean = {
+      DateTime.now.isAfter(refreshableToken.expiry.minusSeconds(20))
+    }
+    override def generateToken: String = config.cmd.execute()
   }
 
   final private[client] case class GcpRefresh(accessToken: String, expiry: Instant) {
-    def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
+
+    def toRefreshableToken: RefreshableToken = {
+      val expirationDate = new DateTime(this.expiry.toEpochMilli)
+      RefreshableToken(accessToken = this.accessToken, expiry = expirationDate)
+    }
   }
 
   private[client] object GcpRefresh {
@@ -133,9 +151,7 @@ package object client {
 
   final case class GcpConfiguration(cachedAccessToken: Option[GcpCachedAccessToken], cmd: GcpCommand)
 
-  final case class GcpCachedAccessToken(accessToken: String, expiry: Instant) {
-    def expired: Boolean = Instant.now.isAfter(expiry.minusSeconds(20))
-  }
+  final case class GcpCachedAccessToken(accessToken: String, expiry: Instant)
 
   final case class GcpCommand(cmd: String, args: String) {
 

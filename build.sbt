@@ -1,3 +1,5 @@
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.{MergeStrategy, PathList}
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
@@ -56,7 +58,7 @@ ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 
 publishTo := sonatypePublishToBundle.value
 sonatypeCredentialHost := Sonatype.sonatype01
-updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
+ThisBuild / updateOptions := updateOptions.value.withGigahorse(false)
 
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
@@ -179,7 +181,18 @@ lazy val skuber = (project in file("client"))
 lazy val examples = (project in file("examples"))
   .settings(
     commonSettings,
+    mergeStrategy,
     crossScalaVersions := supportedScalaVersion)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
+
+val mergeStrategy = Seq(
+  assembly / assemblyMergeStrategy := {
+    case PathList("module-info.class") => MergeStrategy.last
+    case path if path.endsWith("/module-info.class") => MergeStrategy.last
+    case x =>
+      val oldStrategy = (assembly / assemblyMergeStrategy).value
+      oldStrategy(x)
+  }
+)
