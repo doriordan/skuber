@@ -28,6 +28,9 @@ final case class AwsAuthRefreshable(cluster: Option[Cluster] = None) extends Aut
     }
   }
 
+  private val region: Option[Regions] = cluster.map(_.awsRegion).getOrElse(defaultK8sConfig.currentContext.cluster.awsRegion)
+
+
   //  https://github.com/kubernetes-sigs/aws-iam-authenticator/blob/27337b2b74c3140cf745a64f7154fe8ff7592258/pkg/token/token.go#L87
   // STS provides 15 minutes expiration, and it's not configurable.
   // Using 10 minutes to be on the safe side.
@@ -52,7 +55,11 @@ final case class AwsAuthRefreshable(cluster: Option[Cluster] = None) extends Aut
         .build().asInstanceOf[AWSSecurityTokenServiceClient]
 
       val callerIdentityRequestDefaultRequest = new DefaultRequest[GetCallerIdentityRequest](new GetCallerIdentityRequest(), "sts")
-      val uri = new URI("https", "sts.amazonaws.com", null, null)
+
+      val regionStr = region.map(rg => s".${rg.getName}").getOrElse("")
+      val stsHost = s"sts$regionStr.amazonaws.com"
+
+      val uri = new URI("https", stsHost, null, null)
       callerIdentityRequestDefaultRequest.setResourcePath("/")
       callerIdentityRequestDefaultRequest.setEndpoint(uri)
       callerIdentityRequestDefaultRequest.setHttpMethod(HttpMethodName.GET)

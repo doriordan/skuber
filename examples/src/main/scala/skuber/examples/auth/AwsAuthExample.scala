@@ -2,6 +2,7 @@ package skuber.examples.auth
 
 import java.util.Base64
 import akka.actor.ActorSystem
+import com.amazonaws.regions.Regions
 import org.joda.time.DateTime
 import skuber.api.Configuration
 import skuber.api.client.token.AwsAuthRefreshable
@@ -18,7 +19,8 @@ object AwsAuthExample extends App {
   val serverUrl = System.getenv("serverUrl")
   val certificate = Base64.getDecoder.decode(System.getenv("certificate"))
   val clusterName = System.getenv("clusterName")
-  val cluster = Cluster(server = serverUrl, certificateAuthority = Some(Right(certificate)), clusterName = Some(clusterName))
+  val region = Regions.fromName(System.getenv("region"))
+  val cluster = Cluster(server = serverUrl, certificateAuthority = Some(Right(certificate)), clusterName = Some(clusterName), awsRegion = Some(region))
 
   val context = Context(cluster = cluster, authInfo = AwsAuthRefreshable(cluster = Some(cluster)))
 

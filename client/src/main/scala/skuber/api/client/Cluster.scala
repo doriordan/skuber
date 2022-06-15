@@ -1,5 +1,7 @@
 package skuber.api.client
 
+import com.amazonaws.regions.Regions
+
 /**
  * @author David O'Riordan
  *
@@ -10,6 +12,10 @@ case class Cluster(
                     server: String = defaultApiServerURL,
                     insecureSkipTLSVerify: Boolean = false,
                     certificateAuthority: Option[PathOrData] = None,
-                    clusterName: Option[String] = None) {
+                    clusterName: Option[String] = None,
+                    awsRegion: Option[Regions] = None
+                  ) {
   def withName(name: String): Cluster = this.copy(clusterName = Some(name))
+
+  def withAwsRegion(region: Regions): Cluster = this.copy(awsRegion = Some(region))
 }
