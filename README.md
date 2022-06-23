@@ -10,14 +10,14 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 
 
 ## Features
-
+- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
+- Refreshing EKS tokens [Refresh EKS Token guide](docs/Refresh_EKS_AWS_Token.md)
 - Comprehensive support for Kubernetes API model represented as Scala case classes
 - Support for core, extensions and other Kubernetes API groups
 - Full support for converting resources between the case class and standard JSON representations
 - Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
 - Fluent API for creating and updating specifications of Kubernetes resources
-- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
 
 See the [programming guide](docs/GUIDE.md) for more details.
 
@@ -147,17 +147,17 @@ ci.yaml and clean.yaml are generated automatically with [sbt-github-actions](htt
 Run `sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh` in order to regenerate ci.yaml and clean.yaml.
 
 CI Running against the following k8s versions
-
-skuber supports all other k8s versions, not all of them tested under CI.
-
-https://kubernetes.io/releases/
-
-* v1.19.6 
+* v1.19.6
 * v1.20.11
 * v1.21.5
 * v1.22.9
 * v1.23.6
 * v1.24.1
+
+skuber supports all other k8s versions, not all of them tested under CI.
+
+https://kubernetes.io/releases/
+
 
 
 ## License
