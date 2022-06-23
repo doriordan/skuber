@@ -1,13 +1,11 @@
 # Refresh EKS (AWS) Token
 
-### Background
+## Background
 Skuber has the functionality to refresh your EKS (AWS) token with an IAM role and cluster configurations. 
 
 The initiative:
 * Refreshing tokens increasing your k8s cluster security
-* Since kubernetes v1.21 service account tokens has an expiration, 
-  which means that you must use this feature with:
-  skuber + EKS + k8s v1.21+.
+* Since kubernetes v1.21 service account tokens has an expiration of 1 hour.
   https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-1.21
 
 
