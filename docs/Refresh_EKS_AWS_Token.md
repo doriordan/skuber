@@ -1,5 +1,13 @@
 # Refresh EKS (AWS) Token
 
+[Background](#background)  
+[Step-by-step guide](#step-by-step-guide)
+[Setup the environment variables](#setup-the-environment-variables)
+[Create IAM Role](#create-iam-role)
+[Create a service account](#create-a-service-account)
+[Create the aws-auth mapping](#create-the-aws-auth-mapping)
+[Skuber Code example](#skuber-code-example)
+
 ## Background
 Skuber has the functionality to refresh your EKS (AWS) token with an IAM role and cluster configurations. 
 
@@ -48,7 +56,7 @@ echo $OIDC
 export SKUBER_SA=skuber-serviceaccount
 ```
 
-### Create a file with the IAM policy and federated principal 
+### Create IAM Role 
 
 This role will map the service account that skuber uses to the cluster it connects to. </br>
 You can add more clusters under "Resource"
@@ -83,7 +91,6 @@ cat > skuber_iam_role.json  <<EOL
 EOL
 ```
 
-### Create IAM Role 
 Create and set IAM role name
 ```
 export IAM_ROLE_NAME=skuber-eks
