@@ -110,9 +110,9 @@ users:
     
     // construct equivalent config directly for comparison
  
-    val cowCluster=K8SCluster("v1", "http://cow.org:8080",false)
-    val horseCluster=K8SCluster("v1","https://horse.org:4443", false, certificateAuthority=Some(Left("path/to/my/cafile")))
-    val pigCluster=K8SCluster("v1", "https://pig.org:443", true)
+    val cowCluster=K8SCluster("v1", "http://cow.org:8080",false, clusterName = Some("cow-cluster"))
+    val horseCluster=K8SCluster("v1","https://horse.org:4443", false, certificateAuthority=Some(Left("path/to/my/cafile")), clusterName = Some("horse-cluster"))
+    val pigCluster=K8SCluster("v1", "https://pig.org:443", true, clusterName = Some("pig-cluster"))
     val clusters=Map("cow-cluster" -> cowCluster,"horse-cluster"->horseCluster,"pig-cluster"->pigCluster)
     
     val blueUser = TokenAuth("blue-token")

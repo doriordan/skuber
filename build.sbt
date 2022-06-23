@@ -1,3 +1,5 @@
+import sbtassembly.AssemblyKeys.assembly
+import sbtassembly.{MergeStrategy, PathList}
 import xerial.sbt.Sonatype._
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
@@ -37,6 +39,10 @@ val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
 
+val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
+val awsJavaSdkSts = "com.amazonaws" % "aws-java-sdk-sts" % "1.12.233"
+val apacheCommonsLogging = "commons-logging" % "commons-logging" % "1.2"
+
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
 
@@ -52,7 +58,7 @@ ThisBuild / homepage := Some(url("https://github.com/hagay3"))
 
 publishTo := sonatypePublishToBundle.value
 sonatypeCredentialHost := Sonatype.sonatype01
-updateOptions in ThisBuild := updateOptions.value.withGigahorse(false)
+ThisBuild / updateOptions := updateOptions.value.withGigahorse(false)
 
 sonatypeProjectHosting := Some(GitHubHosting("hagay3", "skuber", "hagay3@gmail.com"))
 
@@ -138,6 +144,7 @@ lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
     akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
+    awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging,
     scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
@@ -174,7 +181,18 @@ lazy val skuber = (project in file("client"))
 lazy val examples = (project in file("examples"))
   .settings(
     commonSettings,
+    mergeStrategy,
     crossScalaVersions := supportedScalaVersion)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
+
+val mergeStrategy = Seq(
+  assembly / assemblyMergeStrategy := {
+    case PathList("module-info.class") => MergeStrategy.last
+    case path if path.endsWith("/module-info.class") => MergeStrategy.last
+    case x =>
+      val oldStrategy = (assembly / assemblyMergeStrategy).value
+      oldStrategy(x)
+  }
+)
