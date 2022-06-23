@@ -9,7 +9,7 @@ The initiative:
   https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-1.21
 
 
-## Step by step guide
+## Step-by-step guide
 Pay attention to the fact that skuber can be deployed in one cluster and the cluster you want to control can be another cluster. </br>
 In this guide I will use the following: 
 
