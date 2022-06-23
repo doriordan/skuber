@@ -38,6 +38,7 @@ val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
+val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.3"
 
 val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
 val awsJavaSdkSts = "com.amazonaws" % "aws-java-sdk-sts" % "1.12.233"
@@ -144,7 +145,7 @@ lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
     akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
-    awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging,
+    awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging, jacksonDatabind,
     scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
