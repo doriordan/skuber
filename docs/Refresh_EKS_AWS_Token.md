@@ -1,12 +1,12 @@
 # Refresh EKS (AWS) Token
 
-[Background](#background)  
-[Step-by-step guide](#step-by-step-guide)
-[Setup the environment variables](#setup-the-environment-variables)
-[Create IAM Role](#create-iam-role)
-[Create a service account](#create-a-service-account)
-[Create the aws-auth mapping](#create-the-aws-auth-mapping)
-[Skuber Code example](#skuber-code-example)
+[Background](#background) </br>
+[Step-by-step guide](#step-by-step-guide) </br>
+[Setup the environment variables](#setup-the-environment-variables) </br>
+[Create IAM Role](#create-iam-role) </br>
+[Create a service account](#create-a-service-account) </br>
+[Create the aws-auth mapping](#create-the-aws-auth-mapping) </br>
+[Skuber Code example](#skuber-code-example) 
 
 ## Background
 Skuber has the functionality to refresh your EKS (AWS) token with an IAM role and cluster configurations. 
