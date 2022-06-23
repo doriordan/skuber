@@ -33,7 +33,7 @@ object AwsAuthExample extends App {
 
   k8s.close
   Await.result(as.terminate(), 10.seconds)
-  System.exit(1)
+  System.exit(0)
 
   def listPods(namespace: String, minutesSleep: Int): Unit = {
     println(s"Sleeping $minutesSleep minutes...")

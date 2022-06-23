@@ -15,7 +15,7 @@ The initiative:
 Pay attention to the fact that skuber can be deployed in one cluster and the cluster you want to control can be another cluster. </br>
 In this guide I will use the following: 
 
-`SKUBER_CLUSTER` - the cluster skuber app will bed deployed on. </br>
+`SKUBER_CLUSTER` - the cluster skuber app will be deployed on. </br>
 `TARGET_CLUSTER` - the cluster that skuber will be connected to.
 
 ### Setup the environment variables
@@ -26,7 +26,7 @@ export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 echo $ACCOUNT_ID
 ```
 Set the cluster name and region you need access to (`TARGET_CLUSTER`) </br>
-use `aws eks list-clusters`
+use `aws eks list-clusters` to see the cluster names.
 
 ```
 export TARGET_CLUSTER=example-cluster
@@ -40,7 +40,7 @@ Set the namespace name which skuber app will run from
 
 Set the oidc provider id
 
-Set the service account name that skuber app will be attached to
+Set the service account name that skuber app will be attached to (we will create it later)
 
 ```
 export SKUBER_CLUSTER=skuber-cluster
@@ -98,8 +98,8 @@ aws iam create-role \
 ```
 
 ### Create a service account
-Change the context to `TARGET_CLUSTER`.
-Create the service account in `SKUBER_CLUSTER`
+Change the context to `SKUBER_CLUSTER` and create the service account </br>
+
 ```
 kubectl config use-context arn:aws:eks:${REGION}:${ACCOUNT_ID}:cluster/${SKUBER_CLUSTER}
 
@@ -125,7 +125,7 @@ kubectl edit configmap aws-auth -n kube-system
 ```
 
 Add the following mapping
-* Replace the variables with the actual value
+* Replace the variables with the actual values
 ```
     - rolearn: arn:aws:iam::$ACCOUNT_ID:role/$IAM_ROLE_NAME
       username: ci
@@ -135,7 +135,7 @@ Add the following mapping
 
 
 ### Skuber Code example
-
+A working example for using `AwsAuthRefreshable`
 ```
 implicit private val as = ActorSystem()
   implicit private val ex = as.dispatcher
@@ -157,7 +157,7 @@ implicit private val as = ActorSystem()
 
   k8s.close
   Await.result(as.terminate(), 10.seconds)
-  System.exit(1)
+  System.exit(0)
 
   def listPods(namespace: String, minutesSleep: Int): Unit = {
     println(s"Sleeping $minutesSleep minutes...")
