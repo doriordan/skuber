@@ -86,10 +86,10 @@ class KubernetesClientImpl private[client] (
     rd: ResourceDefinition[_],
     nameComponent: Option[String],
     query: Option[Uri.Query] = None,
-    namespace: String = namespaceName): HttpRequest =
+    namespace: Option[String] = Some(namespaceName)): HttpRequest =
   {
-    val nsPathComponent = if (rd.spec.scope == ResourceSpecification.Scope.Namespaced) {
-      Some("namespaces/" + namespace)
+    val nsPathComponent: Option[String] = if (rd.spec.scope == ResourceSpecification.Scope.Namespaced) {
+      namespace.map(ns => s"namespaces/$ns")
     } else {
       None
     }
@@ -223,14 +223,14 @@ class KubernetesClientImpl private[client] (
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     // Namespace set in the object metadata (if set) has higher priority than that of the
-    // request context (see Issue #204)
+    // request context
     val targetNamespace = if (obj.metadata.namespace.isEmpty) namespaceName else obj.metadata.namespace
 
     logRequestObjectDetails(method, obj)
     val marshal = Marshal(obj)
     for {
       requestEntity        <- marshal.to[RequestEntity]
-      httpRequest          = buildRequest(method, rd, nameComponent, namespace = targetNamespace)
+      httpRequest          = buildRequest(method, rd, nameComponent, namespace = Some(targetNamespace))
           .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
       newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
     } yield newOrUpdatedResource
@@ -314,7 +314,7 @@ class KubernetesClientImpl private[client] (
   private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(
     implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, None, namespace = theNamespace)
+    val req = buildRequest(HttpMethods.GET, rd, None, namespace = Some(theNamespace))
     makeRequestReturningListResource[L](req)
   }
 
@@ -366,7 +366,7 @@ class KubernetesClientImpl private[client] (
     }
   }
 
-  override def get[O <: ObjectResource](name: String)(
+  override def get[O <: ObjectResource](name: String, namespace: Option[String] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     _get[O](name)
@@ -381,7 +381,7 @@ class KubernetesClientImpl private[client] (
   private[api] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
+    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = Some(namespace))
     makeRequestReturningObjectResource[O](req)
   }
 
@@ -436,7 +436,7 @@ class KubernetesClientImpl private[client] (
   override def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
     implicit lc: LoggingContext): Future[Source[ByteString, _]] =
   {
-    val targetNamespace=namespace.getOrElse(this.namespaceName)
+    val targetNamespace=namespace.orElse(Some(this.namespaceName))
     val queryMap=queryParams.asMap
     val query: Option[Uri.Query] = if (queryMap.isEmpty) {
       None
@@ -559,7 +559,7 @@ class KubernetesClientImpl private[client] (
 
   override def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
       (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
-    val targetNamespace = namespace.getOrElse(namespaceName)
+    val targetNamespace = namespace.orElse(Some(namespaceName))
     val contentType = patchData.strategy match {
       case StrategicMergePatchStrategy =>
         CustomMediaTypes.`application/strategic-merge-patch+json`

@@ -33,9 +33,10 @@ trait KubernetesClient {
     * Retrieve the object resource with the specified name and type
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name the name of the object resource
+    * @param namespace the namespace of the object resource
     * @return A future containing the retrieved resource (or an exception if resource not found)
     */
-  def get[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O]
+  def get[O <: ObjectResource](name: String, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O]
 
   /**
     * Retrieve the object resource with the specified name and type, returning None if resource does not exist
