@@ -11,7 +11,6 @@ import skuber.api.client.impl.KubernetesClientImpl
 import skuber.{ObjectResource, ResourceDefinition, ListOptions}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 private[api] object WatchSource {
@@ -31,7 +30,8 @@ private[api] object WatchSource {
                                  pool: Pool[Start[O]],
                                  name: Option[String],
                                  options: ListOptions,
-                                 bufSize: Int)(implicit sys: ActorSystem,
+                                 bufSize: Int,
+                                 namespace: Option[String])(implicit sys: ActorSystem,
                                                format: Format[O],
                                                rd: ResourceDefinition[O],
                                                lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
@@ -49,7 +49,7 @@ private[api] object WatchSource {
           fieldSelector = nameFieldSelector.orElse(options.fieldSelector)
         )
         client.buildRequest(
-          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap))
+          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap)), namespace = namespace
         )
       }
 
