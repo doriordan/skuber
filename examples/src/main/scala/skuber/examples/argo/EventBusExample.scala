@@ -1,12 +1,13 @@
 package skuber.examples.argo
 
+import java.util.UUID.randomUUID
 import akka.actor.ActorSystem
 import play.api.libs.functional.syntax.unlift
-import play.api.libs.json.{Format, JsPath, Json, OWrites, Reads}
+import play.api.libs.json.{Format, JsPath, Json}
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.api.client.LoggingContext
-import skuber.examples.argo.EventBus.{Native, Nats, eventBusFmt, rsDef, rsListDef}
-import skuber.json.format.objFormat
+import skuber.examples.argo.EventBus.{EventBusSetList, Native, Nats, eventBusFmt, eventBusListFmt, rsDef, rsListDef}
+import skuber.json.format.{ListResourceFormat, objFormat}
 import skuber.{ListResource, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, k8sInit}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
@@ -21,11 +22,16 @@ object EventBusExample extends App {
   val k8s = k8sInit
 
   val eventBusSpec = EventBus.Spec(Nats(Native()))
-  val eventBusResource1 = EventBus("event-bus-name")
+  val eventBusResource1 = EventBus(randomUUID().toString)
   val k8sArgo = k8s.usingNamespace("argo-eventbus")
   val cr = k8sArgo.create(eventBusResource1)(eventBusFmt, rsDef, LoggingContext.lc)
 
   Await.result(cr, 30.seconds)
+  val ls = k8sArgo.list[EventBusSetList]()(eventBusListFmt, rsListDef, LoggingContext.lc).map { eventsBusList =>
+    println(eventsBusList.mkString("\n"))
+  }
+  Await.result(ls, 30.seconds)
+
   k8s.close
   k8sArgo.close
   Await.result(system.terminate(), 10.seconds)
@@ -80,5 +86,7 @@ object EventBus {
     objFormat and
       (JsPath \ "spec").formatNullable[EventBus.Spec]
     )(EventBus.apply _, unlift(EventBus.unapply))
+
+  implicit val eventBusListFmt: Format[EventBusSetList] = ListResourceFormat[EventBus]
 
 }
