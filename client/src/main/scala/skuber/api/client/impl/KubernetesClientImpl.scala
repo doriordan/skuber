@@ -91,6 +91,7 @@ class KubernetesClientImpl private[client] (
     val nsPathComponent: Option[String] =
       (rd.spec.scope, namespace) match {
         case (Scope.Namespaced, Some(ns)) => Some(s"namespaces/$ns")
+        case (Scope.Namespaced, None) => Some(s"namespaces/$namespaceName")
         case (_, _) => None
       }
 
