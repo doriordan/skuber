@@ -31,7 +31,7 @@ private[api] object WatchSource {
                                  name: Option[String],
                                  options: ListOptions,
                                  bufSize: Int,
-                                 namespace: Option[String])(implicit sys: ActorSystem,
+                                 namespace: Option[String] = None)(implicit sys: ActorSystem,
                                                format: Format[O],
                                                rd: ResourceDefinition[O],
                                                lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {

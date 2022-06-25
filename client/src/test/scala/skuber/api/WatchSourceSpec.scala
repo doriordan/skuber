@@ -38,10 +38,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), None)
       ).thenReturn(secondRequest)
 
       val responses = Map(
@@ -67,10 +67,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(4)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802",  "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802",  "watch" -> "true")), None
       )
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), None
       )
       ok
     }
@@ -82,10 +82,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), None)
       ).thenReturn(secondRequest)
 
       val responses = Map(
@@ -111,10 +111,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(4)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), None
       )
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), None
       )
       ok
     }
@@ -131,10 +131,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
 
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), None)
       ).thenReturn(firstRequest)
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), None)
       ).thenReturn(secondRequest)
 
       val responses = Map(
@@ -160,10 +160,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(4)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), None
       )
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), None
       )
 
       ok
@@ -179,10 +179,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val query2=Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true","fieldSelector" -> nameFieldSelector)
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), None)
       ).thenReturn(firstRequest)
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), None)
       ).thenReturn(secondRequest)
 
       val responses = Map(
@@ -208,10 +208,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(4)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), None
       )
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), None
       )
 
       ok
@@ -225,10 +225,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), None)
       ).thenReturn(secondRequest).thenReturn(thirdRequest)
 
       val responses = Map(
@@ -255,10 +255,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(6)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
       verify(client, times(2)).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), None
       )
       ok
     }
@@ -269,7 +269,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
 
       val responses = Map(
@@ -291,7 +291,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(2)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
 
       ok
@@ -303,7 +303,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
 
       val responses = Map(
@@ -324,7 +324,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client, times(2)).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
 
       ok
@@ -336,7 +336,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
 
       val responses = Map(
@@ -358,7 +358,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
 
       ok
@@ -370,7 +370,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
 
       val responses = Map(
@@ -393,7 +393,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       verify(client).logConfig
 
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
 
       ok
@@ -405,7 +405,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
 
       val responses = Map(
@@ -427,7 +427,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       verify(client).logConfig
 
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
 
       ok
@@ -439,7 +439,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None)
       ).thenReturn(firstRequest)
 
       val responses = Map(
@@ -460,7 +460,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       verify(client).logConfig
       verify(client).buildRequest(
-        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null
+        HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), None
       )
 
       ok

@@ -90,7 +90,7 @@ class KubernetesClientImpl private[client] (
   {
     val nsPathComponent: Option[String] =
       (rd.spec.scope, namespace) match {
-        case (Scope.Namespaced, Some(ns)) => s"namespaces/$ns"
+        case (Scope.Namespaced, Some(ns)) => Some(s"namespaces/$ns")
         case (_, _) => None
       }
 
@@ -330,6 +330,15 @@ class KubernetesClientImpl private[client] (
   }
 
   /*
+   * List objects of specific resource kind in current namespace
+   */
+  override def list[L <: ListResource[_]](
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  {
+    _list[L](rd, None, None)
+  }
+
+  /*
    * Retrieve the list of objects of given type in the current namespace that match the supplied label selector
    */
   override def listSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(
@@ -378,7 +387,7 @@ class KubernetesClientImpl private[client] (
   override def getInNamespace[O <: ObjectResource](name: String, namespace: String)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
-    _get[O](name, namespace)
+    _get[O](name, Some(namespace))
   }
 
   private[api] def _get[O <: ObjectResource](name: String, namespace: Option[String] = Some(namespaceName))(
@@ -414,6 +423,12 @@ class KubernetesClientImpl private[client] (
     implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _deleteAll[L](rd, None, namespace)
+  }
+
+  override def deleteAll[L <: ListResource[_]](
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  {
+    _deleteAll[L](rd, None, None)
   }
 
   override def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(
@@ -464,11 +479,16 @@ class KubernetesClientImpl private[client] (
   // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
   // The methods return Akka streams sources that will reactively emit a stream of updated
   // values of the watched resources.
-
-  override def watch[O <: ObjectResource](obj: O, namespace: Option[String] = None)(
+  override def watch[O <: ObjectResource](obj: O, namespace: Option[String])(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     watch(name = obj.name, namespace = namespace)
+  }
+
+  override def watch[O <: ObjectResource](obj: O)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
+  {
+    watch(name = obj.name)
   }
 
   // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
@@ -488,17 +508,23 @@ class KubernetesClientImpl private[client] (
     Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, namespace)
   }
 
-  override def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String] = None)(
+  override def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     watchContinuously(name = obj.name, namespace = namespace)
+  }
+
+  override def watchContinuously[O <: ObjectResource](obj: O)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  {
+    watchContinuously(name = obj.name)
   }
 
   override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
-    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize)
+    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, namespace)
   }
 
   override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(

@@ -33,7 +33,7 @@ trait KubernetesClient {
     * Retrieve the object resource with the specified name and type
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name the name of the object resource
-    * @param namespace the namespace of the object resource
+    * @param namespace the namespace (defaults to currently configured namespace)
     * @return A future containing the retrieved resource (or an exception if resource not found)
     */
   def get[O <: ObjectResource](name: String, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O]
@@ -42,7 +42,7 @@ trait KubernetesClient {
     * Retrieve the object resource with the specified name and type, returning None if resource does not exist
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name the name of the object resource
-    * @param namespace the namespace of the object resource
+    * @param namespace the namespace (defaults to currently configured namespace)
     * @return A future containing Some(resource) if the resource is found on the cluster, or None if not found
     */
   def getOption[O <: ObjectResource](name: String, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Option[O]]
@@ -54,7 +54,7 @@ trait KubernetesClient {
     * @param namespace the namespace (defaults to currently configured namespace)
     * @return A future conatining Some(resource) if the resource is found on the cluster otherwise None
     */
-  @deprecated("method is been replaced with get", "2.7.6")
+  @deprecated("Use 'get(name, Some(namespace))'", "2.7.6")
   def getInNamespace[O <: ObjectResource](name: String, namespace: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O]
 
   /**
@@ -102,6 +102,9 @@ trait KubernetesClient {
     */
   def deleteAll[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L]
 
+  @deprecated("Use 'deleteAll()'", "2.7.6")
+  def deleteAll[L <: ListResource[_]](implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L]
+
   /**
     * Delete all resources of specified type selected by a specified label selector in current namespace
     * @param labelSelector selects the resources to delete
@@ -130,7 +133,7 @@ trait KubernetesClient {
     * @tparam L the list resource type of the objects to retrieve e.g. PodList, DeploymentList
     * @return A future containing the resource list retrieved
     */
-  @deprecated("method is been replaced with list", "2.7.6")
+  @deprecated("Use 'list(Some(namespace))'", "2.7.6")
   def listInNamespace[L <: ListResource[_]](theNamespace: String)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L]
 
   /**
@@ -140,6 +143,10 @@ trait KubernetesClient {
     * @return A future containing the resource list retrieved
     */
   def list[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L]
+
+  @deprecated("Use 'list()'", "2.7.6")
+  def list[L <: ListResource[_]](implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L]
+
 
   /**
     * Get list of selected resources of specified type in the configured namespace for the client
@@ -193,7 +200,10 @@ trait KubernetesClient {
     * @tparam O the type of the object to watch e.g. Pod, Deployment
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watch[O <: ObjectResource](obj: O, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+  def watch[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+
+  @deprecated("Use 'watch(obj, None)'", "2.7.6")
+  def watch[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
 
   /**
     * Place a watch for any changes to a specific object, optionally since a given resource version - this returns a source of events that will be produced
@@ -237,7 +247,10 @@ trait KubernetesClient {
     * @param namespace the namespace (defaults to currently configured namespace)
     * @return  A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+
+  @deprecated("Use watchContinuously(obj, None)", "2.7.6")
+  def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**
     * Watch a specific object resource continuously. This returns a source that will continue to produce
