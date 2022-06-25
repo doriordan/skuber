@@ -21,7 +21,6 @@ object EventBusExample extends App {
   implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
   val k8s = k8sInit
 
-  val eventBusSpec = EventBus.Spec(Nats(Native()))
   val eventBusResource1 = EventBus(randomUUID().toString)
   val k8sArgo = k8s.usingNamespace("argo-eventbus")
   val cr = k8sArgo.create(eventBusResource1)(eventBusFmt, rsDef, LoggingContext.lc)
