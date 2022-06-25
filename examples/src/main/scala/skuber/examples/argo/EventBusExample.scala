@@ -15,6 +15,8 @@ object EventBusExample extends App {
     case class Native()
     case class Status()
 
+    implicit val nativeFmt: Format[Native] = Json.format[Native]
+    implicit val natsFmt: Format[Nats] = Json.format[Nats]
     implicit val specFmt: Format[Spec] = Json.format[Spec]
     implicit val statusFmt: Format[Status] = Json.format[Status]
     implicit val eventBusResourceDefinition = ResourceDefinition[EventBusResource](
