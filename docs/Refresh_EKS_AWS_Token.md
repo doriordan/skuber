@@ -66,26 +66,19 @@ cat > skuber_iam_role.json  <<EOL
 {
     "Version": "2012-10-17",
     "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": "eks:*",
-        "Resource": [
-          "arn:aws:eks:*:${ACCOUNT_ID}:cluster/${TARGET_CLUSTER}"
-        ]
-      },
-      {
-          "Sid": "",
-          "Effect": "Allow",
-          "Principal": {
-              "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC}"
-          },
-          "Action": "sts:AssumeRoleWithWebIdentity",
-          "Condition": {
-              "StringLike": {
-                  "${OIDC}:sub": "system:serviceaccount:${SKUBER_NAMESPACE}:${SKUBER_SA}"
-              }
-          }
-      }
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringLike": {
+                    "${OIDC}:sub": "system:serviceaccount:util:${SKUBER_SA}"
+                }
+            }
+        }
     ]
 }
 EOL
