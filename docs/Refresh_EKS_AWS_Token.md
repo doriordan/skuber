@@ -58,9 +58,8 @@ export SKUBER_SA=skuber-serviceaccount
 
 ### Create IAM Role 
 
-This role will map the service account that skuber uses to the cluster it connects to. </br>
-You can add more clusters under "Resource"
-* Note: eks actions probably need to be minimized and not set to "eks:*" . </br>
+This role will allow skuber service account to assume this role. </br>
+
 ```
 cat > skuber_iam_role.json  <<EOL
 {
