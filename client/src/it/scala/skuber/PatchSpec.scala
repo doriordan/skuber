@@ -31,20 +31,20 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
 
     results.onComplete { _ =>
       k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      system.terminate().recover { case _ => () }.valueT
     }
   }
 
   behavior of "Patch"
 
   it should "patch a pod with strategic merge patch by default" in { k8s =>
-    k8s.create(getNginxPod(pod1, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(pod1, "1.7.9")).valueT
     Thread.sleep(5000)
     val randomString = randomUUID().toString
     val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None)
-    k8s.patch[MetadataPatch, Pod](pod1, patchData).withTimeout().futureValue
+    k8s.patch[MetadataPatch, Pod](pod1, patchData).valueT
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val pod = k8s.get[Pod](pod1).withTimeout().futureValue
+      val pod = k8s.get[Pod](pod1).valueT
       assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
       assert(pod.metadata.annotations == Map())
     }
@@ -52,14 +52,14 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   }
 
   it should "patch a pod with strategic merge patch" in { k8s =>
-    k8s.create(getNginxPod(pod2, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(pod2, "1.7.9")).valueT
     Thread.sleep(5000)
     val randomString = randomUUID().toString
     val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = StrategicMergePatchStrategy)
-    k8s.patch[MetadataPatch, Pod](pod2, patchData).withTimeout().futureValue
+    k8s.patch[MetadataPatch, Pod](pod2, patchData).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val pod = k8s.get[Pod](pod2).withTimeout().futureValue
+      val pod = k8s.get[Pod](pod2).valueT
 
       assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
       assert(pod.metadata.annotations == Map())
@@ -67,13 +67,13 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   }
 
   it should "patch a pod with json merge patch" in { k8s =>
-    k8s.create(getNginxPod(pod3, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(pod3, "1.7.9")).valueT
     Thread.sleep(5000)
     val randomString = randomUUID().toString
     val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = JsonMergePatchStrategy)
-    k8s.patch[MetadataPatch, Pod](pod3, patchData).withTimeout().futureValue
+    k8s.patch[MetadataPatch, Pod](pod3, patchData).valueT
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val pod = k8s.get[Pod](pod3).withTimeout().futureValue
+      val pod = k8s.get[Pod](pod3).valueT
 
       assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
       assert(pod.metadata.annotations == Map())
@@ -82,7 +82,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
 
 
   it should "patch a pod with json patch" in { k8s =>
-    k8s.create(getNginxPod(pod4, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(pod4, "1.7.9")).valueT
     Thread.sleep(5000)
     val randomString = randomUUID().toString
 
@@ -91,16 +91,14 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
       JsonPatchOperation.Add("/metadata/annotations", randomString),
       JsonPatchOperation.Remove("/metadata/annotations"),
     ))
-    k8s.patch[JsonPatch, Pod](pod4, patchData).withTimeout().futureValue
+    k8s.patch[JsonPatch, Pod](pod4, patchData).valueT
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val pod = k8s.get[Pod](pod4).withTimeout().futureValue
+      val pod = k8s.get[Pod](pod4).valueT
 
       assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
       assert(pod.metadata.annotations == Map())
     }
   }
-
-  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 
   def getNginxPod(name: String, version: String): Pod = {
     val nginxContainer = getNginxContainer(version)

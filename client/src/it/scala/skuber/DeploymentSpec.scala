@@ -209,15 +209,4 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     actualDeploymentList shouldBe expectedDeploymentList
   }
 
-
-  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
-
-  def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).valueT
-
-  def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
-    val nginxContainer = getNginxContainer(version)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
-  }
 }

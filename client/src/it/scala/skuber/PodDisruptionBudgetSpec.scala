@@ -47,16 +47,16 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
       _ <- results2
     } yield {
       k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      system.terminate().recover { case _ => () }.valueT
     }
 
   }
 
   it should "create a PodDisruptionBudget" in { k8s =>
     println("START: create a PodDisruptionBudget")
-    k8s.create(getNginxDeployment(deployment1, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxDeployment(deployment1, "1.7.9")).valueT
     import LabelSelector.dsl._
-    val result = k8s.create(PodDisruptionBudget(budget1).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).withTimeout().futureValue
+    val result = k8s.create(PodDisruptionBudget(budget1).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).valueT
     Thread.sleep(5000)
 
     println("FINISH: create a PodDisruptionBudget")
@@ -70,7 +70,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     val deployment = k8s.create(getNginxDeployment(deployment2, "1.7.9")).withTimeout()
     deployment.futureValue
     import LabelSelector.dsl._
-    val firstPdb = k8s.create(PodDisruptionBudget(budget2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).withTimeout().futureValue
+    val firstPdb = k8s.create(PodDisruptionBudget(budget2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).valueT
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
@@ -78,7 +78,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
         updatedPdb => updatedPdb.copy(metadata = updatedPdb.metadata.copy(creationTimestamp = None, selfLink = "", uid = ""))
       }.futureValue
 
-      val updatedPdb = k8s.update(finalPdb).withTimeout().futureValue
+      val updatedPdb = k8s.update(finalPdb).valueT
 
       println("FINISH: update a PodDisruptionBudget")
       assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
@@ -90,10 +90,10 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
 
   it should "delete a PodDisruptionBudget" in { k8s =>
     println("START: delete a PodDisruptionBudget")
-    k8s.create(getNginxDeployment(deployment3, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxDeployment(deployment3, "1.7.9")).valueT
     import LabelSelector.dsl._
-    val pdb = k8s.create(PodDisruptionBudget(budget3).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).withTimeout().futureValue
-    k8s.delete[PodDisruptionBudget](pdb.name).withTimeout().futureValue
+    val pdb = k8s.create(PodDisruptionBudget(budget3).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).valueT
+    k8s.delete[PodDisruptionBudget](pdb.name).valueT
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
@@ -111,14 +111,4 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
 
   }
 
-  def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
-    val nginxContainer = getNginxContainer(version)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
-  }
-
-  def getNginxContainer(version: String): Container = {
-    Container(name = "nginx", image = "nginx:" + version).exposePort(80)
-  }
 }

@@ -52,7 +52,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
   override def beforeAll(): Unit = {
     val k8s = k8sInit(config)
-    k8s.create(TestResource.crd).withTimeout().futureValue
+    k8s.create(TestResource.crd).valueT
   }
 
   override def afterAll(): Unit = {
@@ -66,7 +66,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     results.onComplete { _ =>
       results2.onComplete { _ =>
         k8s.close
-        system.terminate().recover { case _ => () }.withTimeout().futureValue
+        system.terminate().recover { case _ => () }.valueT
       }
     }
 
@@ -127,11 +127,11 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
   def createNamedTestResource(k8s: FixtureParam, name: String, replicas: Int, namespace: Option[String] = None): CustomResource[TestResource.Spec, TestResource.Status] = {
     val testSpec = TestResource.Spec(replicas)
     val testResource1 = TestResource(name, testSpec)
-    k8s.create(testResource1, namespace).withTimeout().futureValue
+    k8s.create(testResource1, namespace).valueT
   }
 
   it should "get a crd" taggedAs (CustomResourceTag) in { k8s =>
-    val getResource = k8s.get[CustomResourceDefinition](TestResource.crd.name).withTimeout().futureValue
+    val getResource = k8s.get[CustomResourceDefinition](TestResource.crd.name).valueT
     assert(getResource.name == TestResource.crd.name)
   }
 
@@ -144,7 +144,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     assert(testResourceCreated.name == testResourceName1)
     assert(testResourceCreated.spec == expectedSpec)
 
-    val resourceGet = k8s.get[TestResource](testResourceName1).withTimeout().futureValue
+    val resourceGet = k8s.get[TestResource](testResourceName1).valueT
 
     assert(resourceGet.name == testResourceName1)
     assert(resourceGet.spec.desiredReplicas == 1)
@@ -157,10 +157,10 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
 
-    val currentScale = k8s.getScale[TestResource](testResourceName1).withTimeout().futureValue
+    val currentScale = k8s.getScale[TestResource](testResourceName1).valueT
 
-    k8s.updateScale[TestResource](testResourceName1, currentScale.withSpecReplicas(modifiedDesiredReplicas)).withTimeout().futureValue
-    val updated = k8s.get[TestResource](testResourceName1).withTimeout().futureValue
+    k8s.updateScale[TestResource](testResourceName1, currentScale.withSpecReplicas(modifiedDesiredReplicas)).valueT
+    val updated = k8s.get[TestResource](testResourceName1).valueT
     assert(updated.spec.desiredReplicas == modifiedDesiredReplicas)
   }
 
@@ -172,11 +172,11 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     val modifiedActualReplicas = 3
     val status = TestResource.Status(modifiedActualReplicas)
 
-    val testResource = k8s.get[TestResource](testResourceName1).withTimeout().futureValue
-    val updated = k8s.updateStatus(testResource.withStatus(status)).withTimeout().futureValue
+    val testResource = k8s.get[TestResource](testResourceName1).valueT
+    val updated = k8s.updateStatus(testResource.withStatus(status)).valueT
     updated.status shouldBe Some(status)
 
-    val scale = k8s.getScale[TestResource](testResourceName1).withTimeout().futureValue
+    val scale = k8s.getScale[TestResource](testResourceName1).valueT
     scale.spec.replicas shouldBe Some(specReplicas)
     scale.status.get.replicas shouldBe modifiedActualReplicas
   }
@@ -184,7 +184,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
   it should "delete the custom resource" taggedAs (CustomResourceTag) in { k8s =>
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
-    k8s.delete[TestResource](testResourceName1).withTimeout().futureValue
+    k8s.delete[TestResource](testResourceName1).valueT
 
     whenReady(
       k8s.get[TestResource](testResourceName1).withTimeout().failed
@@ -199,6 +199,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
   it should "getStatus on deployment - specific namespace" in  { k8s =>
     createNamespace(namespace1, k8s)
+
     val testName = randomUUID().toString
     val actualReplicas = 1
     val desiredReplicas = 7
@@ -225,20 +226,20 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
       trackedEvents += event
     }
 
-    def getCurrentResourceVersion: String = k8s.list[TestResourceList].withTimeout().futureValue.resourceVersion
+    def getCurrentResourceVersion: String = k8s.list[TestResourceList].valueT.resourceVersion
 
 
     def watchAndTrackEvents(sinceVersion: String) = {
-      val crEventSource = k8s.watchAll[TestResource](sinceResourceVersion = Some(sinceVersion)).withTimeout().futureValue
+      val crEventSource = k8s.watchAll[TestResource](sinceResourceVersion = Some(sinceVersion)).valueT
       crEventSource
         .viaMat(KillSwitches.single)(Keep.right)
         .toMat(trackEvents)(Keep.both).run()
 
     }
 
-    def createTestResource = k8s.create(testResource).withTimeout().futureValue
+    def createTestResource = k8s.create(testResource).valueT
 
-    def deleteTestResource(resource: String) = k8s.delete[TestResource](resource).withTimeout().futureValue
+    def deleteTestResource(resource: String) = k8s.delete[TestResource](resource).valueT
 
     val killSwitch: UniqueKillSwitch = {
       val (kill, _) = watchAndTrackEvents(getCurrentResourceVersion)
@@ -259,5 +260,4 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     killSwitch.shutdown()
     assert(true)
   }
-  def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).withTimeout().futureValue
 }

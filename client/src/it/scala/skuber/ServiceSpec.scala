@@ -45,7 +45,7 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     results.onComplete { _ =>
       results2.onComplete { _ =>
         k8s.close
-        system.terminate().recover { case _ => () }.withTimeout().futureValue
+        system.terminate().recover { case _ => () }.valueT
       }
     }
   }
@@ -56,14 +56,14 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
   behavior of "Service"
 
   it should "create a service" in { k8s =>
-    val p = k8s.create(getService(serviceName1)).withTimeout().futureValue
+    val p = k8s.create(getService(serviceName1)).valueT
     assert(p.name == serviceName1)
 
   }
 
   it should "get the newly created service" in { k8s =>
-    k8s.create(getService(serviceName2)).withTimeout().futureValue
-    val d = k8s.get[Service](serviceName2).withTimeout().futureValue
+    k8s.create(getService(serviceName2)).valueT
+    val d = k8s.get[Service](serviceName2).valueT
     assert(d.name == serviceName2)
     // Default ServiceType is ClusterIP
     assert(d.spec.map(_._type) == Option(Service.Type.ClusterIP))
@@ -71,8 +71,8 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
   }
 
   it should "delete a service" in { k8s =>
-    k8s.create(getService(serviceName3)).withTimeout().futureValue
-    k8s.delete[Service](serviceName3).withTimeout().futureValue
+    k8s.create(getService(serviceName3)).valueT
+    k8s.delete[Service](serviceName3).valueT
     eventually(timeout(20.seconds), interval(3.seconds)) {
       whenReady(
         k8s.get[Service](serviceName3).withTimeout().failed
@@ -92,12 +92,12 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     createNamespace(namespace4, k8s)
     val labels = Map("listSelected" -> "true")
     val labelSelector = LabelSelector("listSelected" is "true")
-    k8s.create(getService(serviceName41, labels), Some(namespace4)).withTimeout().futureValue
-    k8s.create(getService(serviceName42, labels), Some(namespace4)).withTimeout().futureValue
+    k8s.create(getService(serviceName41, labels), Some(namespace4)).valueT
+    k8s.create(getService(serviceName42, labels), Some(namespace4)).valueT
 
     val expectedServices = List(serviceName41, serviceName42)
     val actualServices =
-      k8s.listSelected[ServiceList](labelSelector, Some(namespace4)).withTimeout().futureValue.map(_.name)
+      k8s.listSelected[ServiceList](labelSelector, Some(namespace4)).valueT.map(_.name)
 
     actualServices should contain theSameElementsAs expectedServices
 
@@ -107,18 +107,16 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     createNamespace(namespace5, k8s)
     val labels = Map("listWithOptions" -> "true")
     val listOptions = ListOptions(Some(LabelSelector("listWithOptions" is "true")))
-    k8s.create(getService(serviceName51, labels), Some(namespace5)).withTimeout().futureValue
-    k8s.create(getService(serviceName52, labels), Some(namespace5)).withTimeout().futureValue
+    k8s.create(getService(serviceName51, labels), Some(namespace5)).valueT
+    k8s.create(getService(serviceName52, labels), Some(namespace5)).valueT
 
     val expectedServices = List(serviceName51, serviceName52)
     val actualServices =
-      k8s.listWithOptions[ServiceList](listOptions, Some(namespace5)).withTimeout().futureValue.map(_.name)
+      k8s.listWithOptions[ServiceList](listOptions, Some(namespace5)).valueT.map(_.name)
 
     actualServices should contain theSameElementsAs expectedServices
 
   }
-
-  def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).withTimeout().futureValue
 
   def getService(name: String, labels: Map[String, String] = Map.empty): Service = {
     val spec: Service.Spec = Service.Spec(ports = List(Service.Port(port = 80)), selector = Map("app" -> "nginx"))

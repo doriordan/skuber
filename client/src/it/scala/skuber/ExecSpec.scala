@@ -34,13 +34,13 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
     results.onComplete { _ =>
       k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      system.terminate().recover { case _ => () }.valueT
     }
   }
 
   it should "execute a command in the running pod" in { k8s =>
     println("START: execute a command in the running pod")
-    k8s.create(getNginxPod(podName1, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(podName1, "1.7.9")).valueT
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
@@ -48,7 +48,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
       var errorOutput = ""
       val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
       val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-      k8s.exec(podName1, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).withTimeout().futureValue
+      k8s.exec(podName1, Seq("whoami"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).valueT
 
       println("FINISH: execute a command in the running pod")
       assert(output == "root\n")
@@ -58,7 +58,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   it should "execute a command in the specified container of the running pod" in { k8s =>
     println("START: execute a command in the specified container of the running pod")
-    k8s.create(getNginxPod(podName2, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(podName2, "1.7.9")).valueT
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
@@ -66,7 +66,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
       val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
       var errorOutput = ""
       val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-      k8s.exec(podName2, Seq("whoami"), maybeContainerName = Some("nginx"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).withTimeout().futureValue
+      k8s.exec(podName2, Seq("whoami"), maybeContainerName = Some("nginx"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).valueT
 
       println("FINISH: execute a command in the specified container of the running pod")
 
@@ -77,13 +77,13 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   it should "execute a command that outputs to stderr in the running pod" in { k8s =>
     println("START: execute a command that outputs to stderr in the running pod")
-    k8s.create(getNginxPod(podName3, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(podName3, "1.7.9")).valueT
     Thread.sleep(5000)
     var output = ""
     val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(podName3, Seq("sh", "-c", "whoami >&2"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).withTimeout().futureValue
+    k8s.exec(podName3, Seq("sh", "-c", "whoami >&2"), maybeStdout = Some(stdout), maybeStderr = Some(stderr), maybeClose = Some(closeAfter(1.second))).valueT
 
     println("FINISH: execute a command that outputs to stderr in the running pod")
     assert(output == "")
@@ -93,14 +93,14 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   it should "execute a command in an interactive shell of the running pod" in { k8s =>
     println("START: execute a command in an interactive shell of the running pod")
-    k8s.create(getNginxPod(podName4, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(podName4, "1.7.9")).valueT
     Thread.sleep(5000)
     val stdin = Source.single("whoami\n")
     var output = ""
     val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(podName4, Seq("sh"), maybeStdin = Some(stdin), maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).withTimeout().futureValue
+    k8s.exec(podName4, Seq("sh"), maybeStdin = Some(stdin), maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).valueT
 
     println("FINISH: execute a command in an interactive shell of the running pod")
 
@@ -112,7 +112,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   it should "throw an exception without stdin, stdout nor stderr in the running pod" in { k8s =>
     println("START: throw an exception without stdin, stdout nor stderr in the running pod")
-    k8s.create(getNginxPod(podName5, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(podName5, "1.7.9")).valueT
     Thread.sleep(5000)
     whenReady(
       k8s.exec(podName5, Seq("whoami")).withTimeout().failed
@@ -128,7 +128,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   it should "throw an exception against an unexisting pod" in { k8s =>
     println("START: throw an exception against an unexisting pod")
-    k8s.create(getNginxPod(podName6, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxPod(podName6, "1.7.9")).valueT
     Thread.sleep(5000)
     whenReady(
       k8s.exec(podName6 + "x", Seq("whoami")).withTimeout().failed
@@ -151,7 +151,6 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     promise
   }
 
-  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 
   def getNginxPod(name: String, version: String): Pod = {
     val nginxContainer = getNginxContainer(version)

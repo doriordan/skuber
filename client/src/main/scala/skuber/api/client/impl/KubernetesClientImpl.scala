@@ -403,7 +403,7 @@ class KubernetesClientImpl private[client] (
   {
     val grace=if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
     val options = DeleteOptions(gracePeriodSeconds = grace)
-    deleteWithOptions[O](name, options)
+    deleteWithOptions[O](name, options, namespace = namespace)
   }
 
   override def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions, namespace: Option[String] = None)(
