@@ -133,6 +133,15 @@ Add the following mapping
 
 
 ### Skuber Code example
+* Set the environment variables according to `REMOTE_CLUSTER`
+```
+export namespace=default
+export serverUrl=$(aws eks describe-cluster --name $TARGET_CLUSTER --output text --query cluster.endpoint)
+export certificate=$(aws eks describe-cluster --name $TARGET_CLUSTER --output text --query cluster.certificateAuthority)
+export clusterName=$TARGET_CLUSTER
+export region=$AWS_REGION
+```
+
 A working example for using `AwsAuthRefreshable`
 ```
 implicit private val as = ActorSystem()
