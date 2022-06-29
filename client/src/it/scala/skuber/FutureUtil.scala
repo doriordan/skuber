@@ -1,6 +1,7 @@
 package skuber
 
 import akka.actor.{ActorSystem, Scheduler}
+import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import scala.concurrent.{ExecutionContext, Future, Promise, TimeoutException}
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
@@ -8,6 +9,9 @@ import scala.util.control.NoStackTrace
 object FutureUtil {
 
   implicit class FutureOps[T](value: => Future[T]) {
+
+    def valueT(implicit executionContext: ExecutionContext, akkaActor: ActorSystem): T = value.withTimeout().futureValue
+
     def withTimeout(timeout: FiniteDuration = 10.seconds,
                     cleanup: Option[T => Unit] = None)
                    (implicit executionContext: ExecutionContext, akkaActor: ActorSystem): Future[T] =
@@ -30,7 +34,7 @@ object FutureUtil {
         val promise = Promise[T]()
 
         val cancellable = scheduler.scheduleOnce(timeout) {
-          promise.tryCompleteWith(Future.failed(timeoutException(timeout)))
+          promise.completeWith(Future.failed(timeoutException(timeout)))
           cleanup.foreach(f => body.foreach(t => f(t)))
         }
 

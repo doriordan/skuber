@@ -1,5 +1,6 @@
 package skuber
 
+import java.util.UUID.randomUUID
 import akka.stream._
 import akka.stream.scaladsl._
 import skuber.apiextensions.CustomResourceDefinition
@@ -11,7 +12,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import org.scalatest.Tag
 import skuber.FutureUtil.FutureOps
-
+import skuber.json.format.namespaceFormat
+import skuber.Namespace.namespaceDef
+import skuber.apps.v1.Deployment
 /**
  * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
  * here. (A TestResource consists of a desired replica count (spec) and corresponding actual replicas count (status))
@@ -45,6 +48,8 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
   type TestResource = CustomResource[TestResource.Spec, TestResource.Status]
   type TestResourceList = ListResource[TestResource]
 
+  val namespace1: String = randomUUID.toString
+
   override def beforeAll(): Unit = {
     val k8s = k8sInit(config)
     k8s.create(TestResource.crd).withTimeout().futureValue
@@ -54,10 +59,15 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     val k8s = k8sInit(config)
 
     val results = k8s.delete[CustomResourceDefinition](TestResource.crd.name).withTimeout().recover { case _ => () }
+    val results2 = k8s.delete[Namespace](namespace1).withTimeout().recover { case _ => () }
+
     results.futureValue
+
     results.onComplete { _ =>
-      k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      results2.onComplete { _ =>
+        k8s.close
+        system.terminate().recover { case _ => () }.withTimeout().futureValue
+      }
     }
 
   }
@@ -114,10 +124,10 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
-  def createNamedTestResource(k8s: FixtureParam, name: String, replicas: Int): CustomResource[TestResource.Spec, TestResource.Status] = {
+  def createNamedTestResource(k8s: FixtureParam, name: String, replicas: Int, namespace: Option[String] = None): CustomResource[TestResource.Spec, TestResource.Status] = {
     val testSpec = TestResource.Spec(replicas)
     val testResource1 = TestResource(name, testSpec)
-    k8s.create(testResource1).withTimeout().futureValue
+    k8s.create(testResource1, namespace).withTimeout().futureValue
   }
 
   it should "get a crd" taggedAs (CustomResourceTag) in { k8s =>
@@ -187,6 +197,21 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     }
   }
 
+  it should "getStatus on deployment - specific namespace" in  { k8s =>
+    createNamespace(namespace1, k8s)
+    val testName = randomUUID().toString
+    val actualReplicas = 1
+    val desiredReplicas = 7
+    val dToCreate = new TestResource(metadata = ObjectMeta(name = testName), status = None, kind = "SkuberTest", apiVersion = "test.skuber.io/v1alpha1", spec = TestResource.Spec(desiredReplicas))
+    k8s.create(dToCreate, Some(namespace1)).valueT
+    val dGet = k8s.get[TestResource](testName, Some(namespace1)).valueT
+    k8s.updateStatus(dGet.withStatus(TestResource.Status(actualReplicas)), Some(namespace1)).valueT
+
+    val actualStatus = k8s.getStatus[TestResource](testName, Some(namespace1)).valueT
+    actualStatus.status.map(_.actualReplicas) shouldBe Some(actualReplicas)
+
+  }
+
   it should "watch the custom resources" taggedAs (CustomResourceTag) in { k8s =>
     import skuber.api.client.{EventType, WatchEvent}
     import scala.collection.mutable.ListBuffer
@@ -234,5 +259,5 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     killSwitch.shutdown()
     assert(true)
   }
-
+  def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).withTimeout().futureValue
 }
