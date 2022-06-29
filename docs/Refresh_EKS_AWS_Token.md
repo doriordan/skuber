@@ -18,11 +18,11 @@ The initiative:
 
 
 ## Step-by-step guide
-Pay attention to the fact that skuber can be deployed in one cluster and the cluster you want to control can be another cluster. </br>
+Pay attention to the fact that skuber can be deployed in one cluster and the cluster you want to control can be a remote cluster. </br>
 In this guide I will use the following: 
 
 `SKUBER_CLUSTER` - the cluster skuber app will be deployed on. </br>
-`TARGET_CLUSTER` - the cluster that skuber will be connected to.
+`REMOTE_CLUSTER` - the cluster that skuber will be connected to.
 
 ### Setup the environment variables
 * Make sure aws cli is configured properly
@@ -31,11 +31,11 @@ In this guide I will use the following:
 export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
 echo $ACCOUNT_ID
 ```
-Set the cluster name and region you need access to (`TARGET_CLUSTER`) </br>
+Set the cluster name and region you need access to (`REMOTE_CLUSTER`) </br>
 use `aws eks list-clusters` to see the cluster names.
 
 ```
-export TARGET_CLUSTER=example-cluster
+export REMOTE_CLUSTER=example-cluster
 export REGION=us-east-1
 ```
 
@@ -58,34 +58,26 @@ export SKUBER_SA=skuber-serviceaccount
 
 ### Create IAM Role 
 
-This role will map the service account that skuber uses to the cluster it connects to. </br>
-You can add more clusters under "Resource"
-* Note: eks actions probably need to be minimized and not set to "eks:*" . </br>
+This role will allow skuber service account to assume this role. </br>
+
 ```
 cat > skuber_iam_role.json  <<EOL
 {
     "Version": "2012-10-17",
     "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": "eks:*",
-        "Resource": [
-          "arn:aws:eks:*:${ACCOUNT_ID}:cluster/${TARGET_CLUSTER}"
-        ]
-      },
-      {
-          "Sid": "",
-          "Effect": "Allow",
-          "Principal": {
-              "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC}"
-          },
-          "Action": "sts:AssumeRoleWithWebIdentity",
-          "Condition": {
-              "StringLike": {
-                  "${OIDC}:sub": "system:serviceaccount:${SKUBER_NAMESPACE}:${SKUBER_SA}"
-              }
-          }
-      }
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringLike": {
+                    "${OIDC}:sub": "system:serviceaccount:${SKUBER_NAMESPACE}:${SKUBER_SA}"
+                }
+            }
+        }
     ]
 }
 EOL
@@ -108,7 +100,8 @@ Change the context to `SKUBER_CLUSTER` and create the service account </br>
 ```
 kubectl config use-context arn:aws:eks:${REGION}:${ACCOUNT_ID}:cluster/${SKUBER_CLUSTER}
 
-kubectl apply -n $SKUBER_NAMESPACE -f - <<EOF
+kubectl apply -n $
+-f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -123,9 +116,9 @@ IAM Role -> Kubernetes Permissions
 For this example I'm using existing masters permissions group, you can create something more specific with [RBAC](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html).
 * You need to create this mapping on every cluster that you want skuber will be able to interact with.
 
-Change the context to `TARGET_CLUSTER`.
+Change the context to `REMOTE_CLUSTER`.
 ```
-kubectl config use-context arn:aws:eks:${REGION}:${ACCOUNT_ID}:cluster/${TARGET_CLUSTER}
+kubectl config use-context arn:aws:eks:${REGION}:${ACCOUNT_ID}:cluster/${REMOTE_CLUSTER}
 kubectl edit configmap aws-auth -n kube-system
 ```
 
@@ -140,6 +133,15 @@ Add the following mapping
 
 
 ### Skuber Code example
+* Set the environment variables according to `REMOTE_CLUSTER`
+```
+export namespace=default
+export serverUrl=$(aws eks describe-cluster --name $REMOTE_CLUSTER --output text --query cluster.endpoint)
+export certificate=$(aws eks describe-cluster --name $REMOTE_CLUSTER --output text --query cluster.certificateAuthority)
+export clusterName=$REMOTE_CLUSTER
+export region=$AWS_REGION
+```
+
 A working example for using `AwsAuthRefreshable`
 ```
 implicit private val as = ActorSystem()
