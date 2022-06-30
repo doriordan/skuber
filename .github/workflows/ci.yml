@@ -143,6 +143,7 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: v1.19.6
           github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
       - run: 'sbt ++${{ matrix.scala }} "it:testOnly "'
 
@@ -165,6 +166,7 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: v1.20.11
           github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
       - run: 'sbt ++${{ matrix.scala }} "it:testOnly "'
 
@@ -187,6 +189,7 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: v1.21.5
           github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
       - run: 'sbt ++${{ matrix.scala }} "it:testOnly "'
 
@@ -209,6 +212,7 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: v1.22.9
           github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
       - run: 'sbt ++${{ matrix.scala }} "it:testOnly * -- -l CustomResourceTag"'
 
@@ -231,6 +235,7 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: v1.23.6
           github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
       - run: 'sbt ++${{ matrix.scala }} "it:testOnly * -- -l CustomResourceTag"'
 
@@ -253,5 +258,6 @@ jobs:
           minikube version: v1.25.2
           kubernetes version: v1.24.1
           github token: ${{ secrets.GITHUB_TOKEN }}
+          start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
       - run: 'sbt ++${{ matrix.scala }} "it:testOnly * -- -l CustomResourceTag"'
