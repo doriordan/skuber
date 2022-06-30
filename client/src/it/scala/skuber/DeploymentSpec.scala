@@ -6,7 +6,6 @@ import org.scalatest.{BeforeAndAfterAll, Matchers}
 import skuber.FutureUtil.FutureOps
 import skuber.apps.v1.Deployment.deployDef
 import skuber.apps.v1.{Deployment, DeploymentList}
-import skuber.json.format.namespaceFormat
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps

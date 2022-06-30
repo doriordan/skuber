@@ -79,6 +79,20 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     }
     k8s.delete[Deployment](deployment2).valueT
 
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      whenReady(
+        k8s.get[Deployment](deployment1).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+
+      whenReady(
+        k8s.get[Deployment](deployment2).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+    }
+
     // cleanup
     stream.map { killSwitch =>
       killSwitch._1.shutdown()
