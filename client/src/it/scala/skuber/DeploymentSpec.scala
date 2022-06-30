@@ -206,7 +206,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     val actualDeploymentList =
       k8s.list[DeploymentList](namespace = Some(namespace5)).valueT.map(_.name)
 
-    actualDeploymentList shouldBe expectedDeploymentList
+    actualDeploymentList should contain theSameElementsAs expectedDeploymentList
   }
 
 }
