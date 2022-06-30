@@ -109,8 +109,9 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
         params = Map(
           "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
-          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}"),
-        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -Xmx8G -Xms6G")
+          "githubtoken" -> "${{ secrets.GITHUB_TOKEN }}",
+          "startargs" -> "--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle"),
+        env = Map("SBT_OPTS" -> "-XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xmx8G -Xms6G")
       ),
       WorkflowStep.Sbt(List(finalSbtCommand))
     )

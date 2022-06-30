@@ -29,7 +29,8 @@ object PodExecImpl {
     maybeStdout: Option[Sink[String, _]] = None,
     maybeStderr: Option[Sink[String, _]] = None,
     tty: Boolean = false,
-    maybeClose: Option[Promise[Unit]] = None)(implicit sys: ActorSystem, lc : LoggingContext): Future[Unit] =
+    maybeClose: Option[Promise[Unit]] = None,
+    namespace: Option[String] = None)(implicit sys: ActorSystem, lc : LoggingContext): Future[Unit] =
   {
     implicit val executor: ExecutionContext = sys.dispatcher
 
@@ -62,9 +63,11 @@ object PodExecImpl {
     }
 
     // Compose URI
+    val namespaceName = namespace.getOrElse(requestContext.namespaceName)
+
     val uri = Uri(requestContext.clusterServer)
         .withScheme(scheme)
-        .withPath(Uri.Path(s"/api/v1/namespaces/${requestContext.namespaceName}/pods/${podName}/exec"))
+        .withPath(Uri.Path(s"/api/v1/namespaces/$namespaceName/pods/$podName/exec"))
         .withQuery(Uri.Query(queries: _*))
 
     // Compose headers

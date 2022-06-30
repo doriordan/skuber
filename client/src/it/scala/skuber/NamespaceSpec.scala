@@ -36,7 +36,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
     results.onComplete { _ =>
       k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      system.terminate().recover { case _ => () }.valueT
     }
   }
 
@@ -44,7 +44,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "create namespace1" in { k8s =>
     println("START: create namespace1")
-    val ns = k8s.create(Namespace(namespace1)).withTimeout().futureValue
+    val ns = k8s.create(Namespace(namespace1)).valueT
     println("FINISH: create namespace1")
     assert(ns.name == namespace1)
   }
@@ -52,9 +52,9 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
   it should "create pod1 in namespace2" in { k8s =>
     println("START: create pod1 in namespace2")
     val pod = getPod(namespace2)
-    k8s.create(Namespace(namespace2)).withTimeout().futureValue
+    k8s.create(Namespace(namespace2)).valueT
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val p = k8s.usingNamespace(namespace2).create(pod).withTimeout().futureValue
+      val p = k8s.usingNamespace(namespace2).create(pod).valueT
       println("FINISH: create pod1 in namespace2")
       p.name shouldBe pod.name
       p.namespace shouldBe namespace2
@@ -78,13 +78,13 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "find the pod1 in namespace3" in { k8s =>
     println("START: find the pod1 in namespace3")
-    k8s.create(Namespace(namespace3)).withTimeout().futureValue
+    k8s.create(Namespace(namespace3)).valueT
     eventually(timeout(30.seconds), interval(3.seconds)) {
       val pod = getPod(namespace3)
-      k8s.usingNamespace(namespace3).create(pod).withTimeout().futureValue
+      k8s.usingNamespace(namespace3).create(pod).valueT
       Thread.sleep(5000)
 
-      val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).withTimeout().futureValue
+      val actualPod = k8s.usingNamespace(namespace3).get[Pod](pod.name).valueT
       println("FINISH: find the pod1 in namespace3")
       actualPod.name shouldBe pod.name
     }
@@ -92,10 +92,10 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
 
   it should "delete namespace4" in { k8s =>
     println("START: delete namespace4")
-    k8s.create(Namespace(namespace4)).withTimeout().futureValue
+    k8s.create(Namespace(namespace4)).valueT
     Thread.sleep(5000)
     // Delete namespaces
-    k8s.delete[Namespace](namespace4).withTimeout().futureValue
+    k8s.delete[Namespace](namespace4).valueT
 
     eventually(timeout(20.seconds), interval(3.seconds)) {
       whenReady(
@@ -110,10 +110,6 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
       }
     }
   }
-
-  def getNginxContainer(version: String): Container =
-    Container(name = "nginx", image = "nginx:" + version)
-      .exposePort(port = 80)
 
   def getNginxPod(namespace: String, name: String, version: String = "1.7.8"): Pod = {
     val nginxContainer = getNginxContainer(version)

@@ -21,6 +21,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
   val deployment3: String = randomUUID().toString
   val deployment4: String = randomUUID().toString
   val deployment5: String = randomUUID().toString
+  val namespace5: String = randomUUID().toString
 
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
@@ -33,7 +34,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     results.onComplete { _ =>
       k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      system.terminate().recover { case _ => () }.valueT
     }
 
   }
@@ -57,11 +58,11 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     stream.futureValue
 
     //Create first deployment and delete it.
-    k8s.create(deploymentOne).withTimeout().futureValue.name shouldBe deployment1
+    k8s.create(deploymentOne).valueT.name shouldBe deployment1
     eventually {
-      k8s.get[Deployment](deployment1).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment1).valueT.status.get.availableReplicas shouldBe 1
     }
-    k8s.delete[Deployment](deployment1).withTimeout().futureValue
+    k8s.delete[Deployment](deployment1).valueT
 
     /*
      * Request times for request is defaulted to 30 seconds.
@@ -72,11 +73,25 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     pause(10.seconds)
 
     //Create second deployment and delete it.
-    k8s.create(deploymentTwo).withTimeout().futureValue.name shouldBe deployment2
+    k8s.create(deploymentTwo).valueT.name shouldBe deployment2
     eventually {
-      k8s.get[Deployment](deployment2).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment2).valueT.status.get.availableReplicas shouldBe 1
     }
-    k8s.delete[Deployment](deployment2).withTimeout().futureValue
+    k8s.delete[Deployment](deployment2).valueT
+
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      whenReady(
+        k8s.get[Deployment](deployment1).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+
+      whenReady(
+        k8s.get[Deployment](deployment2).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+    }
 
     // cleanup
     stream.map { killSwitch =>
@@ -98,9 +113,9 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     val deployment = getNginxDeployment(deployment3, "1.7.9")
 
-    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment3
+    k8s.create(deployment).valueT.name shouldBe deployment3
     eventually {
-      k8s.get[Deployment](deployment3).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment3).valueT.status.get.availableReplicas shouldBe 1
     }
 
     val stream = k8s.get[Deployment](deployment3).withTimeout().map { d =>
@@ -120,7 +135,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment3).withTimeout().futureValue
+    k8s.delete[Deployment](deployment3).valueT
 
     // cleanup
     stream.map { killSwitch =>
@@ -144,12 +159,12 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     val deployment = getNginxDeployment(deployment4, "1.7.9")
 
-    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment4
+    k8s.create(deployment).valueT.name shouldBe deployment4
     eventually {
-      k8s.get[Deployment](deployment4).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment4).valueT.status.get.availableReplicas shouldBe 1
     }
 
-    k8s.get[Deployment](deployment4).withTimeout().futureValue
+    k8s.get[Deployment](deployment4).valueT
     val stream = k8s.watchContinuously[Deployment](deployment4, None)
       .viaMat(KillSwitches.single)(Keep.right)
       .filter(event => event._object.name == deployment4)
@@ -165,7 +180,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment4).withTimeout().futureValue
+    k8s.delete[Deployment](deployment4).valueT
 
     // cleanup
     stream._1.shutdown()
@@ -179,19 +194,21 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     )
   }
 
-  it should "continuously watch changes on a named resource from a point in time - deployment" in { k8s =>
+  it should "continuously watch changes on a named resource from a point in time - deployment (specific namespace)" in { k8s =>
     import skuber.api.client.EventType
+
+    createNamespace(namespace5, k8s)
 
     val deployment = getNginxDeployment(deployment5, "1.7.9")
 
-    k8s.create(deployment).withTimeout().futureValue.name shouldBe deployment5
+    k8s.create(deployment, Some(namespace5)).valueT.name shouldBe deployment5
     eventually {
-      k8s.get[Deployment](deployment5).withTimeout().futureValue.status.get.availableReplicas shouldBe 1
+      k8s.get[Deployment](deployment5, Some(namespace5)).valueT.status.get.availableReplicas shouldBe 1
     }
 
-    val d = k8s.get[Deployment](deployment5).withTimeout().futureValue
+    val d = k8s.get[Deployment](deployment5, Some(namespace5)).valueT
 
-    val stream = k8s.watchContinuously[Deployment](deployment5, Some(d.resourceVersion))
+    val stream = k8s.watchContinuously[Deployment](deployment5, Some(d.resourceVersion), namespace = Some(namespace5))
       .viaMat(KillSwitches.single)(Keep.right)
       .filter(event => event._object.name == deployment5)
       .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
@@ -207,7 +224,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
      */
     pause(20.seconds)
 
-    k8s.delete[Deployment](deployment5).withTimeout().futureValue
+    k8s.delete[Deployment](deployment5, namespace = Some(namespace5)).valueT
 
     // cleanup
     stream._1.shutdown()
@@ -223,12 +240,4 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     Thread.sleep(length.toMillis)
   }
 
-  def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
-    val nginxContainer = getNginxContainer(version)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
-  }
-
-  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 }

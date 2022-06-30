@@ -44,7 +44,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
       _ <- results2
     } yield {
       k8s.close
-      system.terminate().recover { case _ => () }.withTimeout().futureValue
+      system.terminate().recover { case _ => () }.valueT
     }
 
   }
@@ -55,7 +55,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
   it should "create a HorizontalPodAutoscaler" in { k8s =>
 
     println(horizontalPodAutoscaler1)
-    k8s.create(getNginxDeployment(deployment1, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxDeployment(deployment1, "1.7.9")).valueT
     val result = k8s.create(
       HorizontalPodAutoscaler(horizontalPodAutoscaler1).withSpec(
         HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -63,7 +63,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
           .withMaxReplicas(2)
           .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
       )
-    ).withTimeout().futureValue
+    ).valueT
 
     assert(result.name == horizontalPodAutoscaler1)
     assert(result.spec.contains(
@@ -76,7 +76,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
 
   it should "update a HorizontalPodAutoscaler" in { k8s =>
 
-    k8s.create(getNginxDeployment(deployment2, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxDeployment(deployment2, "1.7.9")).valueT
     val created = k8s.create(
       HorizontalPodAutoscaler(horizontalPodAutoscaler2).withSpec(
         HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -84,20 +84,20 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
           .withMaxReplicas(2)
           .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
       )
-    ).withTimeout().futureValue
+    ).valueT
 
     Thread.sleep(5000)
 
-    val existing = k8s.get[HorizontalPodAutoscaler](created.name).withTimeout().futureValue
+    val existing = k8s.get[HorizontalPodAutoscaler](created.name).valueT
     val updated = existing.withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
       .withMinReplicas(1)
       .withMaxReplicas(3)
       .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))
-      k8s.update(updated).withTimeout().futureValue
+      k8s.update(updated).valueT
 
     Thread.sleep(5000)
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      val result = k8s.get[HorizontalPodAutoscaler](created.name).withTimeout().futureValue
+      val result = k8s.get[HorizontalPodAutoscaler](created.name).valueT
 
       assert(result.name == horizontalPodAutoscaler2)
       assert(result.spec.contains(
@@ -112,7 +112,7 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
 
   it should "delete a HorizontalPodAutoscaler" in { k8s =>
 
-    k8s.create(getNginxDeployment(deployment3, "1.7.9")).withTimeout().futureValue
+    k8s.create(getNginxDeployment(deployment3, "1.7.9")).valueT
     val created = k8s.create(
       HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(
         HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -120,11 +120,11 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
           .withMaxReplicas(2)
           .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
       )
-    ).withTimeout().futureValue
+    ).valueT
 
     Thread.sleep(5000)
 
-    k8s.delete[HorizontalPodAutoscaler](created.name).withTimeout().futureValue
+    k8s.delete[HorizontalPodAutoscaler](created.name).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
       whenReady(
@@ -141,14 +141,5 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
 
   }
 
-  def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
-    val nginxContainer = getNginxContainer(version)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
-  }
 
-  def getNginxContainer(version: String): Container = {
-    Container(name = "nginx", image = "nginx:" + version).exposePort(80)
-  }
 }
