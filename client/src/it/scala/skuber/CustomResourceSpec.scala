@@ -130,13 +130,13 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     k8s.create(testResource1, namespace).valueT
   }
 
-  it should "get a crd" taggedAs (CustomResourceTag) in { k8s =>
+  it should "get a crd" taggedAs CustomResourceTag in { k8s =>
     val getResource = k8s.get[CustomResourceDefinition](TestResource.crd.name).valueT
     assert(getResource.name == TestResource.crd.name)
   }
 
 
-  it should "create a new custom resource defined by the crd" taggedAs (CustomResourceTag) in { k8s =>
+  it should "create a new custom resource defined by the crd" taggedAs CustomResourceTag in { k8s =>
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     val testResourceCreated = createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
 
@@ -152,7 +152,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
   }
 
-  it should "scale the desired replicas on the spec of the custom resource" taggedAs (CustomResourceTag) in { k8s =>
+  it should "scale the desired replicas on the spec of the custom resource" taggedAs CustomResourceTag in { k8s =>
     val modifiedDesiredReplicas = 2
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
@@ -164,7 +164,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     assert(updated.spec.desiredReplicas == modifiedDesiredReplicas)
   }
 
-  it should "update the status on the custom resource with a modified actual replicas count" taggedAs (CustomResourceTag) in { k8s =>
+  it should "update the status on the custom resource with a modified actual replicas count" taggedAs CustomResourceTag in { k8s =>
     val specReplicas = 1
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = specReplicas)
@@ -181,7 +181,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     scale.status.get.replicas shouldBe modifiedActualReplicas
   }
 
-  it should "delete the custom resource" taggedAs (CustomResourceTag) in { k8s =>
+  it should "delete the custom resource" taggedAs CustomResourceTag in { k8s =>
     val testResourceName1: String = java.util.UUID.randomUUID().toString
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
     k8s.delete[TestResource](testResourceName1).valueT
@@ -197,7 +197,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     }
   }
 
-  it should "getStatus on deployment - specific namespace" in  { k8s =>
+  it should "getStatus on deployment - specific namespace" taggedAs CustomResourceTag in  { k8s =>
     createNamespace(namespace1, k8s)
 
     val testName = randomUUID().toString
@@ -213,7 +213,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
   }
 
-  it should "watch the custom resources" taggedAs (CustomResourceTag) in { k8s =>
+  it should "watch the custom resources" taggedAs CustomResourceTag in { k8s =>
     import skuber.api.client.{EventType, WatchEvent}
     import scala.collection.mutable.ListBuffer
 
