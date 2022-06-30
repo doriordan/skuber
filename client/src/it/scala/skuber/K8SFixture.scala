@@ -2,6 +2,7 @@ package skuber
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Outcome, fixture}
 import skuber.FutureUtil.FutureOps
 import skuber.apps.v1.Deployment
@@ -27,6 +28,7 @@ trait K8SFixture extends fixture.FlatSpec {
   }
 
   def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).valueT
+  def deleteNamespace(name: String, k8s: FixtureParam): Unit = k8s.delete[Namespace](name).valueT
 
   def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 

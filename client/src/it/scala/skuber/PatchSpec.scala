@@ -16,6 +16,8 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   val pod2: String = randomUUID().toString
   val pod3: String = randomUUID().toString
   val pod4: String = randomUUID().toString
+  val pod5: String = randomUUID().toString
+  val namespace5: String = randomUUID().toString
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
@@ -30,6 +32,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     results.futureValue
 
     results.onComplete { _ =>
+      deleteNamespace(namespace5, k8s)
       k8s.close
       system.terminate().recover { case _ => () }.valueT
     }
@@ -38,7 +41,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   behavior of "Patch"
 
   it should "patch a pod with strategic merge patch by default" in { k8s =>
-    k8s.create(getNginxPod(pod1, "1.7.9")).valueT
+    k8s.create(getNginxPod(pod1, "1.7.9")).withTimeout().futureValue
     Thread.sleep(5000)
     val randomString = randomUUID().toString
     val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None)
@@ -99,6 +102,29 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
       assert(pod.metadata.annotations == Map())
     }
   }
+
+  it should "patch a pod with json patch - specific namespace" in { k8s =>
+    createNamespace(namespace5, k8s)
+    k8s.create(getNginxPod(pod5, "1.7.9"), Some(namespace5)).valueT
+    Thread.sleep(5000)
+    val randomString = randomUUID().toString
+
+    val patchData = JsonPatch(List(
+      JsonPatchOperation.Add("/metadata/labels/foo", randomString),
+      JsonPatchOperation.Add("/metadata/annotations", randomString),
+      JsonPatchOperation.Remove("/metadata/annotations"),
+    ))
+
+    k8s.patch[JsonPatch, Pod](pod5, patchData, namespace = Some(namespace5)).valueT
+
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      val pod = k8s.get[Pod](pod5, Some(namespace5)).valueT
+
+      assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
+      assert(pod.metadata.annotations == Map())
+    }
+  }
+
 
   def getNginxPod(name: String, version: String): Pod = {
     val nginxContainer = getNginxContainer(version)

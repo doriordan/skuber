@@ -5,10 +5,13 @@ import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import scala.concurrent.{ExecutionContext, Future, Promise, TimeoutException}
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
+import org.scalatest.concurrent.ScalaFutures.PatienceConfig
 
 object FutureUtil {
 
   implicit class FutureOps[T](value: => Future[T]) {
+
+    implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
     def valueT(implicit executionContext: ExecutionContext, akkaActor: ActorSystem): T = value.withTimeout().futureValue
 

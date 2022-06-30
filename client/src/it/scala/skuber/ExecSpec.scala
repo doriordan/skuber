@@ -13,6 +13,7 @@ import scala.concurrent.{Future, Promise}
 
 class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
   def getPodName: String = randomUUID().toString
+  val namespace1: String = randomUUID().toString
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
   private val podName1 = getPodName
@@ -33,6 +34,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     results.futureValue
 
     results.onComplete { _ =>
+      deleteNamespace(namespace1, k8s)
       k8s.close
       system.terminate().recover { case _ => () }.valueT
     }
@@ -91,16 +93,17 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   }
 
-  it should "execute a command in an interactive shell of the running pod" in { k8s =>
+  it should "execute a command in an interactive shell of the running pod - specific namespace" in { k8s =>
     println("START: execute a command in an interactive shell of the running pod")
-    k8s.create(getNginxPod(podName4, "1.7.9")).valueT
+    createNamespace(namespace1, k8s)
+    k8s.create(getNginxPod(podName4, "1.7.9"), namespace = Some(namespace1)).valueT
     Thread.sleep(5000)
     val stdin = Source.single("whoami\n")
     var output = ""
     val stdout: Sink[String, Future[Done]] = Sink.foreach(output += _)
     var errorOutput = ""
     val stderr: Sink[String, Future[Done]] = Sink.foreach(errorOutput += _)
-    k8s.exec(podName4, Seq("sh"), maybeStdin = Some(stdin), maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second))).valueT
+    k8s.exec(podName4, Seq("sh"), maybeStdin = Some(stdin), maybeStdout = Some(stdout), maybeStderr = Some(stderr), tty = true, maybeClose = Some(closeAfter(1.second)), namespace = Some(namespace1)).valueT
 
     println("FINISH: execute a command in an interactive shell of the running pod")
 
