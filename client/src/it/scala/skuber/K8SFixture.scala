@@ -28,7 +28,7 @@ trait K8SFixture extends fixture.FlatSpec {
   }
 
   def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).valueT
-  def deleteNamespace(name: String, k8s: FixtureParam): Unit = k8s.delete[Namespace](name).valueT
+  def deleteNamespace(name: String, k8s: FixtureParam): Unit = k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
 
   def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 

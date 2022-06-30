@@ -26,15 +26,12 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
   val deploymentSpecific42: String = randomUUID().toString
   val deploymentSpecific51: String = randomUUID().toString
   val deploymentSpecific52: String = randomUUID().toString
-  val deploymentSpecific61: String = randomUUID().toString
-  val deploymentSpecific62: String = randomUUID().toString
 
   val namespace1: String = randomUUID().toString
   val namespace2: String = randomUUID().toString
   val namespace3: String = randomUUID().toString
   val namespace4: String = randomUUID().toString
   val namespace5: String = randomUUID().toString
-  val namespace6: String = randomUUID().toString
 
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
@@ -42,13 +39,17 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(List(deploymentName1, deploymentName2, deploymentName3).map { name =>
+    val results = Future.sequence(List(deploymentName1, deploymentName2,
+      deploymentName3, deploymentSpecific41, deploymentSpecific42, deploymentSpecific51, deploymentSpecific52).map { name =>
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
     }).withTimeout()
 
     results.futureValue
 
-    results.onComplete { r =>
+    results.onComplete { _ =>
+      List(namespace1, namespace2, namespace3, namespace4, namespace5).foreach { name =>
+        deleteNamespace(name, k8s)
+      }
       k8s.close
       system.terminate().recover { case _ => () }.valueT
     }
