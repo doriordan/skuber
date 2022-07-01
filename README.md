@@ -8,7 +8,7 @@
 ## Skuber
 Scala client for the [Kubernetes API](https://kubernetes.io/).
 
-## Example
+## Quick start
 
 This example lists pods in `kube-system` namespace:
 
@@ -22,14 +22,19 @@ This example lists pods in `kube-system` namespace:
   implicit val dispatcher = system.dispatcher
 
   val k8s = k8sInit
-  val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
+  val listPodsRequest = k8s.list[PodList](Some("kube-system"))
   listPodsRequest.onComplete {
     case Success(pods) => pods.items.foreach { p => println(p.name) }
     case Failure(e) => throw(e)
   }
   ```
 
-  See more elaborate example [here](docs/Examples.md).
+## Documentation
+* [Examples](docs/Examples.md)
+* [Configuration](docs/Configuration.md)
+* [Refresh EKS (AWS) Token](docs/Refresh_EKS_AWS_Token.md)
+* [Programming Fuide](docs/GUIDE.md)
+
 
 
 ## Features
@@ -42,72 +47,7 @@ This example lists pods in `kube-system` namespace:
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
 - Fluent API for creating and updating specifications of Kubernetes resources
 
-See the [programming guide](docs/GUIDE.md) for more details.
 
-
-
-## Quick Start
-
-Make sure [prerequisites](#prerequisites) are met. There are couple of quick ways to get started with Skuber:
-
-### With [Ammonite-REPL](http://ammonite.io/#Ammonite-REPL)
-
-Provides you with a configured client on startup. It is handy to use this for quick experiments.
-
-- using bash
-
-  ```bash
-  $ amm -p ./Quickstart.sc
-  ```
-
-- from inside ammonite-repl:
-
-  ```scala
-  import $file.`Quickstart`, Quickstart._
-  ```
-
-  > Just handy shortcut to import skuber inside ammonite-repl:
-
-  ```scala
-  import $ivy.`io.github.hagay3::skuber:2.7.6`, skuber._, skuber.json.format._
-  ```
-
-### Interactive with sbt
-
-- Clone this repository.
-
-- Tell Skuber to configure itself from the default Kubeconfig file (`$HOME/.kube/config`):
-
-    ```bash
-    export SKUBER_CONFIG=file
-    ```
-
-    Read more about Skuber configuration [here](docs/Configuration.md)
-
-- Run `sbt` and try  one or more of the [examples](./examples/src/main/scala/skuber/examples) and then:
-
-  ```bash
-  sbt:root> project examples
-  sbt:skuber-examples> run
-
-  Multiple main classes detected, select one to run:
-
-   [1] skuber.examples.customresources.CreateCRD
-   [2] skuber.examples.deployment.DeploymentExamples
-   [3] skuber.examples.fluent.FluentExamples
-   [4] skuber.examples.guestbook.Guestbook
-   [5] skuber.examples.ingress.NginxIngress
-   [6] skuber.examples.job.PrintPiJob
-   [7] skuber.examples.list.ListExamples
-   [8] skuber.examples.patch.PatchExamples
-   [9] skuber.examples.podlogs.PodLogExample
-   [10] skuber.examples.scale.ScaleExamples
-   [11] skuber.examples.watch.WatchExamples
-
-  Enter number:
-  ```
-
-For other Kubernetes setups, see the [configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
 
 ## Prerequisites
 
