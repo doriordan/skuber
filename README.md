@@ -92,11 +92,6 @@ skuber supports all other k8s versions, not all of them tested under CI.
 https://kubernetes.io/releases/
 
 
-
-## License
-
-This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
-
 ## Support
 I'm trying to be responsive to any new issues, you can create github issue or contact me.
 
