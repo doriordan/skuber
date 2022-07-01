@@ -5,22 +5,8 @@
 ![Commit Activity](https://img.shields.io/github/commit-activity/m/hagay3/skuber?color=green&style=for-the-badge)
 [![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/byEh56vFJR)
 
-# Skuber
-
-Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
-
-
-## Features
-- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
-- Refreshing EKS tokens [Refresh EKS Token guide](docs/Refresh_EKS_AWS_Token.md)
-- Comprehensive support for Kubernetes API model represented as Scala case classes
-- Support for core, extensions and other Kubernetes API groups
-- Full support for converting resources between the case class and standard JSON representations
-- Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
-- The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
-- Fluent API for creating and updating specifications of Kubernetes resources
-
-See the [programming guide](docs/GUIDE.md) for more details.
+## Skuber
+Scala client for the [Kubernetes API](https://kubernetes.io/).
 
 ## Example
 
@@ -44,6 +30,21 @@ This example lists pods in `kube-system` namespace:
   ```
 
   See more elaborate example [here](docs/Examples.md).
+
+
+## Features
+- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
+- Refreshing EKS tokens [Refresh EKS Token guide](docs/Refresh_EKS_AWS_Token.md)
+- Comprehensive support for Kubernetes API model represented as Scala case classes
+- Support for core, extensions and other Kubernetes API groups
+- Full support for converting resources between the case class and standard JSON representations
+- Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
+- The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
+- Fluent API for creating and updating specifications of Kubernetes resources
+
+See the [programming guide](docs/GUIDE.md) for more details.
+
+
 
 ## Quick Start
 
@@ -123,18 +124,6 @@ You can use the latest release (for 2.12 or 2.13) by adding to your build:
 ```sbt
 libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.6"
 ```
-
-Meanwhile users of skuber v1 can continue to use the final v1.x release, which is available only on Scala 2.11:
-
-```sbt
-libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
-```
-
-NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 has now been removed since v2.6.0.
-
-## Migrating to release v2
-
-If you have an application using the legacy version v1 of Skuber and want to move to v2, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
 
 ## Building
 
