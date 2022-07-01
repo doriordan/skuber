@@ -1,3 +1,8 @@
+<h1 align="center">Skuber</h1>
+
+<p align="center"> Scala client for the <a href="https://kubernetes.io/">Kubernetes API</a>. </p>
+
+</br>
 
 ![Build Status](https://img.shields.io/github/workflow/status/hagay3/skuber/Continuous%20Integration/master?label=Continuous%20Integration&style=for-the-badge)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.hagay3/skuber_2.12?color=green&style=for-the-badge)](https://mvnrepository.com/artifact/io.github.hagay3/skuber_2.12)
@@ -5,8 +10,6 @@
 ![Commit Activity](https://img.shields.io/github/commit-activity/m/hagay3/skuber?color=green&style=for-the-badge)
 [![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/byEh56vFJR)
 
-## Skuber
-Scala client for the [Kubernetes API](https://kubernetes.io/).
 
 ## Quick start
 
