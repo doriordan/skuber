@@ -1,4 +1,4 @@
-<h1 align="center">Skuber</h1>
+<p align="center"> <img src="docs/skuber_logo.png" alt="skuber logo"> </p>
 
 <p align="center"> Scala client for the <a href="https://kubernetes.io/" target="_blank">Kubernetes API</a>. </p>
 

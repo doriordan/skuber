@@ -1,5 +1,5 @@
 
-
+<p align="center"> <img src="skuber_logo.png" alt="skuber logo"> </p>
 <h1 align="center">Skuber Documentation</h1>
 
 <p align="center"> Scala client for the <a href="https://kubernetes.io/">Kubernetes API</a>. </p>
@@ -22,6 +22,13 @@ implicit val dispatcher = system.dispatcher
 
 val k8s = k8sInit
 k8s.list[PodList](Some("kube-system"))
+```
+## Release
+
+You can use the latest release (for 2.12 or 2.13) by adding to your build:
+
+```scala
+libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.6"
 ```
 
 ## Configuration
