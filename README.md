@@ -45,8 +45,8 @@ Read the [documentation](https://skuber.co) and join [discord community](https:/
 
 
 ## Features
-- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
-- Refreshing EKS tokens [Refresh EKS Token guide](docs/Refresh_EKS_AWS_Token.md)
+- Uses standard `kubeconfig` files for configuration - see the [configuration guide](https://skuber.co/#/?id=configuration) for details
+- Refreshing EKS tokens [Refresh EKS Token guide](https://skuber.co/#/?id=refresh-eks-aws-token)
 - Comprehensive support for Kubernetes API model represented as Scala case classes
 - Support for core, extensions and other Kubernetes API groups
 - Full support for converting resources between the case class and standard JSON representations
