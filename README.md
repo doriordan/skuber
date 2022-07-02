@@ -33,10 +33,7 @@ This example lists pods in `kube-system` namespace:
   ```
 
 ## Documentation
-* [Examples](docs/Examples.md)
-* [Configuration](docs/Configuration.md)
-* [Refresh EKS (AWS) Token](docs/Refresh_EKS_AWS_Token.md)
-* [Programming Guide](docs/GUIDE.md)
+https://skuber.co
 
 
 
