@@ -137,6 +137,13 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     k8s.delete[Deployment](deployment3).valueT
 
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      whenReady(
+        k8s.get[Deployment](deployment3).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+    }
     // cleanup
     stream.map { killSwitch =>
       killSwitch._1.shutdown()
@@ -182,6 +189,13 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     k8s.delete[Deployment](deployment4).valueT
 
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      whenReady(
+        k8s.get[Deployment](deployment4).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+    }
     // cleanup
     stream._1.shutdown()
 
@@ -225,6 +239,14 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     pause(20.seconds)
 
     k8s.delete[Deployment](deployment5, namespace = Some(namespace5)).valueT
+
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      whenReady(
+        k8s.get[Deployment](deployment5, namespace = Some(namespace5)).withTimeout().failed
+      ) { result =>
+        result shouldBe a[K8SException]
+      }
+    }
 
     // cleanup
     stream._1.shutdown()
