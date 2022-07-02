@@ -11,7 +11,7 @@
 
 This example lists pods in `kube-system` namespace:
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 import akka.actor.ActorSystem
@@ -27,7 +27,7 @@ k8s.list[PodList](Some("kube-system"))
 ## Configuration
 
 ### Kubeconfig file
-```java
+```scala
 import skuber._
 implicit val as = ActorSystem()
 val k8s: KubernetesClient = k8sInit
@@ -45,7 +45,7 @@ export SKUBER_CONFIG=file:///my_secret_location/.kube/config
 
 Set the env variables with cluster details.
 
-```java
+```scala
 import skuber.api.client.{Cluster, Context, KubernetesClient}
 import java.util.Base64
 import akka.actor.ActorSystem
@@ -108,7 +108,7 @@ For client authentication **client certificates** (cert and private key pairs) c
 
 ## Basic imports
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 
@@ -120,7 +120,7 @@ implicit val dispatcher = system.dispatcher
 
 ## List pods example
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 
@@ -130,7 +130,7 @@ val listPodsRequest = k8s.list[PodList](namespace = Some("kube-system"))
 
 ## List Namespaces
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 
@@ -142,7 +142,7 @@ k8s.list()[NamespaceList]
 
 ## Create Pod
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 
@@ -158,7 +158,7 @@ val podFuture   = k8s.create(pod)
 This example creates a nginx service (accessed via port 30001 on each Kubernetes cluster node) that is backed by a deployment of five nginx replicas.
 Requires defining selector, container description, pod spec, deployment and service:
 
-```java
+```scala
 // Define selector
 import LabelSelector.dsl._
 val nginxSelector  = "app" is "nginx"
@@ -200,7 +200,7 @@ createOnK8s.onComplete {
 ## API Method Summary
 
 ### Get
-```java
+```scala
 import skuber._
 import skuber.json.format._
 val k8s = k8sInit
@@ -209,7 +209,7 @@ val deployment = k8s.get[Deployment]("guestbook")
 
 ### List
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 val k8s = k8sInit
@@ -218,7 +218,7 @@ k8s.list()[NamespaceList]
 
 
 ### Create
-```java
+```scala
 import skuber._
 import skuber.json.format._
 val k8s = k8sInit
@@ -229,7 +229,7 @@ val podFuture   = k8s.create(pod)
 ```
 
 ### Update
-```java
+```scala
 import skuber._
 import skuber.json.format._
 val k8s = k8sInit
@@ -241,7 +241,7 @@ depFut onSuccess { case dep =>
 ```
 
 ### Delete
-```java
+```scala
 import skuber._
 import skuber.json.format._
 val k8s = k8sInit
@@ -253,7 +253,7 @@ rmFut onSuccess { case _ => println("Deployment removed") }
 ### Patch
 Patch a Kubernetes object using a [JSON merge patch](https://tools.ietf.org/html/rfc7386):
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 val k8s = k8sInit
@@ -265,14 +265,14 @@ See also the `PatchExamples` example. Note: There is no patch support yet for th
 ### Logs
 Get the logs of a pod (as an Akka Streams Source):
 
-```java
+```scala
 val helloWorldLogsSource: Future[Source[ByteString, _]]  = k8s.getPodLogSource("hello-world-pod", Pod.LogQueryParams())
 ```
 
 ### Scale
 Directly scale the number of replicas of a deployment or stateful set:
 
-```java
+```scala
 k8s.scale[StatefulSet]("database", 5)
 ```
 
@@ -280,12 +280,12 @@ k8s.scale[StatefulSet]("database", 5)
 
 
 ### Specific namespace
-```java
+```scala
 val ksysPods: Future[PodList] = k8s.list[PodList](Some("kube-system")))
 ```
 
 Get lists of all Kubernetes objects of a given list kind for all namespaces in the cluster, mapped by namespace:
-```java
+```scala
 val allPodsMapFut: Future[Map[String, PodList]] = k8s listByNamespace[PodList]()
 ```
 (See the ListExamples example for examples of the above list operations)
@@ -296,7 +296,7 @@ val allPodsMapFut: Future[Map[String, PodList]] = k8s listByNamespace[PodList]()
 
 Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client. Skuber v2 now uses Akka streams for this (instead of Play iteratees as used in the Skuber v1.x releases), so the `watch[O]` API calls return `Future[Source[O]]` objects which can then be plugged into Akka flows.
 
-```java
+```scala
 import skuber._
 import skuber.json.format._
 import skuber.apps.v1.Deployment
@@ -330,10 +330,10 @@ kubectl scale --replicas=0 deployment/frontend
 
 You should see updated replica counts being printed out by the sink as the scaling progresses.
 
-The [reactive guestbook](../examples/src/main/scala/skuber/examples/guestbook) example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
+The [reactive guestbook](https://github.com/hagay3/skuber/tree/master/examples/src/main/scala/skuber/examples/guestbook) example also uses the watch API to support monitoring the progress of deployment steps by watching the status of replica counts.
 
 Additionally you can watch all events related to a specific kind - for example the following can be found in the same example:
-```java
+```scala
 def watchPodPhases = {
   // ...
 
@@ -355,7 +355,7 @@ def watchPodPhases = {
 The watch can be demonstrated by calling `watchPodPhases` to start watching all pods, then in the background run the reactive guestbook example: you should see events being reported as guestbook pods are deleted, created and modified during the run.
 
 Note that both of the examples above watch only those events which have a later resource version than the latest applicable when the watch was created - this ensures that only current events are sent to the watch, historic ones are ignored. This is often what you want, but sometimes - especially where events are being used to update important state in your application - you want to make sure you don't miss any events, even in the case where your watch has been stopped and restarted. In this case you can keep a record of the latest resource version processed in a database of some sort and then if/when the watch gets restarted you can specify that resource version in the API call to start the watch:
-```java
+```scala
 k8s.watch[Pod]("myPod", sinceResourceVersion=lastProcessedResourceVersion)
 ```
 
@@ -366,7 +366,7 @@ The API methods `watchContinuously` and `watchAllContinuously` are available sin
 The extensions API group traditionally contains some key types. Although in more recent versions of Kubernetes many of these have been migrated to other groups, this group is still supported and widely used.
 
 For example, to use the `HorizontalPodAutoscaler` kind:
-```java
+```scala
 import skuber.ext.HorizontalPodAutoscaler
 import skuber.json.ext.format._ // imports the implicit JSON formatters required to use extensions group resources
 ```
@@ -380,7 +380,7 @@ A Skuber client can create and update `Deployment` objects on the cluster to hav
 The following example emulates that described [here](http://kubernetes.io/docs/user-guide/deployments/).
 
 Initial creation of the deployment:
-```java
+```scala
 val nginxLabel = "app" -> "nginx"
 val nginxContainer = Container("nginx",image="nginx:1.7.9").exposePort(80)
 
@@ -419,7 +419,7 @@ As the Kubernetes long-term strategy is to use more specific API groups rather t
 ***HorizontalPodAutoscaler***
 
 A skuber client can also manage `HorizontalPodAutoscaler` objects in order to autoscale a replication controller or deployment. A fluent API approach enables minimum replica count, maximum replica count and CPU utilisation target to be readily specified. For example:
-```java
+```scala
 // following autoscales 'controller' with min replicas of 2, max replicas of 8
 // and a target CPU utilisation of 80%
 val hpas = HorizontalPodAutoscaler.scale(controller)
@@ -474,7 +474,7 @@ Code example for adding a resource that not exist in skuber.
 
 Using [EventBus](https://github.com/argoproj-labs/argo-eventbus) from argocd for this example.
 
-```java
+```scala
 package skuber.examples.argo
 
 import java.util.UUID.randomUUID
@@ -574,7 +574,7 @@ Any call to the Skuber API methods that results in a non-OK status response from
 
 This exception can be handled in the appropriate manner for your use case by using the standard Scala Future failure handling mechanisms. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
 
-```java
+```scala
 val deleteResult = (k8s delete[ReplicationController] c.name) recover {
   case ex: K8SException if (ex.status.code.contains(404)) => // ok - no action required
 }
@@ -743,7 +743,7 @@ export region=$AWS_REGION
 ```
 
 A working example for using `AwsAuthRefreshable`
-```java
+```scala
 implicit private val as = ActorSystem()
 implicit private val ex = as.dispatcher
 val namespace = System.getenv("namespace")
@@ -780,7 +780,7 @@ def listPods(namespace: String, minutesSleep: Int): Unit = {
 
 As alluded to above, newer API types such as ReplicaSets and Deployments support set-based as well as equality-based [label selectors](http://kubernetes.io/docs/user-guide/labels/#label-selectors).
 For such types, Skuber supports a mini-DSL to build selectors:
-```java
+```scala
 import skuber.LabelSelector
 import LabelSelector.dsl._
 import skuber.apps.v1.Deployment
@@ -797,7 +797,7 @@ val depl = Deployment("exampleDeployment").withSelector(sel)
 
 ## Safely shutdown the client
 
-```java
+```scala
 // Close client.
 // This prevents any more requests being sent by the client.
 k8s.close
@@ -812,7 +812,7 @@ The Skuber data model is a representation of the Kubernetes types / kinds in Sca
 
 The Skuber data model for the the original core Kubernetes API group (which manages many of the most fundamental Kubernetes kinds) is defined in the top-level package, so they can be easily imported into the application:
 
-```java
+```scala
 import skuber._
 ```
 
@@ -820,20 +820,20 @@ This also imports many other common types and aliases that are generally useful.
 
 Example of more specific core API kind imports:
 
-```java
+```scala
 import skuber.{Service,ServiceList,Pod}
 ```
 
 Newer (non-core) API group classes are contained in subpackages associated with each API group. For example`skuber.ext` for the extensions API group or `skuber.rbac` for the rbac API group. Example specific imports for these kinds:
 
-```java
+```scala
 import skuber.ext.DaemonSet
 import skuber.batch.{Job,CronJob}
 ```
 
 In the specific case of the `apps` group, which includes Workload types such as `Deployment` and `StatefulSet`, there are subpackages for each version of the group, with `v1` being the latest:
 
-```java
+```scala
 import skuber.apps.v1.Deployment
 ```
 
@@ -851,7 +851,7 @@ There are thus list kinds for each object kind e.g. `ListResource[Pod]`,`ListRes
 
 A combination of generic Scala case class features and Skuber-defined fluent API methods make building out even relatively complex specifications for creation or modification on Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
 
-```java
+```scala
 val prodLabel = "env" -> "production"
 
 val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
@@ -881,7 +881,7 @@ The unit tests in the skuber subproject contains more examples, along with the e
 
 Kubernetes defines specific JSON representations of its types. Skuber implements Play JSON read/write [converters](https://www.playframework.com/documentation/2.4.x/ScalaJsonCombinators) for mapping between the model classes and their JSON representations. These implicit converters (formatters) can be made available to the application via import statements, for example, to import all formatters for the core API group:
 
-```java
+```scala
 import skuber.json.format._
 ```
 
@@ -891,7 +891,7 @@ Some of the more recently added subpackages in skuber - for example `apps/v1` - 
 
 There are many available examples of Yaml or Json representations of Kubernetes objects, for example [this file](https://github.com/kubernetes/examples/blob/master/guestbook/frontend-deployment.yaml) specifies a Deployment for the main Kubernetes project Guestbook example. To convert that Yaml representation into a Skuber `Deployment` object:
 
-```java
+```scala
 import skuber.apps.v1.Deployment
 
 import play.api.libs.json.Json
@@ -919,6 +919,6 @@ println("Replicas: " + deployment.spec.flatMap(_.replicas).getOrElse(1))
 
 Equally it is straightforward to do the reverse and generate a Play Json value from a Skuber model object:
 
-```java
+```scala
 val json = Json.toJson(deployment)
 ```
