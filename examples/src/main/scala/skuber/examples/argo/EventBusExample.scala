@@ -22,17 +22,17 @@ object EventBusExample extends App {
   val k8s = k8sInit
 
   val eventBusResource1 = EventBus(randomUUID().toString)
-  val k8sArgo = k8s.usingNamespace("argo-eventbus")
-  val cr = k8sArgo.create(eventBusResource1)(eventBusFmt, rsDef, LoggingContext.lc)
+
+  val cr = k8s.create(eventBusResource1)(eventBusFmt, rsDef, LoggingContext.lc)
 
   Await.result(cr, 30.seconds)
-  val ls = k8sArgo.list[EventBusSetList]()(eventBusListFmt, rsListDef, LoggingContext.lc).map { eventsBusList =>
+  val ls = k8s.list[EventBusSetList](Some("argo-eventbus"))(eventBusListFmt, rsListDef, LoggingContext.lc).map { eventsBusList =>
     println(eventsBusList.mkString("\n"))
   }
   Await.result(ls, 30.seconds)
 
   k8s.close
-  k8sArgo.close
+
   Await.result(system.terminate(), 10.seconds)
 
 }
