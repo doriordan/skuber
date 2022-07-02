@@ -566,7 +566,7 @@ object EventBus {
   implicit val eventBusListFmt: Format[EventBusSetList] = ListResourceFormat[EventBus]
 
 }
-
+```
 
 ### Error Handling
 
