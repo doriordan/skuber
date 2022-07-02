@@ -10,6 +10,13 @@
 ![Commit Activity](https://img.shields.io/github/commit-activity/m/hagay3/skuber?color=green&style=for-the-badge)
 [![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/byEh56vFJR)
 
+<p align="center">
+  <strong>
+  <a href="https://skuber.co/" target="_blank">Read the Dcoumentation</a>.
+  </strong>
+ </p>
+
+</br>
 
 ## Quick start
 
@@ -33,7 +40,7 @@ This example lists pods in `kube-system` namespace:
   ```
 
 ## Documentation
-https://skuber.co
+Read the [documentation](https://skuber.co) and join [discord community](https://discord.gg/byEh56vFJR) to  ask your questions!
 
 
 
