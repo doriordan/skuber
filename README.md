@@ -1,6 +1,6 @@
 <h1 align="center">Skuber</h1>
 
-<p align="center"> Scala client for the <a href="https://kubernetes.io/">Kubernetes API</a>. </p>
+<p align="center"  target="_blank"> Scala client for the <a href="https://kubernetes.io/">Kubernetes API</a>. </p>
 
 </br>
 
