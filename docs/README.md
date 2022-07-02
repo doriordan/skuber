@@ -37,7 +37,7 @@ By default, skuber config reads the config file from ~/.kube/config.
 
 Set `SKUBER_CONFIG` to override that.
 
-```
+```bash
 export SKUBER_CONFIG=file:///my_secret_location/.kube/config
 ```
 
