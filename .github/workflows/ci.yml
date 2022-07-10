@@ -13,7 +13,6 @@ on:
   push:
     branches: ['**']
     tags: [v*]
-  pull_request:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
