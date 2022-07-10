@@ -8,12 +8,11 @@
 name: Continuous Integration
 
 on:
-  
+  pull_request:
     
   push:
     branches: ['**']
     tags: [v*]
-  pull_request:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
