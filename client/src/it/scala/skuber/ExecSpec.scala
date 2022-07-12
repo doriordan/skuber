@@ -117,9 +117,10 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     println("START: throw an exception without stdin, stdout nor stderr in the running pod")
     k8s.create(getNginxPod(podName5, "1.7.9")).valueT
     Thread.sleep(5000)
-    whenReady(
-      k8s.exec(podName5, Seq("whoami")).withTimeout().failed
-    ) { result =>
+    whenReady {
+      val res = k8s.exec(podName5, Seq("whoami")).withTimeout().failed
+      res
+    } { result =>
       println("FINISH: throw an exception without stdin, stdout nor stderr in the running pod")
       result shouldBe a[K8SException]
       result match {

@@ -3,35 +3,35 @@ package skuber.api.client.exec
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.stream.SinkShape
 import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
-import akka.stream.{Materializer, SinkShape}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
+import play.api.libs.json.JsString
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.client.{K8SException, LoggingContext, Status}
 import skuber.api.security.HTTPRequestAuth
-
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 /**
-  * Implementation of pod exec support
-  */
+ * Implementation of pod exec support
+ */
 object PodExecImpl {
 
   private[client] def exec(
-    requestContext: KubernetesClientImpl,
-    podName: String,
-    command: Seq[String],
-    maybeContainerName: Option[String] = None,
-    maybeStdin: Option[Source[String, _]] = None,
-    maybeStdout: Option[Sink[String, _]] = None,
-    maybeStderr: Option[Sink[String, _]] = None,
-    tty: Boolean = false,
-    maybeClose: Option[Promise[Unit]] = None,
-    namespace: Option[String] = None)(implicit sys: ActorSystem, lc : LoggingContext): Future[Unit] =
-  {
+                            requestContext: KubernetesClientImpl,
+                            podName: String,
+                            command: Seq[String],
+                            maybeContainerName: Option[String] = None,
+                            maybeStdin: Option[Source[String, _]] = None,
+                            maybeStdout: Option[Sink[String, _]] = None,
+                            maybeStderr: Option[Sink[String, _]] = None,
+                            tty: Boolean = false,
+                            maybeClose: Option[Promise[Unit]] = None,
+                            namespace: Option[String] = None)(implicit sys: ActorSystem, lc: LoggingContext): Future[Unit] = {
     implicit val executor: ExecutionContext = sys.dispatcher
 
     val containerPrintName = maybeContainerName.getOrElse("<none>")
@@ -66,9 +66,9 @@ object PodExecImpl {
     val namespaceName = namespace.getOrElse(requestContext.namespaceName)
 
     val uri = Uri(requestContext.clusterServer)
-        .withScheme(scheme)
-        .withPath(Uri.Path(s"/api/v1/namespaces/$namespaceName/pods/$podName/exec"))
-        .withQuery(Uri.Query(queries: _*))
+      .withScheme(scheme)
+      .withPath(Uri.Path(s"/api/v1/namespaces/$namespaceName/pods/$podName/exec"))
+      .withQuery(Uri.Query(queries: _*))
 
     // Compose headers
     var headers: List[HttpHeader] = List(RawHeader("Accept", "*/*"))
@@ -109,18 +109,21 @@ object PodExecImpl {
     // and promise controls the connection close timing
     val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
 
-    val connected = upgradeResponse.map { upgrade =>
+    val connected: Future[Done] = upgradeResponse.flatMap { upgrade =>
       // just like a regular http request we can access response status which is available via upgrade.response.status
       // status code 101 (Switching Protocols) indicates that server support WebSockets
       if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
-        Done
+        Future.successful(Done)
       } else {
-        val message = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
-        throw new K8SException(Status(message =
-            Some(s"Connection failed with status ${upgrade.response.status}"),
-          details = Some(message), code = Some(upgrade.response.status.intValue())))
+        val detailsF = Unmarshal(upgrade.response.entity).to[String]
+        detailsF.map { details =>
+          throw new K8SException(Status(message =
+            Some(s"Connection failed with status ${upgrade.response.status}"), code = Some(upgrade.response.status.intValue()), details = Some(JsString(details))))
+            Done
+        }
       }
     }
+
 
     val close = maybeClose.getOrElse(Promise.successful(()))
     connected.foreach { _ =>

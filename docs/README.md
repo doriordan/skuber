@@ -607,7 +607,7 @@ case class Status(
   status: Option[String] = None,
   message: Option[String] = None,
   reason: Option[String] = None,
-  details: Option[Any] = None,
+  details: Option[JsValue] = None,
   code: Option[Int] = None  // HTTP status code
 )
 ```

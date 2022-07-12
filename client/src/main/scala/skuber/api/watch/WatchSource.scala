@@ -5,11 +5,10 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
 import akka.stream.SourceShape
-import play.api.libs.json.Format
+import play.api.libs.json.{Format, JsString}
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
-import skuber.{ObjectResource, ResourceDefinition, ListOptions}
-
+import skuber.{ListOptions, ObjectResource, ResourceDefinition}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -79,7 +78,7 @@ private[api] object WatchSource {
             throw new K8SException(Status(message = Some("Non-OK status code received while watching resource"), code = Some(sc.intValue())))
           case (Failure(f), _) =>
             client.logError("Error watching resource.", f)
-            throw new K8SException(Status(message = Some("Error watching resource"), details = Some(f.getMessage)))
+            throw new K8SException(Status(message = Some("Error watching resource"), details = Some(JsString(f.getMessage))))
         }
 
       val outboundFlow: Flow[StreamElement[O], WatchEvent[O], NotUsed] =
