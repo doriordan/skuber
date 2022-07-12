@@ -10,7 +10,7 @@ import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-import play.api.libs.json.{Format, Reads, Writes}
+import play.api.libs.json.{Format, JsString, Reads, Writes}
 import skuber._
 import skuber.api.client.exec.PodExecImpl
 import skuber.api.client.{K8SException => _, _}
@@ -676,7 +676,7 @@ class KubernetesClientImpl private[client] (
         catch {
           case ex: Exception =>
             logError("Unable to unmarshal resource from response", ex)
-            throw new K8SException(Status(message = Some("Error unmarshalling resource from response"), details = Some(ex.getMessage)))
+            throw new K8SException(Status(message = Some("Error unmarshalling resource from response"), details = Some(JsString(ex.getMessage))))
         }
     }
   }
@@ -700,7 +700,7 @@ class KubernetesClientImpl private[client] (
           val status: Status = Status(
             code = Some(response.status.intValue),
             message = Some("Non-ok response and unable to parse Status from response body to get further details"),
-            details = Some(ex.getMessage)
+            details = Some(JsString(ex.getMessage))
           )
           Some(status)
         }

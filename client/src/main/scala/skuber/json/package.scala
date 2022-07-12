@@ -1148,16 +1148,7 @@ package object format {
     import skuber.api.client._
   
     // this handler reads a generic Status response from the server                                    
-    implicit val statusReads: Reads[Status] = (
-      (JsPath \ "apiVersion").read[String] and
-      (JsPath \ "kind").read[String] and
-      (JsPath \ "metadata").read[ListMeta] and
-      (JsPath \ "status").readNullable[String] and
-      (JsPath \ "message").readNullable[String] and
-      (JsPath \ "reason").readNullable[String] and
-      (JsPath \ "details").readNullable[JsValue].map(ov => ov.map( x => x:Any)) and
-      (JsPath \ "code").readNullable[Int]
-    )(Status.apply _)
+    implicit val statusReads: Reads[Status] = Json.reads[Status]
 
     def watchEventWrapperReads[T <: ObjectResource](implicit objreads: Reads[T]) : Reads[WatchEventWrapper[T]] = (
       (JsPath \ "type").formatEnum(EventType).flatMap { eventType =>

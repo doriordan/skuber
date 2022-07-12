@@ -2,10 +2,9 @@ package skuber.api.watch
 
 import akka.stream.scaladsl.{JsonFraming, Source}
 import akka.util.ByteString
-import play.api.libs.json.{Format, JsError, JsSuccess, Json}
+import play.api.libs.json.{Format, JsError, JsString, JsSuccess, Json}
 import skuber.ObjectResource
 import skuber.api.client.{K8SException, Status, WatchEvent}
-
 import scala.concurrent.ExecutionContext
 
 /**
@@ -24,7 +23,7 @@ private[api] object BytesToWatchEventSource {
         }
         case JsError(e) =>
           val details = s"error: $e event: ${singleEventBytes.utf8String}"
-          throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(details)))
+          throw new K8SException(Status(message = Some("Error parsing watched object"), details = Some(JsString(details))))
       }
     }
   }
