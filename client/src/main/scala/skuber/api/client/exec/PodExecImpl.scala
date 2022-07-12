@@ -108,17 +108,17 @@ object PodExecImpl {
     // and promise controls the connection close timing
     val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
 
-    val connected = upgradeResponse.map { upgrade =>
+    val connected = upgradeResponse.flatMap { upgrade =>
       // just like a regular http request we can access response status which is available via upgrade.response.status
       // status code 101 (Switching Protocols) indicates that server support WebSockets
       if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
-        Done
+        Future.successful(Done)
       } else {
         val messageF = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
         messageF.map { message =>
-          throw new K8SException(Status(message =
+          Future.failed(new K8SException(Status(message =
             Some(s"Connection failed with status ${upgrade.response.status}"),
-            details = Some(JsString(message)), code = Some(upgrade.response.status.intValue())))
+            details = Some(JsString(message)), code = Some(upgrade.response.status.intValue()))))
         }
       }
     }
