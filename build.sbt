@@ -100,6 +100,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
   }
 
   WorkflowJob(
+    scalas = List(scala13Version),
     id = jobName,
     name = jobName,
     steps = List(
