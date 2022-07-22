@@ -7,7 +7,7 @@ val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
 val currentScalaVersion = scala13Version
 val supportedScalaVersion = Seq(scala12Version, scala13Version)
-
+ThisBuild / scalaVersion := scala13Version
 val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
