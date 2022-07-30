@@ -5,15 +5,26 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
+val scala3Version = "3.1.3"
+
 val currentScalaVersion = scala13Version
-val supportedScalaVersion = Seq(scala12Version, scala13Version)
-ThisBuild / scalaVersion := scala13Version
+ThisBuild / scalaVersion := currentScalaVersion
+
+ThisBuild / scalacOptions ++= {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) => Seq("-Ykind-projector:underscores")
+    case Some((2, 12 | 13)) => Seq("-Xsource:3")
+  }
+}
+
+val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
+
 val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.16.1"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
+val scalaTest = ("org.scalatest" %% "scalatest" % "3.0.9").cross(CrossVersion.for3Use2_13)
 
 val mockito = "org.mockito" % "mockito-core" % "4.6.1"
 
@@ -28,7 +39,7 @@ val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk18on" % "1.71"
 
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
+val akkaHttp = ("com.typesafe.akka" %% "akka-http" % "10.2.9").cross(CrossVersion.for3Use2_13)
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
@@ -37,7 +48,7 @@ val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
+val playJson = "com.typesafe.play" %% "play-json" % "2.10.0-RC6"
 val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.3"
 
 val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"

@@ -33,7 +33,7 @@ object WatchExamples extends App {
     val podPhaseMonitor = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
       val pod = podEvent._object
       val phase = pod.status flatMap { _.phase }
-      println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
+      println(podEvent._type.toString + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>").toString)
     }
 
     for {
