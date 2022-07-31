@@ -7,13 +7,14 @@ val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
 val scala3Version = "3.1.3"
 
-val currentScalaVersion = scala13Version
+//val currentScalaVersion = scala13Version
+val currentScalaVersion = scala3Version
 ThisBuild / scalaVersion := currentScalaVersion
 
 ThisBuild / scalacOptions ++= {
   CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((3, _)) => Seq("-Ykind-projector:underscores")
     case Some((2, 12 | 13)) => Seq("-Xsource:3")
+    case _ => Seq.empty
   }
 }
 
