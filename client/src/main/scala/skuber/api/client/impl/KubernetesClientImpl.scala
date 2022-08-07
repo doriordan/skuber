@@ -19,7 +19,7 @@ import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
-import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
+import skuber.json.format.{apiVersionsFormatReads, deleteOptionsFmt, namespaceListFmt}
 import javax.net.ssl.SSLContext
 import skuber.apiextensions.CustomResourceDefinition.Scope
 import scala.concurrent.duration._
@@ -294,7 +294,7 @@ class KubernetesClientImpl private[client] (
       (implicit fmt: Format[L], lc: LoggingContext): Future[Map[String, L]] =
   {
     val nsNamesFut: Future[List[String]] = getNamespaceNames
-    val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { nsNames: List[String] =>
+    val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { (nsNames: List[String]) =>
       Future.sequence(nsNames map { (nsName: String) =>
         listInNamespace[L](nsName, rd) map { l => (nsName, l) }
       })
@@ -624,7 +624,7 @@ class KubernetesClientImpl private[client] (
     val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
     for {
       response <- invoke(request)
-      apiVersionResource <- toKubernetesResponse[APIVersions](response)
+      apiVersionResource <- toKubernetesResponse[APIVersions](response)(apiVersionsFormatReads, lc)
     } yield apiVersionResource.versions
   }
 

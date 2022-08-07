@@ -1,6 +1,7 @@
 package skuber.apps.v1
 
 
+import play.api.libs.json.OFormat
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
@@ -15,15 +16,15 @@ case class ReplicaSet(
   status: Option[ReplicaSet.Status] = None)
     extends ObjectResource {
 
-  lazy val copySpec = this.spec.getOrElse(new ReplicaSet.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
+  lazy val copySpec: ReplicaSet.Spec = this.spec.getOrElse(new ReplicaSet.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
 
-  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+  def withResourceVersion(version: String): ReplicaSet = this.copy(metadata = metadata.copy(resourceVersion=version))
   def addLabel(label: Tuple2[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
   def addLabels(newLabels: Map[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(labels = metadata.labels ++ newLabels))
   def addAnnotation(anno: Tuple2[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(annotations = metadata.annotations + anno))
   def addAnnotations(annos: Map[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(annotations = metadata.annotations ++ annos))
 
-  def withReplicas(n: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(n))))
+  def withReplicas(n: Int): ReplicaSet = this.copy(spec=Some(copySpec.copy(replicas=Some(n))))
 
 
   def withSelector(s: LabelSelector) : ReplicaSet = this.copy(spec=Some(copySpec.copy(selector = s)))
@@ -33,11 +34,11 @@ case class ReplicaSet(
    * Set the template. This will set the selector from the template labels, if they exist
    * and the selector is empty
    */
-  def withTemplate(t: Pod.Template.Spec) = {
+  def withTemplate(t: Pod.Template.Spec): ReplicaSet = {
     val withTmpl = this.copy(spec = Some(copySpec.copy(template = t)))
     val withSelector = (t.metadata.labels, spec.map{_.selector}) match {
       case (labels, selector) if (!labels.isEmpty && !selector.equals(LabelSelector())) =>
-        val reqs = labels map { label: (String, String) =>
+        val reqs = labels map { (label: (String, String)) =>
           LabelSelector.IsEqualRequirement(label._1, label._2)
         }
         val selector = LabelSelector(reqs.toSeq: _*)
@@ -56,7 +57,7 @@ case class ReplicaSet(
    * Set the template from a given Pod spec and optional set of labels
    * If the selector isn't already set then this will generate it from the labels.
    */
-  def withPodSpec(t: Pod.Spec, labels: Map[String, String]=Map()) = {
+  def withPodSpec(t: Pod.Spec, labels: Map[String, String]=Map()): ReplicaSet = {
     val template = new Pod.Template.Spec(metadata=ObjectMeta(labels=labels),spec=Some(t))
     withTemplate(template)
   }
@@ -64,7 +65,7 @@ case class ReplicaSet(
 
 object ReplicaSet {
 
-  val specification=NonCoreResourceSpecification(
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification(
     apiGroup = "apps",
     version = "v1",
     scope = Scope.Namespaced,
@@ -75,9 +76,9 @@ object ReplicaSet {
       shortNames = List("rs")
     )
   )
-  implicit val rsDef = new ResourceDefinition[ReplicaSet] { def spec=specification }
-  implicit val rsListDef = new ResourceDefinition[ReplicaSetList] { def spec=specification }
-  implicit val scDef = new Scale.SubresourceSpec[ReplicaSet] { override def apiVersion: String = "extensions/v1beta1"}
+  implicit val rsDef: ResourceDefinition[ReplicaSet] = new ResourceDefinition[ReplicaSet] { def spec: ResourceSpecification =specification }
+  implicit val rsListDef: ResourceDefinition[ReplicaSetList] = new ResourceDefinition[ReplicaSetList] { def spec: ResourceSpecification =specification }
+  implicit val scDef: Scale.SubresourceSpec[ReplicaSet] = new Scale.SubresourceSpec[ReplicaSet] { override def apiVersion: String = "extensions/v1beta1"}
 
   def apply(name: String) : ReplicaSet = ReplicaSet(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: ReplicaSet.Spec) : ReplicaSet =
@@ -119,7 +120,7 @@ object ReplicaSet {
     (JsPath \ "template").format[Pod.Template.Spec]
   )(ReplicaSet.Spec.apply _, unlift(ReplicaSet.Spec.unapply))
 
-  implicit val replsetStatusFormat = Json.format[ReplicaSet.Status]
+  implicit val replsetStatusFormat: OFormat[Status] = Json.format[ReplicaSet.Status]
 
   implicit lazy val replsetFormat: Format[ReplicaSet] = (
     objFormat and

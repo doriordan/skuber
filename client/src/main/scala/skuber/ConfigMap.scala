@@ -26,8 +26,8 @@ object ConfigMap {
     )
   )
 
-  implicit val configMapDef = new ResourceDefinition[ConfigMap] { def spec=specification }
-  implicit val configMapListDef = new ResourceDefinition[ConfigMapList] { def spec=specification }
+  implicit val configMapDef: ResourceDefinition[ConfigMap] = new ResourceDefinition[ConfigMap] { def spec=specification }
+  implicit val configMapListDef: ResourceDefinition[ConfigMapList] = new ResourceDefinition[ConfigMapList] { def spec=specification }
 
   def apply(name: String): ConfigMap = new ConfigMap(metadata=ObjectMeta(name=name))
 

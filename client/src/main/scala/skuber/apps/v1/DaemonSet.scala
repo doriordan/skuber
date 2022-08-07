@@ -5,7 +5,7 @@ package skuber.apps.v1
   */
 
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, Timestamp}
+import skuber.{IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, ResourceSpecification, Timestamp}
 
 case class DaemonSet(val kind: String ="DaemonSet",
   override val apiVersion: String = appsAPIVersion,
@@ -14,15 +14,15 @@ case class DaemonSet(val kind: String ="DaemonSet",
   status:  Option[DaemonSet.Status] = None)
     extends ObjectResource {
 
-  lazy val copySpec = this.spec.getOrElse(new DaemonSet.Spec)
+  lazy val copySpec: DaemonSet.Spec = this.spec.getOrElse(new DaemonSet.Spec)
 
-  def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
-  def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
+  def withTemplate(template: Pod.Template.Spec): DaemonSet = this.copy(spec=Some(copySpec.copy(template=Some(template))))
+  def withLabelSelector(sel: LabelSelector): DaemonSet = this.copy(spec=Some(copySpec.copy(selector=Some(sel))))
 }
 
 object DaemonSet {
 
-  val specification=NonCoreResourceSpecification (
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (
     apiGroup="apps",
     version="v1",
     scope = Scope.Namespaced,
@@ -33,8 +33,8 @@ object DaemonSet {
       shortNames = List("ds")
     )
   )
-  implicit val dsDef = new ResourceDefinition[DaemonSet] { def spec=specification }
-  implicit val dsListDef = new ResourceDefinition[DaemonSetList] { def spec=specification }
+  implicit val dsDef: ResourceDefinition[DaemonSet] = new ResourceDefinition[DaemonSet] { def spec: ResourceSpecification =specification }
+  implicit val dsListDef: ResourceDefinition[DaemonSetList] = new ResourceDefinition[DaemonSetList] { def spec: ResourceSpecification =specification }
 
   def apply(name: String) = new DaemonSet(metadata=ObjectMeta(name=name))
 
@@ -61,8 +61,8 @@ object DaemonSet {
     def apply: UpdateStrategy = StrategyImpl(_type=UpdateStrategyType.RollingUpdate, rollingUpdate=Some(RollingUpdate()))
     def apply(_type: UpdateStrategyType.UpdateStrategyType,rollingUpdate: Option[RollingUpdate]) : UpdateStrategy = StrategyImpl(_type, rollingUpdate)
     def apply(rollingUpdate: RollingUpdate) : UpdateStrategy = StrategyImpl(_type=UpdateStrategyType.RollingUpdate, rollingUpdate=Some(rollingUpdate))
-    def unapply(strategy: UpdateStrategy): Option[(UpdateStrategyType.UpdateStrategyType, Option[RollingUpdate])] =
-      Some(strategy._type,strategy.rollingUpdate)
+
+    def unapply(strategy: UpdateStrategy): (UpdateStrategyType.UpdateStrategyType, Option[RollingUpdate]) = (strategy._type, strategy.rollingUpdate)
   }
 
   case class RollingUpdate(maxUnavailable: IntOrString = Left(1))
@@ -97,9 +97,9 @@ object DaemonSet {
    )
 
   implicit val updateStrategyFmt: Format[UpdateStrategy] =  (
-    (JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and
+    new EnumFormatter(JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and
     (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-  )(UpdateStrategy.apply _, unlift(UpdateStrategy.unapply))
+  )(UpdateStrategy.apply, UpdateStrategy.unapply)
 
   implicit val daemonsetStatusFmt: Format[Status] = Json.format[Status]
   implicit val daemonsetSpecFmt: Format[Spec] = (

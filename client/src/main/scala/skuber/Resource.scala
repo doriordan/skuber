@@ -5,6 +5,7 @@ package skuber
  */
 
 import scala.math.BigDecimal
+import scala.util.matching.Regex
 
 object Resource {
   
@@ -20,7 +21,7 @@ object Resource {
     extends ObjectResource 
  
   object Quota {
-    val specification=CoreResourceSpecification(
+    val specification: CoreResourceSpecification =CoreResourceSpecification(
       scope = ResourceSpecification.Scope.Namespaced,
       names = ResourceSpecification.Names(
         plural="resourcequotas",
@@ -29,8 +30,8 @@ object Resource {
         shortNames=List("quota")
       )
     )
-    implicit val rqDef = new ResourceDefinition[Resource.Quota] { def spec=specification }
-    implicit val rqListDef = new ResourceDefinition[ResourceQuotaList] { def spec=specification }
+    implicit val rqDef: ResourceDefinition[Quota] = new ResourceDefinition[Resource.Quota] { def spec: ResourceSpecification =specification }
+    implicit val rqListDef: ResourceDefinition[ResourceQuotaList] = new ResourceDefinition[ResourceQuotaList] { def spec: ResourceSpecification =specification }
 
     case class Spec(hard: ResourceList = Map())
     case class Status(hard: ResourceList = Map(), used: ResourceList = Map())
@@ -55,8 +56,8 @@ object Resource {
         case Quantity.DecimalSI => Quantity.parseDecimalSI(number,suffix)  
     }
       
-    val QuantSplitRE = """^([+-]?[0-9.]+)([eEimkKMGTP]*[-+]?[0-9]*)$""".r
-    val ExponentSplitRE = """^([eE])([-+]?[0-9]*)$""".r
+    val QuantSplitRE: Regex = """^([+-]?[0-9.]+)([eEimkKMGTP]*[-+]?[0-9]*)$""".r
+    val ExponentSplitRE: Regex = """^([eE])([-+]?[0-9]*)$""".r
     
     lazy val QuantSplitRE(number, suffix) = value
     
@@ -67,14 +68,14 @@ object Resource {
         case _ => throw new Exception("Invalid resource quantity format")
     }
     
-    override def toString = value
+    override def toString: Finalizer = value
     override def equals(o: Any) : Boolean = {
       o match {
         case that: Quantity => that.amount.equals(this.amount)
         case _ => false
       }
     }
-    override def hashCode = this.amount.hashCode
+    override def hashCode: Int = this.amount.hashCode
   }
   
   object Quantity {
@@ -95,7 +96,7 @@ object Resource {
         (2,60) -> "Ei",
         (2,0)  -> "")     
         
-    val binSuffix2Be = binBe2Suffix map { case (be, suffix) => (suffix, be) }
+    val binSuffix2Be: Map[Finalizer, (Int, Int)] = binBe2Suffix map { case (be, suffix) => (suffix, be) }
     
     val decBe2Suffix = Map(  
         (10,-3) -> "m",
@@ -107,9 +108,9 @@ object Resource {
         (10,15) -> "P",
         (10,18) -> "E")
     
-    val decSuffix2Be = decBe2Suffix map { case (be, suffix) => (suffix, be) }  
+    val decSuffix2Be: Map[Finalizer, (Int, Int)] = decBe2Suffix map { case (be, suffix) => (suffix, be) }
     
-    def parseBinarySI(number: String, suffix: String) = {
+    def parseBinarySI(number: String, suffix: String): BigDecimal = {
       val (base, exponent) = binSuffix2Be(suffix)
       val multiplier = Math.pow(base, exponent).round
       val multPartBigDec = BigDecimal(new java.math.BigDecimal(multiplier))
@@ -117,7 +118,7 @@ object Resource {
       numberPartBigDec * multPartBigDec
     }
     
-    def parseDecimalSI(number: String, suffix: String) = {
+    def parseDecimalSI(number: String, suffix: String): BigDecimal = {
       val (base, exponent) = decSuffix2Be(suffix)
       val num = BigDecimal(new java.math.BigDecimal(number))
       exponent match {
@@ -128,7 +129,7 @@ object Resource {
       }
     }
      
-    def parseDecimalExponent(number: String, suffix: String) = {
+    def parseDecimalExponent(number: String, suffix: String): Unit = {
       
     }
       

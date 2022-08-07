@@ -77,7 +77,7 @@ package object format {
     (JsPath \ "template").formatNullable[Pod.Template.Spec]
   )(ReplicaSet.Spec.apply _, unlift(ReplicaSet.Spec.unapply))
 
-  implicit val replsetStatusFormat = Json.format[ReplicaSet.Status]
+  implicit val replsetStatusFormat: OFormat[ReplicaSet.Status] = Json.format[ReplicaSet.Status]
 
   implicit lazy val replsetFormat: Format[ReplicaSet] = (
     objFormat and

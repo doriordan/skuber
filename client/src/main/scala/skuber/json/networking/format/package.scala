@@ -42,7 +42,7 @@ package object format {
     )
   )
 
-  implicit val ingressStatusFormat = Json.format[Ingress.Status]
+  implicit val ingressStatusFormat: OFormat[Ingress.Status] = Json.format[Ingress.Status]
 
   implicit lazy val ingressFormat: Format[Ingress] = (
     objFormat and

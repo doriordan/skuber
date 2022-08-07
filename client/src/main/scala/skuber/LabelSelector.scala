@@ -7,9 +7,9 @@ import java.beans.Expression
   */
 
 case class LabelSelector(val requirements: LabelSelector.Requirement*) {
-  override def toString=requirements.mkString(",")
+  override def toString: Finalizer =requirements.mkString(",")
 
-  override def equals(o: Any) = o match {
+  override def equals(o: Any): Boolean = o match {
     case that: LabelSelector => that.requirements.sortBy(r => r.key).equals(requirements.sortBy(r => r.key))
     case _ => false
   }
@@ -28,30 +28,30 @@ object LabelSelector {
   }
   sealed trait SetRequirement extends Requirement {
     val values: List[String]
-    def valuesAsString="(" + values.mkString(",") + ")"
+    def valuesAsString: Finalizer ="(" + values.mkString(",") + ")"
   }
 
   case class ExistsRequirement(key: String) extends ExistenceRequirement {
-    override def toString=key
+    override def toString: Finalizer =key
   }
 
   case class NotExistsRequirement(key: String) extends Requirement {
-    override def toString="!"+key
+    override def toString: Finalizer ="!"+key
   }
 
   case class IsEqualRequirement(key: String, value: String) extends EqualityRequirement {
-    override def toString=key+"="+value
+    override def toString: Finalizer =key+"="+value
   }
 
   case class IsNotEqualRequirement(key: String, value: String) extends EqualityRequirement {
-    override def toString=key+"!="+value
+    override def toString: Finalizer =key+"!="+value
   }
 
   case class InRequirement(key: String, values: List[String]) extends SetRequirement {
-    override def toString=key+" in "+valuesAsString
+    override def toString: Finalizer =key+" in "+valuesAsString
   }
   case class NotInRequirement(key: String, values: List[String]) extends SetRequirement {
-    override def toString=key+" notin "+valuesAsString
+    override def toString: Finalizer =key+" notin "+valuesAsString
   }
 
   object dsl {
@@ -64,14 +64,14 @@ object LabelSelector {
     // "status" isNot "release" -> "status!=release"
     // "env" isIn List("staging", "production") -> "env in (staging,release)"
     // "env" isNotIn List("local", "dev") -> "env notin (local,dev)"
-    implicit def strToReq(key: String) = new LabelSelector.ExistsRequirement(key) {
-      def doesNotExist = NotExistsRequirement(key)
-      def is(value: String) = IsEqualRequirement(key, value)
-      def isNot(value: String) = IsNotEqualRequirement(key,value)
-      def isIn(values: List[String]) = InRequirement(key, values)
-      def isNotIn(values: List[String]) = NotInRequirement(key, values)
+    implicit def strToReq(inputKey: String): ExistsRequirement = new LabelSelector.ExistsRequirement(inputKey) {
+      def doesNotExist: NotExistsRequirement = NotExistsRequirement(inputKey)
+      def is(value: String): IsEqualRequirement = IsEqualRequirement(inputKey, value)
+      def isNot(value: String): IsNotEqualRequirement = IsNotEqualRequirement(inputKey, value)
+      def isIn(values: List[String]): InRequirement = InRequirement(inputKey, values)
+      def isNotIn(values: List[String]): NotInRequirement = NotInRequirement(inputKey, values)
     }
-    implicit def reqToSel(req: LabelSelector.Requirement) = LabelSelector(req)
+    implicit def reqToSel(req: LabelSelector.Requirement): LabelSelector = LabelSelector(req)
   }
 }
 
