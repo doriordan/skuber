@@ -89,5 +89,6 @@ object HorizontalPodAutoscaler {
   implicit val cvObjRefFmt: Format[CrossVersionObjectReference] = Json.format[CrossVersionObjectReference]
   implicit val hpasSpecFmt: Format[HorizontalPodAutoscaler.Spec] = Json.format[HorizontalPodAutoscaler.Spec]
   implicit val hpasStatusFmt: Format[HorizontalPodAutoscaler.Status] = Json.format[HorizontalPodAutoscaler.Status]
+  import skuber.json.format.objectMetaFormat
   implicit val hpasFmt: Format[HorizontalPodAutoscaler] = Json.format[HorizontalPodAutoscaler]
 }
