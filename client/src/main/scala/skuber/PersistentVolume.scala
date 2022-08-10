@@ -17,15 +17,11 @@ case class PersistentVolume(val kind: String = "PersistentVolume",
 
 object PersistentVolume {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Cluster,
-    names = ResourceSpecification.Names(
-      plural = "persistentvolumes",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Cluster,
+    names = ResourceSpecification.Names(plural = "persistentvolumes",
       singular = "persistentvolume",
       kind = "PersistentVolume",
-      shortNames = Nil
-    )
-  )
+      shortNames = Nil))
   implicit val pvDef: ResourceDefinition[PersistentVolume] = new ResourceDefinition[PersistentVolume] {
     def spec: ResourceSpecification = specification
   }
@@ -48,14 +44,12 @@ object PersistentVolume {
     val Recycle, Retain, Delete = Value
   }
 
-  case class Spec(
-                   capacity: Resource.ResourceList,
+  case class Spec(capacity: Resource.ResourceList,
                    source: Volume.PersistentSource,
                    accessModes: List[AccessMode.AccessMode] = List(),
                    claimRef: Option[ObjectReference] = None,
                    persistentVolumeReclaimPolicy: Option[ReclaimPolicy.ReclaimPolicy] = None)
 
-  case class Status(
-                     phase: Option[Phase.Phase] = None,
+  case class Status(phase: Option[Phase.Phase] = None,
                      accessModes: List[AccessMode.AccessMode] = List())
 }

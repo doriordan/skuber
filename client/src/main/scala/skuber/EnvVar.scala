@@ -3,8 +3,7 @@ package skuber
 /**
  * @author David O'Riordan
  */
-case class EnvVar(
-    name: String,
+case class EnvVar(name: String,
     value: EnvVar.Value = "")
 
 object EnvVar {

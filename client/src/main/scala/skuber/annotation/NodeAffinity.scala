@@ -8,10 +8,8 @@ import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
   * 2017-10-05: per https://github.com/kubernetes/kubernetes/issues/44339, node affinity via annotation is not supported by default in
   * Kubernetes 1.6 or later. It should be set directly in the Pod.Spec (see PodFormatSpec for an example)
   */
-case class NodeAffinity(
-                    requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
-                    preferredDuringSchedulingIgnoredDuringExecution: Option[PreferredDuringSchedulingIgnoredDuringExecution]
-                  )
+case class NodeAffinity(requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
+                    preferredDuringSchedulingIgnoredDuringExecution: Option[PreferredDuringSchedulingIgnoredDuringExecution])
 
 object NodeAffinity {
   val ANNOTATION_NAME = "scheduler.alpha.kubernetes.io/affinity"
@@ -23,18 +21,7 @@ object NodeAffinity {
   def NodeSelectorTerms(xs: NodeSelectorTerm*) = List(xs: _*)
 
   def forRequiredQuery(key: String, operator: NodeAffinity.Operator.Value, values: List[String]): NodeAffinity = {
-    NodeAffinity(
-      Option(
-        RequiredDuringSchedulingIgnoredDuringExecution(
-          NodeSelectorTerms(
-            NodeSelectorTerm(
-              MatchExpressions(
-                MatchExpression(key, operator, values)
-              )
-            )
-          )
-        )
-      )
+    NodeAffinity(Option(RequiredDuringSchedulingIgnoredDuringExecution(NodeSelectorTerms(NodeSelectorTerm(MatchExpressions(MatchExpression(key, operator, values))))))
       , None)
   }
 

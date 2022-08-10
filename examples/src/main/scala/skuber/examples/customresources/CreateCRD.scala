@@ -17,16 +17,14 @@ object CreateCRD extends App {
   // CRD for the organizations teams, each team should be represented by a single Team resource.
   // A teams resources may in some cases (we assume for demo purposes) exist in multiple namespaces, so scope of Team
   // is Clustered rather than the default of Namespaced
-  val teamCrd = CustomResourceDefinition(
-    name = "teams.examples.skuber.io",
+  val teamCrd = CustomResourceDefinition(name = "teams.examples.skuber.io",
     kind = "Team",
     scope = Scope.Cluster)
 
   // CRD for the organizations service support (SUP) information, each service should have one SUP resource
   // Scope is default i.e. Namespaced - each SUP resource should be in the same namespace as the resources of the
   // corresponding service
-  val svcSupportCrd = CustomResourceDefinition(
-    name = "servicesupports.examples.skuber.io",
+  val svcSupportCrd = CustomResourceDefinition(name = "servicesupports.examples.skuber.io",
     kind = "ServiceSupport",
     shortNames = "sup" :: Nil)
 

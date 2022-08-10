@@ -46,15 +46,11 @@ case class ReplicationController(val kind: String = "ReplicationController",
 
 object ReplicationController {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "replicationcontrollers",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "replicationcontrollers",
       singular = "replicationcontroller",
       kind = "ReplicationController",
-      shortNames = List("rc")
-    )
-  )
+      shortNames = List("rc")))
   implicit val rcDef: ResourceDefinition[ReplicationController] = new ResourceDefinition[ReplicationController] {
     def spec: ResourceSpecification = specification
   }
@@ -82,12 +78,10 @@ object ReplicationController {
     ReplicationController(metadata = meta, spec = Some(Spec(template = Some(templSpec), selector = Some(selector))))
   }
 
-  case class Spec(
-                   replicas: Int = 1,
+  case class Spec(replicas: Int = 1,
                    selector: Option[Map[String, String]] = None,
                    template: Option[Pod.Template.Spec] = None)
 
-  case class Status(
-                     replicas: Int,
+  case class Status(replicas: Int,
                      observerdGeneration: Option[Int])
 }

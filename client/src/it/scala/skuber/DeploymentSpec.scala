@@ -131,9 +131,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     k8s.delete[Deployment](deploymentName3).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deploymentName3).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentName3).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -152,9 +150,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     k8s.delete[Deployment](deploymentSpecific3, namespace = Some(namespace3)).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deploymentSpecific3, Some(namespace3)).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentSpecific3, Some(namespace3)).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -174,9 +170,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     k8s.deleteAll[DeploymentList](namespace = Some(namespace4)).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deploymentSpecific41).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentSpecific41).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -184,9 +178,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
         }
       }
 
-      whenReady(
-        k8s.get[Deployment](deploymentSpecific42).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentSpecific42).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)

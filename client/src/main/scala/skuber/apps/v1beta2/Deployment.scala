@@ -60,17 +60,13 @@ case class Deployment(val kind: String = "Deployment",
 
 object Deployment {
 
-  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(
-    apiGroup = "apps",
+  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(apiGroup = "apps",
     version = "v1beta2",
     scope = Scope.Namespaced,
-    names = Names(
-      plural = "deployments",
+    names = Names(plural = "deployments",
       singular = "deployment",
       kind = "Deployment",
-      shortNames = List("deploy")
-    )
-  )
+      shortNames = List("deploy")))
   implicit val deployDef: ResourceDefinition[Deployment] = new ResourceDefinition[Deployment] {
     def spec: ResourceSpecification = specification
   }
@@ -83,8 +79,7 @@ object Deployment {
 
   def apply(name: String) = new Deployment(metadata = ObjectMeta(name = name))
 
-  case class Spec(
-                   replicas: Option[Int] = Some(1),
+  case class Spec(replicas: Option[Int] = Some(1),
                    selector: Option[LabelSelector] = None,
                    template: Option[Pod.Template.Spec] = None,
                    strategy: Option[Strategy] = None,
@@ -117,12 +112,10 @@ object Deployment {
       Some(strategy._type, strategy.rollingUpdate)
   }
 
-  case class RollingUpdate(
-                            maxUnavailable: IntOrString = Left(1),
+  case class RollingUpdate(maxUnavailable: IntOrString = Left(1),
                             maxSurge: IntOrString = Left(1))
 
-  case class Status(
-                     replicas: Int = 0,
+  case class Status(replicas: Int = 0,
                      updatedReplicas: Int = 0,
                      availableReplicas: Int = 0,
                      unavailableReplicas: Int = 0,
@@ -134,37 +127,27 @@ object Deployment {
   import play.api.libs.json.{Format, JsPath, Json}
   import skuber.json.format._ // reuse some core skuber json formatters
 
-  implicit val depStatusFmt: Format[Status] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
+  implicit val depStatusFmt: Format[Status] = ((JsPath \ "replicas").formatMaybeEmptyInt() and
       (JsPath \ "updatedReplicas").formatMaybeEmptyInt() and
       (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
       (JsPath \ "unavailableReplicas").formatMaybeEmptyInt() and
-      (JsPath \ "observedGeneration").formatMaybeEmptyInt()
-    ) (Status.apply _, unlift(Status.unapply))
+      (JsPath \ "observedGeneration").formatMaybeEmptyInt()) (Status.apply _, unlift(Status.unapply))
 
-  implicit val rollingUpdFmt: Format[RollingUpdate] = (
-    (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
-      (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))
-    ) (RollingUpdate.apply _, unlift(RollingUpdate.unapply))
+  implicit val rollingUpdFmt: Format[RollingUpdate] = ((JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
+      (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))) (RollingUpdate.apply _, unlift(RollingUpdate.unapply))
 
-  implicit val depStrategyFmt: Format[Strategy] = (
-    (JsPath \ "type").formatEnum(StrategyType, Some(StrategyType.RollingUpdate)) and
-      (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-    ) (Strategy.apply _, unlift(Strategy.unapply))
+  implicit val depStrategyFmt: Format[Strategy] = ((JsPath \ "type").formatEnum(StrategyType, Some(StrategyType.RollingUpdate)) and
+      (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]) (Strategy.apply _, unlift(Strategy.unapply))
 
-  implicit val depSpecFmt: Format[Deployment.Spec] = (
-    (JsPath \ "replicas").formatNullable[Int] and
+  implicit val depSpecFmt: Format[Deployment.Spec] = ((JsPath \ "replicas").formatNullable[Int] and
       (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "template").formatNullable[Pod.Template.Spec] and
       (JsPath \ "strategy").formatNullable[Deployment.Strategy] and
-      (JsPath \ "minReadySeconds").formatMaybeEmptyInt()
-    ) (Spec.apply _, unlift(Spec.unapply))
+      (JsPath \ "minReadySeconds").formatMaybeEmptyInt()) (Spec.apply _, unlift(Spec.unapply))
 
-  implicit lazy val depFormat: Format[Deployment] = (
-    objFormat and
+  implicit lazy val depFormat: Format[Deployment] = (objFormat and
       (JsPath \ "spec").formatNullable[Spec] and
-      (JsPath \ "status").formatNullable[Status]
-    ) (Deployment.apply _, unlift(Deployment.unapply))
+      (JsPath \ "status").formatNullable[Status]) (Deployment.apply _, unlift(Deployment.unapply))
 
   implicit val deployListFormat: Format[DeploymentList] = ListResourceFormat[Deployment]
 }

@@ -19,15 +19,11 @@ case class Node(val kind: String = "Node",
 
 object Node {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Cluster,
-    names = ResourceSpecification.Names(
-      plural = "nodes",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Cluster,
+    names = ResourceSpecification.Names(plural = "nodes",
       singular = "node",
       kind = "Node",
-      shortNames = List("no")
-    )
-  )
+      shortNames = List("no")))
   implicit val nodeDef: ResourceDefinition[Node] = new ResourceDefinition[Node] {
     def spec: ResourceSpecification = specification
   }
@@ -39,22 +35,18 @@ object Node {
 
   def apply(name: String, spec: Node.Spec): Node = Node(metadata = ObjectMeta(name = name), spec = Some(spec))
 
-  case class Spec(
-                   podCIDR: String = "",
+  case class Spec(podCIDR: String = "",
                    providerID: String = "",
                    unschedulable: Boolean = false,
                    externalID: String = "",
                    taints: List[Taint] = Nil)
 
-  case class Taint(
-                    effect: String,
+  case class Taint(effect: String,
                     key: String,
                     value: Option[String] = None,
-                    timeAdded: Option[Timestamp] = None
-                  )
+                    timeAdded: Option[Timestamp] = None)
 
-  case class Status(
-                     capacity: Resource.ResourceList = Map(),
+  case class Status(capacity: Resource.ResourceList = Map(),
                      phase: Option[Phase.Phase] = None,
                      conditions: List[Node.Condition] = List(),
                      addresses: List[Node.Address] = List(),
@@ -63,16 +55,11 @@ object Node {
                      daemonEndpoints: Option[DaemonEndpoints] = None,
                      images: List[Container.Image] = Nil,
                      volumesInUse: List[String] = Nil,
-                     volumesAttached: List[AttachedVolume]
-                   )
+                     volumesAttached: List[AttachedVolume])
 
-  case class DaemonEndpoints(
-                              kubeletEndpoint: DaemonEndpoint
-                            )
+  case class DaemonEndpoints(kubeletEndpoint: DaemonEndpoint)
 
-  case class DaemonEndpoint(
-                             Port: Int
-                           )
+  case class DaemonEndpoint(Port: Int)
 
   case class AttachedVolume(name: String, devicePath: String)
 
@@ -81,8 +68,7 @@ object Node {
     val Pending, Running, Terminated = Value
   }
 
-  case class Condition(
-                        _type: String,
+  case class Condition(_type: String,
                         status: String,
                         lastHeartbeatTime: Option[Timestamp] = None,
                         lastTransitionTime: Option[Timestamp] = None,
@@ -91,8 +77,7 @@ object Node {
 
   case class Address(_type: String, address: String)
 
-  case class SystemInfo(
-                         machineID: String,
+  case class SystemInfo(machineID: String,
                          systemUUID: String,
                          bootID: String,
                          kernelVersion: String,

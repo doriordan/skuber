@@ -42,23 +42,17 @@ private[api] object WatchSource {
       def createWatchRequest(since: Option[String]) =
       {
         val nameFieldSelector=name.map(objName => s"metadata.name=$objName")
-        val watchOptions=options.copy(
-          resourceVersion = since,
+        val watchOptions=options.copy(resourceVersion = since,
           watch = Some(true),
-          fieldSelector = nameFieldSelector.orElse(options.fieldSelector)
-        )
-        client.buildRequest(
-          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap)), namespace = namespace
-        )
+          fieldSelector = nameFieldSelector.orElse(options.fieldSelector))
+        client.buildRequest(HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap)), namespace = namespace)
       }
 
       val singleEnd = Source.single(End[O]())
 
       def singleStart(s:StreamElement[O]) = Source.single(s)
 
-      val initSource = Source.single(
-        (createWatchRequest(options.resourceVersion), Start[O](options.resourceVersion))
-      )
+      val initSource = Source.single((createWatchRequest(options.resourceVersion), Start[O](options.resourceVersion)))
 
       val httpFlow: Flow[(HttpRequest, Start[O]), StreamElement[O], NotUsed] =
         Flow[(HttpRequest, Start[O])].map { request => // log request
@@ -67,11 +61,9 @@ private[api] object WatchSource {
         }.via(pool).flatMapConcat {
           case (Success(HttpResponse(StatusCodes.OK, _, entity, _)), se) =>
             client.logInfo(client.logConfig.logResponseBasic, s"received response with HTTP status 200")
-            singleStart(se).concat(
-              BytesToWatchEventSource[O](entity.dataBytes, bufSize).map { event =>
+            singleStart(se).concat(BytesToWatchEventSource[O](entity.dataBytes, bufSize).map { event =>
                 Result[O](event._object.resourceVersion, event)
-              }
-            ).concat(singleEnd)
+              }).concat(singleEnd)
           case (Success(HttpResponse(sc, _, entity, _)), _) =>
             client.logWarn(s"Error watching resource. Received a status of ${sc.intValue()}")
             entity.discardBytes()

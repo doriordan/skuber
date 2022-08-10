@@ -46,17 +46,13 @@ case class EventBus(val kind: String = "EventBus",
 
 object EventBus {
 
-  val specification=NonCoreResourceSpecification(
-    apiGroup = "argoproj.io",
+  val specification=NonCoreResourceSpecification(apiGroup = "argoproj.io",
     version = "v1alpha1",
     scope = Scope.Namespaced,
-    names = Names(
-      plural = "eventbus",
+    names = Names(plural = "eventbus",
       singular = "eventbus",
       kind = "EventBus",
-      shortNames = List("eb")
-    )
-  )
+      shortNames = List("eb")))
   type EventBusSetList = ListResource[EventBus]
   implicit val rsDef = new ResourceDefinition[EventBus] { def spec=specification }
   implicit val rsListDef = new ResourceDefinition[EventBusSetList] { def spec=specification }
@@ -81,10 +77,8 @@ object EventBus {
   implicit val natsFmt: Format[Nats] = Json.format[Nats]
   implicit val specFmt: Format[Spec] = Json.format[Spec]
 
-  implicit lazy val eventBusFmt: Format[EventBus] = (
-    objFormat and
-      (JsPath \ "spec").formatNullable[EventBus.Spec]
-    )(EventBus.apply _, unlift(EventBus.unapply))
+  implicit lazy val eventBusFmt: Format[EventBus] = (objFormat and
+      (JsPath \ "spec").formatNullable[EventBus.Spec])(EventBus.apply _, unlift(EventBus.unapply))
 
   implicit val eventBusListFmt: Format[EventBusSetList] = ListResourceFormat[EventBus]
 

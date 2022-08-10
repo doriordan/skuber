@@ -19,19 +19,13 @@ class VolumeReadWriteSpec extends Specification {
 
   "A PersistentVolumeClaim spec can be symmetrically written to json and the same value read back in \n" >> {
     "this can be done for the emptydir type source spec" >> {
-      val pvc = PersistentVolumeClaim(
-        metadata = ObjectMeta(
-          name = "mypvc"
-        ),
-        spec = Some(PersistentVolumeClaim.Spec(
-          accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
+      val pvc = PersistentVolumeClaim(metadata = ObjectMeta(name = "mypvc"),
+        spec = Some(PersistentVolumeClaim.Spec(accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
           resources = Some(Resource.Requirements(limits=Map("storage" -> "30Gi"))),
           volumeName = Some("volume-name"),
           storageClassName = Some("a-storage-class-name"),
           volumeMode = Some(VolumeMode.Filesystem),
-          selector = Some(Selector(matchLabels = Some(Map("label" -> "value")), matchExpressions = None))
-        ))
-      )
+          selector = Some(Selector(matchLabels = Some(Map("label" -> "value")), matchExpressions = None)))))
       val pvcJson = Json.toJson(pvc)
       val readPvc = Json.fromJson[PersistentVolumeClaim](pvcJson).get
       readPvc.name mustEqual pvc.name
@@ -59,8 +53,7 @@ class VolumeReadWriteSpec extends Specification {
   // Volume reader and writer
   "A Volume spec can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for the emptydir type source spec" >> {
-      val edVol = Volume("myVol", Volume.EmptyDir(
-        Volume.HugePagesStorageMedium,
+      val edVol = Volume("myVol", Volume.EmptyDir(Volume.HugePagesStorageMedium,
         sizeLimit = Some(Resource.Quantity("100M"))))
       val myVolJson = Json.toJson(edVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
@@ -234,8 +227,7 @@ class VolumeReadWriteSpec extends Specification {
     }
 
     "this can be done for the a serialised RDB source spec" >> {
-      val monitors = List(
-                    "10.16.154.78:6789",
+      val monitors = List("10.16.154.78:6789",
                     "10.16.154.82:6789",
                     "10.16.154.83:6789")
       val rbd = Volume.RBD(monitors, "foo", "ext4", "kube", readOnly=true)            

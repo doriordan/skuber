@@ -21,34 +21,27 @@ case class DaemonSet(val kind: String ="DaemonSet",
 
 object DaemonSet {
 
-  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (
-    apiGroup="extensions",
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (apiGroup="extensions",
     version="v1beta1",
     scope = Scope.Namespaced,
-    names=Names(
-      plural = "daemonsets",
+    names=Names(plural = "daemonsets",
       singular = "daemonset",
       kind = "DaemonSet",
-      shortNames = List("ds")
-    )
-  )
+      shortNames = List("ds")))
   implicit val dsDef: ResourceDefinition[DaemonSet] = new ResourceDefinition[DaemonSet] { def spec: ResourceSpecification =specification }
   implicit val dsListDef: ResourceDefinition[DaemonSetList] = new ResourceDefinition[DaemonSetList] { def spec: ResourceSpecification =specification }
 
   def apply(name: String) = new DaemonSet(metadata=ObjectMeta(name=name))
 
-  case class Spec(
-    minReadySeconds: Int = 0,
+  case class Spec(minReadySeconds: Int = 0,
     selector: Option[LabelSelector] = None,
     template: Option[Pod.Template.Spec] = None,
     updateStrategy: Option[UpdateStrategy] = None,
-    revisionHistoryLimit: Option[Int] = None
-  )
+    revisionHistoryLimit: Option[Int] = None)
   case class UpdateStrategy(`type`: Option[String] = Some("OnDelete"), rollingUpdate: Option[RollingUpdate]=None)
   case class RollingUpdate(maxUnavailable: Int = 1)
 
-  case class Status(
-    currentNumberScheduled: Int,
+  case class Status(currentNumberScheduled: Int,
     numberMisscheduled: Int,
     desiredNumberScheduled: Int,
     numberReady: Int,
@@ -56,6 +49,5 @@ object DaemonSet {
     updatedNumberScheduled: Option[Int],
     numberAvailable: Option[Int],
     numberUnavailable:Option[Int],
-    collisionCount:Option[Long]
-  )
+    collisionCount:Option[Long])
 }

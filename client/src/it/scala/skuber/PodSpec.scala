@@ -75,9 +75,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     k8s.create(getNginxPod(podName4, "1.7.9")).valueT
     k8s.delete[Pod](podName4).valueT
 
-    whenReady(
-      k8s.get[Namespace](podName4).withTimeout().failed
-    ) { result =>
+    whenReady(k8s.get[Namespace](podName4).withTimeout().failed) { result =>
       result shouldBe a[K8SException]
       result match {
         case ex: K8SException => ex.status.code shouldBe Some(404)

@@ -12,8 +12,7 @@ object Resource {
   type ResourceList=Map[String, Quantity]
   
   case class Requirements(limits: ResourceList = Map(), requests: ResourceList = Map())
-  case class Quota(
-      val kind: String = "ResourceQuota",
+  case class Quota(val kind: String = "ResourceQuota",
       override val apiVersion: String = v1,
       val metadata: ObjectMeta = ObjectMeta(),
       spec: Option[Quota.Spec] = None,
@@ -21,15 +20,11 @@ object Resource {
     extends ObjectResource 
  
   object Quota {
-    val specification: CoreResourceSpecification =CoreResourceSpecification(
-      scope = ResourceSpecification.Scope.Namespaced,
-      names = ResourceSpecification.Names(
-        plural="resourcequotas",
+    val specification: CoreResourceSpecification =CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+      names = ResourceSpecification.Names(plural="resourcequotas",
         singular="resourcequota",
         kind="ResourceQuota",
-        shortNames=List("quota")
-      )
-    )
+        shortNames=List("quota")))
     implicit val rqDef: ResourceDefinition[Quota] = new ResourceDefinition[Resource.Quota] { def spec: ResourceSpecification =specification }
     implicit val rqListDef: ResourceDefinition[ResourceQuotaList] = new ResourceDefinition[ResourceQuotaList] { def spec: ResourceSpecification =specification }
 
@@ -87,8 +82,7 @@ object Resource {
     case object DecimalSI extends Format
     case object DecimalExponent extends Format
    
-    val binBe2Suffix = Map(
-        (2,10) -> "Ki",
+    val binBe2Suffix = Map((2,10) -> "Ki",
         (2,20) -> "Mi",
         (2,30) -> "Gi",
         (2,40) -> "Ti",

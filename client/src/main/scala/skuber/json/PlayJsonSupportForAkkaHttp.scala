@@ -75,9 +75,7 @@ trait PlayJsonSupportForAkkaHttp {
           .reads(json)
           .recoverTotal { e =>
             println(s"e => $e")
-            throw RejectionError(
-              ValidationRejection(JsError.toJson(e).toString, Some(PlayJsonError(e)))
-            )
+            throw RejectionError(ValidationRejection(JsError.toJson(e).toString, Some(PlayJsonError(e))))
           }
     jsonStringUnmarshaller.map { data =>
       read(Json.parse(data))
@@ -90,9 +88,7 @@ trait PlayJsonSupportForAkkaHttp {
     * @tparam A type to encode
     * @return marshaller for any `A` value
     */
-  implicit def marshaller[A](
-    implicit writes: Writes[A],
-    printer: JsValue => String = Json.prettyPrint
-  ): ToEntityMarshaller[A] =
+  implicit def marshaller[A](implicit writes: Writes[A],
+    printer: JsValue => String = Json.prettyPrint): ToEntityMarshaller[A] =
     jsonStringMarshaller.compose(printer).compose(writes.writes)
 }

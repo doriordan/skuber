@@ -24,17 +24,13 @@ case class Job(val kind: String = "Job",
 
 object Job {
 
-  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (
-    apiGroup="batch",
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (apiGroup="batch",
     version="v1",
     scope = Scope.Namespaced,
-    names=Names(
-      plural = "jobs",
+    names=Names(plural = "jobs",
       singular = "job",
       kind = "Job",
-      shortNames = Nil
-    )
-  )
+      shortNames = Nil))
   implicit val jobDef: ResourceDefinition[Job] = new ResourceDefinition[Job] { def spec: ResourceSpecification =specification }
   implicit val jobListDef: ResourceDefinition[JobList] = new ResourceDefinition[JobList] { def spec: ResourceSpecification =specification }
 

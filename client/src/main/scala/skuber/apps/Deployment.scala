@@ -7,8 +7,7 @@ package skuber.apps
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
-case class Deployment(
-    kind: String ="Deployment",
+case class Deployment(kind: String ="Deployment",
     override val apiVersion: String = "apps/v1beta1",
     metadata: ObjectMeta = ObjectMeta(),
     spec:  Option[Deployment.Spec] = None,
@@ -58,25 +57,20 @@ case class Deployment(
 
 object Deployment {
 
-  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification (
-    apiGroup="apps",
+  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification (apiGroup="apps",
     version="v1beta1",
     scope = Scope.Namespaced,
-    names=Names(
-      plural = "deployments",
+    names=Names(plural = "deployments",
       singular = "deployment",
       kind = "Deployment",
-      shortNames = List("deploy")
-    )
-  )
+      shortNames = List("deploy")))
   implicit val deployDef: ResourceDefinition[Deployment] = new ResourceDefinition[Deployment] { def spec: NonCoreResourceSpecification = specification }
   implicit val deployListDef: ResourceDefinition[DeploymentList] =  new ResourceDefinition[DeploymentList] { def spec: NonCoreResourceSpecification = specification }
   implicit val scDef: Scale.SubresourceSpec[Deployment] = new Scale.SubresourceSpec[Deployment] { override def apiVersion = "apps/v1beta1"}
 
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
 
-  case class Spec(
-    replicas: Option[Int] = Some(1),
+  case class Spec(replicas: Option[Int] = Some(1),
     selector: Option[LabelSelector] = None,
     template: Option[Pod.Template.Spec] = None,
     strategy: Option[Strategy] = None,
@@ -104,12 +98,10 @@ object Deployment {
       Some(strategy._type,strategy.rollingUpdate)
   }
 
-  case class RollingUpdate(
-      maxUnavailable: IntOrString = Left(1),
+  case class RollingUpdate(maxUnavailable: IntOrString = Left(1),
       maxSurge: IntOrString = Left(1))
 
-  case class Status(
-      replicas: Int=0,
+  case class Status(replicas: Int=0,
       updatedReplicas: Int=0,
       availableReplicas: Int = 0,
       unavailableReplicas: Int = 0,

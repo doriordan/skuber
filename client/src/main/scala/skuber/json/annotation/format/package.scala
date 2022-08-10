@@ -14,21 +14,13 @@ package object format {
 
   implicit val nodeAffinityOperatorFormat: Format[NodeAffinity.Operator.Operator] = Format(enumReads(NodeAffinity.Operator), enumWrites)
 
-  implicit val matchExpressionFormat: Format[MatchExpression] = (
-    (JsPath \ "key").formatMaybeEmptyString() and
+  implicit val matchExpressionFormat: Format[MatchExpression] = ((JsPath \ "key").formatMaybeEmptyString() and
       (JsPath \ "operator").formatEnum(NodeAffinity.Operator) and
-      (JsPath \ "values").formatMaybeEmptyList[String]
-    )(MatchExpression.apply _, unlift(MatchExpression.unapply))
+      (JsPath \ "values").formatMaybeEmptyList[String])(MatchExpression.apply _, unlift(MatchExpression.unapply))
 
-  implicit val nodeSelectorTermFormat: Format[NodeSelectorTerm] = (
-    (JsPath \ "matchExpressions").format[MatchExpressions].inmap(matchExpressions => NodeSelectorTerm(matchExpressions), (nst: NodeSelectorTerm) => nst.matchExpressions)
-    )
+  implicit val nodeSelectorTermFormat: Format[NodeSelectorTerm] = ((JsPath \ "matchExpressions").format[MatchExpressions].inmap(matchExpressions => NodeSelectorTerm(matchExpressions), (nst: NodeSelectorTerm) => nst.matchExpressions))
 
-    implicit val requiredDuringSchedulingIgnoredDuringExecutionFormat: Format[RequiredDuringSchedulingIgnoredDuringExecution] = (
-      (JsPath \ "nodeSelectorTerms").format[NodeSelectorTerms].inmap(nodeSelectorTerms => RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms), (rdside: RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms)
-    )
+    implicit val requiredDuringSchedulingIgnoredDuringExecutionFormat: Format[RequiredDuringSchedulingIgnoredDuringExecution] = ((JsPath \ "nodeSelectorTerms").format[NodeSelectorTerms].inmap(nodeSelectorTerms => RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms), (rdside: RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms))
 
-    implicit val preferredDuringSchedulingIgnoredDuringExecutionFormat: Format[PreferredDuringSchedulingIgnoredDuringExecution] = (
-      (JsPath \ "nodeSelectorTerms").format[NodeSelectorTerms].inmap(nodeSelectorTerms => PreferredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms), (pdside: PreferredDuringSchedulingIgnoredDuringExecution) => pdside.nodeSelectorTerms)
-      )
+    implicit val preferredDuringSchedulingIgnoredDuringExecutionFormat: Format[PreferredDuringSchedulingIgnoredDuringExecution] = ((JsPath \ "nodeSelectorTerms").format[NodeSelectorTerms].inmap(nodeSelectorTerms => PreferredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms), (pdside: PreferredDuringSchedulingIgnoredDuringExecution) => pdside.nodeSelectorTerms))
 }

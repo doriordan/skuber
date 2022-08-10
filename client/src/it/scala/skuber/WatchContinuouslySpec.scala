@@ -80,15 +80,11 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     k8s.delete[Deployment](deployment2).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deployment1).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deployment1).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
       }
 
-      whenReady(
-        k8s.get[Deployment](deployment2).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deployment2).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
       }
     }
@@ -100,12 +96,10 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     stream.futureValue._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
-    } shouldBe List(
-      (EventType.ADDED, deployment1),
+    } shouldBe List((EventType.ADDED, deployment1),
       (EventType.DELETED, deployment1),
       (EventType.ADDED, deployment2),
-      (EventType.DELETED, deployment2)
-    )
+      (EventType.DELETED, deployment2))
   }
 
   it should "continuously watch changes on a named resource obj from the beginning - deployment" in { k8s =>
@@ -138,9 +132,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     k8s.delete[Deployment](deployment3).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deployment3).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deployment3).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
       }
     }
@@ -155,10 +147,8 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     f2.toList.map { d =>
       (d._type, d._object.name)
-    } shouldBe List(
-      (EventType.ADDED, deployment3),
-      (EventType.DELETED, deployment3)
-    )
+    } shouldBe List((EventType.ADDED, deployment3),
+      (EventType.DELETED, deployment3))
   }
 
   it should "continuously watch changes on a named resource from the beginning - deployment" in { k8s =>
@@ -190,9 +180,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     k8s.delete[Deployment](deployment4).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deployment4).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deployment4).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
       }
     }
@@ -202,10 +190,8 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     stream._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
-    } shouldBe List(
-      (EventType.ADDED, deployment4),
-      (EventType.DELETED, deployment4)
-    )
+    } shouldBe List((EventType.ADDED, deployment4),
+      (EventType.DELETED, deployment4))
   }
 
   it should "continuously watch changes on a named resource from a point in time - deployment (specific namespace)" in { k8s =>
@@ -241,9 +227,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     k8s.delete[Deployment](deployment5, namespace = Some(namespace5)).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deployment5, namespace = Some(namespace5)).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deployment5, namespace = Some(namespace5)).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
       }
     }
@@ -253,9 +237,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     stream._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
-    } shouldBe List(
-      (EventType.DELETED, deployment5)
-    )
+    } shouldBe List((EventType.DELETED, deployment5))
   }
 
   def pause(length: Duration): Unit = {

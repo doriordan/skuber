@@ -42,15 +42,11 @@ case class Namespace(val kind: String = "Namespace",
 
 object Namespace {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Cluster,
-    names = ResourceSpecification.Names(
-      plural = "namespaces",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Cluster,
+    names = ResourceSpecification.Names(plural = "namespaces",
       singular = "namespace",
       kind = "Namespace",
-      shortNames = List("ns")
-    )
-  )
+      shortNames = List("ns")))
   implicit val namespaceDef: ResourceDefinition[Namespace] = new ResourceDefinition[Namespace] {
     def spec: ResourceSpecification = specification
   }

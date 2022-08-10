@@ -20,15 +20,11 @@ case class Event(val kind: String = "Event",
 
 object Event {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "events",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "events",
       singular = "event",
       kind = "Event",
-      shortNames = List("ev")
-    )
-  )
+      shortNames = List("ev")))
   implicit val evDef: ResourceDefinition[Event] = new ResourceDefinition[Event] {
     def spec: ResourceSpecification = specification
   }

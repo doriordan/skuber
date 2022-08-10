@@ -15,16 +15,13 @@ case class CronJob(kind: String = "CronJob",
 object CronJob {
 
   implicit val cronjobDef: ResourceDefinition[CronJob] = new ResourceDefinition[CronJob] {
-    def spec: ResourceSpecification = NonCoreResourceSpecification(
-      apiGroup = "batch",
+    def spec: ResourceSpecification = NonCoreResourceSpecification(apiGroup = "batch",
       version = "v2alpha1",
       scope = Scope.Namespaced,
-      names = Names(
-        plural = "cronjobs",
+      names = Names(plural = "cronjobs",
         singular = "cronjob",
         kind = "CronJob",
-        shortNames = Nil)
-    )
+        shortNames = Nil))
   }
 
   def apply(name: String) = new CronJob(metadata = ObjectMeta(name = name))
@@ -33,23 +30,12 @@ object CronJob {
     new CronJob(metadata = ObjectMeta(name = name), spec = Some(Spec(schedule = schedule, jobTemplate = jobTemplateSpec)))
 
   def apply(name: String, schedule: String, podTemplateSpec: Pod.Template.Spec) =
-    new CronJob(
-      metadata = ObjectMeta(name = name),
-      spec = Some(
-        Spec(
-          schedule = schedule,
-          jobTemplate = JobTemplate.Spec(
-            spec = Job.Spec(
-              template = Some(podTemplateSpec)
-            )
-          )
-        )
-      )
-    )
+    new CronJob(metadata = ObjectMeta(name = name),
+      spec = Some(Spec(schedule = schedule,
+          jobTemplate = JobTemplate.Spec(spec = Job.Spec(template = Some(podTemplateSpec))))))
 
 
-  case class Spec(
-                   schedule: String,
+  case class Spec(schedule: String,
                    jobTemplate: JobTemplate.Spec,
                    startingDeadlineSeconds: Option[Long] = None,
                    concurrencyPolicy: Option[String] = None, // can be "Allow" (implied if None), "Forbid" or "Replace"
@@ -57,8 +43,6 @@ object CronJob {
                    successfulJobsHistoryLimit: Option[Int] = None,
                    failedJobsHistoryLimit: Option[Int] = None)
 
-  case class Status(
-                     lastScheduleTime: Option[Timestamp],
-                     active: List[ObjectReference]
-                   )
+  case class Status(lastScheduleTime: Option[Timestamp],
+                     active: List[ObjectReference])
 }

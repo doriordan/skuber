@@ -59,8 +59,7 @@ class LabelSelectorSpec extends Specification {
 
   "A label selector can be constructed" >> {
     "from multiple requirements" >> {
-      val sel = LabelSelector(
-        "tier" is "frontend",
+      val sel = LabelSelector("tier" is "frontend",
         "release" doesNotExist,
         "env" isNotIn List("production", "staging"))
       sel.requirements.size mustEqual 3

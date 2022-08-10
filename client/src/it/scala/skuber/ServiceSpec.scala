@@ -29,13 +29,11 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(
-      List(serviceName1, serviceName2, serviceName3, serviceName41, serviceName42).map { name =>
+    val results = Future.sequence(List(serviceName1, serviceName2, serviceName3, serviceName41, serviceName42).map { name =>
         k8s.delete[Service](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
-    val results2 = Future.sequence(
-      List(namespace4, namespace5).map { name =>
+    val results2 = Future.sequence(List(namespace4, namespace5).map { name =>
         k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
@@ -74,9 +72,7 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     k8s.create(getService(serviceName3)).valueT
     k8s.delete[Service](serviceName3).valueT
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Service](serviceName3).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Service](serviceName3).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)

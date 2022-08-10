@@ -15,8 +15,7 @@ import scala.io.Source
 /**
  * @author David O'Riordan
  */
-case class Configuration(
-      clusters: Map[String, Cluster] = Map(),
+case class Configuration(clusters: Map[String, Cluster] = Map(),
       contexts: Map[String, Context] = Map(),
       currentContext: Context = Context(),
       users: Map[String, AuthInfo] = Map()) {
@@ -35,8 +34,7 @@ object Configuration {
   lazy val useLocalProxyDefault: Configuration = {
     val defaultCluster=Cluster()
     val defaultContext=Context(cluster=defaultCluster)
-    Configuration(
-      clusters = Map("default" -> defaultCluster),
+    Configuration(clusters = Map("default" -> defaultCluster),
       contexts= Map("default" -> defaultContext),
       currentContext = defaultContext)
   }
@@ -53,8 +51,7 @@ object Configuration {
     val clusterAddress=s"http://localhost:${port.toString}"
     val defaultCluster=Cluster(server = clusterAddress)
     val defaultContext=Context(cluster=defaultCluster)
-    Configuration(
-      clusters = Map("default" -> defaultCluster),
+    Configuration(clusters = Map("default" -> defaultCluster),
       contexts= Map("default" -> defaultContext),
       currentContext = defaultContext)
   }
@@ -64,8 +61,7 @@ object Configuration {
     val clusterAddress=proxyAddress
     val defaultCluster=Cluster(server = clusterAddress)
     val defaultContext=Context(cluster=defaultCluster)
-    Configuration(
-      clusters = Map("default" -> defaultCluster),
+    Configuration(clusters = Map("default" -> defaultCluster),
       contexts= Map("default" -> defaultContext),
       currentContext = defaultContext)
   }
@@ -154,13 +150,11 @@ object Configuration {
 
 
         def toK8SCluster(clusterConfig: YamlMap, clusterName: String) =
-          Cluster(
-            apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
+          Cluster(apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
             server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
             insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)),
             certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data"),
-            clusterName = Some(clusterName)
-          )
+            clusterName = Some(clusterName))
 
 
         val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster)
@@ -173,14 +167,10 @@ object Configuration {
               case "oidc" =>
                 Some(OidcAuth(idToken = valueAt(config, "id-token")))
               case "gcp" =>
-                Some(
-                  GcpAuth(
-                    accessToken = optionalValueAt(config, "access-token"),
+                Some(GcpAuth(accessToken = optionalValueAt(config, "access-token"),
                     expiry = optionalInstantValueAt(config, "expiry"),
                     cmdPath = valueAt(config, "cmd-path"),
-                    cmdArgs = valueAt(config, "cmd-args")
-                  )
-                )
+                    cmdArgs = valueAt(config, "cmd-args")))
               case _ => None
             }
           }
@@ -269,11 +259,9 @@ object Configuration {
       hostPort  = s"https://$host${if (port.length > 0) ":" + port else ""}"
       cluster   = Cluster(server = hostPort, certificateAuthority = ca)
       ctx       = Context(cluster, TokenAuth(token), Namespace.forName(namespace))
-    } yield Configuration(
-      clusters = Map("default" -> cluster),
+    } yield Configuration(clusters = Map("default" -> cluster),
       contexts = Map("default" -> ctx),
-      currentContext = ctx
-    )
+      currentContext = ctx)
   }
 
   /*
@@ -304,9 +292,7 @@ object Configuration {
             }.getOrElse {
               // Try to get config from a running pod
               // if that is not set then use default kubeconfig location
-              Configuration.inClusterConfig.orElse(
-                Configuration.parseKubeconfigFile()
-              )
+              Configuration.inClusterConfig.orElse(Configuration.parseKubeconfigFile())
             }.get
         }
     }

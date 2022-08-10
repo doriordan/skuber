@@ -8,8 +8,7 @@ import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 import scala.util.Try
 
-case class Ingress(
-  kind: String ="Ingress",
+case class Ingress(kind: String ="Ingress",
   override val apiVersion: String = "networking.k8s.io/v1beta1",
   metadata: ObjectMeta = ObjectMeta(),
   spec: Option[Ingress.Spec] = None,
@@ -129,8 +128,7 @@ case class Ingress(
    */
   def withDefaultBackendService(serviceName: String, servicePort: NameablePort): Ingress = {
     val be = Backend(serviceName, servicePort)
-    this.copy(spec=Some(copySpec.copy(backend = Some(be)))
-    )
+    this.copy(spec=Some(copySpec.copy(backend = Some(be))))
   }
 
   def addAnnotations(newAnnos: Map[String, String]): Ingress =
@@ -142,17 +140,13 @@ case class Ingress(
 
 object Ingress {
 
-  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(
-    apiGroup = "networking.k8s.io",
+  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(apiGroup = "networking.k8s.io",
     version = "v1beta1",
     scope = Scope.Namespaced,
-    names = Names(
-      plural = "ingresses",
+    names = Names(plural = "ingresses",
       singular = "ingress",
       kind = "Ingress",
-      shortNames = List("ing")
-    )
-  )
+      shortNames = List("ing")))
   implicit val ingDef: ResourceDefinition[Ingress] = new ResourceDefinition[Ingress] { def spec=specification }
   implicit val ingListDef: ResourceDefinition[IngressList] = new ResourceDefinition[IngressList] { def spec=specification }
 
@@ -164,8 +158,7 @@ object Ingress {
   case class Rule(host: Option[String], http: HttpRule)
   case class TLS(hosts: List[String]=List(), secretName: Option[String] = None)
 
-  case class Spec(
-    backend: Option[Backend] = None,
+  case class Spec(backend: Option[Backend] = None,
     rules: List[Rule] = List(),
     tls: List[TLS]=List())
 

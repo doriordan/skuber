@@ -8,8 +8,7 @@ import skuber.LabelSelector.IsEqualRequirement
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
-case class Deployment(
-  val kind: String ="Deployment",
+case class Deployment(val kind: String ="Deployment",
   override val apiVersion: String = appsAPIVersion,
   val metadata: ObjectMeta = ObjectMeta(),
   val spec:  Option[Deployment.Spec] = None,
@@ -64,25 +63,20 @@ case class Deployment(
 
 object Deployment {
 
-  val specification=NonCoreResourceSpecification (
-    apiGroup="apps",
+  val specification=NonCoreResourceSpecification (apiGroup="apps",
     version="v1",
     scope = Scope.Namespaced,
-    names=Names(
-      plural = "deployments",
+    names=Names(plural = "deployments",
       singular = "deployment",
       kind = "Deployment",
-      shortNames = List("deploy")
-    )
-  )
+      shortNames = List("deploy")))
   implicit val deployDef = new ResourceDefinition[Deployment] { def spec=specification }
   implicit val deployListDef =  new ResourceDefinition[DeploymentList] { def spec=specification }
   implicit val scDef = new Scale.SubresourceSpec[Deployment] { override def apiVersion = appsAPIVersion }
 
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
 
-  case class Spec(
-    replicas: Option[Int] = Some(1),
+  case class Spec(replicas: Option[Int] = Some(1),
     selector: LabelSelector,
     template: Pod.Template.Spec,
     strategy: Option[Strategy] = None,
@@ -114,20 +108,17 @@ object Deployment {
       Some(strategy._type,strategy.rollingUpdate)
   }
 
-  case class RollingUpdate(
-    maxUnavailable: IntOrString = Left(1),
+  case class RollingUpdate(maxUnavailable: IntOrString = Left(1),
     maxSurge: IntOrString = Left(1))
 
-  case class Condition(
-    `type`:String,
+  case class Condition(`type`:String,
     status:String,
     lastUpdateTime: Option[Timestamp],
     lastTransitionTime:Option[Timestamp],
     reason:Option[String],
     message:Option[String])
 
-  case class Status(
-    replicas: Int=0,
+  case class Status(replicas: Int=0,
     updatedReplicas: Int=0,
     readyReplicas: Int=0,
     availableReplicas: Int = 0,
@@ -143,43 +134,33 @@ object Deployment {
   import skuber.json.format._
 
   implicit val condFmt: Format[Condition] = Json.format[Condition]
-  implicit val depStatusFmt: Format[Status] = (
-    (JsPath \ "replicas").formatMaybeEmptyInt() and
+  implicit val depStatusFmt: Format[Status] = ((JsPath \ "replicas").formatMaybeEmptyInt() and
     (JsPath \ "updatedReplicas").formatMaybeEmptyInt() and
     (JsPath \ "readyReplicas").formatMaybeEmptyInt() and
     (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "unavailableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "observedGeneration").formatMaybeEmptyInt() and
     (JsPath \ "collisionCount").formatNullable[Int] and
-    (JsPath \ "conditions").formatMaybeEmptyList[Condition]
-   )(Status.apply _, unlift(Status.unapply))
+    (JsPath \ "conditions").formatMaybeEmptyList[Condition])(Status.apply _, unlift(Status.unapply))
 
-  implicit val rollingUpdFmt: Format[RollingUpdate] = (
-    (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
-    (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))
-  )(RollingUpdate.apply _, unlift(RollingUpdate.unapply))
+  implicit val rollingUpdFmt: Format[RollingUpdate] = ((JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
+    (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1)))(RollingUpdate.apply _, unlift(RollingUpdate.unapply))
 
-  implicit val depStrategyFmt: Format[Strategy] =  (
-      (JsPath \ "type").formatEnum(StrategyType, Some(StrategyType.RollingUpdate)) and
-       (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-   )(Strategy.apply _, unlift(Strategy.unapply))
+  implicit val depStrategyFmt: Format[Strategy] =  ((JsPath \ "type").formatEnum(StrategyType, Some(StrategyType.RollingUpdate)) and
+       (JsPath \ "rollingUpdate").formatNullable[RollingUpdate])(Strategy.apply _, unlift(Strategy.unapply))
 
-  implicit val depSpecFmt: Format[Spec] = (
-     (JsPath \ "replicas").formatNullable[Int] and
+  implicit val depSpecFmt: Format[Spec] = ((JsPath \ "replicas").formatNullable[Int] and
      (JsPath \ "selector").formatLabelSelector and
      (JsPath \ "template").format[Pod.Template.Spec] and
      (JsPath \ "strategy").formatNullable[Strategy] and
      (JsPath \ "minReadySeconds").formatMaybeEmptyInt() and
      (JsPath \ "revisionHistoryLimit").formatNullable[Int] and
      (JsPath \ "paused").formatMaybeEmptyBoolean() and
-     (JsPath \ "progressDeadlineSeconds").formatNullable[Int]
-  )(Spec.apply _, unlift(Spec.unapply))
+     (JsPath \ "progressDeadlineSeconds").formatNullable[Int])(Spec.apply _, unlift(Spec.unapply))
 
-  implicit lazy val depFormat: Format[Deployment] = (
-    objFormat and
+  implicit lazy val depFormat: Format[Deployment] = (objFormat and
     (JsPath \ "spec").formatNullable[Spec] and
-    (JsPath \ "status").formatNullable[Status]
-  )(Deployment.apply _, unlift(Deployment.unapply))
+    (JsPath \ "status").formatNullable[Status])(Deployment.apply _, unlift(Deployment.unapply))
 
   implicit val deployListFormat: Format[DeploymentList] = ListResourceFormat[Deployment]
 }

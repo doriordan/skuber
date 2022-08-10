@@ -4,8 +4,7 @@ import skuber._
 
 package object model {
 
-  case class GuestbookServiceSpecification(
-      serviceName: String, 
+  case class GuestbookServiceSpecification(serviceName: String, 
       containerName: String,
       image: String,
       containerPort: Int,
@@ -48,8 +47,6 @@ package object model {
       }
   }
   
-  case class GuestbookServiceResources(
-      rc: ReplicationController,
-      service: Service
-  )
+  case class GuestbookServiceResources(rc: ReplicationController,
+      service: Service)
 }

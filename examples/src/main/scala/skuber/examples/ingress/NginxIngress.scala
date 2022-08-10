@@ -57,8 +57,7 @@ object NginxIngress extends App {
         .setEnvVarFromField("POD_NAMESPACE", "metadata.namespace")
         .exposePort(httpPort)
         .exposePort(httpsPort)
-        .withArgs(
-          "/nginx-ingress-controller",
+        .withArgs("/nginx-ingress-controller",
           "--default-backend-service=default/default-http-backend")
 
     val podSpec = Pod.Spec()
@@ -286,13 +285,11 @@ object NginxIngress extends App {
 
     // helpers for creating the resources on the cluster
     def createEchoServices = Future.sequence(esSvcs map { createSvc(_) })
-    def createNonIngressResources = Future.sequence(List(
-          createSvc(beSvc),
+    def createNonIngressResources = Future.sequence(List(createSvc(beSvc),
           createRS(beRset),
           createEchoServices,
           createRS(esRset)))
-    def createIngressController = Future.sequence(List(
-          createSvc(ingCtrlSvc),
+    def createIngressController = Future.sequence(List(createSvc(ingCtrlSvc),
           createRS(ingCtrlRset)))
     def createIngress = createIng(ingressSpec)
 

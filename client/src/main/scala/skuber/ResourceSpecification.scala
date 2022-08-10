@@ -34,35 +34,30 @@ object ResourceSpecification {
     val Namespaced, Cluster = Value
   }
 
-  case class Names(
-    plural: String,
+  case class Names(plural: String,
     singular: String,
     kind: String,
     shortNames: List[String],
     listKind: Option[String] = None,
-    categories: List[String] = Nil
-  )
+    categories: List[String] = Nil)
 
   case class Version(name: String, served: Boolean = false, storage: Boolean = false)
 
-  case class Subresources(
-    status: Option[StatusSubresource] = None,
+  case class Subresources(status: Option[StatusSubresource] = None,
     scale: Option[ScaleSubresource] = None)
   {
     def withStatusSubresource(): Subresources = this.copy(status = Some(StatusSubresource()))
     def withScaleSubresource(scale: ScaleSubresource): Subresources = this copy(scale = Some(scale))
   }
 
-  case class ScaleSubresource(
-    specReplicasPath: String,
+  case class ScaleSubresource(specReplicasPath: String,
     statusReplicasPath: String,
     labelSelectorPath: Option[String]=None)
 
   case class StatusSubresource()
 }
 
-case class CoreResourceSpecification(
-  override val group: Option[String] = None,
+case class CoreResourceSpecification(override val group: Option[String] = None,
   version: String = "v1",
   override val scope: ResourceSpecification.Scope.Value,
   override val names: ResourceSpecification.Names,
@@ -76,8 +71,7 @@ case class CoreResourceSpecification(
 /**
  * NonCoreResourceSpecification is used to specify any resource types outside the core k8s API group, including custom resources
  */
-case class NonCoreResourceSpecification(
-  val apiGroup: String,
+case class NonCoreResourceSpecification(val apiGroup: String,
   val version: Option[String],
   val versions: List[ResourceSpecification.Version], // introduced in k8s v1.11 for CRD types
   override val scope: ResourceSpecification.Scope.Value,

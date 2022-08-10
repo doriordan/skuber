@@ -8,8 +8,7 @@ import skuber._
 /**
   * @author David O'Riordan
   */
-case class ReplicaSet(
-  val kind: String ="ReplicaSet",
+case class ReplicaSet(val kind: String ="ReplicaSet",
   override val apiVersion: String = appsAPIVersion,
   val metadata: ObjectMeta = ObjectMeta(),
   spec: Option[ReplicaSet.Spec] = None,
@@ -65,17 +64,13 @@ case class ReplicaSet(
 
 object ReplicaSet {
 
-  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification(
-    apiGroup = "apps",
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification(apiGroup = "apps",
     version = "v1",
     scope = Scope.Namespaced,
-    names = Names(
-      plural = "replicasets",
+    names = Names(plural = "replicasets",
       singular = "replicaset",
       kind = "ReplicaSet",
-      shortNames = List("rs")
-    )
-  )
+      shortNames = List("rs")))
   implicit val rsDef: ResourceDefinition[ReplicaSet] = new ResourceDefinition[ReplicaSet] { def spec: ResourceSpecification =specification }
   implicit val rsListDef: ResourceDefinition[ReplicaSetList] = new ResourceDefinition[ReplicaSetList] { def spec: ResourceSpecification =specification }
   implicit val scDef: Scale.SubresourceSpec[ReplicaSet] = new Scale.SubresourceSpec[ReplicaSet] { override def apiVersion: String = "extensions/v1beta1"}
@@ -87,8 +82,7 @@ object ReplicaSet {
     val podSpec=Pod.Spec(containers=List(container))
     ReplicaSet(name, podSpec, Map[String,String]())
   }
-  def apply(
-    name:String,
+  def apply(name:String,
     podSpec: Pod.Spec,
     labels: Map[String,String]) : ReplicaSet =
   {
@@ -96,14 +90,12 @@ object ReplicaSet {
     ReplicaSet(metadata=meta).withPodSpec(podSpec, labels)
   }
 
-  case class Spec(
-    replicas: Option[Int]=Some(1),
+  case class Spec(replicas: Option[Int]=Some(1),
     minReadySeconds: Option[Int] = None,
     selector: LabelSelector,
     template: Pod.Template.Spec)
 
-  case class Status(
-    replicas: Int,
+  case class Status(replicas: Int,
     fullyLabeledReplicas: Option[Int],
     observerdGeneration: Option[Int])
 
@@ -113,19 +105,15 @@ object ReplicaSet {
   import play.api.libs.functional.syntax._
   import skuber.json.format._
 
-  implicit val replsetSpecFormat: Format[ReplicaSet.Spec] = (
-    (JsPath \ "replicas").formatNullable[Int] and
+  implicit val replsetSpecFormat: Format[ReplicaSet.Spec] = ((JsPath \ "replicas").formatNullable[Int] and
     (JsPath \ "minReadySeconds").formatNullable[Int]   and
     (JsPath \ "selector").formatLabelSelector and
-    (JsPath \ "template").format[Pod.Template.Spec]
-  )(ReplicaSet.Spec.apply _, unlift(ReplicaSet.Spec.unapply))
+    (JsPath \ "template").format[Pod.Template.Spec])(ReplicaSet.Spec.apply _, unlift(ReplicaSet.Spec.unapply))
 
   implicit val replsetStatusFormat: OFormat[Status] = Json.format[ReplicaSet.Status]
 
-  implicit lazy val replsetFormat: Format[ReplicaSet] = (
-    objFormat and
+  implicit lazy val replsetFormat: Format[ReplicaSet] = (objFormat and
     (JsPath \ "spec").formatNullable[ReplicaSet.Spec] and
-    (JsPath \ "status").formatNullable[ReplicaSet.Status]
-  )(ReplicaSet.apply _, unlift(ReplicaSet.unapply))
+    (JsPath \ "status").formatNullable[ReplicaSet.Status])(ReplicaSet.apply _, unlift(ReplicaSet.unapply))
 
 }

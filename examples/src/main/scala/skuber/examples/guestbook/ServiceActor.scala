@@ -53,8 +53,7 @@ class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecific
   private def create = {
     import KubernetesProxyActor.{CreateReplicationController, CreateService}
     val k8sResources = specification.buildKubernetesResources
-    val resultHandler = context.actorOf(
-        CreateResultHandler.props(sender, specification.serviceName)) 
+    val resultHandler = context.actorOf(CreateResultHandler.props(sender, specification.serviceName)) 
     kubernetes ! CreateReplicationController(k8sResources.rc, resultHandler)
     kubernetes ! CreateService(k8sResources.service, resultHandler)
   }
@@ -79,8 +78,7 @@ class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecific
     import ScalerActor.InitiateScaling
     val name = specification.serviceName
     val scaler = context.actorOf(ScalerActor.props(kubernetes, name, to),"scale-to-" + to)
-    val resultHandler = context.actorOf(
-        ScaleResultHandler.props(sender, specification.serviceName))
+    val resultHandler = context.actorOf(ScaleResultHandler.props(sender, specification.serviceName))
     scaler ! InitiateScaling(resultHandler) 
   }   
  
@@ -92,8 +90,7 @@ class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecific
     import ScalerActor.InitiateScaling
     val name = specification.serviceName
     val scaler = context.actorOf(ScalerActor.props(kubernetes, name, 0),"stop")
-    val resultHandler = context.actorOf(
-        StopResultHandler.props(sender, specification.serviceName))
+    val resultHandler = context.actorOf(StopResultHandler.props(sender, specification.serviceName))
     scaler ! InitiateScaling(resultHandler) 
   }   
   

@@ -73,15 +73,11 @@ case class Service(val kind: String = "Service",
 
 object Service {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "services",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "services",
       singular = "service",
       kind = "Service",
-      shortNames = List("svc")
-    )
-  )
+      shortNames = List("svc")))
   implicit val svcDef: ResourceDefinition[Service] = new ResourceDefinition[Service] {
     def spec: ResourceSpecification = specification
   }
@@ -119,8 +115,7 @@ object Service {
     val Cluster, Local = Value
   }
 
-  case class Port(
-                   name: String = "",
+  case class Port(name: String = "",
                    protocol: Protocol.Value = Protocol.TCP,
                    port: Int,
                    targetPort: Option[NameablePort] = None,
@@ -128,8 +123,7 @@ object Service {
 
   import Type._
 
-  case class Spec(
-                   ports: List[Port] = List(),
+  case class Spec(ports: List[Port] = List(),
                    selector: Map[String, String] = Map(),
                    clusterIP: String = "", // empty by default - can also be "None" or an IP Address
                    _type: ServiceType = ClusterIP,
@@ -137,8 +131,7 @@ object Service {
                    externalName: String = "",
                    externalTrafficPolicy: Option[ExternalTrafficPolicy.Value] = None,
                    sessionAffinity: Affinity.Affinity = Affinity.None,
-                   loadBalancerIP: String = ""
-                 ) {
+                   loadBalancerIP: String = "") {
     def withSelector(sel: Map[String, String]): Spec = this.copy(selector = sel)
 
     def withSelector(sel: Tuple2[String, String]): Spec = withSelector(Map(sel))

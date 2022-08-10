@@ -19,11 +19,9 @@ class AuthSpec extends Specification {
   }
 
   "CertAuth toString masks cert, key but not user" >> {
-    val auth = CertAuth(
-      clientCertificate = Right("secretPem".getBytes),
+    val auth = CertAuth(clientCertificate = Right("secretPem".getBytes),
       clientKey = Right("secretKey".getBytes),
-      user = Some("someUser")
-    )
+      user = Some("someUser"))
     auth.toString mustEqual "CertAuth(clientCertificate=<PEM masked> clientKey=<PEM masked> userName=someUser )"
   }
 

@@ -16,15 +16,11 @@ case class ConfigMap(val kind: String ="ConfigMap",
 }
 
 object ConfigMap {
-  val specification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural="configmaps",
+  val specification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural="configmaps",
       singular="configmap",
       kind="ConfigMap",
-      shortNames=List("cm")
-    )
-  )
+      shortNames=List("cm")))
 
   implicit val configMapDef: ResourceDefinition[ConfigMap] = new ResourceDefinition[ConfigMap] { def spec=specification }
   implicit val configMapListDef: ResourceDefinition[ConfigMapList] = new ResourceDefinition[ConfigMapList] { def spec=specification }

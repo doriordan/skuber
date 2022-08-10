@@ -24,15 +24,11 @@ case class Secret(val kind: String = "Secret",
 
 object Secret {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "secrets",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "secrets",
       singular = "secret",
       kind = "Secret",
-      shortNames = Nil
-    )
-  )
+      shortNames = Nil))
   implicit val secDef: ResourceDefinition[Secret] = new ResourceDefinition[Secret] {
     def spec: ResourceSpecification = specification
   }

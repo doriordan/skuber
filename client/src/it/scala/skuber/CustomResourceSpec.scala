@@ -96,16 +96,13 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     // This needs to be passed implicitly to the skuber API to enable it to process TestResource requests.
     // The json paths in the Scale subresource must map to the replica fields in Spec and Status
     // respectively above
-    implicit val testResourceDefinition = ResourceDefinition[TestResource](
-      group = "test.skuber.io",
+    implicit val testResourceDefinition = ResourceDefinition[TestResource](group = "test.skuber.io",
       version = "v1alpha1",
       kind = "SkuberTest",
       shortNames = List("test", "tests"), // not needed but handy if debugging the tests
       subresources = Some(Subresources()
         .withStatusSubresource // enable status subresource
-        .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource
-      )
-    )
+        .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource))
 
     // the following implicit values enable the scale and status methods on the skuber API to be called for this type
     // (these calls will be rejected unless the subresources are enabled on the CRD)
@@ -186,9 +183,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
     k8s.delete[TestResource](testResourceName1).valueT
 
-    whenReady(
-      k8s.get[TestResource](testResourceName1).withTimeout().failed
-    ) { result =>
+    whenReady(k8s.get[TestResource](testResourceName1).withTimeout().failed) { result =>
       result shouldBe a[K8SException]
       result match {
         case ex: K8SException => ex.status.code shouldBe Some(404)

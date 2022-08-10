@@ -29,8 +29,7 @@ case class Container(
     stdinOnce: Option[Boolean] = None,
     tty: Option[Boolean] = None,
     volumeDevices: List[Volume.Device] = Nil,
-    startupProbe: Option[Probe] = None
-    )
+    startupProbe: Option[Probe] = None)
       extends Limitable
 {
   def exposePort(p: Container.Port) : Container = this.copy(ports=p::this.ports)
@@ -78,8 +77,7 @@ case class Container(
 
   def withLivenessProbe(probe:Probe) =
     this.copy(livenessProbe=Some(probe))
-  def withHttpLivenessProbe(
-    path: String,
+  def withHttpLivenessProbe(path: String,
     port: NameablePort = 80,
     initialDelaySeconds:Int = 0,
     timeoutSeconds:Int = 0,
@@ -90,8 +88,7 @@ case class Container(
   }
   def withReadinessProbe(probe:Probe) =
     this.copy(readinessProbe=Some(probe))
-  def withHttpReadinessProbe(
-    path: String,
+  def withHttpReadinessProbe(path: String,
     port: NameablePort = 80,
     initialDelaySeconds:Int = 0,
     timeoutSeconds:Int = 0,
@@ -135,8 +132,7 @@ object Container {
     val Always, Never, IfNotPresent = Value
   }
   
-  case class Port(
-      containerPort: Int,
+  case class Port(containerPort: Int,
       protocol: Protocol.Value=Protocol.TCP,
       name: String = "",
       hostIP: String = "",
@@ -145,8 +141,7 @@ object Container {
   sealed trait State { def id: String }
   case class Waiting(reason: Option[String] = None) extends State { def id="waiting" }
   case class Running(startedAt: Option[Timestamp]) extends State { def id="running" }
-  case class Terminated(
-      exitCode: Int,
+  case class Terminated(exitCode: Int,
       signal: Option[Int] = None,
       reason: Option[String] = None,
       message: Option[String] = None ,
@@ -155,8 +150,7 @@ object Container {
       containerID: Option[String] = None)
     extends State { def id="terminated" }
   
-  case class Status(
-      name: String,
+  case class Status(name: String,
       ready: Boolean,
       restartCount: Int,
       image: String,
@@ -170,8 +164,6 @@ object Container {
     val File, FallbackToLogsOnError = Value
   }
 
-  case class Image(
-    names: List[String] = Nil,
-    sizeBytes: Option[Long] = None
-  )
+  case class Image(names: List[String] = Nil,
+    sizeBytes: Option[Long] = None)
 }

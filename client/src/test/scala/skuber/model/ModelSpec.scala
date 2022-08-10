@@ -50,11 +50,9 @@ class ModelSpec extends Specification {
       rcs.items(0).metadata.name mustEqual "MyRepCon"
       rcs(0).name mustEqual "MyRepCon"
       rcs(0).spec.get.replicas mustEqual 2
-      val pspec = for (
-          rcspec <- rcs(0).spec;
+      val pspec = for (rcspec <- rcs(0).spec;
           tmpl <- rcspec.template;
-          podspec <- tmpl.spec
-      ) yield(podspec)
+          podspec <- tmpl.spec) yield(podspec)
       pspec.get.containers.size mustEqual 2
     }    
   }   

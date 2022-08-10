@@ -69,17 +69,13 @@ case class ReplicaSet(val kind: String = "ReplicaSet",
 
 object ReplicaSet {
 
-  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(
-    apiGroup = "extensions",
+  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(apiGroup = "extensions",
     version = "v1beta1",
     scope = Scope.Namespaced,
-    names = Names(
-      plural = "replicasets",
+    names = Names(plural = "replicasets",
       singular = "replicaset",
       kind = "ReplicaSet",
-      shortNames = List("rs")
-    )
-  )
+      shortNames = List("rs")))
   implicit val rsDef: ResourceDefinition[ReplicaSet] = new ResourceDefinition[ReplicaSet] {
     def spec: ResourceSpecification = specification
   }
@@ -100,21 +96,18 @@ object ReplicaSet {
     ReplicaSet(name, podSpec, Map[String, String]())
   }
 
-  def apply(
-             name: String,
+  def apply(name: String,
              podSpec: Pod.Spec,
              labels: Map[String, String]): ReplicaSet = {
     val meta = ObjectMeta(name = name, labels = labels)
     ReplicaSet(metadata = meta).withPodSpec(podSpec, labels)
   }
 
-  case class Spec(
-                   replicas: Option[Int] = Some(1),
+  case class Spec(replicas: Option[Int] = Some(1),
                    selector: Option[LabelSelector] = None,
                    template: Option[Pod.Template.Spec] = None)
 
-  case class Status(
-                     replicas: Int,
+  case class Status(replicas: Int,
                      fullyLabeledReplicas: Option[Int],
                      observerdGeneration: Option[Int])
 }

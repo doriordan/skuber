@@ -54,8 +54,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
 
-  val k8s = k8sInit // initialize skuber client (
-  var rcWatching = mutable.HashMap[String, Watching]()
+  val k8s = k8sInit // initialize skuber client (var rcWatching = mutable.HashMap[String, Watching]()
    
   private def invoke(skuberRequest: => Future[Any]) : Future[Any] = {   
     val reply = skuberRequest recover {

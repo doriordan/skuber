@@ -15,15 +15,11 @@ case class ServiceAccount(val kind: String = "ServiceAccount",
 
 object ServiceAccount {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "serviceaccounts",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "serviceaccounts",
       singular = "serviceaccount",
       kind = "ServiceAccount",
-      shortNames = List("sa")
-    )
-  )
+      shortNames = List("sa")))
   implicit val saDef: ResourceDefinition[ServiceAccount] = new ResourceDefinition[ServiceAccount] {
     def spec: ResourceSpecification = specification
   }

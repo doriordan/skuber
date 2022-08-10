@@ -11,28 +11,21 @@ case class Endpoints(kind: String = "Endpoints",
   // unlikely any skuber clients will construct their own endpoints, but if so can use these fluent methods
 
   def withEndpoint(ip: String, port: Int, protocol: Protocol.Value = Protocol.TCP): Endpoints =
-    this.copy(subsets = Endpoints.Subset(
-      Endpoints.Address(ip) :: Nil,
+    this.copy(subsets = Endpoints.Subset(Endpoints.Address(ip) :: Nil,
       None,
-      Endpoints.Port(port, protocol) :: Nil
-    )
-      :: Nil
-    )
+      Endpoints.Port(port, protocol) :: Nil)
+      :: Nil)
 
   def addEndpoints(subset: Endpoints.Subset): Endpoints = this.copy(subsets = subset :: subsets)
 }
 
 object Endpoints {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "endpoints",
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "endpoints",
       singular = "endpoints",
       kind = "Endpoints",
-      shortNames = Nil
-    )
-  )
+      shortNames = Nil))
   implicit val epsDef: ResourceDefinition[Endpoints] = new ResourceDefinition[Endpoints] {
     def spec: ResourceSpecification = specification
   }
@@ -40,8 +33,7 @@ object Endpoints {
     def spec: ResourceSpecification = specification
   }
 
-  case class Subset(
-                     addresses: List[Address],
+  case class Subset(addresses: List[Address],
                      notReadyAddresses: Option[List[Address]],
                      ports: List[Port])
 

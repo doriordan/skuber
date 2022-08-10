@@ -22,29 +22,23 @@ case class DaemonSet(val kind: String ="DaemonSet",
 
 object DaemonSet {
 
-  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (
-    apiGroup="apps",
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (apiGroup="apps",
     version="v1",
     scope = Scope.Namespaced,
-    names=Names(
-      plural = "daemonsets",
+    names=Names(plural = "daemonsets",
       singular = "daemonset",
       kind = "DaemonSet",
-      shortNames = List("ds")
-    )
-  )
+      shortNames = List("ds")))
   implicit val dsDef: ResourceDefinition[DaemonSet] = new ResourceDefinition[DaemonSet] { def spec: ResourceSpecification =specification }
   implicit val dsListDef: ResourceDefinition[DaemonSetList] = new ResourceDefinition[DaemonSetList] { def spec: ResourceSpecification =specification }
 
   def apply(name: String) = new DaemonSet(metadata=ObjectMeta(name=name))
 
-  case class Spec(
-    minReadySeconds: Int = 0,
+  case class Spec(minReadySeconds: Int = 0,
     selector: Option[LabelSelector] = None,
     template: Option[Pod.Template.Spec] = None,
     updateStrategy: Option[UpdateStrategy] = None,
-    revisionHistoryLimit: Option[Int] = None
-  )
+    revisionHistoryLimit: Option[Int] = None)
 
   object UpdateStrategyType extends Enumeration {
     type UpdateStrategyType = Value
@@ -67,15 +61,13 @@ object DaemonSet {
 
   case class RollingUpdate(maxUnavailable: IntOrString = Left(1))
 
-  case class Condition(
-    _type: String,
+  case class Condition(_type: String,
     status: String,
     reason: Option[String]=None,
     message: Option[String]=None,
     lastTransitionTime: Option[Timestamp]=None)
 
-  case class Status(
-    currentNumberScheduled: Int,
+  case class Status(currentNumberScheduled: Int,
     numberMisscheduled: Int,
     desiredNumberScheduled: Int,
     numberReady: Int,
@@ -92,29 +84,21 @@ object DaemonSet {
   import skuber.json.format._
 
   implicit val condFmt: Format[Condition] = Json.format[Condition]
-  implicit val rollingUpdFmt: Format[RollingUpdate] = (
-      (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)).inmap(mu => RollingUpdate(mu), (ru: RollingUpdate) => ru.maxUnavailable)
-   )
+  implicit val rollingUpdFmt: Format[RollingUpdate] = ((JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)).inmap(mu => RollingUpdate(mu), (ru: RollingUpdate) => ru.maxUnavailable))
 
-  implicit val updateStrategyFmt: Format[UpdateStrategy] =  (
-    new EnumFormatter(JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and
-    (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-  )(UpdateStrategy.apply, UpdateStrategy.unapply)
+  implicit val updateStrategyFmt: Format[UpdateStrategy] =  (new EnumFormatter(JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and
+    (JsPath \ "rollingUpdate").formatNullable[RollingUpdate])(UpdateStrategy.apply, UpdateStrategy.unapply)
 
   implicit val daemonsetStatusFmt: Format[Status] = Json.format[Status]
-  implicit val daemonsetSpecFmt: Format[Spec] = (
-    (JsPath \ "minReadySeconds").formatMaybeEmptyInt() and
+  implicit val daemonsetSpecFmt: Format[Spec] = ((JsPath \ "minReadySeconds").formatMaybeEmptyInt() and
     (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
     (JsPath \ "updateStrategy").formatNullable[UpdateStrategy] and
-    (JsPath \ "revisionHistoryLimit").formatNullable[Int]
-  )(Spec.apply, unlift(Spec.unapply))
+    (JsPath \ "revisionHistoryLimit").formatNullable[Int])(Spec.apply, unlift(Spec.unapply))
 
-  implicit lazy val daemonsetFmt: Format[DaemonSet] = (
-      objFormat and
+  implicit lazy val daemonsetFmt: Format[DaemonSet] = (objFormat and
           (JsPath \ "spec").formatNullable[Spec] and
-          (JsPath \ "status").formatNullable[Status]
-      ) (DaemonSet.apply _, unlift(DaemonSet.unapply))
+          (JsPath \ "status").formatNullable[Status]) (DaemonSet.apply _, unlift(DaemonSet.unapply))
 
 }
 

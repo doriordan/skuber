@@ -38,8 +38,7 @@ object CustomResource {
    * Make a new CustomResource of a specific type. The kind and apiVersion will be copied from the associated resource
    * definition.
    */
-  def apply[Sp, St](spec: Sp)(implicit rd: ResourceDefinition[CustomResource[Sp, St]]) = new CustomResource[Sp, St](
-    kind = rd.spec.names.kind,
+  def apply[Sp, St](spec: Sp)(implicit rd: ResourceDefinition[CustomResource[Sp, St]]) = new CustomResource[Sp, St](kind = rd.spec.names.kind,
     apiVersion = s"${rd.spec.group.get}/${rd.spec.defaultVersion}",
     metadata = ObjectMeta(),
     spec = spec,
@@ -81,11 +80,9 @@ object CustomResource {
    * overridden by an application-specified formatter for specific custom resource types if necessary.
    * Note: the application needs to provide implicit formatters for the Spec and Status subresources
    */
-  implicit def crFormat[Sp, St](implicit spFmt: Format[Sp], stFmt: Format[St]): Format[CustomResource[Sp, St]] = (
-    objFormat and
+  implicit def crFormat[Sp, St](implicit spFmt: Format[Sp], stFmt: Format[St]): Format[CustomResource[Sp, St]] = (objFormat and
       (JsPath \ "spec").format[Sp] and
-      (JsPath \ "status").formatNullable[St]
-    ) (CustomResource.apply[Sp, St] _, unlift(CustomResource.unapply[Sp, St]))
+      (JsPath \ "status").formatNullable[St]) (CustomResource.apply[Sp, St] _, unlift(CustomResource.unapply[Sp, St]))
 
   type CustomResourceList[Sp, St] = ListResource[CustomResource[Sp, St]]
 

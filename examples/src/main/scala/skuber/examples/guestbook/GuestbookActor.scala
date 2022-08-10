@@ -22,22 +22,19 @@ object GuestbookActor {
   case class DeploymentFailed(ex: Throwable)
   
    // Some simple specifications for the service actors we will create
-  val redisMasterSpec = GuestbookServiceSpecification(
-        serviceName="redis-master",
+  val redisMasterSpec = GuestbookServiceSpecification(serviceName="redis-master",
         containerName="master",
         image="redis", 
         containerPort=6379, 
         replicas=1)
   
-  val redisSlaveSpec = GuestbookServiceSpecification(
-        serviceName="redis-slave", 
+  val redisSlaveSpec = GuestbookServiceSpecification(serviceName="redis-slave", 
         containerName="worker", 
         image="kubernetes/redis-slave", 
         containerPort=6379, 
         replicas=2)
   
-  val frontEndSpec=GuestbookServiceSpecification(
-        serviceName="frontend", 
+  val frontEndSpec=GuestbookServiceSpecification(serviceName="frontend", 
         containerName="php-redis",
         image="kubernetes/example-guestbook-php-redis", 
         containerPort=80, 

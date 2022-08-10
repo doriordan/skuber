@@ -97,9 +97,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[PodDisruptionBudget](pdb.name).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[PodDisruptionBudget](pdb.name).withTimeout().failed) { result =>
         println("FINISH: delete a PodDisruptionBudget")
         result shouldBe a[K8SException]
         result match {

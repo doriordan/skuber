@@ -20,8 +20,7 @@ class EnvVarSpec extends Specification {
   // EnvVar reader and writer
   "An EnvVar can be read from json\n" >> {
     "this can be done for an env var with a field ref with a field path" >> {
-      val env1 = Json.fromJson[EnvVar](Json.parse(
-        """
+      val env1 = Json.fromJson[EnvVar](Json.parse("""
           |{
           |  "name": "PODNAME",
           |  "valueFrom" : {

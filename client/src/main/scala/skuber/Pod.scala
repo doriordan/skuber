@@ -14,10 +14,8 @@ case class Pod(val kind: String = "Pod",
 
 object Pod {
 
-  val specification: CoreResourceSpecification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(plural = "pods", singular = "pod", kind = "Pod", shortNames = List("po"))
-  )
+  val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "pods", singular = "pod", kind = "Pod", shortNames = List("po")))
   implicit val poDef: ResourceDefinition[Pod] = new ResourceDefinition[Pod] {
     def spec: CoreResourceSpecification = specification
   }
@@ -29,8 +27,7 @@ object Pod {
 
   def apply(name: String, spec: Pod.Spec): Pod = Pod(metadata = ObjectMeta(name = name), spec = Some(spec))
 
-  case class Spec(
-                   containers: List[Container] = List(), // should have at least one member
+  case class Spec(containers: List[Container] = List(), // should have at least one member
                    initContainers: List[Container] = Nil,
                    volumes: List[Volume] = Nil,
                    restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
@@ -99,9 +96,7 @@ object Pod {
     val Pending, Running, Succeeded, Failed, Unknown = Value
   }
 
-  case class Affinity(
-
-                       nodeAffinity: Option[Affinity.NodeAffinity] = None,
+  case class Affinity(nodeAffinity: Option[Affinity.NodeAffinity] = None,
                        podAffinity: Option[Affinity.PodAffinity] = None,
                        podAntiAffinity: Option[Affinity.PodAntiAffinity] = None)
 
@@ -134,15 +129,7 @@ object Pod {
       case object RequiredDuringSchedulingIgnoredDuringExecution {
 
         def requiredQuery(key: String, operator: NodeSelectorOperator.Value, values: List[String]): RequiredDuringSchedulingIgnoredDuringExecution = {
-          RequiredDuringSchedulingIgnoredDuringExecution(
-            NodeSelectorTerms(
-              NodeSelectorTerm(
-                matchExpressions = NodeSelectorRequirements(
-                  NodeSelectorRequirement(key, operator, values)
-                )
-              )
-            )
-          )
+          RequiredDuringSchedulingIgnoredDuringExecution(NodeSelectorTerms(NodeSelectorTerm(matchExpressions = NodeSelectorRequirements(NodeSelectorRequirement(key, operator, values)))))
         }
 
       }
@@ -151,12 +138,8 @@ object Pod {
 
       object PreferredSchedulingTerm {
         def preferredQuery(weight: Int, key: String, operator: NodeSelectorOperator.Value, values: List[String]): PreferredSchedulingTerm = {
-          PreferredSchedulingTerm(
-            preference = NodeSelectorTerm(
-              matchExpressions = NodeSelectorRequirements(NodeSelectorRequirement(key, operator, values))
-            ),
-            weight = weight
-          )
+          PreferredSchedulingTerm(preference = NodeSelectorTerm(matchExpressions = NodeSelectorRequirements(NodeSelectorRequirement(key, operator, values))),
+            weight = weight)
         }
       }
 
@@ -165,12 +148,10 @@ object Pod {
       def PreferredSchedulingTerms(xs: PreferredSchedulingTerm*) = List(xs: _*)
     }
 
-    case class PodAffinity(
-                            requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm] = Nil,
+    case class PodAffinity(requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm] = Nil,
                             preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm] = Nil)
 
-    case class PodAntiAffinity(
-                                requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm] = Nil,
+    case class PodAntiAffinity(requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm] = Nil,
                                 preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm] = Nil)
 
     case class PodAffinityTerm(labelSelector: Option[LabelSelector] = None, namespaces: List[String] = Nil, topologyKey: String)
@@ -184,8 +165,7 @@ object Pod {
 
   case class DNSConfig(nameservers: List[String] = Nil, options: List[DNSConfigOption] = Nil, searches: List[String] = Nil)
 
-  case class Status(
-                     phase: Option[Phase.Phase] = None,
+  case class Status(phase: Option[Phase.Phase] = None,
                      conditions: List[Condition] = Nil,
                      message: Option[String] = None,
                      reason: Option[String] = None,
@@ -197,16 +177,14 @@ object Pod {
                      qosClass: Option[String] = None,
                      nominatedNodeName: Option[String] = None)
 
-  case class Condition(
-                        _type: String = "Ready",
+  case class Condition(_type: String = "Ready",
                         status: String,
                         reason: Option[String] = None,
                         message: Option[String] = None,
                         lastProbeTime: Option[Timestamp] = None,
                         lastTransitionTime: Option[Timestamp] = None)
 
-  case class Template(
-                       kind: String = "PodTemplate",
+  case class Template(kind: String = "PodTemplate",
                        override val apiVersion: String = v1,
                        metadata: ObjectMeta = ObjectMeta(),
                        spec: Option[Template.Spec] = None)
@@ -232,15 +210,11 @@ object Pod {
 
   object Template {
 
-    val specification: CoreResourceSpecification = CoreResourceSpecification(
-      scope = ResourceSpecification.Scope.Namespaced,
-      names = ResourceSpecification.Names(
-        plural = "podtemplates",
+    val specification: CoreResourceSpecification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+      names = ResourceSpecification.Names(plural = "podtemplates",
         singular = "podtemplate",
         kind = "PodTemplate",
-        shortNames = Nil
-      )
-    )
+        shortNames = Nil))
     implicit val ptDef: ResourceDefinition[Template] = new ResourceDefinition[Pod.Template] {
       def spec: ResourceSpecification = specification
     }
@@ -250,8 +224,7 @@ object Pod {
 
     def named(name: String): Pod.Template = Pod.Template(metadata = ObjectMeta(name = name))
 
-    case class Spec(
-                     metadata: ObjectMeta = ObjectMeta(),
+    case class Spec(metadata: ObjectMeta = ObjectMeta(),
                      spec: Option[Pod.Spec] = None) {
 
       private def updateSpec(f: Pod.Spec => Pod.Spec) = {
@@ -310,8 +283,7 @@ object Pod {
     }
   }
 
-  case class LogQueryParams(
-                             containerName: Option[String] = None,
+  case class LogQueryParams(containerName: Option[String] = None,
                              follow: Option[Boolean] = None,
                              limitBytes: Option[Int] = None,
                              pretty: Option[Boolean] = None,
@@ -320,8 +292,7 @@ object Pod {
                              sinceTime: Option[Timestamp] = None,
                              tailLines: Option[Int] = None,
                              timestamps: Option[Boolean] = None) {
-    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
-      "container" -> containerName,
+    lazy val asOptionalsMap: Map[String, Option[String]] = Map("container" -> containerName,
       "follow" -> follow.map(_.toString),
       "limitBytes" -> limitBytes.map(_.toString),
       "pretty" -> pretty.map(_.toString),

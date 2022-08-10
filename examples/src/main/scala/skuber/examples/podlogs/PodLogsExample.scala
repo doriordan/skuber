@@ -19,8 +19,7 @@ import scala.concurrent.duration._
 object PodLogExample extends App {
 
   def printLogFlow(cntrName: String): Sink[ByteString, NotUsed] = Flow[ByteString]
-      .via(Framing.delimiter(
-        ByteString("\n"),
+      .via(Framing.delimiter(ByteString("\n"),
         maximumFrameLength = 256,
         allowTruncation = true))
       .map(_.utf8String)
@@ -29,8 +28,7 @@ object PodLogExample extends App {
 
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
-  val k8s = client.init(
-    client.defaultK8sConfig.currentContext,
+  val k8s = client.init(client.defaultK8sConfig.currentContext,
     client.LoggingConfig(logRequestBasic = false, logResponseBasic = false) )
 
   val helloWorldContainer=Container(name="hello-world", image="busybox", command=List("sh", "-c", "echo Hello World! && echo Goodbye World && sleep 60"))
