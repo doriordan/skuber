@@ -1,6 +1,5 @@
 package skuber
 
-import java.beans.Expression
 
 /**
   * @author David O'Riordan
@@ -64,14 +63,14 @@ object LabelSelector {
     // "status" isNot "release" -> "status!=release"
     // "env" isIn List("staging", "production") -> "env in (staging,release)"
     // "env" isNotIn List("local", "dev") -> "env notin (local,dev)"
-    implicit def strToReq(inputKey: String): ExistsRequirement = new LabelSelector.ExistsRequirement(inputKey) {
-      def doesNotExist: NotExistsRequirement = NotExistsRequirement(inputKey)
-      def is(value: String): IsEqualRequirement = IsEqualRequirement(inputKey, value)
-      def isNot(value: String): IsNotEqualRequirement = IsNotEqualRequirement(inputKey, value)
-      def isIn(values: List[String]): InRequirement = InRequirement(inputKey, values)
-      def isNotIn(values: List[String]): NotInRequirement = NotInRequirement(inputKey, values)
+    implicit def strToReq(key: String) = new LabelSelector.ExistsRequirement(key) {
+      def doesNotExist = NotExistsRequirement(key)
+      def is(value: String) = IsEqualRequirement(key, value)
+      def isNot(value: String) = IsNotEqualRequirement(key,value)
+      def isIn(values: List[String]) = InRequirement(key, values)
+      def isNotIn(values: List[String]) = NotInRequirement(key, values)
     }
-    implicit def reqToSel(req: LabelSelector.Requirement): LabelSelector = LabelSelector(req)
+    implicit def reqToSel(req: LabelSelector.Requirement) = LabelSelector(req)
   }
 }
 

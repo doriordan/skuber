@@ -382,10 +382,12 @@ package object format {
   implicit val cntrStateRunningFormat: OFormat[Container.Running] = Json.format[Container.Running]
   implicit val cntrStateTerminatedFormat: OFormat[Container.Terminated] = Json.format[Container.Terminated]
 
-  implicit val cntrStateReads: Reads[Container.State] = ((JsPath \ "waiting").read[Container.Waiting].map(x => x: Container.State) |
+  implicit val cntrStateReads: Reads[Container.State] = (
+    (JsPath \ "waiting").read[Container.Waiting].map(x => x: Container.State) |
       (JsPath \ "running").read[Container.Running].map(x => x: Container.State) |
       (JsPath \ "terminated").read[Container.Terminated].map(x => x: Container.State) |
-      Reads.pure(Container.Waiting()) // default)
+      Reads.pure(Container.Waiting()) // default
+    )
 
   implicit val cntrStateWrites: Writes[Container.State] = Writes[Container.State] {
     state =>

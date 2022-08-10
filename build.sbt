@@ -5,16 +5,18 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
-val scala3Version = "3.1.3"
+val scala3Version = "3.0.1"
 
 //val currentScalaVersion = scala13Version
 val currentScalaVersion = scala3Version
 ThisBuild / scalaVersion := currentScalaVersion
 
 ThisBuild / scalacOptions ++= {
+  // Need Java 8 or later as the java.time package is used to represent K8S timestamps
   CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 12 | 13)) => Seq("-Xsource:3")
-    case _ => Seq("-ignore-scala2-macros")
+    case Some((2, 12 | 13)) => Seq("-Xsource:3", "-target:jvm-1.8")
+    case Some((3, _)) => Seq("-Xignore-scala2-macros", "-target:jvm-1.8")
+    case _ => Seq.empty
   }
 }
 
@@ -56,8 +58,6 @@ val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
 val awsJavaSdkSts = "com.amazonaws" % "aws-java-sdk-sts" % "1.12.233"
 val apacheCommonsLogging = "commons-logging" % "commons-logging" % "1.2"
 
-// Need Java 8 or later as the java.time package is used to represent K8S timestamps
-scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 

@@ -88,9 +88,11 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     Thread.sleep(5000)
     val randomString = randomUUID().toString
 
-    val patchData = JsonPatch(List(JsonPatchOperation.Add("/metadata/labels/foo", randomString),
+    val patchData = JsonPatch(List(
+      JsonPatchOperation.Add("/metadata/labels/foo", randomString),
       JsonPatchOperation.Add("/metadata/annotations", randomString),
-      JsonPatchOperation.Remove("/metadata/annotations"),))
+      JsonPatchOperation.Remove("/metadata/annotations"),
+    ))
     k8s.patch[JsonPatch, Pod](pod4, patchData).valueT
     eventually(timeout(30.seconds), interval(3.seconds)) {
       val pod = k8s.get[Pod](pod4).valueT
@@ -106,9 +108,11 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     Thread.sleep(5000)
     val randomString = randomUUID().toString
 
-    val patchData = JsonPatch(List(JsonPatchOperation.Add("/metadata/labels/foo", randomString),
+    val patchData = JsonPatch(List(
+      JsonPatchOperation.Add("/metadata/labels/foo", randomString),
       JsonPatchOperation.Add("/metadata/annotations", randomString),
-      JsonPatchOperation.Remove("/metadata/annotations"),))
+      JsonPatchOperation.Remove("/metadata/annotations"),
+    ))
 
     k8s.patch[JsonPatch, Pod](pod5, patchData, namespace = Some(namespace5)).valueT
 

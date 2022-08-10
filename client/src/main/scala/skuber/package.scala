@@ -247,8 +247,10 @@ package object skuber {
                           timeoutSeconds: Option[Long] = None,
                           limit: Option[Long] = None,
                           continue: Option[String] = None,
-                          watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests) {
-    lazy val asOptionalsMap: Map[String, Option[String]] = Map("labelSelector" -> labelSelector.map(_.toString),
+                          watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
+                        ) {
+    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
+      "labelSelector" -> labelSelector.map(_.toString),
       "fieldSelector" -> fieldSelector,
       "includeUninitialized" -> includeUninitialized.map(_.toString),
       "resourceVersion" -> resourceVersion,

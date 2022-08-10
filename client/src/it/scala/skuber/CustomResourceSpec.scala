@@ -102,7 +102,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
       shortNames = List("test", "tests"), // not needed but handy if debugging the tests
       subresources = Some(Subresources()
         .withStatusSubresource // enable status subresource
-        .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource))
+        .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas"))))
 
     // the following implicit values enable the scale and status methods on the skuber API to be called for this type
     // (these calls will be rejected unless the subresources are enabled on the CRD)
