@@ -4,9 +4,8 @@ package skuber.ext
  * @author David O'Riordan
  */
 
-import skuber.Scale
+import skuber.{Container, IntOrString, LabelSelector, ListResource, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, ResourceSpecification, Scale}
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{Container, IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ListResource, ResourceDefinition}
 
 case class Deployment(val kind: String = "Deployment",
                       override val apiVersion: String = extensionsAPIVersion,
@@ -62,7 +61,7 @@ case class Deployment(val kind: String = "Deployment",
 
 object Deployment {
 
-  val specification = NonCoreResourceSpecification(apiGroup = "extensions",
+  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(apiGroup = "extensions",
     version = "v1beta1",
     scope = Scope.Namespaced,
     names = Names(plural = "deployments",
@@ -71,12 +70,12 @@ object Deployment {
       shortNames = List("deploy")))
 
   implicit val deployDef: ResourceDefinition[Deployment] = new ResourceDefinition[Deployment] {
-    def spec = specification
+    def spec: ResourceSpecification = specification
   }
   implicit val deployListDef: ResourceDefinition[ListResource[Deployment]] = new ResourceDefinition[ListResource[Deployment]] {
-    def spec = specification
+    def spec: ResourceSpecification = specification
   }
-  implicit val scDef = new Scale.SubresourceSpec[Deployment] {
+  implicit val scDef: Scale.SubresourceSpec[Deployment] = new Scale.SubresourceSpec[Deployment] {
     override def apiVersion = "apps/v1beta1"
   }
 

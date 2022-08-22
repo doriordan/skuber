@@ -1,7 +1,7 @@
 package skuber.rbac
 
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition}
+import skuber.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification}
 
 /**
   * Created by jordan on 1/12/17.
@@ -15,7 +15,7 @@ case class RoleBinding(kind: String = "RoleBinding",
 
 object RoleBinding {
 
-  def specification = NonCoreResourceSpecification (apiGroup="rbac.authorization.k8s.io",
+  def specification: NonCoreResourceSpecification = NonCoreResourceSpecification (apiGroup="rbac.authorization.k8s.io",
     version="v1beta1",
     scope = Scope.Namespaced,
     names=Names(plural = "rolebindings",
@@ -23,6 +23,6 @@ object RoleBinding {
       kind = "RoleBinding",
       shortNames = Nil))
 
-  implicit val roleDef = new ResourceDefinition[RoleBinding] { def spec = specification }
-  implicit val roleListDef = new ResourceDefinition[RoleBindingList] { def spec = specification }
+  implicit val roleDef: ResourceDefinition[RoleBinding] = new ResourceDefinition[RoleBinding] { def spec: ResourceSpecification = specification }
+  implicit val roleListDef: ResourceDefinition[RoleBindingList] = new ResourceDefinition[RoleBindingList] { def spec: ResourceSpecification = specification }
 }

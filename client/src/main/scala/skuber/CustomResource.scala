@@ -81,8 +81,11 @@ object CustomResource {
    * Note: the application needs to provide implicit formatters for the Spec and Status subresources
    */
   implicit def crFormat[Sp, St](implicit spFmt: Format[Sp], stFmt: Format[St]): Format[CustomResource[Sp, St]] = (objFormat and
-      (JsPath \ "spec").format[Sp] and
-      (JsPath \ "status").formatNullable[St]) (CustomResource.apply[Sp, St] _, unlift(CustomResource.unapply[Sp, St]))
+    (JsPath \ "spec").format[Sp] and
+    (JsPath \ "status").formatNullable[St]) (
+    (kind, apiVersion, meta, sp, st) =>
+      CustomResource[Sp, St](kind, apiVersion, meta, sp, st),
+    res => (res.kind, res.apiVersion, res.metadata, res.spec, res.status))
 
   type CustomResourceList[Sp, St] = ListResource[CustomResource[Sp, St]]
 

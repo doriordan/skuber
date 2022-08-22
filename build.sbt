@@ -5,7 +5,7 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
-val scala3Version = "3.0.1"
+val scala3Version = "3.1.3"
 
 //val currentScalaVersion = scala13Version
 val currentScalaVersion = scala3Version
@@ -15,7 +15,7 @@ ThisBuild / scalacOptions ++= {
   // Need Java 8 or later as the java.time package is used to represent K8S timestamps
   CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, 12 | 13)) => Seq("-Xsource:3", "-target:jvm-1.8")
-    case Some((3, _)) => Seq("-Xignore-scala2-macros", "-target:jvm-1.8")
+    case Some((3, _)) => Seq("-target:jvm-1.8")
     case _ => Seq.empty
   }
 }
@@ -51,7 +51,7 @@ val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = ("com.typesafe.play" %% "play-json" % "2.10.0-RC6").cross(CrossVersion.for3Use2_13)
+val playJson = "com.typesafe.play" %% "play-json" % "2.10.0-RC6"
 val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.3"
 
 val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
@@ -167,7 +167,7 @@ lazy val skuberSettings = Seq(
 
 lazy val examplesSettings = Seq(
   name := "skuber-examples",
-  libraryDependencies ++= Seq(akka, akkaSlf4j, logback)
+  libraryDependencies ++= Seq(akka, akkaSlf4j, logback, playJson)
 )
 
 // by default run the guestbook example when executing a fat examples JAR
@@ -189,7 +189,7 @@ lazy val skuber = (project in file("client"))
     crossScalaVersions := supportedScalaVersion,
     skuberSettings,
     Defaults.itSettings,
-    libraryDependencies += scalaTest % "it"
+    libraryDependencies ++= Seq(scalaTest % "it", playJson)
   )
 
 

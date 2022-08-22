@@ -15,20 +15,20 @@ case class Deployment(val kind: String ="Deployment",
   val status: Option[Deployment.Status] = None)
     extends ObjectResource
 {
-  def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
+  def withResourceVersion(version: String): Deployment = this.copy(metadata = metadata.copy(resourceVersion=version))
 
-  lazy val copySpec = this.spec.getOrElse(new Deployment.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
+  lazy val copySpec: Deployment.Spec = this.spec.getOrElse(new Deployment.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
 
-  def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
+  def withReplicas(count: Int): Deployment = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
 
-  def withTemplate(template: Pod.Template.Spec) = {
+  def withTemplate(template: Pod.Template.Spec): Deployment = {
     val updatedSpec = copySpec.copy(template = template)
     this.copy(spec = Some(updatedSpec))
   }
 
-  def withLabelSelector(sel: LabelSelector) = this.copy(spec=Some(copySpec.copy(selector=sel)))
+  def withLabelSelector(sel: LabelSelector): Deployment = this.copy(spec=Some(copySpec.copy(selector=sel)))
 
-  def getPodSpec = for {
+  def getPodSpec: Option[Pod.Spec] = for {
     spec <- this.spec
     template = spec.template
     spec <- template.spec
@@ -63,16 +63,16 @@ case class Deployment(val kind: String ="Deployment",
 
 object Deployment {
 
-  val specification=NonCoreResourceSpecification (apiGroup="apps",
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification (apiGroup="apps",
     version="v1",
     scope = Scope.Namespaced,
     names=Names(plural = "deployments",
       singular = "deployment",
       kind = "Deployment",
       shortNames = List("deploy")))
-  implicit val deployDef = new ResourceDefinition[Deployment] { def spec=specification }
-  implicit val deployListDef =  new ResourceDefinition[DeploymentList] { def spec=specification }
-  implicit val scDef = new Scale.SubresourceSpec[Deployment] { override def apiVersion = appsAPIVersion }
+  implicit val deployDef: ResourceDefinition[Deployment] = new ResourceDefinition[Deployment] { def spec: ResourceSpecification =specification }
+  implicit val deployListDef: ResourceDefinition[DeploymentList] =  new ResourceDefinition[DeploymentList] { def spec: ResourceSpecification =specification }
+  implicit val scDef: Scale.SubresourceSpec[Deployment] = new Scale.SubresourceSpec[Deployment] { override def apiVersion: Finalizer = appsAPIVersion }
 
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
 
@@ -100,7 +100,7 @@ object Deployment {
 
   object Strategy {
     private[skuber] case class StrategyImpl(_type: StrategyType.StrategyType, rollingUpdate: Option[RollingUpdate]) extends Strategy
-    val Recreate = StrategyImpl(_type=StrategyType.Recreate, None)
+    val Recreate: StrategyImpl = StrategyImpl(_type=StrategyType.Recreate, None)
     def apply: Strategy = StrategyImpl(_type=StrategyType.RollingUpdate, rollingUpdate=Some(RollingUpdate()))
     def apply(_type: StrategyType.StrategyType,rollingUpdate: Option[RollingUpdate] = None) : Strategy = StrategyImpl(_type, rollingUpdate)
     def apply(rollingUpdate: RollingUpdate) : Strategy = StrategyImpl(_type=StrategyType.RollingUpdate, rollingUpdate=Some(rollingUpdate))

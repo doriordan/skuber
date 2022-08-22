@@ -2,9 +2,9 @@ package skuber.settings
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath}
-import skuber.json.format.{objFormat,maybeEmptyFormatMethods,jsPath2LabelSelFormat,envVarFormat,envFromSourceFmt, volMountFormat, volumeFormat}
+import skuber.json.format.{envFromSourceFmt, envVarFormat, jsPath2LabelSelFormat, maybeEmptyFormatMethods, objFormat, volMountFormat, volumeFormat}
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{EnvFromSource, EnvVar, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, Volume}
+import skuber.{EnvFromSource, EnvVar, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, Volume}
 
 /**
   * @author David O'Riordan
@@ -25,7 +25,7 @@ object PodPreset {
 
   // Kubernetes resource specification
 
-  val specification = NonCoreResourceSpecification(apiGroup ="settings.k8s.io",
+  val specification: NonCoreResourceSpecification = NonCoreResourceSpecification(apiGroup ="settings.k8s.io",
     version = "v1alpha1",
     scope = Scope.Namespaced,
     names = Names(plural = "podpresets",
@@ -33,8 +33,8 @@ object PodPreset {
       kind = "PodPreset",
       shortNames = List()))
 
-  implicit val ppDef = new ResourceDefinition[PodPreset] { def spec = specification }
-  implicit val pplListDef = new ResourceDefinition[PodPresetList] { def spec = specification }
+  implicit val ppDef: ResourceDefinition[PodPreset] = new ResourceDefinition[PodPreset] { def spec: ResourceSpecification = specification }
+  implicit val pplListDef: ResourceDefinition[PodPresetList] = new ResourceDefinition[PodPresetList] { def spec: ResourceSpecification = specification }
 
   // Json formatters
   implicit val podPresetSpecFmt: Format[Spec] = ((JsPath \ "selector").formatLabelSelector and

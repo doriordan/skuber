@@ -32,8 +32,8 @@ object PersistentVolumeClaim {
       singular = "persistentvolumeclaim",
       kind = "PersistentVolumeClaim",
       shortNames = List("pvc")))
-  implicit val pvcDef = new ResourceDefinition[PersistentVolumeClaim] { val spec = specification }
-  implicit val pvcListDef = new ResourceDefinition[PersistentVolumeClaimList] { val spec = specification }
+  implicit val pvcDef: ResourceDefinition[PersistentVolumeClaim] = new ResourceDefinition[PersistentVolumeClaim] { val spec = specification }
+  implicit val pvcListDef: ResourceDefinition[PersistentVolumeClaimList] = new ResourceDefinition[PersistentVolumeClaimList] { val spec = specification }
 
   import PersistentVolume.AccessMode
   case class Spec(accessModes: List[AccessMode.AccessMode] = Nil,
