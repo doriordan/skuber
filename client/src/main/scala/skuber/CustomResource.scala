@@ -1,10 +1,8 @@
 package skuber
 
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import skuber.api.client.Status
 import skuber.json.format.{ListResourceFormat, objFormat}
-import scala.reflect.runtime.universe._
 
 /*
  * CustomResource provides a generic model that can be used for custom resource types that follow the standard Kubernetes

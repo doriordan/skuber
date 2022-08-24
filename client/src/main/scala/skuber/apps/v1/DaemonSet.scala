@@ -94,7 +94,7 @@ object DaemonSet {
     (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
     (JsPath \ "updateStrategy").formatNullable[UpdateStrategy] and
-    (JsPath \ "revisionHistoryLimit").formatNullable[Int])(Spec.apply, unlift(Spec.unapply))
+    (JsPath \ "revisionHistoryLimit").formatNullable[Int])(Spec.apply, spec => (spec.minReadySeconds, spec.selector, spec.template, spec.updateStrategy, spec.revisionHistoryLimit))
 
   implicit lazy val daemonsetFmt: Format[DaemonSet] = (objFormat and
           (JsPath \ "spec").formatNullable[Spec] and

@@ -6,7 +6,7 @@ import skuber._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
 import skuber.json.format._ // reuse some core skuber json formatters
-
+import scala.Function1.UnliftOps
 /**
  * Created by hollinwilkins on 4/5/17.
  * The api version of this StatefulSet type is v1beta2, which is for use with k8s 1.8+.
@@ -103,7 +103,7 @@ object StatefulSet {
   implicit val statefulSetPodPcyMgmtFmt: Format[StatefulSet.PodManagementPolicyType.PodManagementPolicyType] = Format(enumReads(StatefulSet.PodManagementPolicyType, StatefulSet.PodManagementPolicyType.OrderedReady), enumWrites)
   implicit val statefulSetRollUp: Format[StatefulSet.RollingUpdateStrategy] = Json.format[StatefulSet.RollingUpdateStrategy]
   implicit val statefulSetUpdStrFmt: Format[StatefulSet.UpdateStrategy] = ((JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType, Some(StatefulSet.UpdateStrategyType.RollingUpdate)) and
-      (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]) (StatefulSet.UpdateStrategy.apply, unlift(StatefulSet.UpdateStrategy.unapply))
+      (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy])(StatefulSet.UpdateStrategy.apply, strategy => (strategy.`type`, strategy.rollingUpdate))
 
   implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = ((JsPath \ "replicas").formatNullable[Int] and
       (JsPath \ "serviceName").formatNullable[String] and
@@ -112,14 +112,16 @@ object StatefulSet {
       (JsPath \ "volumeClaimTemplates").formatMaybeEmptyList[PersistentVolumeClaim] and
       new EnumFormatter(JsPath \ "podManagmentPolicy").formatNullableEnum(StatefulSet.PodManagementPolicyType) and
       (JsPath \ "updateStrategy").formatNullable[StatefulSet.UpdateStrategy] and
-      (JsPath \ "revisionHistoryLimit").formatNullable[Int]) (StatefulSet.Spec.apply _, unlift(StatefulSet.Spec.unapply))
+      (JsPath \ "revisionHistoryLimit").formatNullable[Int]) (StatefulSet.Spec.apply,
+    spec => (spec.replicas, spec.serviceName, spec.selector, spec.template, spec.volumeClaimTemplates, spec.podManagmentPolicy, spec.updateStrategy, spec.revisionHistoryLimit))
 
   implicit val statefulSetCondFmt: Format[StatefulSet.Condition] = Json.format[StatefulSet.Condition]
   implicit val statefulSetStatusFmt: Format[StatefulSet.Status] = Json.format[StatefulSet.Status]
 
   implicit lazy val statefulSetFormat: Format[StatefulSet] = (objFormat and
       (JsPath \ "spec").formatNullable[StatefulSet.Spec] and
-      (JsPath \ "status").formatNullable[StatefulSet.Status]) (StatefulSet.apply _, unlift(StatefulSet.unapply))
+      (JsPath \ "status").formatNullable[StatefulSet.Status]) (StatefulSet.apply,
+    stateful => (stateful.kind, stateful.apiVersion, stateful.metadata, stateful.spec, stateful.status))
 
   implicit val statefulSetListFormat: Format[StatefulSetList] = ListResourceFormat[StatefulSet]
 }

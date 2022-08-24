@@ -1,9 +1,6 @@
 package skuber
 
-import play.api.libs.json.{Format, Json}
 import skuber.apiextensions.CustomResourceDefinition
-
-import scala.reflect.runtime.universe._
 
 /**
   * @author David O'Riordan

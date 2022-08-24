@@ -49,7 +49,8 @@ object Scale {
   object Status {
     implicit val scaleStatusFormat: Format[Scale.Status] = ((JsPath \ "replicas").formatMaybeEmptyInt() and
       (JsPath \ "selector").formatNullable[String] and
-      (JsPath \ "targetSelector").formatNullable[String])((replicas, selector, targetSelector) => Scale.Status(replicas, selector, targetSelector), unlift(Scale.Status.unapply))
+      (JsPath \ "targetSelector").formatNullable[String])((replicas, selector, targetSelector) => Scale.Status(replicas, selector, targetSelector),
+      scale => (scale.replicas, scale.selector, scale.targetSelector))
   }
 
   implicit val scaleFormat: Format[Scale] = Json.format[Scale]

@@ -40,27 +40,27 @@ object CustomResourceDefinition {
     names = crdNames)
 
   def apply(name: String,
-             kind: String): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, Nil)
+            kind: String): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, Nil)
 
   def apply(name: String,
-             kind: String,
-             scope: Scope.Value): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, Nil)
+            kind: String,
+            scope: Scope.Value): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, Nil)
 
   def apply(name: String,
-             kind: String,
-             shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, shortNames)
+            kind: String,
+            shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, shortNames)
 
   def apply(name: String,
-             kind: String,
-             scope: Scope.Value,
-             shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, shortNames)
+            kind: String,
+            scope: Scope.Value,
+            shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, shortNames)
 
   def apply(name: String,
-             kind: String,
-             version: String,
-             scope: Scope.Value,
-             singular: Option[String],
-             shortNames: List[String]): CustomResourceDefinition = {
+            kind: String,
+            version: String,
+            scope: Scope.Value,
+            singular: Option[String],
+            shortNames: List[String]): CustomResourceDefinition = {
     val nameParts = name.split('.')
     if (nameParts.length < 2)
       throw new Exception("name must be of format <plural>.<group>>")
@@ -103,15 +103,17 @@ object CustomResourceDefinition {
 
   implicit val scopeFormat: Format[ResourceSpecification.Scope.Value] = skuber.json.format.enumFormat(Scope)
   implicit val namesFormat: OFormat[apiextensions.CustomResourceDefinition.Names] = ((JsPath \ "plural").format[String] and
-      (JsPath \ "singular").format[String] and
-      (JsPath \ "kind").format[String] and
-      (JsPath \ "shortNames").formatMaybeEmptyList[String] and
-      (JsPath \ "listKind").formatNullable[String] and
-      (JsPath \ "categories").formatMaybeEmptyList[String]) (Names.apply, unlift(Names.unapply))
+    (JsPath \ "singular").format[String] and
+    (JsPath \ "kind").format[String] and
+    (JsPath \ "shortNames").formatMaybeEmptyList[String] and
+    (JsPath \ "listKind").formatNullable[String] and
+    (JsPath \ "categories").formatMaybeEmptyList[String]) (Names.apply,
+    names => (names.plural, names.singular, names.kind, names.shortNames, names.listKind, names.categories))
 
   implicit val versionFormat: Format[ResourceSpecification.Version] = ((JsPath \ "name").format[String] and
-      (JsPath \ "served").formatMaybeEmptyBoolean() and
-      (JsPath \ "storage").formatMaybeEmptyBoolean()) (ResourceSpecification.Version.apply, unlift(ResourceSpecification.Version.unapply))
+    (JsPath \ "served").formatMaybeEmptyBoolean() and
+    (JsPath \ "storage").formatMaybeEmptyBoolean()) (ResourceSpecification.Version.apply,
+    res => (res.name, res.served, res.storage))
 
   implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
@@ -122,16 +124,17 @@ object CustomResourceDefinition {
   implicit val subresourcesFmt: Format[Subresources] = Json.format[Subresources]
 
   implicit val crdSpecFmt: Format[Spec] = ((JsPath \ "group").format[String] and
-      (JsPath \ "version").formatNullable[String] and
-      (JsPath \ "versions").formatMaybeEmptyList[Version] and
-      new EnumFormatter(JsPath \ "scope").formatEnum(Scope) and
-      (JsPath \ "names").format[Names] and
-      (JsPath \ "subresources").formatNullable[Subresources]) (CustomResourceDefinition.Spec.apply, unlift(CustomResourceDefinition.Spec.unapply))
+    (JsPath \ "version").formatNullable[String] and
+    (JsPath \ "versions").formatMaybeEmptyList[Version] and
+    new EnumFormatter(JsPath \ "scope").formatEnum(Scope) and
+    (JsPath \ "names").format[Names] and
+    (JsPath \ "subresources").formatNullable[Subresources]) (CustomResourceDefinition.Spec.apply,
+    crd => (crd.apiGroup, crd.version, crd.versions, crd.scope, crd.names, crd.subresources))
 
   implicit val crdFmt: Format[CustomResourceDefinition] = ((JsPath \ "kind").format[String] and
-      (JsPath \ "apiVersion").format[String] and
-      (JsPath \ "metadata").format[ObjectMeta] and
-      (JsPath \ "spec").format[Spec]) (CustomResourceDefinition.apply, unlift(CustomResourceDefinition.unapply))
+    (JsPath \ "apiVersion").format[String] and
+    (JsPath \ "metadata").format[ObjectMeta] and
+    (JsPath \ "spec").format[Spec]) (CustomResourceDefinition.apply, crd => (crd.kind, crd.apiVersion, crd.metadata, crd.spec))
 
 
 }

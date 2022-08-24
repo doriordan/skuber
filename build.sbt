@@ -15,7 +15,7 @@ ThisBuild / scalacOptions ++= {
   // Need Java 8 or later as the java.time package is used to represent K8S timestamps
   CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, 12 | 13)) => Seq("-Xsource:3", "-target:jvm-1.8")
-    case Some((3, _)) => Seq("-target:jvm-1.8")
+    case Some((3, _)) => Seq.empty
     case _ => Seq.empty
   }
 }
