@@ -41,9 +41,9 @@ object PodPreset {
     (JsPath \ "env").formatMaybeEmptyList[EnvVar] and
     (JsPath \ "envFrom").formatMaybeEmptyList[EnvFromSource] and
     (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
-    (JsPath \ "volumeMounts").formatMaybeEmptyList[Volume.Mount])(Spec.apply _, unlift(Spec.unapply))
+    (JsPath \ "volumeMounts").formatMaybeEmptyList[Volume.Mount])(Spec.apply, s => (s.selector, s.env, s.envFrom, s.volumes, s.volumeMounts))
 
   implicit val podPresetFmt: Format[PodPreset] = (objFormat and
-    (JsPath \ "spec").formatNullable[Spec])(PodPreset.apply _, unlift(PodPreset.unapply))
+    (JsPath \ "spec").formatNullable[Spec])(PodPreset.apply, p => (p.kind, p.apiVersion, p.metadata, p.spec))
 
 }

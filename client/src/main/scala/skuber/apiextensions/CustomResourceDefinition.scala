@@ -101,7 +101,7 @@ object CustomResourceDefinition {
 
   import skuber.json.format.{maybeEmptyFormatMethods, objectMetaFormat}
 
-  implicit val scopeFormat: Format[ResourceSpecification.Scope.Value] = skuber.json.format.enumFormat(Scope)
+  implicit val scopeFormat: Format[ResourceSpecification.Scope.Value] = Json.formatEnum(Scope)
   implicit val namesFormat: OFormat[apiextensions.CustomResourceDefinition.Names] = ((JsPath \ "plural").format[String] and
     (JsPath \ "singular").format[String] and
     (JsPath \ "kind").format[String] and

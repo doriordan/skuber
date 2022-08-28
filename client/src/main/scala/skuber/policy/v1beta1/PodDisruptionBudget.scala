@@ -64,15 +64,15 @@ object PodDisruptionBudget {
       (JsPath \ "disruptedPods").formatMaybeEmptyMap[Timestamp] and
       (JsPath \ "disruptionsAllowed").formatMaybeEmptyInt() and
       (JsPath \ "expectedPods").formatMaybeEmptyInt() and
-      (JsPath \ "observedGeneration").formatNullable[Int]) (Status.apply, unlift(Status.unapply))
+      (JsPath \ "observedGeneration").formatNullable[Int]) (Status.apply, s => (s.currentHealthy, s.desiredHealthy, s.disruptedPods, s.disruptionsAllowed, s.expectedPods, s.observedGeneration))
 
   implicit val depSpecFmt: Format[Spec] = ((JsPath \ "maxUnavailable").formatNullable[IntOrString] and
       (JsPath \ "minAvailable").formatNullable[IntOrString] and
-      (JsPath \ "selector").formatNullableLabelSelector) (Spec.apply, unlift(Spec.unapply))
+      (JsPath \ "selector").formatNullableLabelSelector) (Spec.apply, s => (s.maxUnavailable, s.minAvailable, s.selector))
 
   implicit lazy val pdbFormat: Format[PodDisruptionBudget] = (objFormat and
       (JsPath \ "spec").formatNullable[Spec] and
-      (JsPath \ "status").formatNullable[Status])(PodDisruptionBudget.apply, unlift(PodDisruptionBudget.unapply))
+      (JsPath \ "status").formatNullable[Status])(PodDisruptionBudget.apply, p => (p.kind, p.apiVersion, p.metadata, p.spec, p.status))
 
   implicit val pdbListFormat: Format[PodDisruptionBudgetList] = ListResourceFormat[PodDisruptionBudget]
 }

@@ -291,7 +291,7 @@ package object skuber {
    * Initialise Skuber using default Kubernetes and application configuration.
    */
   def k8sInit(implicit actorSystem: ActorSystem): KubernetesClient = {
-    skuber.api.client.init
+    skuber.api.client.init()
   }
 
   /**
