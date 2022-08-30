@@ -6,7 +6,6 @@ import skuber._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
 import skuber.json.format._ // reuse some core skuber json formatters
-import scala.Function1.UnliftOps
 /**
  * Created by hollinwilkins on 4/5/17.
  * The api version of this StatefulSet type is v1beta2, which is for use with k8s 1.8+.

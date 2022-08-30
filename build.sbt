@@ -8,17 +8,8 @@ val scala13Version = "2.13.6"
 val scala3Version = "3.1.3"
 
 //val currentScalaVersion = scala13Version
-val currentScalaVersion = scala13Version
+val currentScalaVersion = scala3Version
 ThisBuild / scalaVersion := currentScalaVersion
-
-ThisBuild / scalacOptions ++= {
-  // Need Java 8 or later as the java.time package is used to represent K8S timestamps
-  CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, 12 | 13)) => Seq("-Xsource:3", "-target:jvm-1.8")
-    case Some((3, _)) => Seq.empty
-    case _ => Seq.empty
-  }
-}
 
 val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
 
@@ -179,6 +170,7 @@ root / publishArtifact := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings,
+     scalacOptions += "-Xignore-scala2-macros",
     crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
@@ -187,6 +179,7 @@ lazy val skuber = (project in file("client"))
   .settings(
     commonSettings,
     crossScalaVersions := supportedScalaVersion,
+    scalacOptions += "-Xignore-scala2-macros",
     skuberSettings,
     Defaults.itSettings,
     libraryDependencies ++= Seq(scalaTest % "it", playJson)
