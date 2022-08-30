@@ -13,6 +13,7 @@ ThisBuild / scalaVersion := currentScalaVersion
 
 val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
 
+
 val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
@@ -170,7 +171,7 @@ root / publishArtifact := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings,
-     scalacOptions += "-Xignore-scala2-macros",
+    //    scalacOptions += "-Xignore-scala2-macros",
     crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
@@ -179,7 +180,7 @@ lazy val skuber = (project in file("client"))
   .settings(
     commonSettings,
     crossScalaVersions := supportedScalaVersion,
-    scalacOptions += "-Xignore-scala2-macros",
+//    scalacOptions += "-Xignore-scala2-macros",
     skuberSettings,
     Defaults.itSettings,
     libraryDependencies ++= Seq(scalaTest % "it", playJson)
