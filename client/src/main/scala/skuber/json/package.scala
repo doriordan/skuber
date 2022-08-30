@@ -1,6 +1,5 @@
 package skuber.json
 
-import scala.language.implicitConversions
 import java.time._
 import java.time.format._
 import org.apache.commons.codec.binary.Base64
@@ -8,10 +7,9 @@ import play.api.libs.functional.FunctionalBuilder
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import skuber._
-import skuber.annotation.NodeAffinity
 import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
+import skuber.annotation.NodeAffinity.matchExpressionFmt
 import scala.util.Try
-import scala.Enumeration
 
 /**
  * @author David O'Riordan
@@ -66,25 +64,22 @@ package object format {
   implicit def maybeEmptyFormatMethods(path: JsPath): MaybeEmpty = new MaybeEmpty(path)
 
   implicit def enumDefault[E <: Enumeration](`enum`: E, default: String): Format[`enum`.Value] =
-    Format(Reads.enumNameReads(`enum`) or Reads.pure(`enum`.values.find(_.toString == default).get), Writes.enumNameWrites[`enum`.type])
+    Format(Reads.enumNameReads(`enum`) or Reads.pure(`enum`.withName(default)), Writes.enumNameWrites[`enum`.type])
 
   class EnumFormatter(val path: JsPath) {
     def formatEnum[E <: Enumeration](`enum`: E, default: String): OFormat[`enum`.Value] = {
-      implicit val fmt: Format[`enum`.Value] = enumDefault(`enum`, default)
-
-      OFormat.oFormatFromReadsAndOWrites(fmt.reads, OWrites(enumToJSObject))
+      path.formatNullable[String].inmap[`enum`.Value](_.flatMap(s => Try(`enum`.withName(s)).toOption).getOrElse(`enum`.withName(default)), e =>  Some(e.toString))
     }
 
     def formatEnum[E <: Enumeration](`enum`: E): OFormat[`enum`.Value] =  {
-      OFormat.oFormatFromReadsAndOWrites(Reads.enumNameReads(`enum`), OWrites(enumToJSObject))
+      path.format[String].inmap[`enum`.Value](en => `enum`.values.find(_.toString == en).get, e =>  e.toString)
     }
 
-    def formatNullableEnum[E <: Enumeration](`enum`: E): OFormat[Option[`enum`.Value]] =
-      path.formatNullable[String].inmap[Option[`enum`.Value]](_.map(s => `enum`.withName(s)), e => e map {
-        _.toString
-      })
+    def formatNullableEnum[E <: Enumeration](`enum`: E): OFormat[Option[`enum`.Value]] = {
+      path.formatNullable[String].inmap[Option[`enum`.Value]](
+        s => s.flatMap( str => Try(`enum`.withName(str)).toOption), e => e.map(_.toString))
+    }
 
-    private def enumToJSObject[E](enumValue: E): JsObject = JsObject(Map(path.toString() -> JsString(enumValue.toString)))
   }
 
   implicit def enumFormatMethods(path: JsPath): EnumFormatter = new EnumFormatter(path)
@@ -884,8 +879,6 @@ package object format {
   implicit val persVolFmt: Format[PersistentVolume] = (objFormat and
     (JsPath \ "spec").formatNullable[PersistentVolume.Spec] and
     (JsPath \ "status").formatNullable[PersistentVolume.Status]) (PersistentVolume.apply, p => (p.kind, p.apiVersion, p.metadata, p.spec, p.status))
-
-  import skuber.json.annotation.format.matchExpressionFormat
 
   implicit val selectorFmt: Format[Selector] = Json.format[Selector]
 

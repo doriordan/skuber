@@ -106,7 +106,8 @@ object StatefulSet {
     (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]) (StatefulSet.UpdateStrategy.apply,
     st => (st.`type`, st.rollingUpdate))
 
-  implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = ((JsPath \ "replicas").formatNullable[Int] and
+  implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] =
+    ((JsPath \ "replicas").formatNullable[Int] and
     (JsPath \ "serviceName").formatNullable[String] and
     (JsPath \ "selector").formatNullableLabelSelector and
     (JsPath \ "template").format[Pod.Template.Spec] and

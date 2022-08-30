@@ -1,6 +1,7 @@
 package skuber.annotation
 
-import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
+import play.api.libs.json.{Format, Json, OFormat}
+import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms, Operator}
 
 /**
   * Created by Cory Klein on 2/22/17.
@@ -10,6 +11,16 @@ import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
   */
 case class NodeAffinity(requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
                     preferredDuringSchedulingIgnoredDuringExecution: Option[PreferredDuringSchedulingIgnoredDuringExecution])
+
+
+
+case class RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms: NodeSelectorTerms)
+
+case class PreferredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms: NodeSelectorTerms)
+
+case class NodeSelectorTerm(matchExpressions: MatchExpressions)
+
+case class MatchExpression(key: String, operator: NodeAffinity.Operator.Value, values: List[String])
 
 object NodeAffinity {
   val ANNOTATION_NAME = "scheduler.alpha.kubernetes.io/affinity"
@@ -29,13 +40,6 @@ object NodeAffinity {
     type Operator = Value
     val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
   }
+  implicit val operatorFmt: Format[Operator.Value] = Json.formatEnum(Operator)
+  implicit val matchExpressionFmt: OFormat[MatchExpression] = Json.format[MatchExpression]
 }
-
-case class RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms: NodeSelectorTerms)
-
-case class PreferredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms: NodeSelectorTerms)
-
-case class NodeSelectorTerm(matchExpressions: MatchExpressions)
-
-case class MatchExpression(key: String, operator: NodeAffinity.Operator.Value, values: List[String])
-
