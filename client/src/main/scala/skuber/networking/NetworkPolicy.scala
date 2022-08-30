@@ -146,7 +146,7 @@ object NetworkPolicy {
       (JsPath \ "ipBlock").formatNullable[IPBlock]) (Peer.apply, p => (p.podSelector, p.namespaceSelector, p.ipBlock))
 
   implicit val portFmt: Format[Port] = ((JsPath \ "port").format[NameablePort] and
-      (JsPath \ "protocol").formatEnum(Protocol, Some(Protocol.TCP))) (Port.apply, p => (p.port, p.protocol))
+      (JsPath \ "protocol").formatEnum(Protocol, Protocol.TCP.toString)) (Port.apply, p => (p.port, p.protocol))
 
   implicit val ingressRuleFmt: Format[IngressRule] = ((JsPath \ "ports").formatMaybeEmptyList[Port] and
       (JsPath \ "from").formatMaybeEmptyList[Peer]) (IngressRule.apply, i => (i.ports, i.from))

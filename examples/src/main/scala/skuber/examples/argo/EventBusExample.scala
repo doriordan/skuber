@@ -8,7 +8,7 @@ import skuber.ResourceSpecification.{Names, Scope}
 import skuber.api.client.LoggingContext
 import skuber.examples.argo.EventBus.{EventBusSetList, Native, Nats, eventBusFmt, eventBusListFmt, rsDef, rsListDef}
 import skuber.json.format.{ListResourceFormat, objFormat}
-import skuber.{ListResource, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, k8sInit}
+import skuber.{ListResource, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, k8sInit}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 
@@ -27,8 +27,8 @@ object EventBusExample extends App {
 
   Await.result(cr, 30.seconds)
   val ls = k8s.list[EventBusSetList](Some("argo-eventbus"))(eventBusListFmt, rsListDef, LoggingContext.lc).map { eventsBusList =>
-    println(eventsBusList.mkString("\n"))
-  }
+    println(eventsBusList.items.mkString("\n"))
+  }(dispatcher)
   Await.result(ls, 30.seconds)
 
   k8s.close
@@ -46,7 +46,7 @@ case class EventBus(val kind: String = "EventBus",
 
 object EventBus {
 
-  val specification=NonCoreResourceSpecification(apiGroup = "argoproj.io",
+  val specification: NonCoreResourceSpecification =NonCoreResourceSpecification(apiGroup = "argoproj.io",
     version = "v1alpha1",
     scope = Scope.Namespaced,
     names = Names(plural = "eventbus",
@@ -54,8 +54,8 @@ object EventBus {
       kind = "EventBus",
       shortNames = List("eb")))
   type EventBusSetList = ListResource[EventBus]
-  implicit val rsDef = new ResourceDefinition[EventBus] { def spec=specification }
-  implicit val rsListDef = new ResourceDefinition[EventBusSetList] { def spec=specification }
+  implicit val rsDef: ResourceDefinition[EventBus] = new ResourceDefinition[EventBus] { def spec: ResourceSpecification =specification }
+  implicit val rsListDef: ResourceDefinition[EventBusSetList] = new ResourceDefinition[EventBusSetList] { def spec: ResourceSpecification =specification }
 
   def apply(name: String) : EventBus = EventBus(metadata=ObjectMeta(name=name))
 
@@ -78,7 +78,7 @@ object EventBus {
   implicit val specFmt: Format[Spec] = Json.format[Spec]
 
   implicit lazy val eventBusFmt: Format[EventBus] = (objFormat and
-      (JsPath \ "spec").formatNullable[EventBus.Spec])(EventBus.apply _, unlift(EventBus.unapply))
+      (JsPath \ "spec").formatNullable[EventBus.Spec])(EventBus.apply, e => (e.kind, e.apiVersion, e.metadata, e.spec))
 
   implicit val eventBusListFmt: Format[EventBusSetList] = ListResourceFormat[EventBus]
 

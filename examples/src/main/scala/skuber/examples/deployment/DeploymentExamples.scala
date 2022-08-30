@@ -3,10 +3,8 @@ package skuber.examples.deployment
 import skuber._
 import skuber.ext.Deployment
 import skuber.json.ext.format._
-
 import akka.actor.ActorSystem
-
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 
 /**
@@ -30,8 +28,8 @@ object DeploymentExamples extends App {
 
   val nginxDeploymentName="nginx-deployment"
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
   val k8s = k8sInit
   
@@ -67,7 +65,7 @@ object DeploymentExamples extends App {
           println("Deleting deployment, including its owned resources")
           val deleteOptions=DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))
           val deleteFut=k8s.deleteWithOptions[Deployment](nginxDeploymentName, deleteOptions)
-          Await.ready(deleteFut, 30 seconds)
+          Await.ready(deleteFut, 30.seconds)
           println("DSuccessfully completed, exiting")
           system.terminate().foreach { f =>
             System.exit(0)
@@ -107,7 +105,7 @@ object DeploymentExamples extends App {
     createdDeplFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the deployment object already exists - retrieving latest version and updating it")
-        (k8s get[Deployment] nginxDeployment.name) flatMap { curr =>
+        k8s.get[Deployment](nginxDeployment.name) flatMap { curr =>
           println("retrieved latest deployment, now updating")
           val updated = nginxDeployment.withResourceVersion(curr.metadata.resourceVersion)
           k8s update updated
@@ -119,11 +117,11 @@ object DeploymentExamples extends App {
   def updateNginx(version: String): Future[Deployment] = {
     
     val updatedContainer = Container("nginx",image="nginx:" + version).exposePort(80)
-    val currentDeployment = k8s get[Deployment]("nginx-deployment")
+    val currentDeployment = k8s.get[Deployment]("nginx-deployment")
     
     currentDeployment flatMap { nginxDeployment =>
         val updatedDeployment = nginxDeployment.updateContainer(updatedContainer)
-        k8s update updatedDeployment
+        k8s.update( updatedDeployment)
     }  
   }
 }

@@ -136,7 +136,7 @@ object Deployment {
   implicit val rollingUpdFmt: Format[RollingUpdate] = ((JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
     (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))) (RollingUpdate.apply, ru => (ru.maxUnavailable, ru.maxSurge))
 
-  implicit val depStrategyFmt: Format[Strategy] = ((JsPath \ "type").formatEnum(StrategyType, Some(StrategyType.RollingUpdate)) and
+  implicit val depStrategyFmt: Format[Strategy] = ((JsPath \ "type").formatEnum(StrategyType, StrategyType.RollingUpdate.toString) and
     (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]) (Strategy.apply, unlift(Strategy.unapply))
 
   implicit val depSpecFmt: Format[Deployment.Spec] = ((JsPath \ "replicas").formatNullable[Int] and

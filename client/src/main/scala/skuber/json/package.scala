@@ -69,13 +69,22 @@ package object format {
     Format(Reads.enumNameReads(`enum`) or Reads.pure(`enum`.values.find(_.toString == default).get), Writes.enumNameWrites[`enum`.type])
 
   class EnumFormatter(val path: JsPath) {
-    def formatEnum[E <: Enumeration](`enum`: E, default: Option[E#Value] = None): OFormat[E#Value] =
-      path.formatNullable[String].inmap[E#Value](_.map(s => `enum`.withName(s)).getOrElse(default.get), e => Some(e.toString))
+    def formatEnum[E <: Enumeration](`enum`: E, default: String): OFormat[`enum`.Value] = {
+      implicit val fmt: Format[`enum`.Value] = enumDefault(`enum`, default)
 
-    def formatNullableEnum[E <: Enumeration](`enum`: E): OFormat[Option[E#Value]] =
-      path.formatNullable[String].inmap[Option[E#Value]](_.map(s => `enum`.withName(s)), e => e map {
+      OFormat.oFormatFromReadsAndOWrites(fmt.reads, OWrites(enumToJSObject))
+    }
+
+    def formatEnum[E <: Enumeration](`enum`: E): OFormat[`enum`.Value] =  {
+      OFormat.oFormatFromReadsAndOWrites(Reads.enumNameReads(`enum`), OWrites(enumToJSObject))
+    }
+
+    def formatNullableEnum[E <: Enumeration](`enum`: E): OFormat[Option[`enum`.Value]] =
+      path.formatNullable[String].inmap[Option[`enum`.Value]](_.map(s => `enum`.withName(s)), e => e map {
         _.toString
       })
+
+    private def enumToJSObject[E](enumValue: E): JsObject = JsObject(Map(path.toString() -> JsString(enumValue.toString)))
   }
 
   implicit def enumFormatMethods(path: JsPath): EnumFormatter = new EnumFormatter(path)
@@ -359,7 +368,7 @@ package object format {
   implicit val protocolFmt: Format[skuber.Protocol.Value] = enumDefault(Protocol, Protocol.TCP.toString)
 
   implicit val formatCntrProt: Format[Container.Port] = ((JsPath \ "containerPort").format[Int] and
-    (JsPath \ "protocol").formatEnum(Protocol, Some(Protocol.TCP)) and
+    (JsPath \ "protocol").formatEnum(Protocol, Protocol.TCP.toString) and
     (JsPath \ "name").formatMaybeEmptyString() and
     (JsPath \ "hostIP").formatMaybeEmptyString() and
     (JsPath \ "hostPort").formatNullable[Int]) (Container.Port.apply, c => (c.containerPort, c.protocol, c.name, c.hostIP, c.hostPort))
@@ -695,10 +704,10 @@ package object format {
   val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], skuber.RestartPolicy.Value, Option[Int], Option[Int], skuber.DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[PodSecurityContext])] = ((JsPath \ "containers").format[List[Container]] and
     (JsPath \ "initContainers").formatMaybeEmptyList[Container] and
     (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
-    (JsPath \ "restartPolicy").formatEnum(RestartPolicy, Some(RestartPolicy.Always)) and
+    (JsPath \ "restartPolicy").formatEnum(RestartPolicy, RestartPolicy.Always.toString) and
     (JsPath \ "terminationGracePeriodSeconds").formatNullable[Int] and
     (JsPath \ "activeDeadlineSeconds").formatNullable[Int] and
-    (JsPath \ "dnsPolicy").formatEnum(DNSPolicy, Some(DNSPolicy.ClusterFirst)) and
+    (JsPath \ "dnsPolicy").formatEnum(DNSPolicy, DNSPolicy.ClusterFirst.toString) and
     (JsPath \ "nodeSelector").formatMaybeEmptyMap[String] and
     (JsPath \ "serviceAccountName").formatMaybeEmptyString() and
     (JsPath \ "nodeName").formatMaybeEmptyString() and
@@ -781,7 +790,7 @@ package object format {
       inmap(lbs => Service.Status(lbs), (ss: Service.Status) => ss.loadBalancer)
 
   implicit val servicePortFmt: Format[Service.Port] = ((JsPath \ "name").formatMaybeEmptyString() and
-    (JsPath \ "protocol").formatEnum(Protocol, Some(Protocol.TCP)) and
+    (JsPath \ "protocol").formatEnum(Protocol, Protocol.TCP.toString) and
     (JsPath \ "port").format[Int] and
     (JsPath \ "targetPort").formatNullable[NameablePort] and
     (JsPath \ "nodePort").formatMaybeEmptyInt()) (Service.Port.apply, s => (s.name, s.protocol, s.port, s.targetPort, s.nodePort))
@@ -789,11 +798,11 @@ package object format {
   implicit val serviceSpecFmt: Format[Service.Spec] = ((JsPath \ "ports").formatMaybeEmptyList[Service.Port] and
     (JsPath \ "selector").formatMaybeEmptyMap[String] and
     (JsPath \ "clusterIP").formatMaybeEmptyString() and
-    (JsPath \ "type").formatEnum(Service.Type, Some(Service.Type.ClusterIP)) and
+    (JsPath \ "type").formatEnum(Service.Type, Service.Type.ClusterIP.toString) and
     (JsPath \ "externalIPs").formatMaybeEmptyList[String] and
     (JsPath \ "externalName").formatMaybeEmptyString() and
     (JsPath \ "externalTrafficPolicy").formatNullableEnum(Service.ExternalTrafficPolicy) and
-    (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Some(Service.Affinity.None)) and
+    (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Service.Affinity.None.toString) and
     (JsPath \ "loadBalancerIP").formatMaybeEmptyString()) (Service.Spec.apply, s => (s.ports, s.selector, s.clusterIP, s._type, s.externalIPs, s.externalName, s.externalTrafficPolicy, s.sessionAffinity, s.loadBalancerIP))
 
   implicit val serviceFmt: Format[Service] = (objFormat and

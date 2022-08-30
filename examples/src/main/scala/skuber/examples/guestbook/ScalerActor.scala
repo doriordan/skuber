@@ -25,7 +25,7 @@ object ScalerActor {
   case class ScalingDone(controllerName: String, toReplicaCount: Int) // sent to the parent when finished
   case class ScalingError(ex: Failure)
   
-  def props(kubernetes: ActorRef, controllerName: String, targetReplicaCount: Int) = 
+  def props(kubernetes: ActorRef, controllerName: String, targetReplicaCount: Int): Props =
     Props(new ScalerActor(kubernetes, controllerName, targetReplicaCount))
 }
 
@@ -39,11 +39,11 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
   private def isScalingComplete(rc: ReplicationController) = rc.status.get.replicas == targetReplicaCount
   private def specNeedsChanging(rc: ReplicationController) = rc.spec.get.replicas != targetReplicaCount
 
-  private def report(s: String) = System.out.println("  '" + controllerName + "' => " + s)
-  private def reportStatus(rc: ReplicationController) = 
+  private def report(s: String): Unit = System.out.println("  '" + controllerName + "' => " + s)
+  private def reportStatus(rc: ReplicationController): Unit =
     report(rc.status.get.replicas + " replicas currently running (target: " + rc.spec.get.replicas + ")")
     
-  implicit val timeout = Timeout(60.seconds)
+  implicit val timeout: Timeout = Timeout(60.seconds)
   
   var watching: Option[ReplicationController]= None
    
@@ -58,8 +58,8 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
   // completed: scaling is done or a failure has happened - parent has been notified so there is no more 
   // to do.
   
-  def receive = initial 
-  var resultHandler = context.sender
+  def receive: Receive = initial
+  var resultHandler: ActorRef = context.sender()
   
   def initial : Receive = LoggingReceive {
      case InitiateScaling(resultHandler: ActorRef) => {
@@ -120,7 +120,7 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
   }
   
   // handle successful or failed completion of scaling
-  def done = {
+  def done: Unit = {
     if (targetReplicaCount==0)
       report("successfully stopped all replica(s)")
     else
@@ -132,7 +132,7 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
     context.become(completed)
   }  
   
-  def error(ex: Failure) = {
+  def error(ex: Failure): Unit = {
     report("scaling ended with error: " + ex.cause.getMessage)
     resultHandler ! ScalingError(ex)
     watching foreach { kubernetes ! UnwatchReplicationController(_, self) }

@@ -23,7 +23,7 @@ package object format {
   implicit val rollingUpdFmt: Format[Deployment.RollingUpdate] = ((JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
     (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))) (Deployment.RollingUpdate.apply, r => (r.maxUnavailable, r.maxSurge))
 
-  implicit val depStrategyFmt: Format[Deployment.Strategy] = ((JsPath \ "type").formatEnum(Deployment.StrategyType, Some(Deployment.StrategyType.RollingUpdate)) and
+  implicit val depStrategyFmt: Format[Deployment.Strategy] = ((JsPath \ "type").formatEnum(Deployment.StrategyType, Deployment.StrategyType.RollingUpdate.toString) and
     (JsPath \ "rollingUpdate").formatNullable[Deployment.RollingUpdate]) (Deployment.Strategy.apply, unlift(Deployment.Strategy.unapply))
 
   implicit val depSpecFmt: Format[Deployment.Spec] = ((JsPath \ "replicas").formatNullable[Int] and

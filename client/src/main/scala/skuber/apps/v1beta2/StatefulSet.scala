@@ -102,7 +102,7 @@ object StatefulSet {
   implicit val statefulSetPodPcyMgmtFmt: Format[StatefulSet.PodManagementPolicyType.PodManagementPolicyType] = enumDefault(StatefulSet.PodManagementPolicyType, StatefulSet.PodManagementPolicyType.OrderedReady.toString)
 
   implicit val statefulSetRollUp: Format[StatefulSet.RollingUpdateStrategy] = Json.format[StatefulSet.RollingUpdateStrategy]
-  implicit val statefulSetUpdStrFmt: Format[StatefulSet.UpdateStrategy] = ((JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType, Some(StatefulSet.UpdateStrategyType.RollingUpdate)) and
+  implicit val statefulSetUpdStrFmt: Format[StatefulSet.UpdateStrategy] = ((JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType, StatefulSet.UpdateStrategyType.RollingUpdate.toString) and
     (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]) (StatefulSet.UpdateStrategy.apply,
     st => (st.`type`, st.rollingUpdate))
 

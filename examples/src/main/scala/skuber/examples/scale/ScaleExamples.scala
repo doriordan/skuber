@@ -58,7 +58,7 @@ object ScaleExamples extends App {
     val deplFut = createdDeplFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the deployment already exists - retrieving latest version")
-        k8s get[Deployment] nginxDeployment.name
+        k8s.get[Deployment](nginxDeployment.name)
       }
     }
 
@@ -94,7 +94,7 @@ object ScaleExamples extends App {
     val stsFut = createdStsFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the stateful set or service already exists - retrieving latest version")
-        k8s get[StatefulSet] nginxStatefulSet.name
+        k8s.get[StatefulSet](nginxStatefulSet.name)
       }
     }
 
@@ -138,7 +138,7 @@ object ScaleExamples extends App {
                withMinReplicas(2).
                withMaxReplicas(8).
                withCPUTargetUtilization(80)
-      hpa  <- k8s create[HorizontalPodAutoscaler] hpas
+      hpa  <- k8s.create[HorizontalPodAutoscaler](hpas)
       _ = {
             println("Successfully created horizontal pod autoscaler")
             println("waiting one minute to allow scaling to progress before cleaning up")

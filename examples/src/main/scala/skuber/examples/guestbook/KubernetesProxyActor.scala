@@ -2,15 +2,13 @@ package skuber.examples.guestbook
 
 import skuber._
 import skuber.json.format._
-
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.actor.Props
 import akka.event.LoggingReceive
 import akka.pattern.pipe
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Source,Sink}
-
-import scala.concurrent.Future
+import akka.stream.scaladsl.{Sink, Source}
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 import scala.collection._
 
@@ -51,11 +49,11 @@ object KubernetesProxyActor {
 
 class KubernetesProxyActor extends Actor with ActorLogging {
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
-  val k8s = k8sInit // initialize skuber client (
-  var rcWatching = mutable.HashMap[String, Watching]()
+  val k8s: K8SRequestContext = k8sInit(system) // initialize skuber client
+  var rcWatching: mutable.HashMap[Finalizer, Watching] = mutable.HashMap[String, Watching]()
    
   private def invoke(skuberRequest: => Future[Any]) : Future[Any] = {   
     val reply = skuberRequest recover {
@@ -76,13 +74,13 @@ class KubernetesProxyActor extends Actor with ActorLogging {
   
   import KubernetesProxyActor._
   
-  def receive = LoggingReceive {
-    case DeleteService(name,resultHandler) => invoke(k8s delete[Service] name) pipeTo resultHandler
-    case DeleteReplicationController(name, resultHandler) => invoke(k8s delete[ReplicationController] name) pipeTo resultHandler
-    case CreateService(serviceSpec, resultHandler) =>  invoke(k8s create[Service] serviceSpec) pipeTo resultHandler
-    case CreateReplicationController(rcSpec, resultHandler) => invoke(k8s create[ReplicationController] rcSpec) pipeTo resultHandler
-    case GetReplicationController(name: String, resultHandler) => invoke(k8s get[ReplicationController] name) pipeTo resultHandler
-    case UpdateReplicationController(newSpec, resultHandler) => invoke(k8s update[ReplicationController] newSpec) pipeTo resultHandler
+  def receive: Receive = LoggingReceive {
+    case DeleteService(name,resultHandler) => invoke(k8s.delete[Service](name)).pipeTo(resultHandler)
+    case DeleteReplicationController(name, resultHandler) => invoke(k8s.delete[ReplicationController](name)).pipeTo(resultHandler)
+    case CreateService(serviceSpec, resultHandler) =>  invoke(k8s.create[Service](serviceSpec)).pipeTo(resultHandler)
+    case CreateReplicationController(rcSpec, resultHandler) => invoke(k8s.create[ReplicationController](rcSpec)).pipeTo(resultHandler)
+    case GetReplicationController(name: String, resultHandler) => invoke(k8s.get[ReplicationController](name)).pipeTo(resultHandler)
+    case UpdateReplicationController(newSpec, resultHandler) => invoke(k8s.update[ReplicationController](newSpec)).pipeTo(resultHandler)
     
     case WatchReplicationController(rc: ReplicationController, watcher: ActorRef) => { 
       val currentlyWatching = rcWatching.get(rc.name)
@@ -98,7 +96,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
           // create a new watch on Kubernetes, and initialize the set of watchers on it
           
           log.debug("creating a watch on Kubernetes for controller + '" + rc.name + "', watcher is " + watcher.path )
-          val watchFut = k8s watch rc
+          val watchFut = k8s.watch(rc)
           val watching = Set(watcher)
           rcWatching += rc.name -> Watching(watchFut, watching)
           
@@ -128,7 +126,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
       system.terminate().foreach { f =>
         System.exit(0)
       }
-      sender ! Closed
+      sender() ! Closed
     }
   }  
 }

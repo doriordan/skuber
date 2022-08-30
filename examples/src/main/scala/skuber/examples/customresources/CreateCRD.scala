@@ -1,12 +1,11 @@
 package skuber.examples.customresources
 
-import skuber.{k8sInit,K8SException}
+import skuber.{K8SException, k8sInit}
 import skuber.ResourceSpecification.Scope
 import skuber.apiextensions.CustomResourceDefinition
-
 import akka.actor.ActorSystem
-
-import scala.util.{Success, Failure}
+import scala.concurrent.ExecutionContextExecutor
+import scala.util.{Failure, Success}
 
 /**
   * @author David O'Riordan
@@ -28,8 +27,8 @@ object CreateCRD extends App {
     kind = "ServiceSupport",
     shortNames = "sup" :: Nil)
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
   val k8s = k8sInit
 
@@ -62,7 +61,7 @@ object CreateCRD extends App {
       }
       case alreadyExists: K8SException if alreadyExists.status.code.contains(409) =>
         // update needs to use the rcurrent resource version of existing resource in order to be accepted by k8s
-        k8s get[CustomResourceDefinition] (crd.name) flatMap { existing =>
+        k8s.get[CustomResourceDefinition] (crd.name) flatMap { existing =>
           val currentVersion = existing.metadata.resourceVersion
           val newMeta = crd.metadata.copy(resourceVersion = currentVersion)
           val updatedObj = crd.copy(metadata = newMeta)

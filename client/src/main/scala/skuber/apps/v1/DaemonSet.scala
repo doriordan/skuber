@@ -96,7 +96,7 @@ object DaemonSet {
   implicit val condFmt: Format[Condition] = Json.format[Condition]
   implicit val rollingUpdFmt: Format[RollingUpdate] = ((JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)).inmap(mu => RollingUpdate(mu), (ru: RollingUpdate) => ru.maxUnavailable))
 
-  implicit val updateStrategyFmt: Format[UpdateStrategy] = (new EnumFormatter(JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and
+  implicit val updateStrategyFmt: Format[UpdateStrategy] = (new EnumFormatter(JsPath \ "type").formatEnum(UpdateStrategyType, UpdateStrategyType.RollingUpdate.toString) and
     (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]) (UpdateStrategy.apply, UpdateStrategy.unapply)
 
   implicit val daemonsetStatusFmt: Format[Status] = Json.format[Status]
