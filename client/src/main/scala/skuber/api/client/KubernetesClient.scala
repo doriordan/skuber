@@ -247,7 +247,7 @@ trait KubernetesClient {
     */
   def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
-  @deprecated("Use watchContinuously(obj, None)", "2.7.6")
+  @deprecated("Use watchContinuously(obj, namespace = None)", "2.7.6")
   def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**

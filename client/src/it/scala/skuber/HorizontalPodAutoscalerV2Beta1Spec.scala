@@ -2,7 +2,8 @@ package skuber
 
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.apps.v1.Deployment
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler.ResourceMetricSource

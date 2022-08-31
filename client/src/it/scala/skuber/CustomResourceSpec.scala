@@ -6,7 +6,7 @@ import akka.stream.scaladsl._
 import org.scalactic.source.Position
 import skuber.apiextensions.CustomResourceDefinition
 import skuber.apiextensions.CustomResourceDefinition._
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, Futures, ScalaFutures}
 import play.api.libs.json._
 import skuber.ResourceSpecification.{ScaleSubresource, Subresources}
@@ -15,7 +15,7 @@ import scala.language.postfixOps
 import org.scalatest.Tag
 import skuber.FutureUtil.FutureOps
 import skuber.Namespace.namespaceDef
-import org.scalactic.source.Position.here
+import org.scalatest.matchers.should.Matchers
 /**
  * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
  * here. (A TestResource consists of a desired replica count (spec) and corresponding actual replicas count (status))
@@ -97,7 +97,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     // This needs to be passed implicitly to the skuber API to enable it to process TestResource requests.
     // The json paths in the Scale subresource must map to the replica fields in Spec and Status
     // respectively above
-    implicit val testResourceDefinition: ResourceDefinition[TestResource] = ResourceDefinition[TestResource](group = "test.skuber.io",
+    implicit val testResourceDefinition: ResourceDefinition[CustomResource[TestResource.Spec, TestResource.Status]] = ResourceDefinition[TestResource](group = "test.skuber.io",
       version = "v1alpha1",
       kind = "SkuberTest",
       shortNames = List("test", "tests"), // not needed but handy if debugging the tests
@@ -115,10 +115,10 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     val crd: CustomResourceDefinition = CustomResourceDefinition[TestResource](testResourceDefinition)
 
     // Convenience method for constructing custom resources of the required type from a name snd a spec
-    def apply(name: String, spec: Spec): CustomResource[TestResource.Spec, TestResource.Status] = CustomResource[Spec, Status](spec).withName(name)
+    def apply(name: String, spec: Spec): CustomResource[TestResource.Spec, TestResource.Status] = CustomResource[TestResource.Spec, TestResource.Status](spec)(testResourceDefinition).withName(name)
   }
 
-  behavior.of("CustomResource")(this.pos)
+  behavior.of("CustomResource")
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 

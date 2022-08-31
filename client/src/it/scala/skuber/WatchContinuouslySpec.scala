@@ -3,7 +3,8 @@ package skuber
 import java.util.UUID.randomUUID
 import akka.stream.KillSwitches
 import akka.stream.scaladsl.{Keep, Sink}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Seconds, Span}
 import skuber.FutureUtil.FutureOps
@@ -162,7 +163,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     }
 
     k8s.get[Deployment](deployment4).valueT
-    val stream = k8s.watchContinuously[Deployment](deployment4, None)
+    val stream = k8s.watchContinuously[Deployment](name = deployment4, sinceResourceVersion = None, namespace = None)
       .viaMat(KillSwitches.single)(Keep.right)
       .filter(event => event._object.name == deployment4)
       .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)

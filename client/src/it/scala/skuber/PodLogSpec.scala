@@ -3,7 +3,8 @@ package skuber
 import java.util.UUID.randomUUID
 import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
 import skuber.Pod.LogQueryParams
 import skuber.json.format._

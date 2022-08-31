@@ -4,7 +4,8 @@ import java.util.UUID.randomUUID
 import akka.Done
 import akka.stream.scaladsl.{Sink, Source}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
 import skuber.json.format._
 import scala.concurrent.duration.{Duration, _}

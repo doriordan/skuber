@@ -19,7 +19,7 @@ val akkaVersion = "2.6.19"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.16.1"
-val scalaTest = ("org.scalatest" %% "scalatest" % "3.0.9").cross(CrossVersion.for3Use2_13)
+val scalaTest = ("org.scalatest" %% "scalatest" % "3.2.9")
 
 val mockito = "org.mockito" % "mockito-core" % "4.6.1"
 
@@ -171,7 +171,6 @@ root / publishArtifact := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings,
-    //    scalacOptions += "-Xignore-scala2-macros",
     crossScalaVersions := Nil)
   .aggregate(skuber, examples)
 
@@ -180,7 +179,6 @@ lazy val skuber = (project in file("client"))
   .settings(
     commonSettings,
     crossScalaVersions := supportedScalaVersion,
-//    scalacOptions += "-Xignore-scala2-macros",
     skuberSettings,
     Defaults.itSettings,
     libraryDependencies ++= Seq(scalaTest % "it", playJson)

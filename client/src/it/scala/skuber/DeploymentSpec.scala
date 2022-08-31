@@ -1,9 +1,11 @@
 package skuber
 
 import java.util.UUID.randomUUID
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
+import skuber.api.client.KubernetesClient
 import skuber.apps.v1.Deployment.deployDef
 import skuber.apps.v1.{Deployment, DeploymentList}
 import scala.concurrent.Future

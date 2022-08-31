@@ -1,6 +1,7 @@
 package skuber
 
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.json.format._
 import scala.concurrent.duration._
