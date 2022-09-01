@@ -2,12 +2,13 @@ package skuber
 
 import org.specs2.mutable.Specification
 import LabelSelector.dsl._
+import org.specs2.control.NoLanguageFeatures
 import scala.language.{postfixOps, reflectiveCalls}
 
 /**
   * @author David O'Riordan
   */
-class LabelSelectorSpec extends Specification {
+class LabelSelectorSpec extends Specification with NoLanguageFeatures {
   "A label selector can be constructed" >> {
     "from a label existence requirement" >> {
       val sel = LabelSelector("production")
