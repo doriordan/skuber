@@ -1,13 +1,11 @@
 package skuber.examples.ingress
 
-import java.io.Serializable
 import java.net.HttpURLConnection
 import akka.actor.ActorSystem
 import skuber._
 import skuber.ext.ReplicaSet
 import skuber.networking.Ingress
 import scala.annotation.tailrec
-import scala.collection.BuildFrom
 
 //  the extensions group kinds used in this example
 
