@@ -2,9 +2,11 @@ package skuber.apps
 
 import org.specs2.mutable.Specification
 import play.api.libs.json.Json
+import skuber.LabelSelector.{IsEqualRequirement, NotExistsRequirement, NotInRequirement}
 import skuber.LabelSelector.dsl._
 import skuber._
 import skuber.json.apps.format._
+import scala.language.reflectiveCalls
 
 /**
  * @author David O'Riordan
@@ -28,9 +30,12 @@ class DeploymentSpec extends Specification {
   "A Deployment object can be written to Json and then read back again successfully" >> {
       val container=Container(name="example",image="example")
       val template=Pod.Template.Spec.named("example").addContainer(container)
+
+      val labelSelector = LabelSelector(NotExistsRequirement("live"), IsEqualRequirement("tier", "cache"),NotInRequirement("env", List("dev", "test")) )
+
       val deployment=Deployment("example")
         .withTemplate(template)
-          .withLabelSelector(LabelSelector("live" doesNotExist, "microservice", "tier" is "cache", "env" isNotIn List("dev", "test")))
+        .withLabelSelector(labelSelector)
 
 
       val readDepl = Json.fromJson[Deployment](Json.toJson(deployment)).get

@@ -3,6 +3,7 @@ package skuber.policy.v1beta1
 import org.specs2.mutable.Specification
 import play.api.libs.json.{JsSuccess, Json}
 import skuber.LabelSelector.dsl._
+import scala.language.reflectiveCalls
 
 class PodDisruptionBudgetSpec extends Specification {
   import PodDisruptionBudget._

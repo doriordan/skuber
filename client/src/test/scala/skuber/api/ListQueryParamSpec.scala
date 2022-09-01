@@ -2,6 +2,7 @@ package skuber.api
 
 import org.specs2.mutable.Specification
 import skuber._
+import scala.language.reflectiveCalls
 
 /**
   * NOTE: This was MockWS based, but not any more due to:

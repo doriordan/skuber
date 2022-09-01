@@ -21,8 +21,6 @@ val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 val specs2 = "org.specs2" %% "specs2-core" % "4.16.1"
 val scalaTest = ("org.scalatest" %% "scalatest" % "3.2.9")
 
-val mockito = "org.mockito" % "mockito-core" % "4.6.1"
-
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 
@@ -152,7 +150,7 @@ lazy val skuberSettings = Seq(
   libraryDependencies ++= Seq(
     akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
     awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging, jacksonDatabind,
-    scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
+    scalaCheck % Test, specs2 % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
 )

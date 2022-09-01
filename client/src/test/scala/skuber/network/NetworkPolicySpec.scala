@@ -5,6 +5,7 @@ import play.api.libs.json.Json
 import skuber.LabelSelector.dsl._
 import skuber._
 import NetworkPolicy._
+import scala.language.reflectiveCalls
 
 /**
  * @author David O'Riordan

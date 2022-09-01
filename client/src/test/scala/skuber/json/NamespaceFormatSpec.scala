@@ -104,7 +104,7 @@ class NamespaceFormatSpec extends Specification {
             labels("three") mustEqual "four"
             val annots=ns.metadata.annotations
             annots("abc") mustEqual "def"
-            val res2 = Json.fromJson[Namespace](Json.toJson(ns))
+            val res2 = Json.fromJson[Namespace](Json.toJson(ns)(namespaceFormat))(namespaceFormat)
             res2 match {
               case JsSuccess(ns2, path) => ns2.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
               case JsError(e) => Failure(e.toString)
