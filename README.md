@@ -69,7 +69,7 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 You can use the latest release (for 2.12 or 2.13) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.6"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.0"
 ```
 
 ## Building
