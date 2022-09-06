@@ -7,8 +7,8 @@ val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
 val scala3Version = "3.1.3"
 
-//val currentScalaVersion = scala13Version
-val currentScalaVersion = scala3Version
+val currentScalaVersion = scala13Version
+
 ThisBuild / scalaVersion := currentScalaVersion
 
 val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
