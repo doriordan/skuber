@@ -3,8 +3,10 @@ package skuber
 import java.util.UUID.randomUUID
 import akka.stream._
 import akka.stream.scaladsl._
+import org.scalactic.source.Position
 import skuber.apiextensions.CustomResourceDefinition
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import skuber.apiextensions.CustomResourceDefinition._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, Futures, ScalaFutures}
 import play.api.libs.json._
 import skuber.ResourceSpecification.{ScaleSubresource, Subresources}
@@ -12,9 +14,8 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import org.scalatest.Tag
 import skuber.FutureUtil.FutureOps
-import skuber.json.format.namespaceFormat
 import skuber.Namespace.namespaceDef
-import skuber.apps.v1.Deployment
+import org.scalatest.matchers.should.Matchers
 /**
  * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
  * here. (A TestResource consists of a desired replica count (spec) and corresponding actual replicas count (status))
@@ -61,7 +62,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     val results = k8s.delete[CustomResourceDefinition](TestResource.crd.name).withTimeout().recover { case _ => () }
     val results2 = k8s.delete[Namespace](namespace1).withTimeout().recover { case _ => () }
 
-    results.futureValue
+    results.futureValue(patienceConfig, Position.here)
 
     results.onComplete { _ =>
       results2.onComplete { _ =>
@@ -96,31 +97,28 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     // This needs to be passed implicitly to the skuber API to enable it to process TestResource requests.
     // The json paths in the Scale subresource must map to the replica fields in Spec and Status
     // respectively above
-    implicit val testResourceDefinition = ResourceDefinition[TestResource](
-      group = "test.skuber.io",
+    implicit val testResourceDefinition: ResourceDefinition[CustomResource[TestResource.Spec, TestResource.Status]] = ResourceDefinition[TestResource](group = "test.skuber.io",
       version = "v1alpha1",
       kind = "SkuberTest",
       shortNames = List("test", "tests"), // not needed but handy if debugging the tests
       subresources = Some(Subresources()
-        .withStatusSubresource // enable status subresource
-        .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource
-      )
-    )
+        .withStatusSubresource() // enable status subresource
+        .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas"))))
 
     // the following implicit values enable the scale and status methods on the skuber API to be called for this type
     // (these calls will be rejected unless the subresources are enabled on the CRD)
-    implicit val scaleSubEnabled = CustomResource.scalingMethodsEnabler[TestResource]
-    implicit val statusSubEnabled = CustomResource.statusMethodsEnabler[TestResource]
+    implicit val scaleSubEnabled: Scale.SubresourceSpec[TestResource] = CustomResource.scalingMethodsEnabler[TestResource]
+    implicit val statusSubEnabled: HasStatusSubresource[TestResource] = CustomResource.statusMethodsEnabler[TestResource]
 
     // Construct an exportable Kubernetes CRD that mirrors the details in the matching implicit resource definition above -
     // the test will create it on Kubernetes so that the subsequent test requests can be handled by the cluster
-    val crd = CustomResourceDefinition[TestResource]
+    val crd: CustomResourceDefinition = CustomResourceDefinition[TestResource](testResourceDefinition)
 
     // Convenience method for constructing custom resources of the required type from a name snd a spec
-    def apply(name: String, spec: Spec) = CustomResource[Spec, Status](spec).withName(name)
+    def apply(name: String, spec: Spec): CustomResource[TestResource.Spec, TestResource.Status] = CustomResource[TestResource.Spec, TestResource.Status](spec)(testResourceDefinition).withName(name)
   }
 
-  behavior of "CustomResource"
+  behavior.of("CustomResource")
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
@@ -186,9 +184,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
     createNamedTestResource(k8s = k8s, name = testResourceName1, replicas = 1)
     k8s.delete[TestResource](testResourceName1).valueT
 
-    whenReady(
-      k8s.get[TestResource](testResourceName1).withTimeout().failed
-    ) { result =>
+    whenReady(k8s.get[TestResource](testResourceName1).withTimeout().failed) { result =>
       result shouldBe a[K8SException]
       result match {
         case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -239,7 +235,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers with F
 
     def createTestResource = k8s.create(testResource).valueT
 
-    def deleteTestResource(resource: String) = k8s.delete[TestResource](resource).valueT
+    def deleteTestResource(resource: String): Unit = k8s.delete[TestResource](resource).valueT
 
     val killSwitch: UniqueKillSwitch = {
       val (kill, _) = watchAndTrackEvents(getCurrentResourceVersion)

@@ -21,36 +21,39 @@ package object skuber {
 
   abstract class TypeMeta {
     def apiVersion: String
+
     def kind: String
+
     def resourceVersion: String
   }
 
   type Timestamp = java.time.ZonedDateTime
 
-  case class OwnerReference(apiVersion:String, kind:String, name: String, uid: String, controller: Option[Boolean], blockOwnerDeletion: Option[Boolean])
+  case class OwnerReference(apiVersion: String, kind: String, name: String, uid: String, controller: Option[Boolean], blockOwnerDeletion: Option[Boolean])
 
-  case class ObjectMeta(
-    name: String = emptyS,
-    generateName: String = emptyS,
-    namespace: String = emptyS,
-    uid: String = emptyS,
-    selfLink: String = emptyS,
-    resourceVersion: String = emptyS,
-    creationTimestamp: Option[Timestamp] = None,
-    deletionTimestamp: Option[Timestamp] = None,
-    deletionGracePeriodSeconds: Option[Int] = None,
-    labels: Map[String, String] = Map(),
-    annotations: Map[String, String] = Map(),
-    ownerReferences: List[OwnerReference] = Nil,
-    generation: Int = 0,
-    finalizers: Option[List[String]] = None,
-    clusterName: Option[String] = None)
+  case class ObjectMeta(name: String = emptyS,
+                         generateName: String = emptyS,
+                         namespace: String = emptyS,
+                         uid: String = emptyS,
+                         selfLink: String = emptyS,
+                         resourceVersion: String = emptyS,
+                         creationTimestamp: Option[Timestamp] = None,
+                         deletionTimestamp: Option[Timestamp] = None,
+                         deletionGracePeriodSeconds: Option[Int] = None,
+                         labels: Map[String, String] = Map(),
+                         annotations: Map[String, String] = Map(),
+                         ownerReferences: List[OwnerReference] = Nil,
+                         generation: Int = 0,
+                         finalizers: Option[List[String]] = None,
+                         clusterName: Option[String] = None)
 
   abstract class ObjectResource extends TypeMeta {
     val metadata: ObjectMeta
 
     def name = metadata.name
-    def resourceVersion=metadata.resourceVersion
+
+    def resourceVersion = metadata.resourceVersion
+
     def ns = if (metadata.namespace == emptyS) "default" else metadata.namespace
   }
 
@@ -61,14 +64,12 @@ package object skuber {
     def updateMetadata(obj: O, newMetadata: ObjectMeta): O
   }
 
-  case class ListMeta(
-    selfLink: String = "",
-    resourceVersion: String = "",
-    continue: Option[String] = None)
+  case class ListMeta(selfLink: String = "",
+                      resourceVersion: String = "",
+                      continue: Option[String] = None)
 
-  case class APIVersions(
-    kind: String,
-    versions: List[String])
+  case class APIVersions(kind: String,
+                         versions: List[String])
 
   // type for classes that can be items of some Kubernetes list type 
   // e.g. a Pod can be an item in a PodList, Node can be in a NodeList etc.
@@ -78,17 +79,17 @@ package object skuber {
   // base trait for all list kinds
   sealed abstract class KList[K <: KListItem] extends TypeMeta {
     def metadata: Option[ListMeta]
+
     def items: List[K]
   }
 
-  case class ListResource[K <: KListItem](
-    override val apiVersion: String,
-    override val kind: String,
-    override val metadata: Option[ListMeta],
-    override val items: List[K]) extends KList[K]
-  {
-    def resourceVersion=metadata.map(_.resourceVersion).getOrElse("")
-    def itemNames: String = items.map { k => k.name } mkString(",")
+  case class ListResource[K <: KListItem](override val apiVersion: String,
+                                           override val kind: String,
+                                           override val metadata: Option[ListMeta],
+                                           override val items: List[K]) extends KList[K] {
+    def resourceVersion = metadata.map(_.resourceVersion).getOrElse("")
+
+    def itemNames: String = items.map { k => k.name } mkString (",")
   }
 
   implicit def toList[I <: KListItem](resource: KList[I]): List[I] = resource.items
@@ -113,107 +114,112 @@ package object skuber {
   type SecretList = ListResource[Secret]
 
   def listResourceFromItems[K <: KListItem](items: List[K])(implicit rd: ResourceDefinition[K]) =
-    new ListResource[K](
-      apiVersion = rd.spec.group.map(_ + "/" + rd.spec.defaultVersion).getOrElse(v1),
+    new ListResource[K](apiVersion = rd.spec.group.map(_ + "/" + rd.spec.defaultVersion).getOrElse(v1),
       kind = rd.spec.names.kind + "List",
       metadata = None,
-      items = items
-    )
+      items = items)
 
   // a few functions for backwards compatibility (some the tests use them)
   def PodList(items: List[Pod]) = listResourceFromItems(items)
+
   def ServiceList(items: List[Service]) = listResourceFromItems(items)
+
   def ReplicationControllerList(items: List[ReplicationController]) = listResourceFromItems(items)
 
 
-  type Finalizer=String
-  type Phase=String
-  
+  type Finalizer = String
+  type Phase = String
+
   trait Limitable // marker trait for types that can be subject to resource limits (i.e. Container, Pod)
-  
-  implicit def strToQuantity(value: String) : Resource.Quantity = Resource.Quantity(value)
-  implicit def dblToQuantity(value: Double) : Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
-  implicit def fltToQuantity(value: Float) : Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
-  implicit def intToQuantity(value: Int) : Resource.Quantity = Resource.Quantity((value * 1000) + "m")
+
+  implicit def strToQuantity(value: String): Resource.Quantity = Resource.Quantity(value)
+
+  implicit def dblToQuantity(value: Double): Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
+
+  implicit def fltToQuantity(value: Float): Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
+
+  implicit def intToQuantity(value: Int): Resource.Quantity = Resource.Quantity((value * 1000) + "m")
 
   case class LocalObjectReference(name: String)
-  
-  case class ObjectReference(
-      kind: String = "",
-      apiVersion: String = "",
-      namespace: String = "",
-      name: String = "",
-      uid: String = "",
-      resourceVersion: String = "",
-      fieldPath: String = "") {
-    def \(addPath: String) = this.copy(fieldPath=fieldPath + "/" + addPath)
+
+  case class ObjectReference(kind: String = "",
+                              apiVersion: String = "",
+                              namespace: String = "",
+                              name: String = "",
+                              uid: String = "",
+                              resourceVersion: String = "",
+                              fieldPath: String = "") {
+    def \(addPath: String) = this.copy(fieldPath = fieldPath + "/" + addPath)
   }
-      
-  implicit def objResourceToRef(obj: ObjectResource) = 
-        ObjectReference(kind=obj.kind,
-                        apiVersion=obj.apiVersion,
-                        namespace=obj.ns,
-                        name=obj.name,
-                        uid = obj.metadata.uid,
-                        resourceVersion = obj.metadata.resourceVersion)
-      
-  type IntOrString = Either[Int, String]                      
+
+  implicit def objResourceToRef(obj: ObjectResource): ObjectReference =
+    ObjectReference(kind = obj.kind,
+      apiVersion = obj.apiVersion,
+      namespace = obj.ns,
+      name = obj.name,
+      uid = obj.metadata.uid,
+      resourceVersion = obj.metadata.resourceVersion)
+
+  type IntOrString = Either[Int, String]
   type NameablePort = IntOrString // is either an integer or an IANA name       
 
-  implicit def portNumToNameablePort(p:Int): NameablePort = Left(p)
+  implicit def portNumToNameablePort(p: Int): NameablePort = Left(p)
+
   implicit def ianaNameToNameablePort(n: String): NameablePort = Right(n)
-    
+
   sealed trait Handler // handlers are used by probes to get health check status from containers 
-  
-   // execute a command inside a container to check its health
-  case class ExecAction(command: List[String]) extends Handler 
-  
+
+  // execute a command inside a container to check its health
+  case class ExecAction(command: List[String]) extends Handler
+
   // get health check status from a HTTP endpoint, returns non-OK HTTP status if health check fails
-  case class HTTPGetAction(
-      port: NameablePort, 
-      host: String = "", 
-      path: String = "", 
-      schema: String = "HTTP") extends Handler {
+  case class HTTPGetAction(port: NameablePort,
+                            host: String = "",
+                            path: String = "",
+                            schema: String = "HTTP") extends Handler {
     def url = {
       this.port match {
         case Left(p) => new URL(schema, host, p, path)
-        case Right(p) => throw new Exception("Don't know how to create URL with a named port")   
+        case Right(p) => throw new Exception("Don't know how to create URL with a named port")
       }
     }
   }
-  
+
   object HTTPGetAction {
-    def apply(i:Int) = new HTTPGetAction(Left(i))
+    def apply(i: Int) = new HTTPGetAction(Left(i))
+
     def apply(url: URL) = new HTTPGetAction(Left(url.getPort), url.getHost, url.getPath, url.getProtocol)
   }
-  
+
   // TCP endpoint - health check succeeds if can connect to it
   case class TCPSocketAction(port: NameablePort) extends Handler
-  
-  case class Probe(
-    action: Handler,
-    initialDelaySeconds: Int = 0,
-    timeoutSeconds: Int = 0,
-    periodSeconds: Option[Int] = None,
-    successThreshold: Option[Int] = None,
-    failureThreshold: Option[Int] = None)
 
-  case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None) 
-  
+  case class Probe(action: Handler,
+                    initialDelaySeconds: Int = 0,
+                    timeoutSeconds: Int = 0,
+                    periodSeconds: Option[Int] = None,
+                    successThreshold: Option[Int] = None,
+                    failureThreshold: Option[Int] = None)
+
+  case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None)
+
   case class WatchedEvent(eventType: WatchedEventType.Value, eventObject: ObjectResource)
+
   object WatchedEventType extends Enumeration {
     type WatchedEventType = Value
-    val ADDED,MODIFIED,DELETED,ERROR = Value
+    val ADDED, MODIFIED, DELETED, ERROR = Value
   }
+
   object DNSPolicy extends Enumeration {
-     type DNSPolicy = Value
-     val Default,ClusterFirst,ClusterFirstWithHostNet,None = Value
+    type DNSPolicy = Value
+    val Default, ClusterFirst, ClusterFirstWithHostNet, None = Value
   }
-   object RestartPolicy extends Enumeration {
-     type RestartPolicy = Value
-     val Always,OnFailure,Never = Value
+
+  object RestartPolicy extends Enumeration {
+    type RestartPolicy = Value
+    val Always, OnFailure, Never = Value
   }
-  
+
   object Protocol extends Enumeration {
     type Protocol = Value
     val TCP, UDP = Value
@@ -224,25 +230,25 @@ package object skuber {
     type DeletePropagation = Value
     val Orphan, Background, Foreground = Value
   }
-  case class Preconditions(uid: String="")
-  case class DeleteOptions(
-    apiVersion: String = "v1",
-    kind: String = "DeleteOptions",
-    gracePeriodSeconds: Option[Int] = None,
-    preconditions: Option[Preconditions] = None,
-    propagationPolicy: Option[DeletePropagation.Value] = None)
+
+  case class Preconditions(uid: String = "")
+
+  case class DeleteOptions(apiVersion: String = "v1",
+                            kind: String = "DeleteOptions",
+                            gracePeriodSeconds: Option[Int] = None,
+                            preconditions: Option[Preconditions] = None,
+                            propagationPolicy: Option[DeletePropagation.Value] = None)
 
   // List options can be passed to a list or watch request.
-  case class ListOptions(
-    labelSelector: Option[LabelSelector] = None,
-    fieldSelector: Option[String] = None,
-    includeUninitialized: Option[Boolean] = None,
-    resourceVersion: Option[String] = None,
-    timeoutSeconds: Option[Long] = None,
-    limit: Option[Long] = None,
-    continue: Option[String] = None,
-    watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
-  ) {
+  case class ListOptions(labelSelector: Option[LabelSelector] = None,
+                          fieldSelector: Option[String] = None,
+                          includeUninitialized: Option[Boolean] = None,
+                          resourceVersion: Option[String] = None,
+                          timeoutSeconds: Option[Long] = None,
+                          limit: Option[Long] = None,
+                          continue: Option[String] = None,
+                          watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
+                        ) {
     lazy val asOptionalsMap: Map[String, Option[String]] = Map(
       "labelSelector" -> labelSelector.map(_.toString),
       "fieldSelector" -> fieldSelector,
@@ -282,32 +288,31 @@ package object skuber {
   import com.typesafe.config.Config
 
   /**
-    * Initialise Skuber using default Kubernetes and application configuration.
-    */
+   * Initialise Skuber using default Kubernetes and application configuration.
+   */
   def k8sInit(implicit actorSystem: ActorSystem): KubernetesClient = {
-    skuber.api.client.init
+    skuber.api.client.init()
   }
 
   /**
-    * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
-    */
+   * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
+   */
   def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem): KubernetesClient = {
     skuber.api.client.init(config)
   }
 
   /**
-    * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
-    */
+   * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
+   */
   def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem): KubernetesClient = {
     skuber.api.client.init(appConfig)
   }
 
   /**
-    * Initialise Skuber using the specified Kubernetes and application configuration.
-    */
+   * Initialise Skuber using the specified Kubernetes and application configuration.
+   */
   def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem)
-      : KubernetesClient =
-  {
+  : KubernetesClient = {
     skuber.api.client.init(config, appConfig)
   }
 }

@@ -7,8 +7,7 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import skuber.api.client
-
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.duration._
 
 /**
@@ -19,18 +18,16 @@ import scala.concurrent.duration._
 object PodLogExample extends App {
 
   def printLogFlow(cntrName: String): Sink[ByteString, NotUsed] = Flow[ByteString]
-      .via(Framing.delimiter(
-        ByteString("\n"),
+      .via(Framing.delimiter(ByteString("\n"),
         maximumFrameLength = 256,
         allowTruncation = true))
       .map(_.utf8String)
       .to(Sink.foreach(text => println(s"[${cntrName} logs] $text")))
 
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
-  val k8s = client.init(
-    client.defaultK8sConfig.currentContext,
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
+  val k8s = client.init(client.defaultK8sConfig.currentContext,
     client.LoggingConfig(logRequestBasic = false, logResponseBasic = false) )
 
   val helloWorldContainer=Container(name="hello-world", image="busybox", command=List("sh", "-c", "echo Hello World! && echo Goodbye World && sleep 60"))
@@ -53,6 +50,6 @@ object PodLogExample extends App {
   Thread.sleep(5000)
   Await.result(k8s.delete[Pod]("hello-world"), 5.seconds)
   k8s.close
-  system.terminate
+  system.terminate()
   System.exit(0)
 }

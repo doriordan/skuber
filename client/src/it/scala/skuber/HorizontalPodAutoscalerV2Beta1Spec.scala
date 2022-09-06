@@ -2,7 +2,8 @@ package skuber
 
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.apps.v1.Deployment
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler.ResourceMetricSource
@@ -56,35 +57,25 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
 
     println(horizontalPodAutoscaler1)
     k8s.create(getNginxDeployment(deployment1, "1.7.9")).valueT
-    val result = k8s.create(
-      HorizontalPodAutoscaler(horizontalPodAutoscaler1).withSpec(
-        HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
+    val result = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler1).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(2)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
-      )
-    ).valueT
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))).valueT
 
     assert(result.name == horizontalPodAutoscaler1)
-    assert(result.spec.contains(
-      HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
+    assert(result.spec.contains(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
         .withMinReplicas(1)
         .withMaxReplicas(2)
-        .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))
-    )
+        .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))))
   }
 
   it should "update a HorizontalPodAutoscaler" in { k8s =>
 
     k8s.create(getNginxDeployment(deployment2, "1.7.9")).valueT
-    val created = k8s.create(
-      HorizontalPodAutoscaler(horizontalPodAutoscaler2).withSpec(
-        HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
+    val created = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler2).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(2)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
-      )
-    ).valueT
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))).valueT
 
     Thread.sleep(5000)
 
@@ -100,12 +91,10 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
       val result = k8s.get[HorizontalPodAutoscaler](created.name).valueT
 
       assert(result.name == horizontalPodAutoscaler2)
-      assert(result.spec.contains(
-        HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
+      assert(result.spec.contains(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(3)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
-      ))
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))))
     }
 
   }
@@ -113,23 +102,17 @@ class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with
   it should "delete a HorizontalPodAutoscaler" in { k8s =>
 
     k8s.create(getNginxDeployment(deployment3, "1.7.9")).valueT
-    val created = k8s.create(
-      HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(
-        HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
+    val created = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(2)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
-      )
-    ).valueT
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))).valueT
 
     Thread.sleep(5000)
 
     k8s.delete[HorizontalPodAutoscaler](created.name).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[HorizontalPodAutoscaler](created.name).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[HorizontalPodAutoscaler](created.name).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)

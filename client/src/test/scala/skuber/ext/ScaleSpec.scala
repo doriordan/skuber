@@ -19,12 +19,10 @@ class ScaleSpec extends Specification {
   
   "A scale object can be written to Json and then read back again successfully" >> {
 
-      val scale= Scale(
-        apiVersion="autoscaling/v1",
+      val scale= Scale(apiVersion="autoscaling/v1",
         metadata=ObjectMeta(name="example", namespace="na"),
         spec=Scale.Spec(replicas=Some(10)),
-        status = Some(Scale.Status(replicas = 10, selector = Some("env=prod,app=app1")))
-      )
+        status = Some(Scale.Status(replicas = 10, selector = Some("env=prod,app=app1"))))
       
       val readScale = Json.fromJson[Scale](Json.toJson(scale)).get
       readScale mustEqual scale

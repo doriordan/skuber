@@ -7,8 +7,7 @@ import skuber.annotation.MatchExpression
   *
   */
 
-case class PersistentVolumeClaim(
-    val kind: String = "PersistentVolumeClaim",
+case class PersistentVolumeClaim(val kind: String = "PersistentVolumeClaim",
     override val apiVersion: String = v1,
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[PersistentVolumeClaim.Spec] = None,
@@ -28,32 +27,24 @@ object PersistentVolumeClaim {
     val Filesystem, BlockVolume = Value
   }
 
-  val specification = CoreResourceSpecification(
-    scope = ResourceSpecification.Scope.Namespaced,
-    names = ResourceSpecification.Names(
-      plural = "persistentvolumeclaims",
+  val specification = CoreResourceSpecification(scope = ResourceSpecification.Scope.Namespaced,
+    names = ResourceSpecification.Names(plural = "persistentvolumeclaims",
       singular = "persistentvolumeclaim",
       kind = "PersistentVolumeClaim",
-      shortNames = List("pvc")
-    )
-  )
-  implicit val pvcDef = new ResourceDefinition[PersistentVolumeClaim] { val spec = specification }
-  implicit val pvcListDef = new ResourceDefinition[PersistentVolumeClaimList] { val spec = specification }
+      shortNames = List("pvc")))
+  implicit val pvcDef: ResourceDefinition[PersistentVolumeClaim] = new ResourceDefinition[PersistentVolumeClaim] { val spec = specification }
+  implicit val pvcListDef: ResourceDefinition[PersistentVolumeClaimList] = new ResourceDefinition[PersistentVolumeClaimList] { val spec = specification }
 
   import PersistentVolume.AccessMode
-  case class Spec(
-    accessModes: List[AccessMode.AccessMode] = Nil,
+  case class Spec(accessModes: List[AccessMode.AccessMode] = Nil,
     resources: Option[Resource.Requirements] = None,
     volumeName: Option[String] = None,
     storageClassName: Option[String] = None,
     volumeMode: Option[VolumeMode.VolumeMode] = None,
-    selector: Option[Selector] = None
-  )
+    selector: Option[Selector] = None)
 
   import PersistentVolume.Phase
-  case class Status(
-    phase: Option[Phase.Phase] = None,
-    accessModes: List[AccessMode.AccessMode] = List()
-  )
+  case class Status(phase: Option[Phase.Phase] = None,
+    accessModes: List[AccessMode.AccessMode] = List())
 
 }

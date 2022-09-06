@@ -5,19 +5,23 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.6"
-val currentScalaVersion = scala13Version
-val supportedScalaVersion = Seq(scala12Version, scala13Version)
-ThisBuild / scalaVersion := scala13Version
+val scala3Version = "3.1.3"
+
+//val currentScalaVersion = scala13Version
+val currentScalaVersion = scala3Version
+ThisBuild / scalaVersion := currentScalaVersion
+
+val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
+
+
 val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.16.1"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
+val scalaTest = ("org.scalatest" %% "scalatest" % "3.2.9")
 
-val mockito = "org.mockito" % "mockito-core" % "4.6.1"
-
-val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
+val akkaStreamTestKit = ("com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion).cross(CrossVersion.for3Use2_13)
 
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "1.30"
@@ -28,24 +32,22 @@ val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk18on" % "1.71"
 
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
-val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
-val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
+val akkaHttp = ("com.typesafe.akka" %% "akka-http" % "10.2.9").cross(CrossVersion.for3Use2_13)
+val akkaStream = ("com.typesafe.akka" %% "akka-stream" % akkaVersion).cross(CrossVersion.for3Use2_13)
+val akka = ("com.typesafe.akka" %% "akka-actor" % akkaVersion).cross(CrossVersion.for3Use2_13)
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
-val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
+val akkaSlf4j = ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion).cross(CrossVersion.for3Use2_13)
 val logback = "ch.qos.logback" % "logback-classic" % "1.2.11" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
+val playJson = "com.typesafe.play" %% "play-json" % "2.10.0-RC6"
 val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.3"
 
 val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
 val awsJavaSdkSts = "com.amazonaws" % "aws-java-sdk-sts" % "1.12.233"
 val apacheCommonsLogging = "commons-logging" % "commons-logging" % "1.2"
 
-// Need Java 8 or later as the java.time package is used to represent K8S timestamps
-scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
@@ -148,14 +150,14 @@ lazy val skuberSettings = Seq(
   libraryDependencies ++= Seq(
     akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
     awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging, jacksonDatabind,
-    scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
+    scalaCheck % Test, specs2 % Test, akkaStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
   name := "skuber-examples",
-  libraryDependencies ++= Seq(akka, akkaSlf4j, logback)
+  libraryDependencies ++= Seq(akka, akkaSlf4j, logback, playJson)
 )
 
 // by default run the guestbook example when executing a fat examples JAR
@@ -177,7 +179,7 @@ lazy val skuber = (project in file("client"))
     crossScalaVersions := supportedScalaVersion,
     skuberSettings,
     Defaults.itSettings,
-    libraryDependencies += scalaTest % "it"
+    libraryDependencies ++= Seq(scalaTest % "it", playJson)
   )
 
 

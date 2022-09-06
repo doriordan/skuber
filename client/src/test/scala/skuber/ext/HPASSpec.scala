@@ -29,12 +29,8 @@ class HPASSpec extends Specification {
   }
 
   "A HPAS object properly writes with zero minReplicas" >> {
-    val hpas=HorizontalPodAutoscaler(
-      metadata = ObjectMeta("example"),
-      spec = HorizontalPodAutoscaler.Spec(
-        scaleTargetRef = CrossVersionObjectReference(name="example")
-      )
-    ).withMaxReplicas(0).withMinReplicas(0)
+    val hpas=HorizontalPodAutoscaler(metadata = ObjectMeta("example"),
+      spec = HorizontalPodAutoscaler.Spec(scaleTargetRef = CrossVersionObjectReference(name="example"))).withMaxReplicas(0).withMinReplicas(0)
 
     val writeHPAS = Json.toJson(hpas)
     (writeHPAS \ "spec" \ "minReplicas").asOpt[Int] must beSome(0)

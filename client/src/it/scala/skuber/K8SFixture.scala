@@ -2,14 +2,16 @@ package skuber
 
 import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{Outcome, fixture}
+import org.scalatest.Outcome
+import org.scalatest.flatspec.{AnyFlatSpec, FixtureAnyFlatSpec}
 import skuber.FutureUtil.FutureOps
+import skuber.LabelSelector.IsEqualRequirement
+import skuber.api.client.KubernetesClient
 import skuber.apps.v1.Deployment
 import skuber.json.format.namespaceFormat
 import scala.concurrent.ExecutionContextExecutor
 
-trait K8SFixture extends fixture.FlatSpec {
+trait K8SFixture extends FixtureAnyFlatSpec {
 
   override type FixtureParam = K8SRequestContext
 
@@ -19,7 +21,7 @@ trait K8SFixture extends fixture.FlatSpec {
   val config: Config = ConfigFactory.load()
 
   override def withFixture(test: OneArgTest): Outcome = {
-    val k8s = k8sInit(config)
+    val k8s: KubernetesClient = k8sInit(config)
     try {
       test(k8s)
     } finally {
@@ -36,7 +38,8 @@ trait K8SFixture extends fixture.FlatSpec {
     import LabelSelector.dsl._
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
+    val labelSelector = LabelSelector(IsEqualRequirement("app", "nginx"))
+    Deployment(name).withTemplate(nginxTemplate).withLabelSelector(labelSelector)
   }
 
 

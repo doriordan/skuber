@@ -14,10 +14,8 @@ class IngressSpec extends Specification {
 
   "An Ingress object can be written to Json and then read back again successfully" >> {
     val ingress=Ingress("example")
-          .addHttpRule("example.com", Map(
-            "/" -> "service:80",
-            "/about" -> "another-service:http"
-          ))
+          .addHttpRule("example.com", Map("/" -> "service:80",
+            "/about" -> "another-service:http"))
 
       val readIng = Json.fromJson[Ingress](Json.toJson(ingress)).get
       readIng mustEqual ingress
@@ -85,14 +83,10 @@ class IngressSpec extends Specification {
     ing.name mustEqual "example-ingress"
 
     ing.spec.get.rules.head.host must beSome("example.com")
-    ing.spec.get.rules.head.http.paths must_== List(
-      Ingress.Path(path = "", backend = Ingress.Backend("service", "http")),
-      Ingress.Path(path = "", backend = Ingress.Backend("ssh", 22))
-    )
-    ing.spec.get.tls must_== List(Ingress.TLS(
-      hosts = List("abc","def"),
-      secretName = None
-    ))
+    ing.spec.get.rules.head.http.paths must_== List(Ingress.Path(path = "", backend = Ingress.Backend("service", "http")),
+      Ingress.Path(path = "", backend = Ingress.Backend("ssh", 22)))
+    ing.spec.get.tls must_== List(Ingress.TLS(hosts = List("abc","def"),
+      secretName = None))
 
   }
 }

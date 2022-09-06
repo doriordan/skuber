@@ -8,8 +8,7 @@ import skuber.json.format.{maybeEmptyFormatMethods,jsPath2LabelSelFormat,objectM
  * @author David O'Riordan
  *  Scale subresource
  */
-case class Scale(
-    val kind: String = "Scale",
+case class Scale(val kind: String = "Scale",
     val apiVersion: String,
     val metadata: ObjectMeta,
     spec: Scale.Spec = Scale.Spec(),
@@ -43,18 +42,15 @@ object Scale {
     implicit val scaleSpecFormat: Format[Scale.Spec] = Json.format[Scale.Spec]
   }
 
-  case class Status(
-    replicas: Int = 0,
+  case class Status(replicas: Int = 0,
     selector: Option[String] = None,
-    targetSelector: Option[String] = None
-  )
+    targetSelector: Option[String] = None)
 
   object Status {
-    implicit val scaleStatusFormat: Format[Scale.Status] = (
-      (JsPath \ "replicas").formatMaybeEmptyInt() and
+    implicit val scaleStatusFormat: Format[Scale.Status] = ((JsPath \ "replicas").formatMaybeEmptyInt() and
       (JsPath \ "selector").formatNullable[String] and
-      (JsPath \ "targetSelector").formatNullable[String]
-    )(Scale.Status.apply _, unlift(Scale.Status.unapply))
+      (JsPath \ "targetSelector").formatNullable[String])((replicas, selector, targetSelector) => Scale.Status(replicas, selector, targetSelector),
+      scale => (scale.replicas, scale.selector, scale.targetSelector))
   }
 
   implicit val scaleFormat: Format[Scale] = Json.format[Scale]

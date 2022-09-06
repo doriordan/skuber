@@ -4,7 +4,8 @@ import java.util.UUID.randomUUID
 import akka.Done
 import akka.stream.scaladsl.{Sink, Source}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
 import skuber.json.format._
 import scala.concurrent.duration.{Duration, _}
@@ -27,8 +28,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
-    val results = Future.sequence(
-      List(podName1, podName2, podName3, podName4, podName5, podName6).map { name =>
+    val results = Future.sequence(List(podName1, podName2, podName3, podName4, podName5, podName6).map { name =>
         k8s.delete[Pod](name).withTimeout().recover { case _ => () }
       }).withTimeout()
     results.futureValue
@@ -134,9 +134,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     println("START: throw an exception against an unexisting pod")
     k8s.create(getNginxPod(podName6, "1.7.9")).valueT
     Thread.sleep(5000)
-    whenReady(
-      k8s.exec(podName6 + "x", Seq("whoami")).withTimeout().failed
-    ) { result =>
+    whenReady(k8s.exec(podName6 + "x", Seq("whoami")).withTimeout().failed) { result =>
       println("FINISH: throw an exception against an unexisting pod")
       result shouldBe a[K8SException]
       result match {

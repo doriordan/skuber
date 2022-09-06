@@ -19,7 +19,7 @@ import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
-import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
+import skuber.json.format.{apiVersionsFormatReads, deleteOptionsFmt, namespaceListFmt}
 import javax.net.ssl.SSLContext
 import skuber.apiextensions.CustomResourceDefinition.Scope
 import scala.concurrent.duration._
@@ -32,8 +32,7 @@ import scala.util.{Failure, Success}
   * This class implements the KubernetesClient API. It uses the Akka HTTP client to handle the requests to
   * the Kubernetes API server.
   */
-class KubernetesClientImpl private[client] (
-  val requestMaker: (Uri, HttpMethod)  => HttpRequest, // builds the requests to send
+class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod)  => HttpRequest, // builds the requests to send
   override val clusterServer: String, // the url of the target cluster Kubernetes API server
   val requestAuth: AuthInfo, // specifies the authentication (if any) to be added to requests
   override val namespaceName: String, // by default requests will target this specified namespace on the cluster
@@ -81,8 +80,7 @@ class KubernetesClientImpl private[client] (
     responseFut
   }
 
-  private[skuber] def buildRequest[T <: TypeMeta](
-    method: HttpMethod,
+  private[skuber] def buildRequest[T <: TypeMeta](method: HttpMethod,
     rd: ResourceDefinition[_],
     nameComponent: Option[String],
     query: Option[Uri.Query] = None,
@@ -95,8 +93,7 @@ class KubernetesClientImpl private[client] (
         case (_, _) => None
       }
 
-    val k8sUrlOptionalParts = List(
-      clusterServer,
+    val k8sUrlOptionalParts = List(clusterServer,
       rd.spec.apiPathPrefix,
       rd.spec.group,
       rd.spec.defaultVersion,
@@ -166,8 +163,7 @@ class KubernetesClientImpl private[client] (
         case HttpMethods.POST => Some(s"Requesting creation of resource: { name: $name ...}")
         case _ => None
       }
-    }
-    )
+    })
     logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${resource.toString}")
   }
 
@@ -185,8 +181,7 @@ class KubernetesClientImpl private[client] (
     logInfo(logConfig.logResponseFullListResource, s" Unmarshalled list resource: ${result.toString}")
   }
 
-  private[skuber] def makeRequestReturningObjectResource[O <: ObjectResource](httpRequest: HttpRequest)(
-    implicit fmt: Format[O], lc: LoggingContext): Future[O] =
+  private[skuber] def makeRequestReturningObjectResource[O <: ObjectResource](httpRequest: HttpRequest)(implicit fmt: Format[O], lc: LoggingContext): Future[O] =
   {
     for {
       httpResponse <- invoke(httpRequest)
@@ -195,8 +190,7 @@ class KubernetesClientImpl private[client] (
     } yield result
   }
 
-  private[skuber] def makeRequestReturningListResource[L <: ListResource[_]](httpRequest: HttpRequest)(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
+  private[skuber] def makeRequestReturningListResource[L <: ListResource[_]](httpRequest: HttpRequest)(implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
     for {
       httpResponse <- invoke(httpRequest)
@@ -209,8 +203,7 @@ class KubernetesClientImpl private[client] (
     * Modify the specified K8S resource using a given HTTP method. The modified resource is returned.
     * The create, update and partiallyUpdate methods all call this, just passing different HTTP methods
     */
-  private[skuber] def modify[O <: ObjectResource](method: HttpMethod)(obj: O, namespace: Option[String])(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  private[skuber] def modify[O <: ObjectResource](method: HttpMethod)(obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     // if this is a POST we don't include the resource name in the URL
     val nameComponent: Option[String] = method match {
@@ -220,8 +213,7 @@ class KubernetesClientImpl private[client] (
     modify(method, obj, nameComponent, namespace)
   }
 
-  private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String], namespace: Option[String])(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String], namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     // Namespace overrides order: namespace -> obj.metadata.namespace -> namespaceName
     val targetNamespace: String = namespace.getOrElse {
@@ -238,14 +230,12 @@ class KubernetesClientImpl private[client] (
     } yield newOrUpdatedResource
   }
 
-  override def create[O <: ObjectResource](obj: O, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  override def create[O <: ObjectResource](obj: O, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     modify(HttpMethods.POST)(obj, namespace)
   }
 
-  override def update[O <: ObjectResource](obj: O, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  override def update[O <: ObjectResource](obj: O, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     modify(HttpMethods.PUT)(obj, namespace)
   }
@@ -284,8 +274,7 @@ class KubernetesClientImpl private[client] (
   * e.g. val allPodsInCluster: Future[List[Pod]] = listByNamespace[Pod] map { _.values.flatMap(_.items) }
   * which supports the feature requested in issue #20
    */
-  override def listByNamespace[L <: ListResource[_]]()(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[Map[String, L]] =
+  override def listByNamespace[L <: ListResource[_]]()(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[Map[String, L]] =
   {
     listByNamespace[L](rd)
   }
@@ -294,7 +283,7 @@ class KubernetesClientImpl private[client] (
       (implicit fmt: Format[L], lc: LoggingContext): Future[Map[String, L]] =
   {
     val nsNamesFut: Future[List[String]] = getNamespaceNames
-    val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { nsNames: List[String] =>
+    val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { (nsNames: List[String]) =>
       Future.sequence(nsNames map { (nsName: String) =>
         listInNamespace[L](nsName, rd) map { l => (nsName, l) }
       })
@@ -308,14 +297,12 @@ class KubernetesClientImpl private[client] (
    * List all objects of given kind in the specified namespace on the cluster
    */
   @deprecated("method is been replaced with list", "2.7.6")
-  override def listInNamespace[L <: ListResource[_]](theNamespace: String)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def listInNamespace[L <: ListResource[_]](theNamespace: String)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     listInNamespace[L](theNamespace, rd)
   }
 
-  private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
+  private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
     val req = buildRequest(HttpMethods.GET, rd, None, namespace = Some(theNamespace))
     makeRequestReturningListResource[L](req)
@@ -324,8 +311,7 @@ class KubernetesClientImpl private[client] (
   /*
    * List objects of specific resource kind in current namespace
    */
-  override def list[L <: ListResource[_]](namespace: Option[String] = None)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def list[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _list[L](rd, None, namespace)
   }
@@ -333,8 +319,7 @@ class KubernetesClientImpl private[client] (
   /*
    * List objects of specific resource kind in current namespace
    */
-  override def list[L <: ListResource[_]](
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def list[L <: ListResource[_]](implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _list[L](rd, None, None)
   }
@@ -342,20 +327,17 @@ class KubernetesClientImpl private[client] (
   /*
    * Retrieve the list of objects of given type in the current namespace that match the supplied label selector
    */
-  override def listSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def listSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _list[L](rd, Some(ListOptions(labelSelector=Some(labelSelector))), namespace)
   }
 
-  override def listWithOptions[L <: ListResource[_]](options: ListOptions, namespace: Option[String] = None)(
-   implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def listWithOptions[L <: ListResource[_]](options: ListOptions, namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _list[L](rd, Some(options), namespace)
   }
 
-  private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeOptions: Option[ListOptions], namespace: Option[String])(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
+  private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeOptions: Option[ListOptions], namespace: Option[String])(implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
     val queryOpt = maybeOptions map { opts =>
       Uri.Query(opts.asMap)
@@ -368,8 +350,7 @@ class KubernetesClientImpl private[client] (
     makeRequestReturningListResource[L](req)
   }
 
-  override def getOption[O <: ObjectResource](name: String, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Option[O]] =
+  override def getOption[O <: ObjectResource](name: String, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Option[O]] =
   {
     _get[O](name, namespace) map { result =>
       Some(result)
@@ -378,36 +359,31 @@ class KubernetesClientImpl private[client] (
     }
   }
 
-  override def get[O <: ObjectResource](name: String, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  override def get[O <: ObjectResource](name: String, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     _get[O](name, namespace)
   }
 
   @deprecated("method is been replaced with get", "2.7.6")
-  override def getInNamespace[O <: ObjectResource](name: String, namespace: String)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  override def getInNamespace[O <: ObjectResource](name: String, namespace: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     _get[O](name, Some(namespace))
   }
 
-  private[api] def _get[O <: ObjectResource](name: String, namespace: Option[String] = Some(namespaceName))(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
+  private[api] def _get[O <: ObjectResource](name: String, namespace: Option[String] = Some(namespaceName))(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
     makeRequestReturningObjectResource[O](req)
   }
 
-  override def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1, namespace: Option[String] = None)(
-    implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] =
+  override def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] =
   {
     val grace=if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
     val options = DeleteOptions(gracePeriodSeconds = grace)
     deleteWithOptions[O](name, options, namespace = namespace)
   }
 
-  override def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions, namespace: Option[String] = None)(
-    implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] =
+  override def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] =
   {
     val marshalledOptions = Marshal(options)
     for {
@@ -420,26 +396,22 @@ class KubernetesClientImpl private[client] (
     } yield ()
   }
 
-  override def deleteAll[L <: ListResource[_]](namespace: Option[String] = None)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def deleteAll[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _deleteAll[L](rd, None, namespace)
   }
 
-  override def deleteAll[L <: ListResource[_]](
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def deleteAll[L <: ListResource[_]](implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _deleteAll[L](rd, None, None)
   }
 
-  override def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
+  override def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
   {
     _deleteAll[L](rd, Some(labelSelector), namespace)
   }
 
-  private def _deleteAll[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector], namespace: Option[String])(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
+  private def _deleteAll[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector], namespace: Option[String])(implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
     val queryOpt = maybeLabelSelector map { ls =>
       Uri.Query("labelSelector" -> ls.toString)
@@ -452,8 +424,7 @@ class KubernetesClientImpl private[client] (
     makeRequestReturningListResource[L](req)
   }
 
-  override def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
-    implicit lc: LoggingContext): Future[Source[ByteString, _]] =
+  override def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(implicit lc: LoggingContext): Future[Source[ByteString, _]] =
   {
     val targetNamespace=namespace.orElse(Some(this.namespaceName))
     val queryMap=queryParams.asMap
@@ -480,14 +451,12 @@ class KubernetesClientImpl private[client] (
   // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
   // The methods return Akka streams sources that will reactively emit a stream of updated
   // values of the watched resources.
-  override def watch[O <: ObjectResource](obj: O, namespace: Option[String])(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
+  override def watch[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     watch(name = obj.name, namespace = namespace)
   }
 
-  override def watch[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
+  override def watch[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     watch(name = obj.name)
   }
@@ -496,86 +465,72 @@ class KubernetesClientImpl private[client] (
   // The methods return Akka streams sources that will reactively emit a stream of updated
   // values of the watched resources.
 
-  override def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
+  override def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     Watch.events(this, name, sinceResourceVersion, bufSize, namespace)
   }
 
   // watch events on all objects of specified kind in current namespace
-  override def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
+  override def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, namespace)
   }
 
-  override def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     watchContinuously(name = obj.name, namespace = namespace)
   }
 
-  override def watchContinuously[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     watchContinuously(name = obj.name)
   }
 
-  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
     WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, namespace)
   }
 
-  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds))
     WatchSource(this, buildLongPollingPool(), None, options, bufSize, namespace)
   }
 
-  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
+  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     WatchSource(this, buildLongPollingPool(), None, options, bufsize, namespace)
   }
 
   private def buildLongPollingPool[O <: ObjectResource]() = {
-    LongPollingPool[WatchSource.Start[O]](
-      clusterServerUri.scheme,
+    LongPollingPool[WatchSource.Start[O]](clusterServerUri.scheme,
       clusterServerUri.authority.host.address(),
       clusterServerUri.effectivePort,
       watchPoolIdleTimeout,
       sslContext.map(ConnectionContext.httpsClient),
-      ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
-    )
+      ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout))
   }
 
   // Operations on scale subresource
   // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types
   // define an implicit Scale.SubresourceSpec, which is required to be passed to these methods.
-  override def getScale[O <: ObjectResource](objName: String, namespace: Option[String] = None)(
-    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext) : Future[Scale] =
+  override def getScale[O <: ObjectResource](objName: String, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext) : Future[Scale] =
   {
     val req = buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"), namespace = namespace)
     makeRequestReturningObjectResource[Scale](req)
   }
 
   @deprecated("use getScale followed by updateScale instead")
-  override def scale[O <: ObjectResource](objName: String, count: Int, namespace: Option[String] = None)(
-    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] =
+  override def scale[O <: ObjectResource](objName: String, count: Int, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] =
   {
-    val scale = Scale(
-      apiVersion = sc.apiVersion,
+    val scale = Scale(apiVersion = sc.apiVersion,
       metadata = ObjectMeta(name = objName, namespace = namespaceName),
-      spec = Scale.Spec(replicas = Some(count))
-    )
+      spec = Scale.Spec(replicas = Some(count)))
     updateScale[O](objName, scale, namespace)
   }
 
-  override def updateScale[O <: ObjectResource](objName: String, scale: Scale, namespace: Option[String] = None)(
-    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext): Future[Scale] =
+  override def updateScale[O <: ObjectResource](objName: String, scale: Scale, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext): Future[Scale] =
   {
     implicit val dispatcher = actorSystem.dispatcher
     val marshal = Marshal(scale)
@@ -609,8 +564,7 @@ class KubernetesClientImpl private[client] (
     } yield newOrUpdatedResource
   }
 
-  override def jsonMergePatch[O <: ObjectResource](obj: O, patch: String, namespace: Option[String] = None) (
-    implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext): Future[O] =
+  override def jsonMergePatch[O <: ObjectResource](obj: O, patch: String, namespace: Option[String] = None) (implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext): Future[O] =
   {
     val patchRequestEntity = HttpEntity.Strict(`application/merge-patch+json`, ByteString(patch))
     val httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(obj.name), namespace = namespace).withEntity(patchRequestEntity)
@@ -624,15 +578,14 @@ class KubernetesClientImpl private[client] (
     val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
     for {
       response <- invoke(request)
-      apiVersionResource <- toKubernetesResponse[APIVersions](response)
+      apiVersionResource <- toKubernetesResponse[APIVersions](response)(apiVersionsFormatReads, lc)
     } yield apiVersionResource.versions
   }
 
   /*
    * Execute a command in a pod
    */
-  override def exec(
-    podName: String,
+  override def exec(podName: String,
     command: Seq[String],
     maybeContainerName: Option[String] = None,
     maybeStdin: Option[Source[String, _]] = None,
@@ -660,8 +613,7 @@ class KubernetesClientImpl private[client] (
   override def usingNamespace(newNamespace: String): KubernetesClientImpl =
     new KubernetesClientImpl(requestMaker, clusterServer, requestAuth,
       newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
-    )
+      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook)
 
   private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
   {
@@ -697,11 +649,9 @@ class KubernetesClientImpl private[client] (
         } recover { case ex =>
           if (log.isErrorEnabled)
             log.error(s"[Response: could not read Status for non-ok response, exception : ${ex.getMessage}]")
-          val status: Status = Status(
-            code = Some(response.status.intValue),
+          val status: Status = Status(code = Some(response.status.intValue),
             message = Some("Non-ok response and unable to parse Status from response body to get further details"),
-            details = Some(JsString(ex.getMessage))
-          )
+            details = Some(JsString(ex.getMessage)))
           Some(status)
         }
     }
@@ -786,10 +736,8 @@ object KubernetesClientImpl {
     val podLogConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(podLogIdleTimeout)
     val podLogSettings = defaultClientSettings.withConnectionSettings(podLogConnectionSettings)
 
-    new KubernetesClientImpl(
-      requestMaker, k8sContext.cluster.server, k8sContext.authInfo,
+    new KubernetesClientImpl(requestMaker, k8sContext.cluster.server, k8sContext.authInfo,
       theNamespaceName, watchContinuouslyRequestTimeout, watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
-    )
+      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook)
   }
 }

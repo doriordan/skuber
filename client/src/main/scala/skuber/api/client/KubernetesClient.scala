@@ -219,8 +219,7 @@ trait KubernetesClient {
     * @tparam O the type of the resource to watch
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
 
   /**
     * Place a watch on changes to all objects of a specific resource type - this returns a source of events that will be produced whenever an object
@@ -236,8 +235,7 @@ trait KubernetesClient {
     * @tparam O the type of resource to watch e.g. Pod, Dpeloyment
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
 
   /**
     * Watch a specific object resource continuously. This returns a source that will continue to produce
@@ -249,7 +247,7 @@ trait KubernetesClient {
     */
   def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
-  @deprecated("Use watchContinuously(obj, None)", "2.7.6")
+  @deprecated("Use watchContinuously(obj, namespace = None)", "2.7.6")
   def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**
@@ -267,8 +265,7 @@ trait KubernetesClient {
     * @tparam O the type of the resource
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**
     * Watch all object resources of a specified type continuously. This returns a source that will continue to produce
@@ -284,8 +281,7 @@ trait KubernetesClient {
     * @tparam O the type pf the resource
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
 /**
   * Watch all object resources of a specified type continuously, passing the specified options to the API server with the watch request.
@@ -298,8 +294,7 @@ trait KubernetesClient {
   * @tparam O the resource type to watch
   * @return A future containing an Akka streams Source of WatchEvents that will be emitted
   */
-  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, namespace: Option[String] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**
    * Get the scale subresource of the named object resource
@@ -378,8 +373,7 @@ trait KubernetesClient {
     * @param namespace if set this specifies the namespace of the pod (otherwise the configured namespace is used)
     * @return A future indicating the exec command has been submitted
     */
-  def exec(
-    podName: String,
+  def exec(podName: String,
     command: Seq[String],
     maybeContainerName: Option[String] = None,
     maybeStdin: Option[Source[String, _]] = None,

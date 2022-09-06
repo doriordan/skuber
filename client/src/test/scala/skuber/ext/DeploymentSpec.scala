@@ -2,21 +2,22 @@ package skuber.ext
 
 import org.specs2.mutable.Specification
 import play.api.libs.json.Json
-
+import skuber.LabelSelector.{IsEqualRequirement, NotExistsRequirement, NotInRequirement}
 import skuber.LabelSelector.dsl._
 import skuber._
 import skuber.json.ext.format._
+import scala.language.reflectiveCalls
 
 /**
  * @author David O'Riordan
  */
 class DeploymentSpec extends Specification {
   "This is a unit specification for the skuber Deployment class. ".txt
-  
+
   "A Deployment object can be constructed from a name and pod template spec" >> {
-    val container=Container(name="example",image="example")
-    val template=Pod.Template.Spec.named("example").addContainer(container)
-    val deployment=Deployment("example")
+    val container = Container(name = "example", image = "example")
+    val template = Pod.Template.Spec.named("example").addContainer(container)
+    val deployment = Deployment("example")
       .withReplicas(200)
       .withTemplate(template)
     deployment.spec.get.template mustEqual Some(template)
@@ -24,28 +25,30 @@ class DeploymentSpec extends Specification {
     deployment.name mustEqual "example"
     deployment.status mustEqual None
   }
-  
+
   "A Deployment object can be written to Json and then read back again successfully" >> {
-      val container=Container(name="example",image="example")
-      val template=Pod.Template.Spec.named("example").addContainer(container)
-      val deployment=Deployment("example")
-        .withTemplate(template)
-          .withLabelSelector(LabelSelector("live" doesNotExist, "microservice", "tier" is "cache", "env" isNotIn List("dev", "test")))
+    val container = Container(name = "example", image = "example")
+    val template = Pod.Template.Spec.named("example").addContainer(container)
+    val labelSelector = LabelSelector(NotExistsRequirement("live"), IsEqualRequirement("tier", "cache"), NotInRequirement("env", List("dev", "test")))
+    val deployment = Deployment("example")
+      .withTemplate(template)
+      .withLabelSelector(labelSelector)
 
 
-      val readDepl = Json.fromJson[Deployment](Json.toJson(deployment)).get
-      readDepl mustEqual deployment
+    val readDepl = Json.fromJson[Deployment](Json.toJson(deployment)).get
+    readDepl mustEqual deployment
   }
 
   "A Deployment object properly writes with zero replicas" >> {
-    val deployment=Deployment("example").withReplicas(0)
+    val deployment = Deployment("example").withReplicas(0)
 
     val writeDepl = Json.toJson(deployment)
     (writeDepl \ "spec" \ "replicas").asOpt[Int] must beSome(0)
   }
 
   "A Deployment object can be read directly from a JSON string" >> {
-    val deplJsonStr = """
+    val deplJsonStr =
+      """
 {
   "apiVersion": "extensions/v1beta1",
   "kind": "Deployment",

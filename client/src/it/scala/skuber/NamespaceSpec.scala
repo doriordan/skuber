@@ -2,7 +2,8 @@ package skuber
 
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
 import skuber.json.format.{namespaceFormat, podFormat}
 import scala.concurrent.Future
@@ -27,8 +28,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(
-      List(namespace1, namespace2, namespace3, namespace4).map { name =>
+    val results = Future.sequence(List(namespace1, namespace2, namespace3, namespace4).map { name =>
         k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
@@ -64,9 +64,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
   it should "not find a a non exist namespace" in { k8s =>
     println("START: not find a a non exist namespace")
     val nonExistNamespace: String = randomUUID().toString
-    whenReady(
-      k8s.get[Namespace](nonExistNamespace).withTimeout().failed
-    ) { result =>
+    whenReady(k8s.get[Namespace](nonExistNamespace).withTimeout().failed) { result =>
       println("FINISH: not find a a non exist namespace")
       result shouldBe a[K8SException]
       result match {
@@ -98,9 +96,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaF
     k8s.delete[Namespace](namespace4).valueT
 
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Namespace](namespace4).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Namespace](namespace4).withTimeout().failed) { result =>
         println("FINISH: delete namespace4")
         result shouldBe a[K8SException]
         result match {

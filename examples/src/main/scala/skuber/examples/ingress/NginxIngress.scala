@@ -1,14 +1,10 @@
 package skuber.examples.ingress
 
-import java.io.Serializable
 import java.net.HttpURLConnection
-
 import akka.actor.ActorSystem
-
 import skuber._
 import skuber.ext.ReplicaSet
 import skuber.networking.Ingress
-
 import scala.annotation.tailrec
 
 //  the extensions group kinds used in this example
@@ -57,8 +53,7 @@ object NginxIngress extends App {
         .setEnvVarFromField("POD_NAMESPACE", "metadata.namespace")
         .exposePort(httpPort)
         .exposePort(httpsPort)
-        .withArgs(
-          "/nginx-ingress-controller",
+        .withArgs("/nginx-ingress-controller",
           "--default-backend-service=default/default-http-backend")
 
     val podSpec = Pod.Spec()
@@ -244,7 +239,7 @@ object NginxIngress extends App {
     implicit val system = ActorSystem()
     implicit val dispatcher = system.dispatcher
 
-    implicit val k8s = k8sInit
+    implicit val k8s: K8SRequestContext = k8sInit
 
     // build the resources
     val be = buildDefaultBackendService
@@ -274,7 +269,7 @@ object NginxIngress extends App {
     def updateIf409(ing: Ingress): PartialFunction[Throwable, Future[Ingress]] = {
       case ex: K8SException if ex.status.code.contains(409) => {
         println("Ingress already exists - updating to current rules and continuing")
-        (k8s get[Ingress] ing.name) flatMap { curr =>
+        k8s.get[Ingress](ing.name).flatMap { curr =>
           println("...retrieved ingress, now updating the rules")
           val updated = ing.copy(metadata = curr.metadata) // copies latest resource version for update
           k8s update updated
@@ -285,14 +280,10 @@ object NginxIngress extends App {
     def createIng(ing: Ingress): Future[Ingress] = (k8s create ing) recoverWith updateIf409(ing)
 
     // helpers for creating the resources on the cluster
-    def createEchoServices = Future.sequence(esSvcs map { createSvc(_) })
-    def createNonIngressResources = Future.sequence(List(
-          createSvc(beSvc),
+    def createNonIngressResources = Future.sequence(List(createSvc(beSvc),
           createRS(beRset),
-          createEchoServices,
           createRS(esRset)))
-    def createIngressController = Future.sequence(List(
-          createSvc(ingCtrlSvc),
+    def createIngressController = Future.sequence(List(createSvc(ingCtrlSvc),
           createRS(ingCtrlRset)))
     def createIngress = createIng(ingressSpec)
 

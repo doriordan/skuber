@@ -5,6 +5,7 @@ import play.api.libs.json.Json
 import skuber.LabelSelector.dsl._
 import skuber._
 import NetworkPolicy._
+import scala.language.reflectiveCalls
 
 /**
  * @author David O'Riordan
@@ -18,8 +19,7 @@ class NetworkPolicySpec extends Specification {
     val fromIpBlock=IPBlock(cidr="172.17.0.0/16", except=List("172.17.1.0/24"))
     val fromNsSelector=LabelSelector("project" is "myproject")
     val fromPodSelector=LabelSelector("role" is "frontend")
-    val fromPeers=List(
-      Peer(ipBlock=Some(fromIpBlock)),
+    val fromPeers=List(Peer(ipBlock=Some(fromIpBlock)),
       Peer(namespaceSelector = Some(fromNsSelector)),
       Peer(podSelector = Some(fromPodSelector)))
     val fromPorts=List(Port(639))

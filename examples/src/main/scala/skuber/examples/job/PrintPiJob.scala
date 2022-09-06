@@ -1,11 +1,10 @@
 package skuber.examples.job
 
 import akka.actor.ActorSystem
-
 import skuber.{Container, Pod, RestartPolicy, k8sInit}
 import skuber.batch.Job
 import skuber.json.batch.format._
-
+import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success}
 
 /**
@@ -17,8 +16,8 @@ import scala.util.{Failure, Success}
 object PrintPiJob extends App {
 
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
   val k8s = k8sInit
 

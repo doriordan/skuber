@@ -1,9 +1,6 @@
 package skuber
 
-import play.api.libs.json.{Format, Json}
 import skuber.apiextensions.CustomResourceDefinition
-
-import scala.reflect.runtime.universe._
 
 /**
   * @author David O'Riordan
@@ -28,16 +25,14 @@ object ResourceDefinition {
    * Generate a ResourceDefinition for a specific type from specified definition fields, or falling back to defaults
    * (such as class name for kind and reverse package name for group) where not specified.
    */
-  def apply[T <: TypeMeta](
-    kind: String,
+  def apply[T <: TypeMeta](kind: String,
     group: String,
     version: String = "v1",
     singular: Option[String] = None,
     plural: Option[String] = None,
     scope: ResourceSpecification.Scope.Value = ResourceSpecification.Scope.Namespaced,
     shortNames: List[String] = Nil,
-    subresources: Option[ResourceSpecification.Subresources] = None
-  ): ResourceDefinition[T] =
+    subresources: Option[ResourceSpecification.Subresources] = None): ResourceDefinition[T] =
   {
     val singularStr=singular.getOrElse(kind.toLowerCase)
     val pluralStr=plural.getOrElse(s"${singularStr}s")

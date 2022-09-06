@@ -3,6 +3,7 @@ package skuber.policy.v1beta1
 import org.specs2.mutable.Specification
 import play.api.libs.json.{JsSuccess, Json}
 import skuber.LabelSelector.dsl._
+import scala.language.reflectiveCalls
 
 class PodDisruptionBudgetSpec extends Specification {
   import PodDisruptionBudget._
@@ -16,12 +17,10 @@ class PodDisruptionBudgetSpec extends Specification {
       Json.parse(createJson("/examplePodDisruptionBudget.json")).validate[PodDisruptionBudget] mustEqual JsSuccess(pdb)
     }
     "encode to json" >> {
-      Json.toJson(
-        PodDisruptionBudget("someName")
+      Json.toJson(PodDisruptionBudget("someName")
           .withMaxUnavailable(Left(2))
           .withMinAvailable(Left(1))
-          .withLabelSelector("application" is "someApplicationName")
-      ) mustEqual Json.parse(createJson("/examplePodDisruptionBudget.json"))
+          .withLabelSelector("application" is "someApplicationName")) mustEqual Json.parse(createJson("/examplePodDisruptionBudget.json"))
     }
   }
 

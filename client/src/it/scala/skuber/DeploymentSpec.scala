@@ -1,9 +1,11 @@
 package skuber
 
 import java.util.UUID.randomUUID
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
+import skuber.api.client.KubernetesClient
 import skuber.apps.v1.Deployment.deployDef
 import skuber.apps.v1.{Deployment, DeploymentList}
 import scala.concurrent.Future
@@ -131,9 +133,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     k8s.delete[Deployment](deploymentName3).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deploymentName3).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentName3).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -152,9 +152,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     k8s.delete[Deployment](deploymentSpecific3, namespace = Some(namespace3)).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deploymentSpecific3, Some(namespace3)).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentSpecific3, Some(namespace3)).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -174,9 +172,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
     k8s.deleteAll[DeploymentList](namespace = Some(namespace4)).valueT
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Deployment](deploymentSpecific41).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentSpecific41).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -184,9 +180,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers with Befor
         }
       }
 
-      whenReady(
-        k8s.get[Deployment](deploymentSpecific42).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Deployment](deploymentSpecific42).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)

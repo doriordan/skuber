@@ -100,7 +100,7 @@ users:
       name: gcp
 """
 
-  implicit val system=ActorSystem("test")
+  implicit val system: ActorSystem =ActorSystem("test")
   implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
 
   "An example kubeconfig file can be parsed correctly" >> {

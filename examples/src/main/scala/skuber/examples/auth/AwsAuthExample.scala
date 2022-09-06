@@ -9,12 +9,12 @@ import skuber.api.client.token.AwsAuthRefreshable
 import skuber.api.client.{Cluster, Context, KubernetesClient}
 import skuber.json.format._
 import skuber.{PodList, k8sInit}
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.duration._
 
 object AwsAuthExample extends App {
-  implicit private val as = ActorSystem()
-  implicit private val ex = as.dispatcher
+  implicit private val as: ActorSystem = ActorSystem()
+  implicit private val ex: ExecutionContextExecutor = as.dispatcher
   val namespace = System.getenv("namespace")
   val serverUrl = System.getenv("serverUrl")
   val certificate = Base64.getDecoder.decode(System.getenv("certificate"))
@@ -26,7 +26,7 @@ object AwsAuthExample extends App {
 
   val k8sConfig = Configuration(clusters = Map(clusterName -> cluster), contexts = Map(clusterName -> context)).useContext(context)
 
-  val k8s: KubernetesClient = k8sInit(k8sConfig)
+  val k8s: KubernetesClient = k8sInit(k8sConfig)(as)
   listPods(namespace, 0)
   listPods(namespace, 5)
   listPods(namespace, 11)

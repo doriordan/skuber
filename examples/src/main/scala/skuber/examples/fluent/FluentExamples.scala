@@ -2,9 +2,7 @@ package skuber.examples.fluent
 
 import skuber._
 import skuber.json.format._
-
-import scala.concurrent.Future
-
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import akka.actor.ActorSystem
 
 /**
@@ -44,8 +42,8 @@ object FluentExamples extends App {
   val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
   val prodExternalSelector = Map(prodLabel, prodExternalZoneLabel)
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
   val k8s = k8sInit
   

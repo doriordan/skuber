@@ -2,8 +2,10 @@ package skuber
 
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
+import skuber.LabelSelector.IsEqualRequirement
 import skuber.apps.v1.Deployment
 import skuber.policy.v1beta1.PodDisruptionBudget
 import skuber.policy.v1beta1.PodDisruptionBudget._
@@ -56,12 +58,13 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     println("START: create a PodDisruptionBudget")
     k8s.create(getNginxDeployment(deployment1, "1.7.9")).valueT
     import LabelSelector.dsl._
-    val result = k8s.create(PodDisruptionBudget(budget1).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).valueT
+    val labelSelector = LabelSelector(IsEqualRequirement("app", "nginx"))
+    val result = k8s.create(PodDisruptionBudget(budget1).withMinAvailable(Left(1)).withLabelSelector(labelSelector)).valueT
     Thread.sleep(5000)
 
     println("FINISH: create a PodDisruptionBudget")
 
-    assert(result.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
+    assert(result.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some(labelSelector))))
     assert(result.name == budget1)
   }
 
@@ -70,7 +73,8 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     val deployment = k8s.create(getNginxDeployment(deployment2, "1.7.9")).withTimeout()
     deployment.futureValue
     import LabelSelector.dsl._
-    val firstPdb = k8s.create(PodDisruptionBudget(budget2).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).valueT
+    val labelSelector = LabelSelector(IsEqualRequirement("app", "nginx"))
+    val firstPdb = k8s.create(PodDisruptionBudget(budget2).withMinAvailable(Left(1)).withLabelSelector(labelSelector)).valueT
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
@@ -81,7 +85,8 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
       val updatedPdb = k8s.update(finalPdb).valueT
 
       println("FINISH: update a PodDisruptionBudget")
-      assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some("app" is "nginx"))))
+      val labelSelector = LabelSelector(IsEqualRequirement("app", "nginx"))
+      assert(updatedPdb.spec.contains(PodDisruptionBudget.Spec(None, Some(1), Some(labelSelector))))
       assert(updatedPdb.name == budget2)
     }
 
@@ -92,14 +97,13 @@ class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAft
     println("START: delete a PodDisruptionBudget")
     k8s.create(getNginxDeployment(deployment3, "1.7.9")).valueT
     import LabelSelector.dsl._
-    val pdb = k8s.create(PodDisruptionBudget(budget3).withMinAvailable(Left(1)).withLabelSelector("app" is "nginx")).valueT
+    val labelSelector = LabelSelector(IsEqualRequirement("app", "nginx"))
+    val pdb = k8s.create(PodDisruptionBudget(budget3).withMinAvailable(Left(1)).withLabelSelector(labelSelector)).valueT
     k8s.delete[PodDisruptionBudget](pdb.name).valueT
     Thread.sleep(5000)
 
     eventually(timeout(30.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[PodDisruptionBudget](pdb.name).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[PodDisruptionBudget](pdb.name).withTimeout().failed) { result =>
         println("FINISH: delete a PodDisruptionBudget")
         result shouldBe a[K8SException]
         result match {

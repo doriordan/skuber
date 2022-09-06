@@ -2,8 +2,10 @@ package skuber.apps.v1
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
+import skuber.LabelSelector.{IsEqualRequirement, NotExistsRequirement, NotInRequirement}
 import skuber.LabelSelector.dsl._
 import skuber._
+import scala.language.reflectiveCalls
 
 class StatefulSetSpec extends Specification {
   "This is a unit specification for the skuber apps/v1 StatefulSet class. ".txt
@@ -27,9 +29,10 @@ class StatefulSetSpec extends Specification {
   "A StatefulSet object can be written to Json and then read back again successfully" >> {
     val container=Container(name="example",image="example")
     val template=Pod.Template.Spec.named("example").addContainer(container)
+    val labelSelector = LabelSelector(NotExistsRequirement("live"), IsEqualRequirement("tier", "cache"), NotInRequirement("env", List("dev", "test")))
     val stateSet=StatefulSet("example")
       .withTemplate(template)
-      .withLabelSelector(LabelSelector("live" doesNotExist, "microservice", "tier" is "cache", "env" isNotIn List("dev", "test")))
+      .withLabelSelector(labelSelector)
 
 
     val readSSet = Json.fromJson[StatefulSet](Json.toJson(stateSet)).get

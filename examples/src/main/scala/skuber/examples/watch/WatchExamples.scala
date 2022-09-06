@@ -5,6 +5,7 @@ import skuber.json.format._
 import skuber.K8SWatchEvent
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
+import scala.concurrent.ExecutionContextExecutor
 
 
 /**
@@ -12,9 +13,9 @@ import akka.stream.scaladsl.Sink
  */
 object WatchExamples extends App {
 
-  implicit val system = ActorSystem("watch")
-  implicit val dispatcher = system.dispatcher
-  implicit val k8s = k8sInit
+  implicit val system: ActorSystem = ActorSystem("watch")
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
+  implicit val k8s: K8SRequestContext = k8sInit
 
   def  watchFrontEndScaling = {
 
@@ -33,7 +34,7 @@ object WatchExamples extends App {
     val podPhaseMonitor = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
       val pod = podEvent._object
       val phase = pod.status flatMap { _.phase }
-      println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
+      println(podEvent._type.toString + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>").toString)
     }
 
     for {

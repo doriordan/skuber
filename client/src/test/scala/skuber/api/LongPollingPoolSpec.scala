@@ -93,11 +93,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
     }
 
     "handle unsupported scheme" >> {
-      LongPollingPool[Int](
-        "badScheam",
+      LongPollingPool[Int]("badScheam",
         "localhost", 4322, 30.seconds, None,
-        ClientConnectionSettings(system.settings.config)
-      ) must throwA[IllegalArgumentException]
+        ClientConnectionSettings(system.settings.config)) must throwA[IllegalArgumentException]
     }
 
   }

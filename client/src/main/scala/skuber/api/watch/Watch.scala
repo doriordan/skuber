@@ -28,17 +28,14 @@ object Watch {
     * @tparam O
     * @return
     */
-  def events[O <: ObjectResource](context: KubernetesClientImpl, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int, namespace: Option[String])(
-    implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
+  def events[O <: ObjectResource](context: KubernetesClientImpl, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int, namespace: Option[String])(implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
     context.logInfo(context.logConfig.logRequestBasic, s"creating watch on resource $name of kind ${rd.spec.names.kind}")
 
     val nameFieldSelector=Some(s"metadata.name=$name")
-    val watchOptions=ListOptions(
-      resourceVersion = sinceResourceVersion,
+    val watchOptions=ListOptions(resourceVersion = sinceResourceVersion,
       watch = Some(true),
-      fieldSelector = nameFieldSelector
-    )
+      fieldSelector = nameFieldSelector)
     val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)), namespace = namespace)
     val responseFut = context.invokeWatch(request)
     toFutureWatchEventSource(context, responseFut, bufSize)
@@ -54,8 +51,7 @@ object Watch {
     * @tparam O
     * @return a Future which will eventually return a Source of events
     */
-  def eventsOnKind[O <: ObjectResource](context: KubernetesClientImpl, sinceResourceVersion: Option[String] = None, bufSize: Int, namespace: Option[String])(
-    implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
+  def eventsOnKind[O <: ObjectResource](context: KubernetesClientImpl, sinceResourceVersion: Option[String] = None, bufSize: Int, namespace: Option[String])(implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
     context.logInfo(context.logConfig.logRequestBasic, s"creating skuber watch on kind ${rd.spec.names.kind}")
 
@@ -74,8 +70,7 @@ object Watch {
     * @tparam O the Kubernetes kind of each events object
     * @return a Future which will eventually return a Source of events
     */
-  private def toFutureWatchEventSource[O <: ObjectResource](context: KubernetesClientImpl, eventStreamResponseFut: Future[HttpResponse], bufSize: Int)(
-    implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
+  private def toFutureWatchEventSource[O <: ObjectResource](context: KubernetesClientImpl, eventStreamResponseFut: Future[HttpResponse], bufSize: Int)(implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     implicit val ec: ExecutionContext = context.actorSystem.dispatcher
 

@@ -143,10 +143,8 @@ package object client {
   private[client] object GcpRefresh {
     // todo - the path to read this from is part of the configuration, use that instead of
     // hard coding.
-    implicit val gcpRefreshReads: Reads[GcpRefresh] = (
-        (JsPath \ "credential" \ "access_token").read[String] and
-            (JsPath \ "credential" \ "token_expiry").read[Instant]
-        ) (GcpRefresh.apply _)
+    implicit val gcpRefreshReads: Reads[GcpRefresh] = ((JsPath \ "credential" \ "access_token").read[String] and
+            (JsPath \ "credential" \ "token_expiry").read[Instant]) (GcpRefresh.apply _)
   }
 
   final case class GcpConfiguration(cachedAccessToken: Option[GcpCachedAccessToken], cmd: GcpCommand)
@@ -166,12 +164,8 @@ package object client {
         token <- accessToken
         exp <- expiry
       } yield GcpCachedAccessToken(token, exp)
-      new GcpAuth(
-        GcpConfiguration(
-          cachedAccessToken = cachedAccessToken,
-          GcpCommand(cmdPath, cmdArgs)
-        )
-      )
+      new GcpAuth(GcpConfiguration(cachedAccessToken = cachedAccessToken,
+          GcpCommand(cmdPath, cmdArgs)))
     }
   }
 

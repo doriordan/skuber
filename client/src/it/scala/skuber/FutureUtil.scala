@@ -43,7 +43,7 @@ object FutureUtil {
 
         body.onComplete { result ⇒
           promise.tryComplete(result)
-          cancellable.cancel
+          cancellable.cancel()
         }
 
         promise.future

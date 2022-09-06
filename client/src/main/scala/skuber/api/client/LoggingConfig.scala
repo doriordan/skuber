@@ -8,8 +8,7 @@ package skuber.api.client
 import LoggingConfig.loggingEnabled
 import scala.util.{Failure, Success, Try}
 
-case class LoggingConfig(
-  logConfiguration: Boolean=loggingEnabled("config", true), // outputs configuration on initialisation)
+case class LoggingConfig(logConfiguration: Boolean=loggingEnabled("config", true), // outputs configuration on initialisation)
   logRequestBasic: Boolean=loggingEnabled("request", true), // logs method and URL for request
   logRequestBasicMetadata: Boolean=loggingEnabled("request.metadata", false), // logs key resource metadata information if available
   logRequestFullObjectResource: Boolean=loggingEnabled("request.object.full", false), // outputs full object resource if available

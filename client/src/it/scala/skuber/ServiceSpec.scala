@@ -2,13 +2,15 @@ package skuber
 
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
 import skuber.json.format.{namespaceFormat, serviceFmt, serviceListFmt}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 import LabelSelector.dsl._
+import skuber.LabelSelector.IsEqualRequirement
 
 class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers {
 
@@ -29,13 +31,11 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(
-      List(serviceName1, serviceName2, serviceName3, serviceName41, serviceName42).map { name =>
+    val results = Future.sequence(List(serviceName1, serviceName2, serviceName3, serviceName41, serviceName42).map { name =>
         k8s.delete[Service](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
-    val results2 = Future.sequence(
-      List(namespace4, namespace5).map { name =>
+    val results2 = Future.sequence(List(namespace4, namespace5).map { name =>
         k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
@@ -74,9 +74,7 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
     k8s.create(getService(serviceName3)).valueT
     k8s.delete[Service](serviceName3).valueT
     eventually(timeout(20.seconds), interval(3.seconds)) {
-      whenReady(
-        k8s.get[Service](serviceName3).withTimeout().failed
-      ) { result =>
+      whenReady(k8s.get[Service](serviceName3).withTimeout().failed) { result =>
         result shouldBe a[K8SException]
         result match {
           case ex: K8SException => ex.status.code shouldBe Some(404)
@@ -91,7 +89,7 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
   it should "listSelected services in specific namespace" in { k8s =>
     createNamespace(namespace4, k8s)
     val labels = Map("listSelected" -> "true")
-    val labelSelector = LabelSelector("listSelected" is "true")
+    val labelSelector = LabelSelector(IsEqualRequirement("listSelected", "true"))
     k8s.create(getService(serviceName41, labels), Some(namespace4)).valueT
     k8s.create(getService(serviceName42, labels), Some(namespace4)).valueT
 
@@ -106,7 +104,8 @@ class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with
   it should "listWithOptions services in specific namespace" in { k8s =>
     createNamespace(namespace5, k8s)
     val labels = Map("listWithOptions" -> "true")
-    val listOptions = ListOptions(Some(LabelSelector("listWithOptions" is "true")))
+    val labelSelector = LabelSelector(IsEqualRequirement("listWithOptions", "true"))
+    val listOptions = ListOptions(Some(labelSelector))
     k8s.create(getService(serviceName51, labels), Some(namespace5)).valueT
     k8s.create(getService(serviceName52, labels), Some(namespace5)).valueT
 

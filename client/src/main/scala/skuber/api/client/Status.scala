@@ -7,8 +7,7 @@ import skuber.json.format.listMetaFormat
   * @author David O'Riordan
   * Represents the status information typically returned in error responses from the Kubernetes API
   */
-case class Status(
-  apiVersion: String = "v1",
+case class Status(apiVersion: String = "v1",
   kind: String = "Status",
   metadata: ListMeta = ListMeta(),
   status: Option[String] = None,

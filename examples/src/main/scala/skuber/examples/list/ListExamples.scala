@@ -3,8 +3,7 @@ package skuber.examples.list
 import akka.actor.ActorSystem
 import skuber.Pod.Phase
 import skuber._
-
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 import skuber.json.format._
 
@@ -22,7 +21,7 @@ object ListExamples extends App {
     System.out.println("POD                                               NAMESPACE           PHASE")
     System.out.println("===                                               =========           =======")
 
-    pods.map { pod: Pod =>
+    pods.map { (pod: Pod) =>
       val name = pod.name
       val ns = pod.namespace
       val phaseOpt = for {
@@ -35,8 +34,8 @@ object ListExamples extends App {
     }
   }
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
 
   val k8s = k8sInit
 

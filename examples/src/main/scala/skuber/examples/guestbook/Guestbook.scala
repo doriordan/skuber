@@ -12,9 +12,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 object Guestbook extends App {
   val sys = ActorSystem("SkuberExamples")
-  val guestbook = sys.actorOf(Props[GuestbookActor], "guestbook")
+  val guestbook = sys.actorOf(Props[GuestbookActor](), "guestbook")
   
-  implicit val timeout = Timeout(40.seconds)
+  implicit val timeout: Timeout = Timeout(40.seconds)
   
   val deploymentResult = ask(guestbook, GuestbookActor.Deploy)
   deploymentResult map { result =>

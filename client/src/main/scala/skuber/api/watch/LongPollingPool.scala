@@ -16,16 +16,12 @@ private[api] object LongPollingPool {
                clientConnectionSettings: ClientConnectionSettings)(implicit system: ActorSystem): Pool[T] = {
     schema match {
       case "http" =>
-        Http().newHostConnectionPool[T](
-          host, port,
-          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
-        ).mapMaterializedValue(_ => NotUsed)
+        Http().newHostConnectionPool[T](host, port,
+          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)).mapMaterializedValue(_ => NotUsed)
       case "https" =>
-        Http().newHostConnectionPoolHttps[T](
-          host, port,
+        Http().newHostConnectionPoolHttps[T](host, port,
           httpsConnectionContext.getOrElse(Http().defaultClientHttpsContext),
-          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)
-        ).mapMaterializedValue(_ => NotUsed)
+          buildHostConnectionPool(poolIdleTimeout, clientConnectionSettings, system)).mapMaterializedValue(_ => NotUsed)
       case unsupported =>
         throw new IllegalArgumentException(s"Schema $unsupported is not supported")
     }

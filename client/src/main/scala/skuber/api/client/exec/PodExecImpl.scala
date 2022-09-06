@@ -21,8 +21,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
  */
 object PodExecImpl {
 
-  private[client] def exec(
-                            requestContext: KubernetesClientImpl,
+  private[client] def exec(requestContext: KubernetesClientImpl,
                             podName: String,
                             command: Seq[String],
                             maybeContainerName: Option[String] = None,
@@ -38,12 +37,10 @@ object PodExecImpl {
     requestContext.log.info(s"Trying to connect to container ${containerPrintName} of pod ${podName}")
 
     // Compose queries
-    var queries: Seq[(String, String)] = Seq(
-      "stdin" -> maybeStdin.isDefined.toString,
+    var queries: Seq[(String, String)] = Seq("stdin" -> maybeStdin.isDefined.toString,
       "stdout" -> maybeStdout.isDefined.toString,
       "stderr" -> maybeStderr.isDefined.toString,
-      "tty" -> tty.toString
-    )
+      "tty" -> tty.toString)
     maybeContainerName.foreach { containerName =>
       queries ++= Seq("container" -> containerName)
     }

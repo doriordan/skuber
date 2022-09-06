@@ -2,7 +2,8 @@ package skuber
 
 import java.util.UUID.randomUUID
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 import skuber.FutureUtil.FutureOps
 import skuber.api.patch._
 import skuber.json.format._
@@ -24,8 +25,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(
-      List(pod1, pod2, pod3, pod4).map { name =>
+    val results = Future.sequence(List(pod1, pod2, pod3, pod4).map { name =>
         k8s.delete[Pod](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
