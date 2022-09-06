@@ -6,6 +6,7 @@ import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.FunctionalBuilder
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import skuber.Pod.Affinity
 import skuber._
 import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
 import skuber.annotation.NodeAffinity.matchExpressionFmt
@@ -683,8 +684,9 @@ package object format {
   implicit lazy val podAntiAffinityFormat: Format[Pod.Affinity.PodAntiAffinity] = ((JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.PodAffinityTerm] and
     (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.WeightedPodAffinityTerm]) (Pod.Affinity.PodAntiAffinity.apply, p => (p.requiredDuringSchedulingIgnoredDuringExecution, p.preferredDuringSchedulingIgnoredDuringExecution))
 
-
-  implicit lazy val affinityFormat: Format[Pod.Affinity] = Json.format[Pod.Affinity]
+  implicit lazy val affinityFormat: Format[Pod.Affinity] = ((JsPath \ "nodeAffinity").formatNullable[Affinity.NodeAffinity] and
+    (JsPath \ "podAffinity").formatNullable[Affinity.PodAffinity] and
+    (JsPath \ "podAntiAffinity").formatNullable[Affinity.PodAntiAffinity]) (Pod.Affinity.apply, p => (p.nodeAffinity, p.podAffinity, p.podAntiAffinity))
 
   implicit val hostAliasFmt: Format[Pod.HostAlias] = Json.format[Pod.HostAlias]
   implicit val podDNSConfigOptionFmt: Format[Pod.DNSConfigOption] = Json.format[Pod.DNSConfigOption]
