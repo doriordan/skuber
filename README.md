@@ -46,6 +46,7 @@ Read the [documentation](https://skuber.co) and join [discord community](https:/
 
 ## Features
 - Uses standard `kubeconfig` files for configuration - see the [configuration guide](https://skuber.co/#/?id=configuration) for details
+- Scala 3.1, 2.13, 2.12 support
 - Refreshing EKS tokens [Refresh EKS Token guide](https://skuber.co/#/?id=refresh-eks-aws-token)
 - Comprehensive support for Kubernetes API model represented as Scala case classes
 - Support for core, extensions and other Kubernetes API groups
@@ -66,10 +67,10 @@ To get minikube follow the instructions [here](https://github.com/kubernetes/min
 
 ## Release
 
-You can use the latest release (for 2.12 or 2.13) by adding to your build:
+You can use the latest release (scala 2.12, 2.13 or 3.1) by adding to your build:
 
 ```sbt
-libraryDependencies += "io.github.hagay3" %% "skuber" % "2.7.6"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.0"
 ```
 
 ## Building
