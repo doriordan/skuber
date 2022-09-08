@@ -127,7 +127,7 @@ object PodExecImpl {
       requestContext.log.info(s"Connected to container ${containerPrintName} of pod ${podName}")
       close.future.foreach { _ =>
         requestContext.log.info(s"Close the connection of container ${containerPrintName} of pod ${podName}")
-        promise.success(None)
+        promise.trySuccess(None)
       }
     }
     Future.sequence(Seq(connected, close.future, promise.future)).map { _ => () }
