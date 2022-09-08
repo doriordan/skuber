@@ -28,31 +28,31 @@ object Pod {
   def apply(name: String, spec: Pod.Spec): Pod = Pod(metadata = ObjectMeta(name = name), spec = Some(spec))
 
   case class Spec(containers: List[Container] = List(), // should have at least one member
-                   initContainers: List[Container] = Nil,
-                   volumes: List[Volume] = Nil,
-                   restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
-                   terminationGracePeriodSeconds: Option[Int] = None,
-                   activeDeadlineSeconds: Option[Int] = None,
-                   dnsPolicy: DNSPolicy.DNSPolicy = DNSPolicy.ClusterFirst,
-                   nodeSelector: Map[String, String] = Map(),
-                   serviceAccountName: String = "",
-                   nodeName: String = "",
-                   hostNetwork: Boolean = false,
-                   imagePullSecrets: List[LocalObjectReference] = List(),
-                   affinity: Option[Affinity] = None,
-                   tolerations: List[Toleration] = List(),
-                   securityContext: Option[PodSecurityContext] = None,
-                   hostname: Option[String] = None,
-                   hostAliases: List[HostAlias] = Nil,
-                   hostPID: Option[Boolean] = None,
-                   hostIPC: Option[Boolean] = None,
-                   automountServiceAccountToken: Option[Boolean] = None,
-                   priority: Option[Int] = None,
-                   priorityClassName: Option[String] = None,
-                   schedulerName: Option[String] = None,
-                   subdomain: Option[String] = None,
-                   dnsConfig: Option[DNSConfig] = None,
-                   shareProcessNamespace: Option[Boolean] = None) {
+                  initContainers: List[Container] = Nil,
+                  volumes: List[Volume] = Nil,
+                  restartPolicy: RestartPolicy.RestartPolicy = RestartPolicy.Always,
+                  terminationGracePeriodSeconds: Option[Int] = None,
+                  activeDeadlineSeconds: Option[Int] = None,
+                  dnsPolicy: DNSPolicy.DNSPolicy = DNSPolicy.ClusterFirst,
+                  nodeSelector: Map[String, String] = Map(),
+                  serviceAccountName: String = "",
+                  nodeName: String = "",
+                  hostNetwork: Boolean = false,
+                  imagePullSecrets: List[LocalObjectReference] = List(),
+                  affinity: Option[Affinity] = None,
+                  tolerations: List[Toleration] = List(),
+                  securityContext: Option[PodSecurityContext] = None,
+                  hostname: Option[String] = None,
+                  hostAliases: List[HostAlias] = Nil,
+                  hostPID: Option[Boolean] = None,
+                  hostIPC: Option[Boolean] = None,
+                  automountServiceAccountToken: Option[Boolean] = None,
+                  priority: Option[Int] = None,
+                  priorityClassName: Option[String] = None,
+                  schedulerName: Option[String] = None,
+                  subdomain: Option[String] = None,
+                  dnsConfig: Option[DNSConfig] = None,
+                  shareProcessNamespace: Option[Boolean] = None) {
 
     // a few convenience methods for fluently building out a pod spec
     def addContainer(c: Container): Spec = {
@@ -97,8 +97,8 @@ object Pod {
   }
 
   case class Affinity(nodeAffinity: Option[Affinity.NodeAffinity] = None,
-                       podAffinity: Option[Affinity.PodAffinity] = None,
-                       podAntiAffinity: Option[Affinity.PodAntiAffinity] = None)
+                      podAffinity: Option[Affinity.PodAffinity] = None,
+                      podAntiAffinity: Option[Affinity.PodAntiAffinity] = None)
 
   case object Affinity {
 
@@ -149,10 +149,10 @@ object Pod {
     }
 
     case class PodAffinity(requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm] = Nil,
-                            preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm] = Nil)
+                           preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm] = Nil)
 
     case class PodAntiAffinity(requiredDuringSchedulingIgnoredDuringExecution: List[PodAffinityTerm] = Nil,
-                                preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm] = Nil)
+                               preferredDuringSchedulingIgnoredDuringExecution: List[WeightedPodAffinityTerm] = Nil)
 
     case class PodAffinityTerm(labelSelector: Option[LabelSelector] = None, namespaces: List[String] = Nil, topologyKey: String)
 
@@ -166,28 +166,28 @@ object Pod {
   case class DNSConfig(nameservers: List[String] = Nil, options: List[DNSConfigOption] = Nil, searches: List[String] = Nil)
 
   case class Status(phase: Option[Phase.Phase] = None,
-                     conditions: List[Condition] = Nil,
-                     message: Option[String] = None,
-                     reason: Option[String] = None,
-                     hostIP: Option[String] = None,
-                     podIP: Option[String] = None,
-                     startTime: Option[Timestamp] = None,
-                     containerStatuses: List[Container.Status] = Nil,
-                     initContainerStatuses: List[Container.Status] = Nil,
-                     qosClass: Option[String] = None,
-                     nominatedNodeName: Option[String] = None)
+                    conditions: List[Condition] = Nil,
+                    message: Option[String] = None,
+                    reason: Option[String] = None,
+                    hostIP: Option[String] = None,
+                    podIP: Option[String] = None,
+                    startTime: Option[Timestamp] = None,
+                    containerStatuses: List[Container.Status] = Nil,
+                    initContainerStatuses: List[Container.Status] = Nil,
+                    qosClass: Option[String] = None,
+                    nominatedNodeName: Option[String] = None)
 
   case class Condition(_type: String = "Ready",
-                        status: String,
-                        reason: Option[String] = None,
-                        message: Option[String] = None,
-                        lastProbeTime: Option[Timestamp] = None,
-                        lastTransitionTime: Option[Timestamp] = None)
+                       status: String,
+                       reason: Option[String] = None,
+                       message: Option[String] = None,
+                       lastProbeTime: Option[Timestamp] = None,
+                       lastTransitionTime: Option[Timestamp] = None)
 
   case class Template(kind: String = "PodTemplate",
-                       override val apiVersion: String = v1,
-                       metadata: ObjectMeta = ObjectMeta(),
-                       spec: Option[Template.Spec] = None)
+                      override val apiVersion: String = v1,
+                      metadata: ObjectMeta = ObjectMeta(),
+                      spec: Option[Template.Spec] = None)
     extends ObjectResource {
     def withResourceVersion(version: String): Template = this.copy(metadata = metadata.copy(resourceVersion = version))
 
@@ -225,7 +225,7 @@ object Pod {
     def named(name: String): Pod.Template = Pod.Template(metadata = ObjectMeta(name = name))
 
     case class Spec(metadata: ObjectMeta = ObjectMeta(),
-                     spec: Option[Pod.Spec] = None) {
+                    spec: Option[Pod.Spec] = None) {
 
       private def updateSpec(f: Pod.Spec => Pod.Spec) = {
         val newPodSpec = f(this.spec.getOrElse(Pod.Spec(Nil)))
@@ -284,14 +284,14 @@ object Pod {
   }
 
   case class LogQueryParams(containerName: Option[String] = None,
-                             follow: Option[Boolean] = None,
-                             limitBytes: Option[Int] = None,
-                             pretty: Option[Boolean] = None,
-                             previous: Option[Boolean] = None,
-                             sinceSeconds: Option[Int] = None,
-                             sinceTime: Option[Timestamp] = None,
-                             tailLines: Option[Int] = None,
-                             timestamps: Option[Boolean] = None) {
+                            follow: Option[Boolean] = None,
+                            limitBytes: Option[Int] = None,
+                            pretty: Option[Boolean] = None,
+                            previous: Option[Boolean] = None,
+                            sinceSeconds: Option[Int] = None,
+                            sinceTime: Option[Timestamp] = None,
+                            tailLines: Option[Int] = None,
+                            timestamps: Option[Boolean] = None) {
     lazy val asOptionalsMap: Map[String, Option[String]] = Map("container" -> containerName,
       "follow" -> follow.map(_.toString),
       "limitBytes" -> limitBytes.map(_.toString),

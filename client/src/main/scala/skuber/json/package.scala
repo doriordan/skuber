@@ -5,7 +5,7 @@ import java.time.format._
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.FunctionalBuilder
 import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.json.{Json, _}
 import skuber.Pod.Affinity
 import skuber._
 import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
@@ -69,16 +69,16 @@ package object format {
 
   class EnumFormatter(val path: JsPath) {
     def formatEnum[E <: Enumeration](`enum`: E, default: String): OFormat[`enum`.Value] = {
-      path.formatNullable[String].inmap[`enum`.Value](_.flatMap(s => Try(`enum`.withName(s)).toOption).getOrElse(`enum`.withName(default)), e =>  Some(e.toString))
+      path.formatNullable[String].inmap[`enum`.Value](_.flatMap(s => Try(`enum`.withName(s)).toOption).getOrElse(`enum`.withName(default)), e => Some(e.toString))
     }
 
-    def formatEnum[E <: Enumeration](`enum`: E): OFormat[`enum`.Value] =  {
-      path.format[String].inmap[`enum`.Value](en => `enum`.values.find(_.toString == en).get, e =>  e.toString)
+    def formatEnum[E <: Enumeration](`enum`: E): OFormat[`enum`.Value] = {
+      path.format[String].inmap[`enum`.Value](en => `enum`.values.find(_.toString == en).get, e => e.toString)
     }
 
     def formatNullableEnum[E <: Enumeration](`enum`: E): OFormat[Option[`enum`.Value]] = {
       path.formatNullable[String].inmap[Option[`enum`.Value]](
-        s => s.flatMap( str => Try(`enum`.withName(str)).toOption), e => e.map(_.toString))
+        s => s.flatMap(str => Try(`enum`.withName(str)).toOption), e => e.map(_.toString))
     }
 
   }
@@ -351,9 +351,19 @@ package object format {
   implicit val envFromSourceFmt: Format[EnvFromSource] = Format(envFromSourceReads, envFromSourceWrites)
 
   implicit val quantityFormat: Format[Resource.Quantity] = new Format[Resource.Quantity] {
-    // Note: validate on read in future?
-    def reads(json: JsValue): JsResult[Resource.Quantity] =
-      Json.fromJson[String](json).flatMap { s => JsSuccess(Resource.Quantity(s)) }
+
+    def reads(json: JsValue): JsResult[Resource.Quantity] = {
+      //Quantity can be string or number
+      val jsResult: JsResult[Resource.Quantity] = Json.fromJson[String](json).flatMap {
+        s => JsSuccess(Resource.Quantity(s))
+      }
+      jsResult match {
+        case JsSuccess(_, _) => jsResult
+        case JsError(_) => Json.fromJson[Int](json).flatMap {
+          s => JsSuccess(Resource.Quantity(s.toString))
+        }
+      }
+    }
 
     def writes(o: Resource.Quantity): JsValue = Json.toJson(o.value)
   }
