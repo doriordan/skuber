@@ -7,7 +7,7 @@ import skuber.api.client.{AuthProviderRefreshableAuth, Status}
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.{Failure, Success}
 
-final case class FileTokenAuthRefreshable(config: FileTokenConfiguration) extends TokenAuthRefreshable with FileReaderComponent {}
+final case class FileTokenAuthRefreshable(config: FileTokenConfiguration) extends TokenAuthRefreshable with FileReaderComponent
 
 final case class FileTokenConfiguration(
     cachedAccessToken: Option[String],
