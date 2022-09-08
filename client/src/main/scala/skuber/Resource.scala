@@ -4,7 +4,7 @@ package skuber
  * @author David O'Riordan
  */
 
-import scala.math.BigDecimal
+
 import scala.util.matching.Regex
 
 object Resource {

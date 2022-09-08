@@ -32,20 +32,20 @@ package object skuber {
   case class OwnerReference(apiVersion: String, kind: String, name: String, uid: String, controller: Option[Boolean], blockOwnerDeletion: Option[Boolean])
 
   case class ObjectMeta(name: String = emptyS,
-                         generateName: String = emptyS,
-                         namespace: String = emptyS,
-                         uid: String = emptyS,
-                         selfLink: String = emptyS,
-                         resourceVersion: String = emptyS,
-                         creationTimestamp: Option[Timestamp] = None,
-                         deletionTimestamp: Option[Timestamp] = None,
-                         deletionGracePeriodSeconds: Option[Int] = None,
-                         labels: Map[String, String] = Map(),
-                         annotations: Map[String, String] = Map(),
-                         ownerReferences: List[OwnerReference] = Nil,
-                         generation: Int = 0,
-                         finalizers: Option[List[String]] = None,
-                         clusterName: Option[String] = None)
+                        generateName: String = emptyS,
+                        namespace: String = emptyS,
+                        uid: String = emptyS,
+                        selfLink: String = emptyS,
+                        resourceVersion: String = emptyS,
+                        creationTimestamp: Option[Timestamp] = None,
+                        deletionTimestamp: Option[Timestamp] = None,
+                        deletionGracePeriodSeconds: Option[Int] = None,
+                        labels: Map[String, String] = Map(),
+                        annotations: Map[String, String] = Map(),
+                        ownerReferences: List[OwnerReference] = Nil,
+                        generation: Int = 0,
+                        finalizers: Option[List[String]] = None,
+                        clusterName: Option[String] = None)
 
   abstract class ObjectResource extends TypeMeta {
     val metadata: ObjectMeta
@@ -84,9 +84,9 @@ package object skuber {
   }
 
   case class ListResource[K <: KListItem](override val apiVersion: String,
-                                           override val kind: String,
-                                           override val metadata: Option[ListMeta],
-                                           override val items: List[K]) extends KList[K] {
+                                          override val kind: String,
+                                          override val metadata: Option[ListMeta],
+                                          override val items: List[K]) extends KList[K] {
     def resourceVersion = metadata.map(_.resourceVersion).getOrElse("")
 
     def itemNames: String = items.map { k => k.name } mkString (",")
@@ -143,12 +143,12 @@ package object skuber {
   case class LocalObjectReference(name: String)
 
   case class ObjectReference(kind: String = "",
-                              apiVersion: String = "",
-                              namespace: String = "",
-                              name: String = "",
-                              uid: String = "",
-                              resourceVersion: String = "",
-                              fieldPath: String = "") {
+                             apiVersion: String = "",
+                             namespace: String = "",
+                             name: String = "",
+                             uid: String = "",
+                             resourceVersion: String = "",
+                             fieldPath: String = "") {
     def \(addPath: String) = this.copy(fieldPath = fieldPath + "/" + addPath)
   }
 
@@ -174,9 +174,9 @@ package object skuber {
 
   // get health check status from a HTTP endpoint, returns non-OK HTTP status if health check fails
   case class HTTPGetAction(port: NameablePort,
-                            host: String = "",
-                            path: String = "",
-                            schema: String = "HTTP") extends Handler {
+                           host: String = "",
+                           path: String = "",
+                           schema: String = "HTTP") extends Handler {
     def url = {
       this.port match {
         case Left(p) => new URL(schema, host, p, path)
@@ -195,11 +195,11 @@ package object skuber {
   case class TCPSocketAction(port: NameablePort) extends Handler
 
   case class Probe(action: Handler,
-                    initialDelaySeconds: Int = 0,
-                    timeoutSeconds: Int = 0,
-                    periodSeconds: Option[Int] = None,
-                    successThreshold: Option[Int] = None,
-                    failureThreshold: Option[Int] = None)
+                   initialDelaySeconds: Int = 0,
+                   timeoutSeconds: Int = 0,
+                   periodSeconds: Option[Int] = None,
+                   successThreshold: Option[Int] = None,
+                   failureThreshold: Option[Int] = None)
 
   case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None)
 
@@ -234,20 +234,20 @@ package object skuber {
   case class Preconditions(uid: String = "")
 
   case class DeleteOptions(apiVersion: String = "v1",
-                            kind: String = "DeleteOptions",
-                            gracePeriodSeconds: Option[Int] = None,
-                            preconditions: Option[Preconditions] = None,
-                            propagationPolicy: Option[DeletePropagation.Value] = None)
+                           kind: String = "DeleteOptions",
+                           gracePeriodSeconds: Option[Int] = None,
+                           preconditions: Option[Preconditions] = None,
+                           propagationPolicy: Option[DeletePropagation.Value] = None)
 
   // List options can be passed to a list or watch request.
   case class ListOptions(labelSelector: Option[LabelSelector] = None,
-                          fieldSelector: Option[String] = None,
-                          includeUninitialized: Option[Boolean] = None,
-                          resourceVersion: Option[String] = None,
-                          timeoutSeconds: Option[Long] = None,
-                          limit: Option[Long] = None,
-                          continue: Option[String] = None,
-                          watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
+                         fieldSelector: Option[String] = None,
+                         includeUninitialized: Option[Boolean] = None,
+                         resourceVersion: Option[String] = None,
+                         timeoutSeconds: Option[Long] = None,
+                         limit: Option[Long] = None,
+                         continue: Option[String] = None,
+                         watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
                         ) {
     lazy val asOptionalsMap: Map[String, Option[String]] = Map(
       "labelSelector" -> labelSelector.map(_.toString),
