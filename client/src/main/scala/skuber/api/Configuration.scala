@@ -1,16 +1,19 @@
 package skuber.api
 
-import java.net.URL
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import scala.collection.JavaConverters._
-import scala.util.Try
-import scala.util.Failure
-import java.util.{Base64, Date}
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
 import skuber.api.client._
+import skuber.api.client.token.{FileTokenAuthRefreshable, FileTokenConfiguration}
+import skuber.config.SkuberConfig
+
+import java.net.URL
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.util.{Base64, Date}
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.io.Source
+import scala.util.{Failure, Try}
 
 /**
  * @author David O'Riordan
@@ -229,7 +232,6 @@ object Configuration {
     *      https://github.com/kubernetes-client/java/blob/master/util/src/main/java/io/kubernetes/client/util/ClientBuilder.java#L134
     */
   lazy val inClusterConfig: Try[Configuration] = {
-
     val rootK8sFolder = "/var/run/secrets/kubernetes.io/serviceaccount"
     val tokenPath     = s"$rootK8sFolder/token"
     val namespacePath = s"$rootK8sFolder/namespace"
@@ -251,6 +253,8 @@ object Configuration {
     //"Expected to load root CA config from %s, but got err: %v", rootCAFile, err)
     lazy val ca: Option[PathOrData] = if (Files.exists(Paths.get(caPath))) Some(Left(caPath)) else None
 
+    lazy val refreshTokenInterval: Duration = SkuberConfig.load().getDuration("in-config.refresh-token-interval", 5.minutes)
+
     for {
       host      <- maybeHost
       port      <- maybePort
@@ -258,7 +262,9 @@ object Configuration {
       namespace <- maybeNamespace
       hostPort  = s"https://$host${if (port.length > 0) ":" + port else ""}"
       cluster   = Cluster(server = hostPort, certificateAuthority = ca)
-      ctx       = Context(cluster, TokenAuth(token), Namespace.forName(namespace))
+      ctx       = Context(cluster = cluster,
+        authInfo = FileTokenAuthRefreshable(FileTokenConfiguration(cachedAccessToken= Some(token), tokenPath = tokenPath, refreshTokenInterval)),
+        namespace = Namespace.forName(namespace))
     } yield Configuration(clusters = Map("default" -> cluster),
       contexts = Map("default" -> ctx),
       currentContext = ctx)
@@ -297,5 +303,4 @@ object Configuration {
         }
     }
   }
-
 }
