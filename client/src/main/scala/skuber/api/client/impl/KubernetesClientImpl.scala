@@ -20,8 +20,11 @@ import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormatReads, deleteOptionsFmt, namespaceListFmt}
+
 import javax.net.ssl.SSLContext
 import skuber.apiextensions.CustomResourceDefinition.Scope
+import skuber.config.SkuberConfig
+
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -673,7 +676,6 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
         response.discardEntityBytes().future.map(done => ())
     }
   }
-
 }
 
 object KubernetesClientImpl {
@@ -681,19 +683,7 @@ object KubernetesClientImpl {
   def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
    (implicit actorSystem: ActorSystem): KubernetesClientImpl =
   {
-    appConfig.checkValid(ConfigFactory.defaultReference(), "skuber")
-
-    def getSkuberConfig[T](key: String, fromConfig: String => Option[T], default: T): T = {
-      val skuberConfigKey = s"skuber.$key"
-      if (appConfig.getIsNull(skuberConfigKey)) {
-        default
-      } else {
-        fromConfig(skuberConfigKey) match {
-          case None => default
-          case Some(t) => t
-        }
-      }
-    }
+    val skuberConfig = SkuberConfig.load(appConfig)
 
     def dispatcherFromConfig(configKey: String): Option[ExecutionContext] = if (appConfig.getString(configKey).isEmpty) {
       None
@@ -701,16 +691,13 @@ object KubernetesClientImpl {
       Some(actorSystem.dispatchers.lookup(appConfig.getString(configKey)))
     }
 
-    implicit val dispatcher: ExecutionContext = getSkuberConfig("akka.dispatcher", dispatcherFromConfig, actorSystem.dispatcher)
+    implicit val dispatcher: ExecutionContext = skuberConfig.getSkuberConfig("akka.dispatcher", dispatcherFromConfig, actorSystem.dispatcher)
 
-    def durationFomConfig(configKey: String): Option[Duration] = Some(Duration.fromNanos(appConfig.getDuration(configKey).toNanos))
-
-    val watchIdleTimeout: Duration = getSkuberConfig("watch.idle-timeout", durationFomConfig, Duration.Inf)
-    val podLogIdleTimeout: Duration = getSkuberConfig("pod-log.idle-timeout", durationFomConfig, Duration.Inf)
-
-    val watchContinuouslyRequestTimeout: Duration = getSkuberConfig("watch-continuously.request-timeout", durationFomConfig, 30.seconds)
-    val watchContinuouslyIdleTimeout: Duration = getSkuberConfig("watch-continuously.idle-timeout", durationFomConfig, 60.seconds)
-    val watchPoolIdleTimeout: Duration = getSkuberConfig("watch-continuously.pool-idle-timeout", durationFomConfig, 60.seconds)
+    val watchIdleTimeout: Duration = skuberConfig.getDuration("watch.idle-timeout", Duration.Inf)
+    val podLogIdleTimeout: Duration = skuberConfig.getDuration("pod-log.idle-timeout", Duration.Inf)
+    val watchContinuouslyRequestTimeout: Duration = skuberConfig.getDuration("watch-continuously.request-timeout", 30.seconds)
+    val watchContinuouslyIdleTimeout: Duration = skuberConfig.getDuration("watch-continuously.idle-timeout", 60.seconds)
+    val watchPoolIdleTimeout: Duration = skuberConfig.getDuration("watch-continuously.pool-idle-timeout", 60.seconds)
 
     //The watch idle timeout needs to be greater than watch api request timeout
     require(watchContinuouslyIdleTimeout > watchContinuouslyRequestTimeout)

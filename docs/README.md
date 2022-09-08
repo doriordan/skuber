@@ -105,6 +105,21 @@ Initiailly Skuber tries out-of-cluster methods in sequence (stops on first succe
 
 If all above fails Skuber tries [in-cluster configuration method](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
 
+### In Cluster configuration
+
+Since kubernetes 1.21 the service account tokens have changed to bound service account tokens (See: [Bound Service Account Token Volume](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume)). The service account token needs to be refreshed and reloaded periodically from disk. 
+Skuber by default reloads the token from disk every 5 minutes.
+
+The refresh token interval can be changed updating the following configuration property:
+
+```config
+skuber {
+  in-config {
+    refresh-token-interval = 5m
+  }
+}
+```
+
 
 
 ### Security

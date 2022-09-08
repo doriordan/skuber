@@ -11,7 +11,7 @@ final case class FileTokenAuthRefreshable(config: FileTokenConfiguration) extend
 
 final case class FileTokenConfiguration(
     cachedAccessToken: Option[String],
-    tokenPath: Option[String],
+    tokenPath: String,
     refreshInterval: Duration = 5.minutes,
 )
 
@@ -21,13 +21,7 @@ trait TokenAuthRefreshable extends AuthProviderRefreshableAuth { self: ContentRe
   private val refreshInterval: Duration = config.refreshInterval
   @volatile private var cachedToken: Option[RefreshableToken] = config.cachedAccessToken.map(buildRefreshableToken)
 
-  private val tokenPath: String = {
-    config.tokenPath.getOrElse {
-      throw new K8SException(
-        Status(reason = Some("token path not found, please provide the token path for refreshing the token"))
-      )
-    }
-  }
+  private val tokenPath: String = config.tokenPath
 
   override def name: String = "file-token"
   override def toString: String = """FileTokenAuthRefreshable(accessToken=<redacted>)""".stripMargin
