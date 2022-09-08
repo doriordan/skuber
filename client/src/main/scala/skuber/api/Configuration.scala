@@ -227,7 +227,7 @@ object Configuration {
     *
     * @return Try[Configuration]
     *
-    * @see https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
+    * @see https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/
     *      https://github.com/kubernetes/client-go/blob/master/rest/config.go#L313
     *      https://github.com/kubernetes-client/java/blob/master/util/src/main/java/io/kubernetes/client/util/ClientBuilder.java#L134
     */

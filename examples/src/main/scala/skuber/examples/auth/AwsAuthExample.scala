@@ -12,6 +12,11 @@ import skuber.{PodList, k8sInit}
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.duration._
 
+/**
+ * sbt examples/assembly
+ * export namespace=default;export serverUrl=https://EKS_URL; export certificate=CERTIFICATE_BASE64_ENCODED;export clusterName=EKS_CLUSTER_NAME; export region=REGION_NAME
+ * java -cp ./examples/target/scala-2.13/skuber-examples-assembly-2.7.4.jar  skuber.examples.auth.AwsAuthExample
+ */
 object AwsAuthExample extends App {
   implicit private val as: ActorSystem = ActorSystem()
   implicit private val ex: ExecutionContextExecutor = as.dispatcher
@@ -43,3 +48,4 @@ object AwsAuthExample extends App {
     println(pods.items.map(_.name))
   }
 }
+
