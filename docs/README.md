@@ -77,6 +77,63 @@ implicit val as = ActorSystem()
 val k8s: KubernetesClient = k8sInit(k8sConfig)
 ```
 
+### In Cluster configuration
+[kubernetes.io/access-api-from-pod](https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/)
+
+Using in-cluster configuration with skuber example:
+
+```bash
+export KUBERNETES_SERVICE_HOST=kubernetes.default.svc
+export KUBERNETES_SERVICE_PORT=443
+```
+
+```scala
+object InClusterConfigurationExample extends App {
+  implicit private val as: ActorSystem = ActorSystem()
+  implicit private val ex: ExecutionContextExecutor = as.dispatcher
+  Configuration.inClusterConfig match {
+    case Success(k8sConfig) =>
+      val k8s: KubernetesClient = k8sInit(k8sConfig)(as)
+
+      getApiVersions(0)
+      getApiVersions(5)
+      getApiVersions(11)
+
+      k8s.close
+      Await.result(as.terminate(), 10.seconds)
+      System.exit(0)
+
+      def getApiVersions(minutesSleep: Int): Unit = {
+        println(s"Sleeping $minutesSleep minutes...")
+        Thread.sleep(minutesSleep * 60 * 1000)
+        println(DateTime.now)
+        val apiVersions = Await.result(k8s.getServerAPIVersions, 10.seconds)
+        println(apiVersions.mkString(","))
+      }
+    case Failure(ex) =>
+      throw ex
+      System.exit(0)
+  }
+}
+```
+
+
+#### Refresh token (in-cluster configuration)
+
+Skuber with in-cluster config, reloads by default the token from disk every 5 minutes.
+
+Since kubernetes 1.21 the service account tokens have changed to bound service account tokens (See: [Bound Service Account Token Volume](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume)). The service account token needs to be refreshed and reloaded periodically from disk.
+
+
+The refresh token interval can be changed updating the following configuration property:
+
+```config
+skuber {
+  in-config {
+    refresh-token-interval = 5m
+  }
+}
+```
 
 
 ### Overriding URL / Use Proxy URL
@@ -92,9 +149,9 @@ If the cluster URL is set this way, then the `SKUBER_CONFIG` and `KUBECONFIG` en
 ### Config load order
 
 Skuber supports both out-of-cluster and in-cluster configurations.
-Сonfiguration algorithm can be described as follows:
+Configuration algorithm can be described as follows:
 
-Initiailly Skuber tries out-of-cluster methods in sequence (stops on first successful):
+Initially Skuber tries out-of-cluster methods in sequence (stops on first successful):
  1. Read `SKUBER_URL` environment variable and use it as kubectl proxy url. If not set then:
  2. Read `SKUBER_CONFIG` environment variable and if is equal to:
     * `file`  - Skuber will read `~/.kube/config` and use it as configuration source
@@ -105,20 +162,7 @@ Initiailly Skuber tries out-of-cluster methods in sequence (stops on first succe
 
 If all above fails Skuber tries [in-cluster configuration method](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod)
 
-### In Cluster configuration
 
-Since kubernetes 1.21 the service account tokens have changed to bound service account tokens (See: [Bound Service Account Token Volume](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#bound-service-account-token-volume)). The service account token needs to be refreshed and reloaded periodically from disk. 
-Skuber by default reloads the token from disk every 5 minutes.
-
-The refresh token interval can be changed updating the following configuration property:
-
-```config
-skuber {
-  in-config {
-    refresh-token-interval = 5m
-  }
-}
-```
 
 
 

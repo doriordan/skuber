@@ -17,7 +17,7 @@ class FileTokenAuthRefreshableSpec extends Specification {
     }
   }
 
-  final case class MockFileTokenAuthRefreshable(config: FileTokenConfiguration) extends TokenAuthRefreshable with MockFileReaderComponent {}
+  final case class MockFileTokenAuthRefreshable(config: FileTokenConfiguration) extends TokenAuthRefreshable with MockFileReaderComponent
 
   "FileTokenAuthRefreshable" should {
     "Retrieve the token if none provided" in {
@@ -26,16 +26,22 @@ class FileTokenAuthRefreshableSpec extends Specification {
       fileTokenRefreshable.accessToken.nonEmpty must beTrue
     }
 
-    "Refresh the token after the refresh interval" in {
+    "Don't Refresh the token before the refresh interval" in {
       val initialToken = "cachedToken"
-      val fileTokenRefreshable = MockFileTokenAuthRefreshable(FileTokenConfiguration(Some(initialToken), "/tmp/token", 100.milliseconds))
+      val fileTokenRefreshable = MockFileTokenAuthRefreshable(FileTokenConfiguration(Some(initialToken), "/tmp/token", 100.seconds))
       fileTokenRefreshable.accessToken shouldEqual initialToken
 
-      Thread.sleep(150)
+    }
+
+    "Refresh the token after the refresh interval" in {
+      val initialToken = "cachedToken"
+      val fileTokenRefreshable = MockFileTokenAuthRefreshable(FileTokenConfiguration(Some(initialToken), "/tmp/token", 10.milliseconds))
+
+      Thread.sleep(500)
       val refreshed = fileTokenRefreshable.accessToken
       refreshed shouldNotEqual initialToken
 
-      Thread.sleep(150)
+      Thread.sleep(500)
       fileTokenRefreshable.accessToken shouldNotEqual refreshed
     }
   }
