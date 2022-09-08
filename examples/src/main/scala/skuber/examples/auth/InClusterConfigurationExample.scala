@@ -12,7 +12,7 @@ import scala.util.{Failure, Success}
 /**
  * sbt examples/assembly
  * export KUBERNETES_SERVICE_HOST=kubernetes.default.svc; export KUBERNETES_SERVICE_PORT=443
- * java -cp ./examples/target/scala-2.13/skuber-examples-assembly-3.0.0.jar  skuber.examples.auth.InClusterConfigurationExample
+ * java -cp ./examples/target/scala-2.13/skuber-examples-assembly-x.x.x.jar  skuber.examples.auth.InClusterConfigurationExample
  */
 object InClusterConfigurationExample extends App {
   implicit private val as: ActorSystem = ActorSystem()
