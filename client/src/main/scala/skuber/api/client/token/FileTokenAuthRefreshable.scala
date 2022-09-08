@@ -10,7 +10,7 @@ import scala.util.{Failure, Success}
 final case class FileTokenAuthRefreshable(config: FileTokenConfiguration) extends TokenAuthRefreshable with FileReaderComponent {}
 
 final case class FileTokenConfiguration(
-    cachedAccessToken: Option[RefreshableToken],
+    cachedAccessToken: Option[String],
     tokenPath: Option[String],
     refreshInterval: Duration = 5.minutes,
 )
@@ -19,7 +19,7 @@ trait TokenAuthRefreshable extends AuthProviderRefreshableAuth { self: ContentRe
   val config: FileTokenConfiguration
 
   private val refreshInterval: Duration = config.refreshInterval
-  @volatile private var cachedToken: Option[RefreshableToken] = config.cachedAccessToken
+  @volatile private var cachedToken: Option[RefreshableToken] = config.cachedAccessToken.map(buildRefreshableToken)
 
   private val tokenPath: String = {
     config.tokenPath.getOrElse {
@@ -33,7 +33,7 @@ trait TokenAuthRefreshable extends AuthProviderRefreshableAuth { self: ContentRe
   override def toString: String = """FileTokenAuthRefreshable(accessToken=<redacted>)""".stripMargin
 
   override def refreshToken: RefreshableToken = {
-    val refreshedToken = RefreshableToken(generateToken, DateTime.now.plus(refreshInterval.toMillis))
+    val refreshedToken = buildRefreshableToken(generateToken)
     cachedToken = Some(refreshedToken)
     refreshedToken
   }
@@ -58,6 +58,10 @@ trait TokenAuthRefreshable extends AuthProviderRefreshableAuth { self: ContentRe
       case Some(token) =>
         token.accessToken
     }
+  }
+
+  private def buildRefreshableToken(accessToken: String): RefreshableToken = {
+    RefreshableToken(accessToken, DateTime.now.plus(refreshInterval.toMillis))
   }
 }
 

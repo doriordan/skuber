@@ -10,6 +10,8 @@ import java.util.{Base64, Date}
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
 import skuber.api.client._
+import skuber.api.client.token.{FileTokenAuthRefreshable, FileTokenConfiguration}
+
 import scala.io.Source
 
 /**
@@ -258,7 +260,9 @@ object Configuration {
       namespace <- maybeNamespace
       hostPort  = s"https://$host${if (port.length > 0) ":" + port else ""}"
       cluster   = Cluster(server = hostPort, certificateAuthority = ca)
-      ctx       = Context(cluster, TokenAuth(token), Namespace.forName(namespace))
+      ctx       = Context(cluster = cluster,
+        authInfo = FileTokenAuthRefreshable(FileTokenConfiguration(cachedAccessToken= Some(token), tokenPath = Some(tokenPath))),
+        namespace = Namespace.forName(namespace))
     } yield Configuration(clusters = Map("default" -> cluster),
       contexts = Map("default" -> ctx),
       currentContext = ctx)
@@ -297,5 +301,4 @@ object Configuration {
         }
     }
   }
-
 }

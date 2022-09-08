@@ -21,19 +21,19 @@ class FileTokenAuthRefreshableSpec extends Specification {
 
   "FileTokenAuthRefreshable" should {
     "Retrieve the token if none provided" in {
-      val initialToken : Option[RefreshableToken] = None
+      val initialToken : Option[String] = None
       val fileTokenRefreshable = MockFileTokenAuthRefreshable(FileTokenConfiguration(cachedAccessToken = initialToken, tokenPath = Some("/tmp/token"), refreshInterval = 100.milliseconds))
       fileTokenRefreshable.accessToken.nonEmpty must beTrue
     }
 
     "Refresh the token after the refresh interval" in {
-      val initialToken = RefreshableToken("cachedToken", DateTime.now.plus(100.milliseconds.toMillis))
+      val initialToken = "cachedToken"
       val fileTokenRefreshable = MockFileTokenAuthRefreshable(FileTokenConfiguration(Some(initialToken), Some("/tmp/token"), 100.milliseconds))
-      fileTokenRefreshable.accessToken shouldEqual initialToken.accessToken
+      fileTokenRefreshable.accessToken shouldEqual initialToken
 
       Thread.sleep(150)
       val refreshed = fileTokenRefreshable.accessToken
-      refreshed shouldNotEqual initialToken.accessToken
+      refreshed shouldNotEqual initialToken
 
       Thread.sleep(150)
       fileTokenRefreshable.accessToken shouldNotEqual refreshed
