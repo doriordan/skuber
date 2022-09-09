@@ -33,7 +33,8 @@ k8s.list[PodList](Some("kube-system"))
 ## Release
 
 You can use the latest release by adding to your build:
-- Scala 3.1, 2.13, 2.12 support
+- Scala 3.2, 2.13, 2.12 support
+
 ```scala
 libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.1"
 ```
