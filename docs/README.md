@@ -32,10 +32,11 @@ k8s.list[PodList](Some("kube-system"))
 ```
 ## Release
 
-You can use the latest release (for 3.2, 2.12 or 2.13) by adding to your build:
+You can use the latest release by adding to your build:
+- Scala 3.2, 2.13, 2.12 support
 
 ```scala
-libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.0"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.1"
 ```
 
 ## Configuration
