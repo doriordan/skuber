@@ -9,7 +9,7 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
 val mockito = "org.mockito" % "mockito-core" % "3.11.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.29"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.31"
 val commonsIO = "commons-io" % "commons-io" % "2.9.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 
@@ -30,7 +30,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.6.4"
+ThisBuild / version := "2.6.5"
 
 sonatypeProfileName := "io.skuber"
 
