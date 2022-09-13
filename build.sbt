@@ -15,7 +15,7 @@ val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
 
 /**
  * 2.6.19 is the last akka open source version
- * To comply other companies legal issues that may use skuber, akka version wont be bumped.
+ * To comply with other companies' legal issues, akka version wont be bumped.
  * https://www.lightbend.com/blog/why-we-are-changing-the-license-for-akka
  */
 val akkaVersion = "2.6.19"
