@@ -223,18 +223,18 @@ object Ingress {
   implicit val ingressServiceFmt: Format[Ingress.ServiceType] = (
     (JsPath \ "name").format[String] and
       (JsPath \ "port").format[Ingress.Port]
-    ) (Ingress.ServiceType.apply _, unlift(Ingress.ServiceType.unapply))
+    ) (Ingress.ServiceType.apply _, i => (i.name, i.port))
 
   implicit val ingressBackendFmt: Format[Ingress.Backend] = (
     (JsPath \ "service").formatNullable[Ingress.ServiceType] and
       (JsPath \ "resource").formatNullable[String]
-    ) (Ingress.Backend.apply _, unlift(Ingress.Backend.unapply))
+    ) (Ingress.Backend.apply _, i => (i.service, i.resource))
 
   implicit val ingressPathFmt: Format[Ingress.Path] = (
     (JsPath \ "path").formatMaybeEmptyString() and
       (JsPath \ "backend").format[Ingress.Backend] and
       (JsPath \ "pathType").formatEnum(PathType, PathType.ImplementationSpecific.toString)
-    ) (Ingress.Path.apply _, unlift(Ingress.Path.unapply))
+    ) (Ingress.Path.apply _, i => (i.path, i.backend, i.pathType))
 
   implicit val ingressHttpRuledFmt: Format[Ingress.HttpRule] = Json.format[Ingress.HttpRule]
   implicit val ingressRuleFmt     : Format[Ingress.Rule]     = Json.format[Ingress.Rule]
@@ -246,7 +246,7 @@ object Ingress {
       (JsPath \ "rules").formatMaybeEmptyList[Ingress.Rule] and
       (JsPath \ "tls").formatMaybeEmptyList[Ingress.TLS] and
       (JsPath \ "ingressClassName").formatNullable[String]
-    ) (Ingress.Spec.apply _, unlift(Ingress.Spec.unapply))
+    ) (Ingress.Spec.apply _, i => (i.backend, i.rules, i.tls, i.ingressClassName))
 
 
   implicit val ingrlbingFormat: Format[Ingress.Status.LoadBalancer.Ingress] =
@@ -264,7 +264,7 @@ object Ingress {
     objFormat and
       (JsPath \ "spec").formatNullable[Ingress.Spec] and
       (JsPath \ "status").formatNullable[Ingress.Status]
-    ) (Ingress.apply _, unlift(Ingress.unapply))
+    ) (Ingress.apply _, i => (i.kind, i.apiVersion, i.metadata, i.spec, i.status))
 
   implicit val ingressListFmt: Format[IngressList] = ListResourceFormat[Ingress]
 
