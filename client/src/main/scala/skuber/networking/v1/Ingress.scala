@@ -233,7 +233,7 @@ object Ingress {
   implicit val ingressPathFmt: Format[Ingress.Path] = (
     (JsPath \ "path").formatMaybeEmptyString() and
       (JsPath \ "backend").format[Ingress.Backend] and
-      (JsPath \ "pathType").formatEnum(PathType, Some(PathType.ImplementationSpecific))
+      (JsPath \ "pathType").formatEnum(PathType, PathType.ImplementationSpecific.toString)
     ) (Ingress.Path.apply _, unlift(Ingress.Path.unapply))
 
   implicit val ingressHttpRuledFmt: Format[Ingress.HttpRule] = Json.format[Ingress.HttpRule]
