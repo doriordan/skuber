@@ -109,7 +109,7 @@ case class Ingress(
             Ingress.Path(
               path,
               Ingress.Backend(
-                Option(Ingress.ServiceType(serviceName, Ingress.Port(number = toNameablePort(servicePort))))
+                Option(Ingress.ServiceType(serviceName, toIngressPort(toNameablePort(servicePort))))
               ),
               pathType
             )
@@ -150,12 +150,17 @@ case class Ingress(
     * @return copy of this Ingress with default backend set
     */
   def withDefaultBackendService(serviceName: String, servicePort: NameablePort): Ingress = {
-    val be = Backend(Option(Ingress.ServiceType(serviceName, Ingress.Port(number = servicePort))))
+    val be = Backend(Option(Ingress.ServiceType(serviceName, toIngressPort(servicePort))))
     this.copy(spec = Some(copySpec.copy(backend = Some(be))))
   }
 
   def addAnnotations(newAnnos: Map[String, String]): Ingress =
     this.copy(metadata = this.metadata.copy(annotations = this.metadata.annotations ++ newAnnos))
+
+  private def toIngressPort(port: NameablePort): Ingress.Port = port match {
+    case Left(intValue) => Ingress.Port(number = Some(intValue))
+    case Right(strValue) => Ingress.Port(name = Some(strValue))
+  }
 
   private def toNameablePort(port: String): NameablePort =
     Try(port.toInt).toEither.left.map(_ => port).swap
@@ -183,7 +188,7 @@ object Ingress {
 
   def apply(name: String): Ingress = Ingress(metadata = ObjectMeta(name = name))
 
-  case class Port(name: Option[String] = None, number: NameablePort)
+  case class Port(name: Option[String] = None, number: Option[Int] = None)
   case class ServiceType(name: String, port: Port)
 
   // Backend contains either service or resource
