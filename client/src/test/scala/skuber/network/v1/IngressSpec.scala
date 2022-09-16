@@ -84,7 +84,7 @@ class IngressSpec extends Specification {
 
     ing.spec.get.rules.head.host must beSome("example.com")
     ing.spec.get.rules.head.http.paths must_== List(
-      Ingress.Path(path = "", backend = Ingress.Backend(Some(Ingress.ServiceType("example-svc", Ingress.Port(number = 8080))))),
+      Ingress.Path(path = "", backend = Ingress.Backend(Some(Ingress.ServiceType("example-svc", Ingress.Port(number = Some(8080)))))),
     )
     ing.spec.get.tls must_== List(Ingress.TLS(
       hosts = List("abc", "def"),
