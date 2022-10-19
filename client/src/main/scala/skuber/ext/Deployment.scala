@@ -9,12 +9,13 @@ import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{Container, IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ListResource, ResourceDefinition}
 
 case class Deployment(
-    val kind: String ="Deployment",
-    override val apiVersion: String = extensionsAPIVersion,
-    val metadata: ObjectMeta = ObjectMeta(),
-    val spec:  Option[Deployment.Spec] = None,
-    val status: Option[Deployment.Status] = None)
-      extends ObjectResource {
+  kind: String ="Deployment",
+  apiVersion: String = extensionsAPIVersion,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec:  Option[Deployment.Spec] = None,
+  status: Option[Deployment.Status] = None)
+    extends ObjectResource
+{
 
   def withResourceVersion(version: String): Deployment = this.copy(metadata = metadata.copy(resourceVersion = version))
 

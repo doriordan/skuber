@@ -4,11 +4,11 @@ package skuber
  * @author David O'Riordan
  */
 case class Endpoints(
-  	kind: String ="Endpoints",
-  	override val apiVersion: String = v1,
-    metadata: ObjectMeta,
-    subsets: List[Endpoints.Subset] = Nil)       
-  extends ObjectResource 
+  kind: String ="Endpoints",
+  apiVersion: String = v1,
+  metadata: ObjectMeta,
+  subsets: List[Endpoints.Subset] = Nil)
+    extends ObjectResource
 {
     // unlikely any skuber clients will construct their own endpoints, but if so can use these fluent methods
 

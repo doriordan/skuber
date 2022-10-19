@@ -7,12 +7,13 @@ import skuber._
  * @author David O'Riordan
  */
 case class ReplicaSet(
-  	val kind: String ="ReplicaSet",
-  	override val apiVersion: String = extensionsAPIVersion,
-    val metadata: ObjectMeta = ObjectMeta(),
-    spec: Option[ReplicaSet.Spec] = None,
-    status: Option[ReplicaSet.Status] = None)
-      extends ObjectResource {
+  kind: String ="ReplicaSet",
+  apiVersion: String = extensionsAPIVersion,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec: Option[ReplicaSet.Spec] = None,
+  status: Option[ReplicaSet.Status] = None)
+    extends ObjectResource
+{
 
     lazy val copySpec = this.spec.getOrElse(new ReplicaSet.Spec)
     
@@ -35,7 +36,7 @@ case class ReplicaSet(
     def withTemplate(t: Pod.Template.Spec) = {
       val withTmpl = this.copy(spec = Some(copySpec.copy(template = Some(t))))
       val withSelector = (t.metadata.labels, spec.flatMap{_.selector}) match {
-        case (labels, selector) if (!labels.isEmpty && !selector.isDefined) =>
+        case (labels, selector) if !labels.isEmpty && !selector.exists(_.requirements.nonEmpty) =>
           val reqs = labels map { label: (String, String) =>
             LabelSelector.IsEqualRequirement(label._1, label._2)
           }

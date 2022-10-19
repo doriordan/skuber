@@ -3,9 +3,7 @@ package skuber
 /**
  * @author David O'Riordan
  */
-case class EnvVar(
-    name: String,
-    value: EnvVar.Value = "")
+case class EnvVar(name: String, value: EnvVar.Value = "")
 
 object EnvVar {
   sealed trait Value

@@ -1,12 +1,11 @@
 package skuber
 
 import akka.actor.ActorSystem
-import org.scalatest.{FutureOutcome, fixture}
-import skuber.api.client._
+import org.scalatest.FutureOutcome
 import com.typesafe.config.ConfigFactory
-import skuber.api.client.impl.KubernetesClientImpl
+import org.scalatest.flatspec.FixtureAsyncFlatSpec
 
-trait K8SFixture extends fixture.AsyncFlatSpec {
+trait K8SFixture extends FixtureAsyncFlatSpec {
 
   override type FixtureParam =  K8SRequestContext
 
@@ -17,6 +16,7 @@ trait K8SFixture extends fixture.AsyncFlatSpec {
 
   override def withFixture(test: OneArgAsyncTest): FutureOutcome = {
     val k8s = k8sInit(config)
+
     complete {
       withFixture(test.toNoArgAsyncTest(k8s))
     } lastly {

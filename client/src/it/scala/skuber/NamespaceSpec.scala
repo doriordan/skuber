@@ -2,7 +2,7 @@ package skuber
 
 import java.util.UUID.randomUUID
 
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import json.format.{namespaceFormat, podFormat}
 

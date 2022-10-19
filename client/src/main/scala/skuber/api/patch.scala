@@ -6,8 +6,8 @@ import play.api.libs.json.Writes
 package object patch {
 
   object CustomMediaTypes {
-    val `application/merge-patch+json` = MediaType.applicationWithFixedCharset("merge-patch+json", HttpCharsets.`UTF-8`)
-    val `application/strategic-merge-patch+json` = MediaType.applicationWithFixedCharset("strategic-merge-patch+json", HttpCharsets.`UTF-8`)
+    val `application/merge-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("merge-patch+json", HttpCharsets.`UTF-8`)
+    val `application/strategic-merge-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("strategic-merge-patch+json", HttpCharsets.`UTF-8`)
   }
 
   object JsonPatchOperation {

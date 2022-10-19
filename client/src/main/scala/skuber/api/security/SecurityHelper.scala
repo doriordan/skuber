@@ -7,15 +7,11 @@ import java.nio.file.{Files, Paths}
 import java.security.{KeyStore, PrivateKey}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.KeyFactory
-import java.security.InvalidKeyException
 import java.security.spec.PKCS8EncodedKeySpec
 import scala.io.Source
 import scala.collection.JavaConverters._
 import skuber.api.client.PathOrData
-import skuber.api.security.SecurityHelper.PKCS8ECPrivateKeyParser.getPKCS8PrivateKey
-import skuber.api.security.SecurityHelper.PrivateKeyParser
 
-import java.nio.charset.StandardCharsets
 import scala.util.{Success, Try}
 
 /**
@@ -35,10 +31,9 @@ object SecurityHelper {
   private def createInputStreamForPathOrData(target: PathOrData) : InputStream = {
     target match {
       case Right(data) => new ByteArrayInputStream(data)
-      case Left(path)  => {
+      case Left(path)  =>
         val filePath = Paths.get(path)
         Files.newInputStream(filePath)
-      }
     }
   }
   
@@ -94,14 +89,14 @@ object SecurityHelper {
     * @param header The expected PEM header for the key type
     * @param footer The expected PEM footer for the key type
     */
-  case class PEMHeaderFooter(val header: String, val footer: String)
+  case class PEMHeaderFooter(header: String, footer: String)
 
-  val pkcs1PrivateKeyHdrFooter =
-    PEMHeaderFooter("-----BEGIN RSA PRIVATE KEY-----","-----END RSA PRIVATE KEY-----")
-  val pkcs8PrivateKeyHdrFooter =
+  val pkcs1PrivateKeyHdrFooter: PEMHeaderFooter =
+    PEMHeaderFooter("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----")
+  val pkcs8PrivateKeyHdrFooter: PEMHeaderFooter =
     PEMHeaderFooter("-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----")
   // openssl may generate following header/footer specifically for EC case
-  val pkcs8ECPrivateKeyHdrFooter =
+  val pkcs8ECPrivateKeyHdrFooter: PEMHeaderFooter =
     PEMHeaderFooter("-----BEGIN EC PRIVATE KEY-----", "-----END EC PRIVATE KEY-----")
 
   trait PrivateKeyParser
@@ -122,8 +117,8 @@ object SecurityHelper {
     override val headerFooter: PEMHeaderFooter = pkcs1PrivateKeyHdrFooter
     override def getPrivateKey(keyBytes: Array[Byte]): PrivateKey = {
       // java security API does not support pkcs#1 so convert to pkcs#8 RSA first
-      val pkcs1Length = keyBytes.length;
-      val totalLength = pkcs1Length + 22;
+      val pkcs1Length = keyBytes.length
+      val totalLength = pkcs1Length + 22
       val pkcs8Header: Array[Byte] = Array[Byte](
         0x30.toByte, 0x82.toByte, ((totalLength >> 8) & 0xff).toByte, (totalLength & 0xff).toByte, // Sequence + total length
         0x2.toByte, 0x1.toByte, 0x0.toByte, // Integer (0)
@@ -156,7 +151,7 @@ object SecurityHelper {
     override def getPrivateKey(keyBytes: Array[Byte]): PrivateKey = getPKCS8PrivateKey(keyBytes, "EC")
   }
 
-  val privateKeyParsers = List(PKCS1PrivateKeyParser,PKCS8PrivateKeyParser,PKCS8ECPrivateKeyParser)
+  private val privateKeyParsers: List[PrivateKeyParser] = List(PKCS1PrivateKeyParser, PKCS8PrivateKeyParser, PKCS8ECPrivateKeyParser)
 
   private def findPrivateKeyParser(pemData: String): Option[PrivateKeyParser] = {
     privateKeyParsers.find { parser =>

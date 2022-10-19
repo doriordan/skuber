@@ -1,12 +1,10 @@
 package skuber
 
-import java.beans.Expression
-
 /**
   * @author David O'Riordan
   */
 
-case class LabelSelector(val requirements: LabelSelector.Requirement*) {
+case class LabelSelector(requirements: LabelSelector.Requirement*) {
   override def toString=requirements.mkString(",")
 
   override def equals(o: Any) = o match {

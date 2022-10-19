@@ -7,13 +7,14 @@ package skuber.apps.v1
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, Timestamp}
 
-case class DaemonSet(val kind: String ="DaemonSet",
-  override val apiVersion: String = appsAPIVersion,
-  val metadata: ObjectMeta,
+case class DaemonSet(
+  kind: String ="DaemonSet",
+  apiVersion: String = appsAPIVersion,
+  metadata: ObjectMeta,
   spec:  Option[DaemonSet.Spec] = None,
   status:  Option[DaemonSet.Status] = None)
-    extends ObjectResource {
-
+    extends ObjectResource
+{
   lazy val copySpec = this.spec.getOrElse(new DaemonSet.Spec)
 
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec=Some(copySpec.copy(template=Some(template))))
@@ -92,9 +93,8 @@ object DaemonSet {
   import skuber.json.format._
 
   implicit val condFmt: Format[Condition] = Json.format[Condition]
-  implicit val rollingUpdFmt: Format[RollingUpdate] = (
+  implicit val rollingUpdFmt: Format[RollingUpdate] =
       (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)).inmap(mu => RollingUpdate(mu), (ru: RollingUpdate) => ru.maxUnavailable)
-   )
 
   implicit val updateStrategyFmt: Format[UpdateStrategy] =  (
     (JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and

@@ -6,13 +6,16 @@ import skuber.{LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectRe
 /**
   * @author Cory Klein
   */
-case class Job(val kind: String = "Job",
-               override val apiVersion: String = batchAPIVersion,
-               val metadata: ObjectMeta = ObjectMeta(),
-               spec: Option[Job.Spec] = None,
-               status: Option[Job.Status] = None) extends ObjectResource {
+case class Job(
+  kind: String = "Job",
+  override val apiVersion: String = batchAPIVersion,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec: Option[Job.Spec] = None,
+  status: Option[Job.Status] = None)
+    extends ObjectResource
+{
 
-  lazy val copySpec: Job.Spec = this.spec.getOrElse(new Job.Spec())
+  lazy val copySpec: Job.Spec = this.spec.getOrElse(Job.Spec())
 
   def withTemplate(template: Pod.Template.Spec) = this.copy(spec = Some(copySpec.copy(template = Some(template))))
   def withParallelism(parallelism: Int) = this.copy(spec = Some(copySpec.copy(parallelism = Some(parallelism))))

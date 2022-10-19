@@ -1,9 +1,6 @@
 package skuber
 
-import play.api.libs.json.{Format, Json}
 import skuber.apiextensions.CustomResourceDefinition
-
-import scala.reflect.runtime.universe._
 
 /**
   * @author David O'Riordan
@@ -58,9 +55,9 @@ object ResourceDefinition {
   /**
     * This will provide an implicit resource definition require by API `list` methods, as long as an implicit resource
     * definition for the corresponding object resource type is in scope
-    * @param rd
-    * @tparam O
-    * @return
+    * @param rd resource definition for the object resource kind
+    * @tparam O the object resource type
+    * @return an implicit resource definition for the list resource kind
     */
   implicit def listDef[O <: ObjectResource](implicit rd: ResourceDefinition[O]): ResourceDefinition[ListResource[O]] = {
     new ResourceDefinition[ListResource[O]] {

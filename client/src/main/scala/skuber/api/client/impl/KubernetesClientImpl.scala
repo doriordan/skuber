@@ -6,8 +6,7 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.stream.Materializer
+import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
@@ -52,7 +51,7 @@ class KubernetesClientImpl private[client] (
 
   val connectionContext = sslContext
       .map { ssl =>
-        ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1")))
+        ConnectionContext.httpsClient(ssl)
       }
       .getOrElse(Http().defaultClientHttpsContext)
 
@@ -119,7 +118,7 @@ class KubernetesClientImpl private[client] (
   private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) =
   {
     if (log.isInfoEnabled && enabledLogEvent) {
-      log.info(s"[ ${lc.output} - ${msg}]")
+      log.info(s"[ ${lc.output} - $msg]")
     }
   }
 
@@ -127,7 +126,7 @@ class KubernetesClientImpl private[client] (
   {
     if (log.isInfoEnabled && enabledLogEvent) {
       msgOpt foreach { msg =>
-        log.info(s"[ ${lc.output} - ${msg}]")
+        log.info(s"[ ${lc.output} - $msg]")
       }
     }
   }
@@ -513,7 +512,7 @@ class KubernetesClientImpl private[client] (
       clusterServerUri.authority.host.address(),
       clusterServerUri.effectivePort,
       watchPoolIdleTimeout,
-      sslContext.map(new HttpsConnectionContext(_)),
+      sslContext.map(ConnectionContext.httpsClient(_)),
       ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
     )
   }
@@ -622,7 +621,7 @@ class KubernetesClientImpl private[client] (
     PodExecImpl.exec(this, podName, command, maybeContainerName, maybeStdin, maybeStdout, maybeStderr, tty, maybeClose)
   }
 
-  override def close: Unit =
+  override def close(): Unit =
   {
     isClosed = true
     closeHook foreach {

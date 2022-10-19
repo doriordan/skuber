@@ -1,6 +1,5 @@
 package skuber.apiextensions
 
-import play.api.libs.functional.syntax.unlift
 import play.api.libs.json.{JsPath, JsResult, JsSuccess, JsValue}
 import skuber.ResourceSpecification.StatusSubresource
 import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
@@ -9,11 +8,10 @@ import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectRes
   * @author David O'Riordan
   */
 case class CustomResourceDefinition(
-  val kind: String = "CustomResourceDefinition",
+  kind: String = "CustomResourceDefinition",
   override val apiVersion: String = "apiextensions.k8s.io/v1beta1",
-  val metadata: ObjectMeta,
+  metadata: ObjectMeta,
   spec: CustomResourceDefinition.Spec
-
 ) extends ObjectResource
 
 object CustomResourceDefinition {
@@ -87,7 +85,7 @@ object CustomResourceDefinition {
     val crdSpec: Spec = try {
       implicitly[ResourceDefinition[T]].spec.asInstanceOf[Spec]
     } catch {
-      case ex: ClassCastException =>
+      case _: ClassCastException =>
         val msg = "Requires an implicit resource definition that has a NonCoreResourceSpecification"
         throw new skuber.K8SException(skuber.api.client.Status(message = Some(msg)))
     }

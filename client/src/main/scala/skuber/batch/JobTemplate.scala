@@ -1,6 +1,6 @@
 package skuber.batch
 
-import skuber.{ObjectMeta, ObjectResource}
+import skuber.ObjectMeta
 /**
   * @author David O'Riordan
   */

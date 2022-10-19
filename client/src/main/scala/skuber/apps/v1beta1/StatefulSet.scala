@@ -10,11 +10,13 @@ import skuber.json.format._
 /**
   * Created by hollinwilkins on 4/5/17.
   */
-case class StatefulSet(override val kind: String ="StatefulSet",
-                       override val apiVersion: String = "apps/v1beta1", // correct at k8s 1.7
-                       metadata: ObjectMeta,
-                       spec:  Option[StatefulSet.Spec] = None,
-                       status:  Option[StatefulSet.Status] = None) extends ObjectResource
+case class StatefulSet(
+  kind: String ="StatefulSet",
+  apiVersion: String = "apps/v1beta1",
+  metadata: ObjectMeta,
+  spec:  Option[StatefulSet.Spec] = None,
+  status:  Option[StatefulSet.Status] = None)
+    extends ObjectResource
 {
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 

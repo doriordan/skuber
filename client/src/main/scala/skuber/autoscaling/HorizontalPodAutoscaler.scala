@@ -1,10 +1,9 @@
 package skuber.autoscaling
 
-import play.api.libs.functional.syntax.unlift
 import play.api.libs.json.{Format,  Json}
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, ReplicationController, ResourceDefinition, Timestamp}
-import skuber.json.format.objectMetaFormat
+import skuber.json.format._
 
 /**
  * @author David O'Riordan
@@ -15,12 +14,13 @@ import skuber.json.format.objectMetaFormat
  *
  */
 case class HorizontalPodAutoscaler(
-  	val kind: String ="HorizontalPodAutoscaler",
-  	override val apiVersion: String =  "autoscaling/v1",
-    val metadata: ObjectMeta,
-    spec: HorizontalPodAutoscaler.Spec,
-    status: Option[HorizontalPodAutoscaler.Status] = None) 
-      extends ObjectResource {
+  kind: String ="HorizontalPodAutoscaler",
+  apiVersion: String =  "autoscaling/v1",
+  metadata: ObjectMeta,
+  spec: HorizontalPodAutoscaler.Spec,
+  status: Option[HorizontalPodAutoscaler.Status] = None)
+    extends ObjectResource
+{
 
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 

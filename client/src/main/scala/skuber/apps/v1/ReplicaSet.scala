@@ -8,14 +8,14 @@ import skuber._
   * @author David O'Riordan
   */
 case class ReplicaSet(
-  val kind: String ="ReplicaSet",
-  override val apiVersion: String = appsAPIVersion,
-  val metadata: ObjectMeta = ObjectMeta(),
+  kind: String ="ReplicaSet",
+  apiVersion: String = appsAPIVersion,
+  metadata: ObjectMeta = ObjectMeta(),
   spec: Option[ReplicaSet.Spec] = None,
   status: Option[ReplicaSet.Status] = None)
     extends ObjectResource {
 
-  lazy val copySpec = this.spec.getOrElse(new ReplicaSet.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
+  lazy val copySpec = this.spec.getOrElse(ReplicaSet.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
 
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
   def addLabel(label: Tuple2[String, String]) : ReplicaSet = this.copy(metadata = metadata.copy(labels = metadata.labels + label))
@@ -36,7 +36,7 @@ case class ReplicaSet(
   def withTemplate(t: Pod.Template.Spec) = {
     val withTmpl = this.copy(spec = Some(copySpec.copy(template = t)))
     val withSelector = (t.metadata.labels, spec.map{_.selector}) match {
-      case (labels, selector) if (!labels.isEmpty && !selector.equals(LabelSelector())) =>
+      case (labels, selector) if labels.nonEmpty && !selector.exists(_.requirements.nonEmpty) =>
         val reqs = labels map { label: (String, String) =>
           LabelSelector.IsEqualRequirement(label._1, label._2)
         }
@@ -46,7 +46,7 @@ case class ReplicaSet(
     }
     // copy template labels into RS labels, if not already set
     (metadata.labels,t.metadata.labels) match {
-      case (curr,default) if (curr.isEmpty && !default.isEmpty) =>
+      case (curr,default) if curr.isEmpty && default.nonEmpty =>
         withSelector.addLabels(default)
       case _ => withSelector
     }

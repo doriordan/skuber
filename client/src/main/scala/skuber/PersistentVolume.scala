@@ -8,12 +8,13 @@ import Volume._
  * @author David O'Riordan
  */
 case class PersistentVolume(
-    val kind: String ="PersistentVolume",
-    override val apiVersion: String = v1,
-    val metadata: ObjectMeta = ObjectMeta(),
-    spec: Option[PersistentVolume.Spec] = None,
-    status: Option[PersistentVolume.Status] = None)
-      extends ObjectResource {
+  kind: String ="PersistentVolume",
+  apiVersion: String = v1,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec: Option[PersistentVolume.Spec] = None,
+  status: Option[PersistentVolume.Status] = None)
+      extends ObjectResource
+{
   
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 

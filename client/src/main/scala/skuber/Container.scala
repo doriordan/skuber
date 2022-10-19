@@ -1,37 +1,33 @@
 package skuber
 
-import java.net.URL
-import java.util.Date
-
 /**
  * @author David O'Riordan
  */
 
 case class Container(
-    name: String,
-    image: String,
-    command: List[String] = List(),
-    args: List[String] = List(),
-    workingDir: Option[String] = None,
-    ports : List[Container.Port] = List(),
-    env: List[EnvVar] = List(),
-    resources: Option[Resource.Requirements] = None,
-    volumeMounts: List[Volume.Mount] = List(),
-    livenessProbe: Option[Probe] = None,
-    readinessProbe: Option[Probe] = None,
-    lifecycle: Option[Lifecycle] = None,
-    terminationMessagePath: Option[String] = None,
-    terminationMessagePolicy: Option[Container.TerminationMessagePolicy.Value] = None,
-    imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
-    securityContext: Option[SecurityContext] = None,
-    envFrom: List[EnvFromSource] = Nil,
-    stdin: Option[Boolean] = None,
-    stdinOnce: Option[Boolean] = None,
-    tty: Option[Boolean] = None,
-    volumeDevices: List[Volume.Device] = Nil,
-    startupProbe: Option[Probe] = None
-    )
-      extends Limitable
+  name: String,
+  image: String,
+  command: List[String] = List(),
+  args: List[String] = List(),
+  workingDir: Option[String] = None,
+  ports : List[Container.Port] = List(),
+  env: List[EnvVar] = List(),
+  resources: Option[Resource.Requirements] = None,
+  volumeMounts: List[Volume.Mount] = List(),
+  livenessProbe: Option[Probe] = None,
+  readinessProbe: Option[Probe] = None,
+  lifecycle: Option[Lifecycle] = None,
+  terminationMessagePath: Option[String] = None,
+  terminationMessagePolicy: Option[Container.TerminationMessagePolicy.Value] = None,
+  imagePullPolicy: Container.PullPolicy.Value = Container.PullPolicy.IfNotPresent,
+  securityContext: Option[SecurityContext] = None,
+  envFrom: List[EnvFromSource] = Nil,
+  stdin: Option[Boolean] = None,
+  stdinOnce: Option[Boolean] = None,
+  tty: Option[Boolean] = None,
+  volumeDevices: List[Volume.Device] = Nil,
+  startupProbe: Option[Probe] = None)
+    extends Limitable
 {
   def exposePort(p: Container.Port) : Container = this.copy(ports=p::this.ports)
   def exposePort(port: Int) : Container = exposePort(Container.Port(containerPort=port))

@@ -11,9 +11,9 @@ import skuber.{EnvFromSource, EnvVar, LabelSelector, NonCoreResourceSpecificatio
   */
 
 case class PodPreset(
-  val kind: String ="PodPreset",
-  override val apiVersion: String = "settings.k8s.io/v1alpha1",
-  val metadata: ObjectMeta,
+  kind: String ="PodPreset",
+  apiVersion: String = "settings.k8s.io/v1alpha1",
+  metadata: ObjectMeta,
   spec: Option[PodPreset.Spec]=None) extends ObjectResource
 
 object PodPreset {

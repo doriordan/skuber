@@ -4,8 +4,9 @@ import java.time.ZonedDateTime
 
 import akka.stream.scaladsl.TcpIdleTimeoutException
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
 import skuber.Pod.LogQueryParams
 import skuber.json.format._
 

@@ -6,7 +6,6 @@ import java.util.UUID
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
-import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.functional.syntax._
@@ -15,7 +14,7 @@ import play.api.libs.json._
 
 import scala.sys.SystemProperties
 import scala.util.Try
-import skuber.{LabelSelector, ObjectResource}
+import skuber.ObjectResource
 import skuber.api.client.impl.KubernetesClientImpl
 
 /**
@@ -59,7 +58,7 @@ package object client {
   }
 
   final case class CertAuth(clientCertificate: PathOrData, clientKey: PathOrData, user: Option[String]) extends AuthInfo {
-    override def toString: String = StringBuilder.newBuilder
+    override def toString: String = new StringBuilder()
         .append(getClass.getSimpleName)
         .append("(")
         .append {
@@ -117,7 +116,7 @@ package object client {
       }
     }
 
-    override def toString =
+    override def toString: String =
       """GcpAuth(accessToken=<redacted>)""".stripMargin
   }
 

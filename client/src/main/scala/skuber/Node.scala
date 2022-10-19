@@ -7,12 +7,12 @@ import java.util.Date
  * @author David O'Riordan
  */
 case class Node(
-  	val kind: String ="Node",
-  	override val apiVersion: String = v1,
-    val metadata: ObjectMeta,
-    spec: Option[Node.Spec] = None,
-    status: Option[Node.Status] = None) 
-      extends ObjectResource {
+  kind: String ="Node",
+  apiVersion: String = v1,
+  metadata: ObjectMeta,
+  spec: Option[Node.Spec] = None,
+  status: Option[Node.Status] = None) extends ObjectResource
+{
   
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 

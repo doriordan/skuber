@@ -67,7 +67,7 @@ object DeploymentExamples extends App {
           println("Deleting deployment, including its owned resources")
           val deleteOptions=DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground))
           val deleteFut=k8s.deleteWithOptions[Deployment](nginxDeploymentName, deleteOptions)
-          Await.ready(deleteFut, 30 seconds)
+          Await.ready(deleteFut, 30.seconds)
           println("DSuccessfully completed, exiting")
           system.terminate().foreach { f =>
             System.exit(0)

@@ -6,12 +6,11 @@ import java.time.format.DateTimeFormatter
  * @author David O'Riordan
  */
 case class Pod(
-  	val kind: String ="Pod",
-  	override val apiVersion: String = v1,
-    val metadata: ObjectMeta,
-    spec: Option[Pod.Spec] = None,
-    status: Option[Pod.Status] = None)
-      extends ObjectResource with Limitable
+  kind: String ="Pod",
+  apiVersion: String = v1,
+  metadata: ObjectMeta,
+  spec: Option[Pod.Spec] = None,
+  status: Option[Pod.Status] = None) extends ObjectResource with Limitable
 
 object Pod {
 

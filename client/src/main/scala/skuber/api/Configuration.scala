@@ -1,6 +1,5 @@
 package skuber.api
 
-import java.io.File
 import java.net.URL
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -25,11 +24,14 @@ case class Configuration(
       currentContext: Context = Context(),
       users: Map[String, AuthInfo] = Map()) {
 
-      def withCluster(name:String, cluster: Cluster) = this.copy(clusters = this.clusters + (name -> cluster))
-      def withContext(name: String, context: Context) = this.copy(contexts = this.contexts + (name -> context))
-      def useContext(context: Context) = this.copy(currentContext=context)
-      def setCurrentNamespace(namespaceName: String) =
-        this.copy(currentContext=this.currentContext.copy(namespace=Namespace.forName(namespaceName)))
+  def withCluster(name: String, cluster: Cluster): Configuration = this.copy(clusters = this.clusters + (name -> cluster))
+
+  def withContext(name: String, context: Context): Configuration = this.copy(contexts = this.contexts + (name -> context))
+
+  def useContext(context: Context): Configuration = this.copy(currentContext = context)
+
+  def setCurrentNamespace(namespaceName: String): Configuration =
+    this.copy(currentContext = this.currentContext.copy(namespace = Namespace.forName(namespaceName)))
 
 }
 
@@ -134,7 +136,7 @@ object Configuration {
           // Note - implication is that a data setting overrides a path setting
           (path, data) match {
             case (_, Some(b64EncodedData)) => Some(Right(Base64.getDecoder.decode(b64EncodedData)))
-            case (Some(p), _) => {
+            case (Some(p), _) =>
               // path specified
               // if it is a relative path and a directory was specified then construct full path from those components,
               // otherwise just return path as given
@@ -144,7 +146,6 @@ object Configuration {
                 case _  => p
               }
               Some(Left(expandedPath))
-            }
             case (None, None) => None
           }
         }
@@ -208,10 +209,10 @@ object Configuration {
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
         def toK8SContext(contextConfig: YamlMap) = {
-          val cluster=contextConfig.asScala.get("cluster").filterNot(_ == "").map { clusterName =>
+          val cluster=contextConfig.asScala.get("cluster").filterNot(_.asInstanceOf[String] == "").map { clusterName =>
             k8sClusterMap.get(clusterName.asInstanceOf[String]).get
           }.getOrElse(Cluster())
-          val authInfo =contextConfig.asScala.get("user").filterNot(_ == "").map { userKey =>
+          val authInfo =contextConfig.asScala.get("user").filterNot(_.asInstanceOf[String] == "").map { userKey =>
             k8sAuthInfoMap.get(userKey.asInstanceOf[String]).get
           }.getOrElse(NoAuth)
           val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
@@ -265,7 +266,7 @@ object Configuration {
       port      <- maybePort
       token     <- maybeToken
       namespace <- maybeNamespace
-      hostPort  = s"https://$host${if (port.length > 0) ":" + port else ""}"
+      hostPort  = s"https://$host${if (port.nonEmpty) ":" + port else ""}"
       cluster   = Cluster(server = hostPort, certificateAuthority = ca)
       ctx       = Context(cluster, TokenAuth(token), Namespace.forName(namespace))
     } yield Configuration(
@@ -278,7 +279,7 @@ object Configuration {
   /*
    * Get the current default configuration
    */
-  def defaultK8sConfig = {
+  def defaultK8sConfig: Configuration = {
     import java.nio.file.Paths
 
     val skuberUrlOverride = sys.env.get("SKUBER_URL")

@@ -7,11 +7,11 @@ import skuber.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, Resourc
   * Created by jordan on 1/12/17.
   */
 case class RoleBinding(
-    kind: String = "RoleBinding",
-    apiVersion: String = rbacAPIVersion,
-    metadata: ObjectMeta,
-    roleRef: RoleRef,
-    subjects: List[Subject]
+  kind: String = "RoleBinding",
+  apiVersion: String = rbacAPIVersion,
+  metadata: ObjectMeta,
+  roleRef: RoleRef,
+  subjects: List[Subject]
 ) extends ObjectResource
 
 object RoleBinding {

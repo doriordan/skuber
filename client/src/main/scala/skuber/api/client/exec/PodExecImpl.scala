@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
-import akka.stream.{Materializer, SinkShape}
+import akka.stream.SinkShape
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import skuber.api.client.impl.KubernetesClientImpl
@@ -34,7 +34,7 @@ object PodExecImpl {
     implicit val executor: ExecutionContext = sys.dispatcher
 
     val containerPrintName = maybeContainerName.getOrElse("<none>")
-    requestContext.log.info(s"Trying to connect to container ${containerPrintName} of pod ${podName}")
+    requestContext.log.info(s"Trying to connect to container $containerPrintName of pod $podName")
 
     // Compose queries
     var queries: Seq[(String, String)] = Seq(
@@ -51,7 +51,7 @@ object PodExecImpl {
     // Determine scheme and connection context based on SSL context
     val (scheme, connectionContext) = requestContext.sslContext match {
       case Some(ssl) =>
-        ("wss",ConnectionContext.https(ssl, enabledProtocols = Some(scala.collection.immutable.Seq("TLSv1.2", "TLSv1"))))
+        ("wss",ConnectionContext.httpsClient(ssl))
       case None =>
         ("ws", Http().defaultClientHttpsContext)
     }
@@ -59,7 +59,7 @@ object PodExecImpl {
     // Compose URI
     val uri = Uri(requestContext.clusterServer)
         .withScheme(scheme)
-        .withPath(Uri.Path(s"/api/v1/namespaces/${requestContext.namespaceName}/pods/${podName}/exec"))
+        .withPath(Uri.Path(s"/api/v1/namespaces/${requestContext.namespaceName}/pods/$podName/exec"))
         .withQuery(Uri.Query(queries: _*))
 
     // Compose headers
@@ -116,9 +116,9 @@ object PodExecImpl {
 
     val close = maybeClose.getOrElse(Promise.successful(()))
     connected.foreach { _ =>
-      requestContext.log.info(s"Connected to container ${containerPrintName} of pod ${podName}")
+      requestContext.log.info(s"Connected to container $containerPrintName of pod $podName")
       close.future.foreach { _ =>
-        requestContext.log.info(s"Close the connection of container ${containerPrintName} of pod ${podName}")
+        requestContext.log.info(s"Close the connection of container $containerPrintName of pod $podName")
         promise.success(None)
       }
     }

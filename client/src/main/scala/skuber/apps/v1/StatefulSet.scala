@@ -19,7 +19,7 @@ case class StatefulSet(override val kind: String ="StatefulSet",
 {
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 
-  lazy val copySpec = this.spec.getOrElse(new StatefulSet.Spec(template = Pod.Template.Spec()))
+  lazy val copySpec = this.spec.getOrElse(StatefulSet.Spec(template = Pod.Template.Spec()))
   private val rollingUpdateStrategy = StatefulSet.UpdateStrategy(`type`=StatefulSet.UpdateStrategyType.RollingUpdate, None)
   private def rollingUpdateStrategy(partition: Int)=
     StatefulSet.UpdateStrategy(`type`=StatefulSet.UpdateStrategyType.RollingUpdate,Some(StatefulSet.RollingUpdateStrategy(partition)))

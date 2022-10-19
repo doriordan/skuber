@@ -7,10 +7,10 @@ import skuber.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, Resourc
   * Created by jordan on 1/12/17.
   */
 case class ClusterRole(
-    kind: String = "ClusterRole",
-    override val apiVersion: String = rbacAPIVersion,
-    metadata: ObjectMeta = ObjectMeta(),
-    rules: List[PolicyRule]
+  kind: String = "ClusterRole",
+  apiVersion: String = rbacAPIVersion,
+  metadata: ObjectMeta = ObjectMeta(),
+  rules: List[PolicyRule]
 ) extends ObjectResource
 
 object ClusterRole {
