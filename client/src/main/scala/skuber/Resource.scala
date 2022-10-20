@@ -4,20 +4,17 @@ package skuber
  * @author David O'Riordan
  */
 
-import scala.math.BigDecimal
-
 object Resource {
   
   type ResourceList=Map[String, Quantity]
   
   case class Requirements(limits: ResourceList = Map(), requests: ResourceList = Map())
   case class Quota(
-      val kind: String = "ResourceQuota",
-      override val apiVersion: String = v1,
-      val metadata: ObjectMeta = ObjectMeta(),
-      spec: Option[Quota.Spec] = None,
-      status: Option[Quota.Status] = None)
-    extends ObjectResource 
+    kind: String = "ResourceQuota",
+    apiVersion: String = v1,
+    metadata: ObjectMeta = ObjectMeta(),
+    spec: Option[Quota.Spec] = None,
+    status: Option[Quota.Status] = None) extends ObjectResource
  
   object Quota {
     val specification=CoreResourceSpecification(

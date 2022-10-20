@@ -5,11 +5,12 @@ package skuber
  * @author David O'Riordan
  */
 case class LimitRange (
-    val kind: String ="LimitRange",
-    override val apiVersion: String = v1,
-    val metadata: ObjectMeta = ObjectMeta(),
-    spec: Option[LimitRange.Spec] = None)
-      extends ObjectResource {
+  kind: String ="LimitRange",
+  apiVersion: String = v1,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec: Option[LimitRange.Spec] = None)
+    extends ObjectResource
+{
   
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 

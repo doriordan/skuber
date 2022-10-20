@@ -77,12 +77,12 @@ case class CoreResourceSpecification(
  * NonCoreResourceSpecification is used to specify any resource types outside the core k8s API group, including custom resources
  */
 case class NonCoreResourceSpecification(
-  val apiGroup: String,
-  val version: Option[String],
-  val versions: List[ResourceSpecification.Version], // introduced in k8s v1.11 for CRD types
-  override val scope: ResourceSpecification.Scope.Value,
-  override val names: ResourceSpecification.Names,
-  override val subresources: Option[ResourceSpecification.Subresources] = None) extends ResourceSpecification
+  apiGroup: String,
+  version: Option[String],
+  versions: List[ResourceSpecification.Version], // introduced in k8s v1.11 for CRD types
+  scope: ResourceSpecification.Scope.Value,
+  names: ResourceSpecification.Names,
+  subresources: Option[ResourceSpecification.Subresources] = None) extends ResourceSpecification
 {
   def apiPathPrefix="apis"
   override def group: Option[String] = Some(apiGroup)

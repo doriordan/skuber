@@ -12,9 +12,9 @@ import scala.reflect.runtime.universe._
  * pattern of being composed of "spec" and "status" subobjects.
  */
 case class CustomResource[Sp,St](
-  override val kind: String,
-  override val apiVersion: String,
-  override val metadata: ObjectMeta,
+  kind: String,
+  apiVersion: String,
+  metadata: ObjectMeta,
   spec: Sp,
   status: Option[St]) extends ObjectResource
 {

@@ -10,11 +10,12 @@ import scala.util.Try
 
 case class Ingress(
   kind: String ="Ingress",
-  override val apiVersion: String = "networking.k8s.io/v1beta1",
+  apiVersion: String = "networking.k8s.io/v1beta1",
   metadata: ObjectMeta = ObjectMeta(),
   spec: Option[Ingress.Spec] = None,
   status: Option[Ingress.Status] = None)
-  extends ObjectResource {
+    extends ObjectResource
+{
 
   import skuber.networking.Ingress.Backend
 

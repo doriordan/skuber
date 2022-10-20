@@ -8,11 +8,11 @@ import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
 case class Deployment(
-  val kind: String ="Deployment",
+  kind: String ="Deployment",
   override val apiVersion: String = appsAPIVersion,
-  val metadata: ObjectMeta = ObjectMeta(),
-  val spec:  Option[Deployment.Spec] = None,
-  val status: Option[Deployment.Status] = None)
+  metadata: ObjectMeta = ObjectMeta(),
+  spec:  Option[Deployment.Spec] = None,
+  status: Option[Deployment.Status] = None)
     extends ObjectResource
 {
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))

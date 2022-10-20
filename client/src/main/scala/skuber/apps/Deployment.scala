@@ -9,7 +9,7 @@ import skuber._
 
 case class Deployment(
     kind: String ="Deployment",
-    override val apiVersion: String = "apps/v1beta1",
+    apiVersion: String = "apps/v1beta1",
     metadata: ObjectMeta = ObjectMeta(),
     spec:  Option[Deployment.Spec] = None,
     status: Option[Deployment.Status] = None)

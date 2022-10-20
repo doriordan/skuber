@@ -1,6 +1,6 @@
 package skuber
 
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.LabelSelector.IsEqualRequirement
 import skuber.apps.v1.Deployment

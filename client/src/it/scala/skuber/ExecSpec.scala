@@ -2,8 +2,9 @@ package skuber
 
 import akka.Done
 import akka.stream.scaladsl.{Sink, Source}
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
 import skuber.json.format._
 
 import scala.concurrent.duration._

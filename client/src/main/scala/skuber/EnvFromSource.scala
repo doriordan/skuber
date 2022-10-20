@@ -4,10 +4,7 @@ package skuber
   * @author David O'Riordan
   */
 
-case class EnvFromSource(
-  prefix: Option[String] = None,
-  source:EnvFromSource.EnvSource
-)
+case class EnvFromSource(prefix: Option[String] = None, source:EnvFromSource.EnvSource)
 
 object EnvFromSource {
 

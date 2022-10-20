@@ -1,13 +1,13 @@
 package skuber.batch
 
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{ObjectReference, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, Timestamp}
+import skuber.{ObjectReference, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, ResourceDefinition, Timestamp}
 
 /**
   * @author David O'Riordan
   */
 case class CronJob(kind: String ="CronJob",
-  override val apiVersion: String = "batch/v1beta1",
+  apiVersion: String = "batch/v1beta1",
   metadata: ObjectMeta = ObjectMeta(),
   spec: Option[CronJob.Spec] = None,
   status: Option[CronJob.Status] = None) extends ObjectResource

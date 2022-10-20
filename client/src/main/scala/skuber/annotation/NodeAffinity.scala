@@ -9,9 +9,9 @@ import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
   * Kubernetes 1.6 or later. It should be set directly in the Pod.Spec (see PodFormatSpec for an example)
   */
 case class NodeAffinity(
-                    requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
-                    preferredDuringSchedulingIgnoredDuringExecution: Option[PreferredDuringSchedulingIgnoredDuringExecution]
-                  )
+  requiredDuringSchedulingIgnoredDuringExecution: Option[RequiredDuringSchedulingIgnoredDuringExecution],
+  preferredDuringSchedulingIgnoredDuringExecution: Option[PreferredDuringSchedulingIgnoredDuringExecution]
+)
 
 object NodeAffinity {
   val ANNOTATION_NAME = "scheduler.alpha.kubernetes.io/affinity"

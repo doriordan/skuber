@@ -12,15 +12,17 @@ import skuber.json.format._ // reuse some core skuber json formatters
   * The api version of this StatefulSet type is v1beta2, which is for use with k8s 1.8+.
   * For earlier versions of k8s, use skuber.apps.v1beta1.StatefulSet
   */
-case class StatefulSet(override val kind: String ="StatefulSet",
-                       override val apiVersion: String = "apps/v1beta2", // correct at k8s 1.8
-                       metadata: ObjectMeta,
-                       spec:  Option[StatefulSet.Spec] = None,
-                       status:  Option[StatefulSet.Status] = None) extends ObjectResource
+case class StatefulSet(
+  kind: String ="StatefulSet",
+  apiVersion: String = "apps/v1beta2", // correct at k8s 1.8
+  metadata: ObjectMeta,
+  spec:  Option[StatefulSet.Spec] = None,
+  status:  Option[StatefulSet.Status] = None)
+    extends ObjectResource
 {
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 
-  lazy val copySpec = this.spec.getOrElse(new StatefulSet.Spec(template = Pod.Template.Spec()))
+  lazy val copySpec = this.spec.getOrElse(StatefulSet.Spec(template = Pod.Template.Spec()))
   private val rollingUpdateStrategy = StatefulSet.UpdateStrategy(`type`=StatefulSet.UpdateStrategyType.RollingUpdate, None)
   private def rollingUpdateStrategy(partition: Int)=
     StatefulSet.UpdateStrategy(`type`=StatefulSet.UpdateStrategyType.RollingUpdate,Some(StatefulSet.RollingUpdateStrategy(partition)))

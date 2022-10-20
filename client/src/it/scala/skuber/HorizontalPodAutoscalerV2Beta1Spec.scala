@@ -1,6 +1,6 @@
 package skuber
 
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import skuber.apps.v1.Deployment
 import skuber.autoscaling.v2beta1.HorizontalPodAutoscaler

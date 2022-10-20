@@ -20,15 +20,12 @@ package object format {
       (JsPath \ "values").formatMaybeEmptyList[String]
     )(MatchExpression.apply _, unlift(MatchExpression.unapply))
 
-  implicit val nodeSelectorTermFormat: Format[NodeSelectorTerm] = (
+  implicit val nodeSelectorTermFormat: Format[NodeSelectorTerm] =
     (JsPath \ "matchExpressions").format[MatchExpressions].inmap(matchExpressions => NodeSelectorTerm(matchExpressions), (nst: NodeSelectorTerm) => nst.matchExpressions)
-    )
 
-    implicit val requiredDuringSchedulingIgnoredDuringExecutionFormat: Format[RequiredDuringSchedulingIgnoredDuringExecution] = (
+    implicit val requiredDuringSchedulingIgnoredDuringExecutionFormat: Format[RequiredDuringSchedulingIgnoredDuringExecution] =
       (JsPath \ "nodeSelectorTerms").format[NodeSelectorTerms].inmap(nodeSelectorTerms => RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms), (rdside: RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms)
-    )
 
-    implicit val preferredDuringSchedulingIgnoredDuringExecutionFormat: Format[PreferredDuringSchedulingIgnoredDuringExecution] = (
+    implicit val preferredDuringSchedulingIgnoredDuringExecutionFormat: Format[PreferredDuringSchedulingIgnoredDuringExecution] =
       (JsPath \ "nodeSelectorTerms").format[NodeSelectorTerms].inmap(nodeSelectorTerms => PreferredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms), (pdside: PreferredDuringSchedulingIgnoredDuringExecution) => pdside.nodeSelectorTerms)
-      )
 }

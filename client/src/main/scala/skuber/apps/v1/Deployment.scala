@@ -4,21 +4,20 @@ package skuber.apps.v1
   * @author David O'Riordan
   */
 
-import skuber.LabelSelector.IsEqualRequirement
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber._
 
 case class Deployment(
-  val kind: String ="Deployment",
-  override val apiVersion: String = appsAPIVersion,
-  val metadata: ObjectMeta = ObjectMeta(),
-  val spec:  Option[Deployment.Spec] = None,
-  val status: Option[Deployment.Status] = None)
+  kind: String ="Deployment",
+  apiVersion: String = appsAPIVersion,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec:  Option[Deployment.Spec] = None,
+  status: Option[Deployment.Status] = None)
     extends ObjectResource
 {
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 
-  lazy val copySpec = this.spec.getOrElse(new Deployment.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
+  lazy val copySpec = this.spec.getOrElse(Deployment.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
 
   def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
 

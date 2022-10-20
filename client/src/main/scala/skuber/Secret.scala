@@ -7,12 +7,13 @@ import org.apache.commons.io.IOUtils
  * @author David O'Riordan
  */
 case class Secret(
-    val kind: String ="Secret",
-    override val apiVersion: String = v1,
-    val metadata: ObjectMeta,
+    kind: String ="Secret",
+    apiVersion: String = v1,
+    metadata: ObjectMeta,
     data: Map[String, Array[Byte]] = Map(),
-    val `type`: String = "")
-  extends ObjectResource  {
+    `type`: String = "")
+  extends ObjectResource
+{
   
     def add(key: String, is: InputStream) : Secret = {
        val bytes = IOUtils.toByteArray(is)

@@ -1,7 +1,7 @@
 package skuber.networking
 
 import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{LabelSelector, NameablePort, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Pod, Protocol, ResourceDefinition}
+import skuber.{LabelSelector, NameablePort, NonCoreResourceSpecification, ObjectMeta, ObjectResource,  Protocol, ResourceDefinition}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath}
 import skuber.json.format.{objFormat,enumFormatMethods, intOrStringFormat, jsPath2LabelSelFormat, maybeEmptyFormatMethods}
@@ -11,10 +11,11 @@ import skuber.json.format.{objFormat,enumFormatMethods, intOrStringFormat, jsPat
   *         This supports NetworkPolicy on Kubernetes V1.7+ (earlier beta version of this resource type not supported)
   */
 case class NetworkPolicy(
-  val kind: String ="NetworkPolicy",
-  override val apiVersion: String = "networking.k8s.io/v1",
-  val metadata: ObjectMeta,
-  spec: Option[NetworkPolicy.Spec]=None) extends ObjectResource
+  kind: String ="NetworkPolicy",
+  apiVersion: String = "networking.k8s.io/v1",
+  metadata: ObjectMeta,
+  spec: Option[NetworkPolicy.Spec]=None)
+    extends ObjectResource
 {
   private def specSelectingAllPods=Some(NetworkPolicy.Spec(podSelector=LabelSelector()))
   private def fallbackToSelectingAllPods=this.copy(spec=this.spec.orElse(specSelectingAllPods))

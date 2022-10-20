@@ -5,10 +5,13 @@ package skuber
   */
 
 
-case class ConfigMap(val kind: String ="ConfigMap",
-                     override val apiVersion: String = v1,
-                     val metadata: ObjectMeta,
-                     data: Map[String, String] = Map()) extends ObjectResource {
+case class ConfigMap(
+  kind: String ="ConfigMap",
+  apiVersion: String = v1,
+  metadata: ObjectMeta,
+  data: Map[String, String] = Map())
+    extends ObjectResource
+{
 
   def withData(data: Map[String, String]): ConfigMap =
     this.copy(data = data)

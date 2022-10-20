@@ -1,15 +1,12 @@
 package skuber.api
 
-import skuber._
-import org.specs2.mutable.Specification
 import java.nio.file.Paths
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneId}
-
-import akka.actor.ActorSystem
-import com.typesafe.config.ConfigFactory
+import java.time.Instant
 
 import scala.util.Try
+import org.specs2.mutable.Specification
+import akka.actor.ActorSystem
+import skuber._
 import skuber.api.client._
 
 /**

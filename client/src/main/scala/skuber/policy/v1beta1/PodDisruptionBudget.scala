@@ -3,11 +3,13 @@ package skuber.policy.v1beta1
 import skuber.ResourceSpecification.{Names, Scope}
 import skuber.{IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, Scale, Timestamp}
 
-case class PodDisruptionBudget(override val kind: String = "PodDisruptionBudget",
-                               override val apiVersion: String = policyAPIVersion,
-                               metadata: ObjectMeta,
-                               spec: Option[PodDisruptionBudget.Spec] = None,
-                               status: Option[PodDisruptionBudget.Status] = None) extends ObjectResource {
+case class PodDisruptionBudget(
+  kind: String = "PodDisruptionBudget",
+  apiVersion: String = policyAPIVersion,
+  metadata: ObjectMeta,
+  spec: Option[PodDisruptionBudget.Spec] = None,
+  status: Option[PodDisruptionBudget.Status] = None) extends ObjectResource
+{
 
   private lazy val copySpec: PodDisruptionBudget.Spec = this.spec.getOrElse(PodDisruptionBudget.Spec(selector=Some(LabelSelector())))
 

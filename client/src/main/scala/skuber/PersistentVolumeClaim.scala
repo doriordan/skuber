@@ -8,12 +8,13 @@ import skuber.annotation.MatchExpression
   */
 
 case class PersistentVolumeClaim(
-    val kind: String = "PersistentVolumeClaim",
-    override val apiVersion: String = v1,
-    val metadata: ObjectMeta = ObjectMeta(),
-    spec: Option[PersistentVolumeClaim.Spec] = None,
-    status: Option[PersistentVolumeClaim.Status] = None)
-  extends ObjectResource {
+  kind: String = "PersistentVolumeClaim",
+  apiVersion: String = v1,
+  metadata: ObjectMeta = ObjectMeta(),
+  spec: Option[PersistentVolumeClaim.Spec] = None,
+  status: Option[PersistentVolumeClaim.Status] = None)
+    extends ObjectResource
+{
 
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion = version))
 

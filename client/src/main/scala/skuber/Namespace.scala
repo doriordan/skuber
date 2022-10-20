@@ -1,16 +1,16 @@
 package skuber
 
-
 /**
  * @author David O'Riordan
  */
 case class Namespace(
-  	val kind: String ="Namespace",
-    override val apiVersion: String = v1,
-    val metadata: ObjectMeta,
-    spec: Option[Namespace.Spec] = None,
-    status: Option[Namespace.Status]= None) 
-  extends ObjectResource {
+  kind: String ="Namespace",
+  apiVersion: String = v1,
+  metadata: ObjectMeta,
+  spec: Option[Namespace.Spec] = None,
+  status: Option[Namespace.Status]= None)
+  extends ObjectResource
+{
     def meta(name: String): ObjectMeta = ObjectMeta(name=name, namespace=this.name)
     def pod(name: String) = Pod(metadata=meta(name))
     def pod(name: String, spec: Pod.Spec) = Pod(metadata=meta(name), spec=Some(spec))

@@ -4,12 +4,13 @@ package skuber
  * @author David O'Riordan
  */
 case class ServiceAccount(
-    val kind: String ="ServiceAccount",
-    override val apiVersion: String = "v1",
-    val metadata: ObjectMeta,
+    kind: String ="ServiceAccount",
+    apiVersion: String = "v1",
+    metadata: ObjectMeta,
     secrets: List[ObjectReference] = List(),
     imagePullSecrets: List[LocalObjectReference] = List())
-  extends ObjectResource {
+  extends ObjectResource
+{
   
   def withResourceVersion(version: String) = this.copy(metadata = metadata.copy(resourceVersion=version))
 }

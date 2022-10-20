@@ -352,7 +352,7 @@ trait KubernetesClient {
 
   /**
     * Return list of API versions supported by the server
-    * @param lc
+    * @param lc logging context
     * @return a future containing the list of API versions
     */
   def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]]
@@ -361,15 +361,15 @@ trait KubernetesClient {
     * Create a new KubernetesClient instance that reuses this clients configuration and connection resources, but with a different
     * target namespace.
     * This is useful for applications that need a lightweight way to target multiple or dynamic namespaces.
-    * @param newNamespace
-    * @return
+    * @param newNamespace target namespace
+    * @return the new client instance
     */
   def usingNamespace(newNamespace: String): KubernetesClient
 
   /**
     * Closes the client. Any requests to the client after this is called will be rejected.
     */
-  def close: Unit
+  def close(): Unit
 
   // Some parameters of the client that it may be useful for some applications to read
   val logConfig: LoggingConfig // the logging configuration for client requests

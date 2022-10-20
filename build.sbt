@@ -1,36 +1,37 @@
 
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-val akkaVersion = "2.6.15"
+val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
-val specs2 = "org.specs2" %% "specs2-core" % "4.11.0"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.0.9"
-val mockito = "org.mockito" % "mockito-core" % "3.11.0"
+val specs2 = "org.specs2" %% "specs2-core" % "4.17.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.14"
+val mockito = "org.mockito" % "mockito-core" % "4.6.1"
+val scalaTestMockito = "org.scalatestplus" %% "mockito-4-6" % "3.2.14.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.31"
-val commonsIO = "commons-io" % "commons-io" % "2.9.0"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "1.33"
+val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 
 // the client API request/response handing uses Akka Http
-val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.4"
+val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-val logback = "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.4.4" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.2"
+val playJson = "com.typesafe.play" %% "play-json" % "2.9.3"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.6.5"
+ThisBuild / version := "2.6.6-rc0"
 
 sonatypeProfileName := "io.skuber"
 
@@ -51,8 +52,8 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.12.13", "2.13.6"),
-  scalaVersion := "2.13.6",
+  crossScalaVersions := Seq("2.12.17", "2.13.10"),
+  scalaVersion := "2.13.10",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
@@ -62,8 +63,8 @@ lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
     akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec,
-    scalaCheck % Test, specs2 % Test, mockito % Test, akkaStreamTestKit % Test,
-    scalaTest % Test
+    scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test,
+    akkaStreamTestKit % Test, scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
 )
 

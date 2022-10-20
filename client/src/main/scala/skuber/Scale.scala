@@ -2,18 +2,19 @@ package skuber
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
-import skuber.json.format.{maybeEmptyFormatMethods,jsPath2LabelSelFormat,objectMetaFormat}
+import skuber.json.format.{maybeEmptyFormatMethods,jsPath2LabelSelFormat, objectMetaFormat}
 
 /**
  * @author David O'Riordan
  *  Scale subresource
  */
 case class Scale(
-    val kind: String = "Scale",
-    val apiVersion: String,
-    val metadata: ObjectMeta,
-    spec: Scale.Spec = Scale.Spec(),
-    status: Option[Scale.Status] = None) extends ObjectResource
+  kind: String = "Scale",
+  apiVersion: String,
+  metadata: ObjectMeta,
+  spec: Scale.Spec = Scale.Spec(),
+  status: Option[Scale.Status] = None)
+    extends ObjectResource
 {
   def withSpecReplicas(count: Int) =  this.copy(spec=Scale.Spec(Some(count)))
   def withStatusReplicas(count: Int) = {

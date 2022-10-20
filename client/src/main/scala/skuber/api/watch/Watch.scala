@@ -18,14 +18,14 @@ import scala.language.postfixOps
 object Watch {
 
   /**
-    * Get a source of events on a specific Kubernetes resource
+    * Get a source of events on a specific Kubernetes resource type
     * @param context the applicable request context
     * @param name the name of the Kubernetes resource to watch
     * @param sinceResourceVersion if specfied all events since the resource version are included, otherwise only future events
     * @param bufSize maximum size of each event in the event stream, in bytes
-    * @param format
-    * @param rd
-    * @tparam O
+    * @param format the json formatter for the object resource type
+    * @param rd the resource definition for the object resource type
+    * @tparam O the object resource type
     * @return
     */
   def events[O <: ObjectResource](context: KubernetesClientImpl, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int)(
@@ -45,13 +45,13 @@ object Watch {
   }
 
   /**
-    * Get a source of events on all resources of a specified kind
+    * Get a source of events on all resources of a specified object resource type
     * @param context the applicable request context
     * @param sinceResourceVersion if specfied all events since the resource version are included, otherwise only future events
     * @param bufSize maximum size of each event in the event stream, in bytes
     * @param format Play json formatter for the applicable Kubernetes type, used to read each event object
     * @param rd resource definition for the kind, required for building the watch request Uri.
-    * @tparam O
+    * @tparam O the object resource type
     * @return a Future which will eventually return a Source of events
     */
   def eventsOnKind[O <: ObjectResource](context: KubernetesClientImpl, sinceResourceVersion: Option[String] = None, bufSize: Int)(
