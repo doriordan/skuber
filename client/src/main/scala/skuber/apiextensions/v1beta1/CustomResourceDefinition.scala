@@ -1,23 +1,25 @@
-package skuber.apiextensions
+package skuber.apiextensions.v1beta1
 
 import play.api.libs.json.{JsPath, JsResult, JsSuccess, JsValue}
-import skuber.ResourceSpecification.StatusSubresource
-import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
+import skuber.ResourceSpecification.{Schema, StatusSubresource}
+import skuber.api.client.Status
+import skuber.{K8SException, NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
 
 /**
   * @author David O'Riordan
   */
+@deprecated("This supports the older, beta CRD API - use skuber.apiextensions.v1.CustomResourceDefinition instead for v1 CRD API (Kubernetes versions >= 1.19)")
 case class CustomResourceDefinition(
   kind: String = "CustomResourceDefinition",
   override val apiVersion: String = "apiextensions.k8s.io/v1beta1",
   metadata: ObjectMeta,
-  spec: CustomResourceDefinition.Spec
+  spec: CustomResourceDefinition.Spec,
 ) extends ObjectResource
 
 object CustomResourceDefinition {
 
-  type Spec=NonCoreResourceSpecification
-  val Spec=NonCoreResourceSpecification
+  type Spec = NonCoreResourceSpecification
+  val Spec = NonCoreResourceSpecification
 
   val Scope=ResourceSpecification.Scope
 
@@ -44,23 +46,23 @@ object CustomResourceDefinition {
 
   def apply(
     name:String,
-    kind: String): CustomResourceDefinition = CustomResourceDefinition(name,kind, "v1", Scope.Namespaced, None, Nil)
+    kind: String): CustomResourceDefinition = CustomResourceDefinition(name,kind, "v1", Scope.Namespaced, None, Nil, None, None)
 
   def apply(
     name: String,
     kind: String,
-    scope: Scope.Value): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, Nil)
+    scope: Scope.Value): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, Nil, None, None)
 
   def apply(
     name: String,
     kind: String,
-    shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, shortNames)
+    shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, shortNames, None, None)
 
   def apply(
     name: String,
     kind: String,
     scope: Scope.Value,
-    shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, shortNames)
+    shortNames: List[String]): CustomResourceDefinition = CustomResourceDefinition(name, kind, "v1", scope, None, shortNames, None, None)
 
   def apply(
     name: String,
@@ -68,7 +70,9 @@ object CustomResourceDefinition {
     version: String,
     scope: Scope.Value,
     singular: Option[String],
-    shortNames: List[String]): CustomResourceDefinition =
+    shortNames: List[String],
+    subresources: Option[Subresources],
+    versions: Option[List[Version]]): CustomResourceDefinition =
   {
     val nameParts = name.split('.')
     if (nameParts.length < 2)
@@ -77,7 +81,7 @@ object CustomResourceDefinition {
     val group=nameParts.tail.mkString(".")
 
     val names=ResourceSpecification.Names(plural=plural,kind=kind,singular=singular.getOrElse(""),shortNames=shortNames)
-    val spec=Spec(apiGroup=group,version=version,names=names, scope=scope)
+    val spec=Spec(apiGroup=group,version=Some(version),names=names, scope=scope, versions = versions, subresources = subresources)
     CustomResourceDefinition(metadata=ObjectMeta(name=name), spec=spec)
   }
 
@@ -116,11 +120,6 @@ object CustomResourceDefinition {
       (JsPath \ "categories").formatMaybeEmptyList[String]
   )(Names.apply _, unlift(Names.unapply))
 
-  implicit val versionFormat: Format[ResourceSpecification.Version] = (
-    (JsPath \ "name").format[String] and
-    (JsPath \ "served").formatMaybeEmptyBoolean() and
-    (JsPath \ "storage").formatMaybeEmptyBoolean()
-  )(ResourceSpecification.Version.apply _, unlift(ResourceSpecification.Version.unapply))
 
   implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
@@ -130,12 +129,21 @@ object CustomResourceDefinition {
   }
   implicit val subresourcesFmt: Format[Subresources] = Json.format[Subresources]
 
+  implicit val schemaFormat: Format[Schema] = Json.format[Schema]
+  implicit val versionFormat: Format[ResourceSpecification.Version] = (
+    (JsPath \ "name").format[String] and
+    (JsPath \ "served").formatMaybeEmptyBoolean() and
+    (JsPath \ "storage").formatMaybeEmptyBoolean() and
+    (JsPath \ "schema").formatNullable[Schema] and
+    (JsPath \ "subresources").formatNullable[Subresources]
+  )(ResourceSpecification.Version.apply _, unlift(ResourceSpecification.Version.unapply))
+
   implicit val crdSpecFmt: Format[Spec] = (
       (JsPath \ "group").format[String] and
       (JsPath \ "version").formatNullable[String] and
-      (JsPath \ "versions").formatMaybeEmptyList[Version] and
       (JsPath \ "scope").formatEnum(Scope) and
       (JsPath \ "names").format[Names] and
+      (JsPath \ "versions").formatNullable[List[Version]] and
       (JsPath \ "subresources").formatNullable[Subresources]
   )(Spec.apply _, unlift(Spec.unapply))
 
@@ -145,7 +153,4 @@ object CustomResourceDefinition {
       (JsPath \ "metadata").format[ObjectMeta] and
       (JsPath \ "spec").format[Spec]
   )(CustomResourceDefinition.apply _,unlift(CustomResourceDefinition.unapply))
-
-
-
 }

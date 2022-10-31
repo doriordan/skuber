@@ -2,37 +2,27 @@ package skuber
 
 import akka.stream._
 import akka.stream.scaladsl._
-import skuber.apiextensions.v1.CustomResourceDefinition
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
 import play.api.libs.json._
-import skuber.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
+import skuber.ResourceSpecification.{ScaleSubresource, Schema, StatusSubresource, Subresources}
+import skuber.apiextensions.v1beta1.CustomResourceDefinition
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 
 /**
-  * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
-  * here. (A TestResource consists of a desired replica count (spec) and corresponding actual replicas count (status))
+  * This is a variant of the CustomResourceSpec test that tests skuber support for the the pre-GA (v1beta1) CRD functionality
+  * in Kubernetes.
   *
-  * The tests cover the following interactions with Kubernetes via skuber:
-  * - creating an appropriate Custom Resource Definition (CRD) for TestResource type
-  * - retrieving the CRD
-  * - creating TestResource custom resources
-  * - retrieving  TestResource resources
-  * - updating TestResource status (via status subresource)
-  * - scaling TestResource replica count (via scale subresource)
-  * - retrieval of list of TestResources
-  * - watch events on TestResources
-  * - deleting TestResources
-  * - and finally the CRD is deleted
-  *
-  * This tests the full GA (v1) version of CRDs, so can only be run against versions 1.19 or later of Kubernetes.
+  * Note that the beta CRD version is no longer supported by Kubernetes since v1.22, so users should migrate
+  * to using the full v1 version (as used by CustomReosurceSpec) as soon as possible, as this beta API in skuber
+  * will also be removed soon.
   *
   * @author David O'Riordan
   */
-class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
+class CustomResourceBetaSpec extends K8SFixture with Eventually with Matchers {
 
     val testResourceName: String = java.util.UUID.randomUUID().toString
 
@@ -52,53 +42,6 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
 
       case class Status(actualReplicas: Int)
 
-      /*
-       * Define the versions information for the CRD, including schema - see
-       * https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definition-versioning/
-       * At least one version is required since CRD v1, but only needed by skuber if creating or updating the CRD itself - this is
-       * the case in this test, however main expected use cases for skuber are operators manipulating custom resources but not the CRDs
-       * themselves - in which case specifying version information here is unnecessary.
-       */
-      private def getVersions(): List[ResourceSpecification.Version] = {
-
-        // A CRD schema is just represented as a generic Play Json object in the skuber model, as it will
-        // rarely need to be specified by clients defining a full typed model for json schemas is deemed overkill.
-        val jsonSchema = JsObject(Map(
-          "type" -> JsString("object"),
-          "properties" -> JsObject(Map(
-            "spec" -> JsObject(Map(
-              "type" -> JsString("object"),
-              "properties" -> JsObject(Map(
-                "desiredReplicas" -> JsObject(Map(
-                  "type" -> JsString("integer")
-                ))
-              ))
-            )),
-            "status" -> JsObject(Map(
-              "type" -> JsString("object"),
-              "properties" -> JsObject(Map(
-                "actualReplicas" -> JsObject(Map(
-                  "type" -> JsString("integer")
-                ))
-              ))
-            ))
-          ))
-        ))
-
-        List(
-          ResourceSpecification.Version(
-            "v1alpha1",
-            served = true,
-            storage = true,
-            schema = Some(Schema(jsonSchema)), // schema is required since v1
-            subresources = Some(Subresources()
-                .withStatusSubresource // enable status subresource
-                .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource
-            )
-          )
-        )
-      }
-
       // skuber requires these implicit json formatters to marshal and unmarshal the TestResource spec and status fields.
       // The CustomResource json formatter will marshal/unmarshal these to/from "spec" and "status" subobjects
       // of the overall json representation of the resource.
@@ -114,8 +57,11 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
         group = "test.skuber.io",
         version = "v1alpha1",
         kind = "SkuberTest",
-        shortNames = List("test","tests"),  // not needed, but handy if debugging the tests
-        versions = getVersions() // only needed for creating or updating the CRD, not needed if just manipulating custon resources
+        shortNames = List("test","tests"),  // not needed but handy if debugging the tests
+        subresources = Some(Subresources()
+            .withStatusSubresource // enable status subresource
+            .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource
+        )
       )
 
       // the following implicit values enable the scale and status methods on the skuber API to be called for this type
@@ -215,6 +161,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
 
     it should "watch the custom resources" in { k8s =>
       import skuber.api.client.{EventType, WatchEvent}
+
       import scala.collection.mutable.ListBuffer
 
       val testResourceName=java.util.UUID.randomUUID().toString

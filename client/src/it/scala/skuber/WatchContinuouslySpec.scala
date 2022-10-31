@@ -59,6 +59,8 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     }
     k8s.delete[Deployment](deploymentTwoName).futureValue
 
+    pause(10.seconds) // enable enough time for second deployment events to be consumed
+
     // cleanup
     stream.map { killSwitch =>
       killSwitch._1.shutdown()
@@ -104,6 +106,8 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
     k8s.delete[Deployment](deploymentName).futureValue
 
+    pause(10.seconds) // enable enough time for delete event to be consumed
+
     // cleanup
     stream.map { killSwitch =>
       killSwitch._1.shutdown()
@@ -114,48 +118,6 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     val f2 = f1._2.futureValue
 
     f2.toList.map { d =>
-      (d._type, d._object.name)
-    } shouldBe List(
-      (EventType.ADDED, deploymentName),
-      (EventType.DELETED, deploymentName)
-    )
-  }
-
-  it should "continuously watch changes on a named resource from the beginning - deployment" in { k8s =>
-    import skuber.api.client.EventType
-
-    val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.7.9")
-
-    k8s.create(deployment).futureValue.name shouldBe deploymentName
-    eventually {
-      k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
-    }
-
-    val stream = k8s.get[Deployment](deploymentName).map { d =>
-      k8s.watchContinuously[Deployment](deploymentName, None)
-        .viaMat(KillSwitches.single)(Keep.right)
-        .filter(event => event._object.name == deploymentName)
-        .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
-        .toMat(Sink.collection)(Keep.both)
-        .run()
-    }
-
-    /*
-     * Request times for request is defaulted to 30 seconds.
-     * This will ensure multiple requests are performed by
-     * the source including empty responses
-     */
-    pause(62.seconds)
-
-    k8s.delete[Deployment](deploymentName).futureValue
-
-    // cleanup
-    stream.map { killSwitch =>
-      killSwitch._1.shutdown()
-    }
-
-    stream.futureValue._2.futureValue.toList.map { d =>
       (d._type, d._object.name)
     } shouldBe List(
       (EventType.ADDED, deploymentName),
@@ -192,6 +154,8 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     pause(62.seconds)
 
     k8s.delete[Deployment](deploymentName).futureValue
+
+    pause(10.seconds) // enable enough time for delete event to be consumed
 
     // cleanup
     stream.map { killSwitch =>

@@ -2,6 +2,7 @@ package skuber
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import skuber.ResourceSpecification.Version
 import skuber.api.client.Status
 import skuber.json.format.objFormat
 
@@ -49,8 +50,6 @@ object CustomResource {
     * @return HasStatusResource value that can be passed implicitly to the `updateStatus` method for this type
     */
   def statusMethodsEnabler[C <: CustomResource[_,_]](implicit rd: ResourceDefinition[C]): HasStatusSubresource[C] = {
-    if (!rd.spec.subresources.map(_.status).isDefined)
-      throw new K8SException(Status(message=Some("Status subresource must be defined on the associated resource definition before status methods can be enabled")))
     new HasStatusSubresource[C] {}
   }
 
@@ -63,8 +62,6 @@ object CustomResource {
     * @return HasStatusResource value that can be passed implicitly to the `updateStatus` method for this type
     */
   def scalingMethodsEnabler[C <: CustomResource[_,_]](implicit rd: ResourceDefinition[C]): Scale.SubresourceSpec[C] = {
-    if (!rd.spec.subresources.map(_.scale).isDefined)
-      throw new K8SException(Status(message=Some("Scale subresource must be defined on the associated resource definition before scaling methods can be enabled")))
     new Scale.SubresourceSpec[C] {
       override def apiVersion: String =  "autoscaling/v1"
     }
@@ -88,5 +85,4 @@ object CustomResource {
     import skuber.json.format.ListResourceFormat
     ListResourceFormat[CustomResource[Sp,St]]
   }
-
 }

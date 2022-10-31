@@ -1,6 +1,8 @@
 package skuber
 
-import skuber.apiextensions.CustomResourceDefinition
+import skuber.ResourceSpecification.Subresources
+import skuber.apiextensions.v1beta1.{CustomResourceDefinition => v1beta1CRD}
+import skuber.apiextensions.v1.{CustomResourceDefinition => v1CRD}
 
 /**
   * @author David O'Riordan
@@ -33,20 +35,31 @@ object ResourceDefinition {
     plural: Option[String] = None,
     scope: ResourceSpecification.Scope.Value = ResourceSpecification.Scope.Namespaced,
     shortNames: List[String] = Nil,
-    subresources: Option[ResourceSpecification.Subresources] = None
+    versions: List[ResourceSpecification.Version] = Nil,
+    subresources: Option[Subresources] = None
   ): ResourceDefinition[T] =
   {
     val singularStr=singular.getOrElse(kind.toLowerCase)
     val pluralStr=plural.getOrElse(s"${singularStr}s")
     val names=ResourceSpecification.Names(plural=pluralStr, singular = singularStr, kind = kind, shortNames = shortNames)
-    val defSpec=NonCoreResourceSpecification(group,Some(version), Nil, scope, names, subresources)
+    val defSpec=NonCoreResourceSpecification(group, Some(version), scope, names, Some(versions), subresources)
     new ResourceDefinition[T]{ override def spec= defSpec }
   }
 
   /*
-   * Generate a ResourceDefinition for a specific CustomResource type from the associated CRD
+   * Generate a ResourceDefinition for a specific CustomResource type from the associated beta CRD
    */
-  def apply[T <: TypeMeta](crd: CustomResourceDefinition): ResourceDefinition[T] = {
+  @deprecated("Pass a skuber.apiextensions.v1.CustomResourceDefinition instance")
+  def apply[T <: TypeMeta](crd: v1beta1CRD): ResourceDefinition[T] = {
+    new ResourceDefinition[T] {
+      override def spec: ResourceSpecification = crd.spec
+    }
+  }
+
+  /*
+   * Generate a ResourceDefinition for a specific CustomResource type from the associated v1 CRD
+   */
+  def apply[T <: TypeMeta](crd: v1CRD): ResourceDefinition[T] = {
     new ResourceDefinition[T] {
       override def spec: ResourceSpecification = crd.spec
     }
