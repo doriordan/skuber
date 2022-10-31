@@ -9,7 +9,6 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
-
 class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
   val nginxPodName: String = java.util.UUID.randomUUID().toString
   val defaultLabels = Map("app" -> this.suiteName)
