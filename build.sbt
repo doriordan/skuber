@@ -32,7 +32,7 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "1.32"
 
 val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
-val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk18on" % "1.71"
+val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk18on" % "1.72"
 
 
 // the client API request/response handing uses Akka Http
