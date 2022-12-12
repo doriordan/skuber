@@ -925,7 +925,8 @@ package object format {
 
   implicit val secretFmt: Format[skuber.Secret] = (objFormat and
     (JsPath \ "data").formatMaybeEmptyByteArrayMap and
-    (JsPath \ "type").formatMaybeEmptyString()) (skuber.Secret.apply, s => (s.kind, s.apiVersion, s.metadata, s.data, s.`type`))
+    (JsPath \ "immutable").formatMaybeEmptyBoolean() and
+    (JsPath \ "type").formatMaybeEmptyString()) (skuber.Secret.apply, s => (s.kind, s.apiVersion, s.metadata, s.data, s.immutable, s.`type`))
 
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = Json.formatEnum(LimitRange.ItemType)
 
