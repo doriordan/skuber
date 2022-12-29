@@ -914,7 +914,8 @@ package object format {
 
   implicit val svcAccountFmt: Format[ServiceAccount] = (objFormat and
     (JsPath \ "secrets").formatMaybeEmptyList[ObjectReference] and
-    (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference]) (ServiceAccount.apply, s => (s.kind, s.apiVersion, s.metadata, s.secrets, s.imagePullSecrets))
+    (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
+    (JsPath \ "automountServiceAccountToken").formatNullable[Boolean]) (ServiceAccount.apply, s => (s.kind, s.apiVersion, s.metadata, s.secrets, s.imagePullSecrets, s.automountServiceAccountToken))
 
   implicit val base64Format: Format[Array[Byte]] = (JsPath.format[String].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes)))
 
