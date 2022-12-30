@@ -32,15 +32,22 @@ class ServiceAccountSpec extends K8SFixture with Eventually with BeforeAndAfterA
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
 
-    val results = Future.sequence(List(serviceAccountName1).map { name =>
+    val results = Future.sequence(List(serviceAccountName1, serviceAccountName2, serviceAccountName3, serviceAccountName4, serviceAccountName41, serviceAccountName42, serviceAccountName51, serviceAccountName52).map { name =>
         k8s.delete[ServiceAccount](name).withTimeout().recover { case _ => () }
       }).withTimeout()
 
+    val results2 = Future.sequence(List(namespace4, namespace5).map { name =>
+        k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
+      }).withTimeout()
+
     results.futureValue
+    results2.futureValue
 
     results.onComplete { _ =>
-      k8s.close
-      system.terminate().recover { case _ => () }.valueT
+      results2.onComplete { _ =>
+        k8s.close
+        system.terminate().recover { case _ => () }.valueT
+      }
     }
   }
 
