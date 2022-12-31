@@ -112,7 +112,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.Use(
-        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.6.0"),
+        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.7.2"),
         params = Map(
           "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
