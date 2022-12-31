@@ -23,6 +23,18 @@ class SecretSpec extends Specification {
     val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
     mySecret mustEqual readSecret
   }
+  "this can be done with immutable defined" >> {
+    val mySecret = Secret(metadata = ObjectMeta("mySecret"), immutable = true)
+    val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
+    mySecret mustEqual readSecret
+    readSecret.immutable mustEqual true
+  }
+  "this can be done without immutable defined" >> {
+    val mySecret = Secret(metadata = ObjectMeta("mySecret"))
+    val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
+    mySecret mustEqual readSecret
+    readSecret.immutable mustEqual false
+  }
   "this can be done with the type member defined" >> {
     val mySecret = Secret(metadata = ObjectMeta("mySecret"), `type` = "myType")
     val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
