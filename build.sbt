@@ -45,7 +45,7 @@ val akkaSlf4j = ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion).cross(CrossV
 val logback = "ch.qos.logback" % "logback-classic" % "1.4.0" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.10.0-RC6"
+val playJson = "com.typesafe.play" %% "play-json" % "2.10.0-RC7"
 val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.13.3"
 
 val awsJavaSdkCore = "com.amazonaws" % "aws-java-sdk-core" % "1.12.233"
@@ -112,7 +112,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
     steps = List(
       WorkflowStep.Checkout,
       WorkflowStep.Use(
-        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.6.0"),
+        ref = UseRef.Public(owner = "manusa", repo = "actions-setup-minikube", ref = "v2.7.2"),
         params = Map(
           "minikubeversion" -> "v1.25.2",
           "kubernetesversion" -> k8sServerVersion,
