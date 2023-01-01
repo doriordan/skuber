@@ -4,7 +4,7 @@
 
 </br>
 
-![Build Status](https://img.shields.io/github/workflow/status/hagay3/skuber/Continuous%20Integration/master?label=Continuous%20Integration&style=for-the-badge)
+
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.hagay3/skuber_2.12?color=green&style=for-the-badge)](https://mvnrepository.com/artifact/io.github.hagay3/skuber_2.12)
 ![Latest release date](https://img.shields.io/github/release-date/hagay3/skuber?style=for-the-badge)
 ![Commit Activity](https://img.shields.io/github/commit-activity/m/hagay3/skuber?color=green&style=for-the-badge)
