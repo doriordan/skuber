@@ -43,6 +43,10 @@ This example lists pods in `kube-system` namespace:
 Read the [documentation](https://skuber.co) and join [discord community](https://discord.gg/byEh56vFJR) to  ask your questions!
 
 
+**Note: Since Akka license is no more an "Open Source” license, akka version won't be bumped until there will be an equivalent alternative.**
+
+**Currently, skuber implemented with akka 2.6.19 and the license is open-sourced.**
+
 
 ## Features
 - Uses standard `kubeconfig` files for configuration - see the [configuration guide](https://skuber.co/#/?id=configuration) for details
