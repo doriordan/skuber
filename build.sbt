@@ -28,7 +28,7 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.2.14"
 val akkaStreamTestKit = ("com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion).cross(CrossVersion.for3Use2_13)
 
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "1.33"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "2.0"
 
 val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
