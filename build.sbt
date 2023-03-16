@@ -42,7 +42,7 @@ val akka = ("com.typesafe.akka" %% "akka-actor" % akkaVersion).cross(CrossVersio
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion).cross(CrossVersion.for3Use2_13)
-val logback = "ch.qos.logback" % "logback-classic" % "1.4.5" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.4.6" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.10.0-RC7"
