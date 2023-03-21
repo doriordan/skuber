@@ -42,6 +42,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
   val watchContinuouslyRequestTimeout: Duration,
   val watchContinuouslyIdleTimeout: Duration,
   val watchPoolIdleTimeout: Duration,
+  val defaultPoolSettings: ConnectionPoolSettings,
   val watchSettings: ConnectionPoolSettings,
   val podLogSettings: ConnectionPoolSettings,
   val sslContext: Option[SSLContext], // provides the Akka client with the SSL details needed for https connections to the API server
@@ -69,7 +70,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
 
   private[skuber] def invokeWatch(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, watchSettings)
   private[skuber] def invokeLog(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, podLogSettings)
-  private[skuber] def invoke(request: HttpRequest, settings: ConnectionPoolSettings = ConnectionPoolSettings(actorSystem))(implicit lc: LoggingContext): Future[HttpResponse] = {
+  private[skuber] def invoke(request: HttpRequest, settings: ConnectionPoolSettings = defaultPoolSettings)(implicit lc: LoggingContext): Future[HttpResponse] = {
     if (isClosed) {
       logError("Attempt was made to invoke request on closed API request context")
       throw new IllegalStateException("Request context has been closed")
@@ -512,7 +513,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
       clusterServerUri.effectivePort,
       watchPoolIdleTimeout,
       sslContext.map(ConnectionContext.httpsClient),
-      ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout))
+      defaultPoolSettings.connectionSettings.withIdleTimeout(watchContinuouslyIdleTimeout))
   }
 
   // Operations on scale subresource
@@ -616,7 +617,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
   override def usingNamespace(newNamespace: String): KubernetesClientImpl =
     new KubernetesClientImpl(requestMaker, clusterServer, requestAuth,
       newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook)
+      watchPoolIdleTimeout, defaultPoolSettings, watchSettings, podLogSettings, sslContext, logConfig, closeHook)
 
   private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit reader: Reads[T], lc: LoggingContext): Future[T] =
   {
@@ -680,7 +681,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
 
 object KubernetesClientImpl {
 
-  def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
+  def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config, connectionPoolSettings: Option[ConnectionPoolSettings] = None)
    (implicit actorSystem: ActorSystem): KubernetesClientImpl =
   {
     val skuberConfig = SkuberConfig.load(appConfig)
@@ -716,7 +717,7 @@ object KubernetesClientImpl {
 
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
 
-    val defaultClientSettings = ConnectionPoolSettings(actorSystem.settings.config)
+    val defaultClientSettings = connectionPoolSettings.getOrElse(ConnectionPoolSettings(actorSystem))
     val watchConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
     val watchSettings = defaultClientSettings.withConnectionSettings(watchConnectionSettings)
 
@@ -725,6 +726,6 @@ object KubernetesClientImpl {
 
     new KubernetesClientImpl(requestMaker, k8sContext.cluster.server, k8sContext.authInfo,
       theNamespaceName, watchContinuouslyRequestTimeout, watchContinuouslyIdleTimeout,
-      watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook)
+      watchPoolIdleTimeout, defaultClientSettings, watchSettings, podLogSettings, sslContext, logConfig, closeHook)
   }
 }
