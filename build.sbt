@@ -23,7 +23,7 @@ val akkaVersion = "2.6.19"
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.17.0"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.19.2"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.14"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.15"
 
 val akkaStreamTestKit = ("com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion).cross(CrossVersion.for3Use2_13)
 
