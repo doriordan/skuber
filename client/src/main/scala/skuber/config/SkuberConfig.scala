@@ -18,6 +18,8 @@ case class SkuberConfig(appConfig: Config) {
     }
   }
 
+  def getRootSkuberConfig: Config = appConfig.getConfig(skuberKeyPath)
+
   def getDuration(configKey: String, default: Duration): Duration = getSkuberConfig(configKey, durationFromConfig, default)
 
   def durationFromConfig(configKey: String): Option[Duration] = Some(Duration.fromNanos(appConfig.getDuration(configKey).toNanos))
