@@ -2,6 +2,7 @@
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.skuber/skuber_2.12/badge.svg)](http://search.maven.org/#search|ga|1|g:%22io.skuber%22a:%22skuber_2.12%22)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/doriordan/skuber/blob/master/LICENSE.txt)
 
+
 # Skuber
  
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
@@ -139,3 +140,8 @@ Building the library from source is very straightforward. Simply run `sbt test`i
 ## License
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
+
+## IMPORTANT: Akka License Model Changes
+
+Lightbend have moved Akka versions starting from 2.7.x from an Apache 2.0 to BSL license. Skuber currently uses Akka 2.6.x and it is not planned to move to a BSL licensed Akka version - instead it is planned to migrate Skuber to the Apache Pekko open-source fork once it has a full release.
+
