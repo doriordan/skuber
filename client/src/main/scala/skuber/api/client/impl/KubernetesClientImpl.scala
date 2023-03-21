@@ -681,7 +681,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
 
 object KubernetesClientImpl {
 
-  def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
+  def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config, connectionPoolSettings: Option[ConnectionPoolSettings] = None)
    (implicit actorSystem: ActorSystem): KubernetesClientImpl =
   {
     val skuberConfig = SkuberConfig.load(appConfig)
@@ -717,8 +717,7 @@ object KubernetesClientImpl {
 
     val requestMaker = (uri: Uri, method: HttpMethod) => HttpRequest(method = method, uri = uri)
 
-    val defaultClientConfigRoot = skuberConfig.getSkuberConfig("akka.http.host-connection-pool", _ => Some(skuberConfig.getRootSkuberConfig), actorSystem.settings.config)
-    val defaultClientSettings = ConnectionPoolSettings(defaultClientConfigRoot)
+    val defaultClientSettings = connectionPoolSettings.getOrElse(ConnectionPoolSettings(actorSystem))
     val watchConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(watchIdleTimeout)
     val watchSettings = defaultClientSettings.withConnectionSettings(watchConnectionSettings)
 
