@@ -43,6 +43,10 @@ This example lists pods in `kube-system` namespace:
 Read the [documentation](https://skuber.co) and join [discord community](https://discord.gg/byEh56vFJR) to  ask your questions!
 
 
+**Note: Since Akka license is no more an "Open Source” license, akka version won't be bumped until there will be an equivalent alternative.**
+
+**Currently, skuber implemented with akka 2.6.19 and the license is open-sourced.**
+
 
 ## Features
 - Uses standard `kubeconfig` files for configuration - see the [configuration guide](https://skuber.co/#/?id=configuration) for details
@@ -71,7 +75,7 @@ You can use the latest release by adding to your build:
 - Scala 3.2, 2.13, 2.12 support
 
 ```sbt
-libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.4"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "3.0.5"
 ```
 
 ## Building
