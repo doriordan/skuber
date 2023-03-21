@@ -221,6 +221,11 @@ package object client {
     init(k8sContext, logConfig, closeHook, defaultAppConfig, None)
   }
 
+  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
+      (implicit actorSystem: ActorSystem): KubernetesClient = {
+    KubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig, None)
+  }
+
   def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config, connectionPoolSettings: Option[ConnectionPoolSettings])
       (implicit actorSystem: ActorSystem): KubernetesClient = {
     KubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig, connectionPoolSettings)
