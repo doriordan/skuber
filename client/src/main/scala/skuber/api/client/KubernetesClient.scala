@@ -1,7 +1,7 @@
 package skuber.api.client
 
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.util.ByteString
 import play.api.libs.json.{Writes,Format}
 import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
 import skuber.api.patch.Patch
@@ -176,7 +176,7 @@ trait KubernetesClient {
     * timeouts - the source returned by this method will complete in the presence of such timeouts or other disconnections.
     * @param obj the name of the object to watch
     * @tparam O the type of the object to watch e.g. Pod, Deployment
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing a Pekko streams Source of WatchEvents that will be emitted
     */
   def watch[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
 
@@ -191,7 +191,7 @@ trait KubernetesClient {
     * be produced for an already existing object followed by events for any future changes.
     * @param bufSize An optional buffer size for the returned on-the-wire representation of each modified object - normally the default is more than enough.
     * @tparam O the type of the resource to watch
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing a Pekko streams Source of WatchEvents that will be emitted
     */
   def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
@@ -207,7 +207,7 @@ trait KubernetesClient {
     * be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for each modified object received, normally the default is more than enough
     * @tparam O the type of resource to watch e.g. Pod, Dpeloyment
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing a Pekko streams Source of WatchEvents that will be emitted
     */
   def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
@@ -217,7 +217,7 @@ trait KubernetesClient {
     * events on any updates to the object even if the server times out, by transparently restarting the watch as needed.
     * @param obj  the object resource to watch
     * @tparam O the type of the resource e.g Pod
-    * @return  A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return  A future containing a Pekko streams Source of WatchEvents that will be emitted
     */
   def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
@@ -233,7 +233,7 @@ trait KubernetesClient {
     * a single ADDED event will be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for received object updates, normally the default is more than enough
     * @tparam O the type of the resource
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing a Pekka streams Source of WatchEvents that will be emitted
     */
   def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
@@ -249,7 +249,7 @@ trait KubernetesClient {
     * a single ADDED event will be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for received object updates, normally the default is more than enough
     * @tparam O the type pf the resource
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+    * @return A future containing a Pekko streams Source of WatchEvents that will be emitted
     */
   def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
@@ -262,7 +262,7 @@ trait KubernetesClient {
   * ensures a watch is always requested on the server.
   * @param bufsize optional buffer size for received object updates, normally the default is more than enough
   * @tparam O the resource type to watch
-  * @return A future containing an Akka streams Source of WatchEvents that will be emitted
+  * @return A future containing a Pekko streams Source of WatchEvents that will be emitted
   */
   def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
@@ -320,7 +320,7 @@ trait KubernetesClient {
   def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(implicit rd: ResourceDefinition[O], fmt: Format[O], lc: LoggingContext): Future[O]
 
   /**
-    * Get the logs from a pod (similar to `kubectl logs ...`). The logs are streamed using an Akka streams source
+    * Get the logs from a pod (similar to `kubectl logs ...`). The logs are streamed using a Pekko streams source
     * @param name the name of the pod
     * @param queryParams optional parameters of the request (for example container name)
     * @param namespace if set this specifies the namespace of the pod (otherwise the configured namespace is used)
@@ -333,9 +333,9 @@ trait KubernetesClient {
     * @param podName the name of the pod
     * @param command the command to execute
     * @param maybeContainerName an optional container name
-    * @param maybeStdin optional Akka Source for sending input to stdin for the command
-    * @param maybeStdout optional Akka Sink to receive output from stdout for the command
-    * @param maybeStderr optional Akka Sink to receive output from stderr for the command
+    * @param maybeStdin optional Pekko Source for sending input to stdin for the command
+    * @param maybeStdout optional Pekko Sink to receive output from stdout for the command
+    * @param maybeStderr optional Pekko Sink to receive output from stderr for the command
     * @param tty optionally set tty on
     * @param maybeClose if set, this can be used to close the connection to the pod by completing the promise
     * @return A future indicating the exec command has been submitted

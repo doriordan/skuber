@@ -3,10 +3,10 @@ package skuber.api
 import java.time.Instant
 import java.util.UUID
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model._
-import akka.stream.scaladsl.Flow
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.stream.scaladsl.Flow
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._

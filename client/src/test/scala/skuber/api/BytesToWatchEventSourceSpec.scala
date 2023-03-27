@@ -4,9 +4,9 @@ import client._
 import skuber.json.format._
 import skuber.ReplicationController
 import org.specs2.mutable.Specification
-import akka.util.ByteString
-import akka.stream.scaladsl.{Sink, Source}
-import akka.actor.ActorSystem
+import org.apache.pekko.util.ByteString
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.actor.ActorSystem
 import skuber.api.watch.BytesToWatchEventSource
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -25,7 +25,7 @@ class BytesToWatchEventSourceSpec extends Specification {
   "A single chunk containing a single Watch event can be read correctly" >> {
     val eventsAsStr =  """{"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12803","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":3,"observedGeneration":2}}}"""
     val bytesSource = Source.single(ByteString(eventsAsStr))
-    val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 1000)
+    val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 10000)
 
     val eventSink = Sink.head[WatchEvent[ReplicationController]]
     val run: Future[WatchEvent[ReplicationController]] = watchEventSource.runWith(eventSink)
@@ -39,7 +39,7 @@ class BytesToWatchEventSourceSpec extends Specification {
 {"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12804","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":0,"observedGeneration":2}}}
 """
     val bytesSource = Source.single(ByteString(eventsAsStr))
-    val watchEventSource: Source[WatchEvent[ReplicationController], _] = BytesToWatchEventSource[ReplicationController](bytesSource, 1000)
+    val watchEventSource: Source[WatchEvent[ReplicationController], _] = BytesToWatchEventSource[ReplicationController](bytesSource, 10000)
 
     val eventSink = Sink.seq[WatchEvent[ReplicationController]]
     val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
@@ -57,7 +57,7 @@ class BytesToWatchEventSourceSpec extends Specification {
       val event2AsStr = """4Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":0,"observedGeneration":2}}}
 """
       val bytesSource = Source(List(ByteString(event1AsStr), ByteString(event2AsStr)))
-      val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 1000)
+      val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 10000)
 
       val eventSink = Sink.seq[WatchEvent[ReplicationController]]
       val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
@@ -78,7 +78,7 @@ class BytesToWatchEventSourceSpec extends Specification {
 {"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12803","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":0,"observedGeneration":2}}}
 """
       val bytesSource = Source(List(ByteString(events1AsStr), ByteString(events2AsStr)))
-      val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 1000)
+      val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 10000)
 
       val eventSink = Sink.seq[WatchEvent[ReplicationController]]
       val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
@@ -102,7 +102,7 @@ class BytesToWatchEventSourceSpec extends Specification {
     val event4AsStr = """{"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12803","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":0,"observedGeneration":2}}}
 """
     val bytesSource = Source(List(ByteString(event1AsStr), ByteString(event2AsStr), ByteString(event3AsStr), ByteString(event4AsStr)))
-    val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 1000)
+    val watchEventSource = BytesToWatchEventSource[ReplicationController](bytesSource, 10000)
 
     val eventSink = Sink.seq[WatchEvent[ReplicationController]]
     val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)

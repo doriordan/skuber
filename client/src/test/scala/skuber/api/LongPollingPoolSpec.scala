@@ -3,15 +3,14 @@ package skuber.api
 import java.io.InputStream
 import java.security.{KeyStore, SecureRandom}
 
-import akka.Done
-import akka.actor.ActorSystem
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.stream.scaladsl.{Sink, Source}
-import com.typesafe.sslconfig.akka.AkkaSSLConfig
+import org.apache.pekko.Done
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Route
+import org.apache.pekko.http.scaladsl.settings.ClientConnectionSettings
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -36,7 +35,7 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
   "LongPollingPool" should {
     "create a http pool" >> {
       val clientConfig = ClientConnectionSettings(system.settings.config)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4321)
+      val bindingFuture = Http().newServerAt( "127.0.0.1", port = 4321).bind(route)
 
       val pool = LongPollingPool[Int]("http", "localhost", 4321, 30.seconds, None, clientConfig)
 
@@ -71,14 +70,15 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
       val sslContext: SSLContext = SSLContext.getInstance("TLS")
       sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
 
-      val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4322, connectionContext = https)
-
-      val clientHttps: HttpsConnectionContext = new HttpsConnectionContext(sslContext, Some(
-        AkkaSSLConfig().mapSettings(x => x.withLoose {
-          x.loose.withDisableHostnameVerification(true)
-        })
-      ))
+      // create a client side SSL engine with hostname verification disabled ( purely for local testing purposes)
+      def createClientSSLEngine(host: String, port: Int) = {
+        val sslEngine = sslContext.createSSLEngine()
+        sslEngine.setUseClientMode(true)
+        sslEngine
+      }
+      val clientHttps: HttpsConnectionContext = ConnectionContext.httpsClient(createClientSSLEngine _)
+      val serverHttps: HttpsConnectionContext = ConnectionContext.httpsServer(sslContext)
+      val bindingFuture = Http().newServerAt("127.0.0.1", port = 4322).enableHttps(serverHttps).bind(route)
 
       val pool = LongPollingPool[Int]("https", "localhost", 4322, 30.seconds, Some(clientHttps), clientConfig)
 

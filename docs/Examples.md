@@ -1,6 +1,8 @@
 # Skuber usage examples
 
-Skuber is built on top of Akka HTTP and therefore it is non-blocking and concurrent by default.
+Note: These examples are for Skuber 3.x - to run on Skuber 2.x just change the Pekko import to the equivalent Akka one.
+
+Skuber is built on top of Pekko (formerly Akka) HTTP and therefore it is non-blocking and concurrent by default.
 Almost all requests return a Future, and you need to write a little bit of extra code if you want quick
 experiments in a single-threaded environment (like Ammonite REPL, or simple tests)
 It all boils down to either using Await or onComplete - see examples below.
@@ -12,8 +14,8 @@ import skuber._
 import skuber.json.format._
 
 
-// Some standard Akka implicits that are required by the skuber v2 client API
-import akka.actor.ActorSystem
+// Some standard Pekko implicits that are required by the skuber v3 client API
+import org.apache.pekko.actor.ActorSystem
 
 implicit val system = ActorSystem()
 implicit val dispatcher = system.dispatcher

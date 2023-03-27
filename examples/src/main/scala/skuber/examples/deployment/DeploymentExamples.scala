@@ -4,7 +4,7 @@ import skuber._
 import skuber.ext.Deployment
 import skuber.json.ext.format._
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._

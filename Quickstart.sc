@@ -7,7 +7,7 @@
 */
 import $ivy.`io.skuber::skuber:2.0.10`, skuber._, skuber.json.format._
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import api.Configuration
 import scala.concurrent.Future
 import scala.util.{Success, Failure}

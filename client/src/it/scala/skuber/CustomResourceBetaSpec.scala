@@ -1,7 +1,7 @@
 package skuber
 
-import akka.stream._
-import akka.stream.scaladsl._
+import org.apache.pekko.stream._
+import org.apache.pekko.stream.scaladsl._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json._

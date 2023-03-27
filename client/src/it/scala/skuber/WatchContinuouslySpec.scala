@@ -1,7 +1,7 @@
 package skuber
 
-import akka.stream.KillSwitches
-import akka.stream.scaladsl.{Keep, Sink}
+import org.apache.pekko.stream.KillSwitches
+import org.apache.pekko.stream.scaladsl.{Keep, Sink}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Seconds, Span}

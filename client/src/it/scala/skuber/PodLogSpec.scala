@@ -2,7 +2,7 @@ package skuber
 
 import java.time.ZonedDateTime
 
-import akka.stream.scaladsl.TcpIdleTimeoutException
+import org.apache.pekko.stream.scaladsl.TcpIdleTimeoutException
 import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually

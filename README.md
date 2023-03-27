@@ -21,12 +21,12 @@ See the [programming guide](docs/GUIDE.md) for more details.
 
 ## Example
 
-This example lists pods in `kube-system` namespace:
+This example (for Skuber 3.x) lists pods in `kube-system` namespace:
 
   ```scala
   import skuber._
   import skuber.json.format._
-  import akka.actor.ActorSystem
+  import org.apache.pekko.actor.ActorSystem
   import scala.util.{Success, Failure}
 
   implicit val system = ActorSystem()
@@ -107,31 +107,38 @@ For other Kubernetes setups, see the [configuration guide](docs/Configuration.md
 
 ## Prerequisites
 
-- Java 8
+- Java 8 or higher
 - Kubernetes cluster
 
-A Kubernetes cluster is needed at runtime. For local development purposes, minikube is recommended.
-To get minikube follow the instructions [here](https://github.com/kubernetes/minikube)
+A Kubernetes cluster is needed at runtime. For local development purposes, `kind` is recommended.
+To install `kind` follow the instructions [here](https://kind.sigs.k8s.io/docs/user/quick-start/).
 
 ## Release
 
-You can use the latest release (for 2.12 or 2.13) by adding to your build:
+You can use the latest full 2.x release (for Scala 2.12 or 2.13) by adding to your build:
 
 ```sbt
 libraryDependencies += "io.skuber" %% "skuber" % "2.6.7"
 ```
 
-Meanwhile users of skuber v1 can continue to use the final v1.x release, which is available only on Scala 2.11:
+Meanwhile a pre-release of 3.x (which moves away from Akka to Pekko) is now available:
 
 ```sbt
-libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
+libraryDependencies += "io.skuber" % "skuber" % "3.0.0-beta1"
 ```
 
-NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 has now been removed since v2.6.0.
+The pre-release currently uses a nightly build of Pekko as no full release is yet available - as such it is not recommended for production use but can be used for testing migration of your stack away from Akka. 
+A full release of Skuber 3.x will be made available when Pekko has an official release.
 
-## Migrating to release v2
+NOTE: Skuber supports Scala 2.13 since 2.4.0 - support for Scala 2.11 has now been removed since 2.6.0.
 
-If you have an application using the legacy version v1 of Skuber and want to move to v2, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
+## Migrating from release 2.x to 3.x
+
+Skuber 3.x is mostly backwards-compatible with 2.x, except that it replaces all of its uses of Akka with [Pekko](https://github.com/apache/incubator-pekko). 
+In practice this normally requires minimal changes to your application to migrate to 3.x:
+
+- rename Akka imports e.g. `import akka.actor.ActorSystem` becomes `import org.apache.pekko.actor.ActorSystem`
+- rename any `akka` section(s) of your application configuration (`application.conf` file) that relate to skuber to `pekko`.
 
 ## Building
 
@@ -141,7 +148,6 @@ Building the library from source is very straightforward. Simply run `sbt test`i
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
 
-## IMPORTANT: Akka License Model Changes
+## IMPORTANT: Akka License Model Changes And Pekko Migration
 
-Lightbend have moved Akka versions starting from 2.7.x from an Apache 2.0 to BSL license. Skuber currently uses Akka 2.6.x and it is not planned to move to a BSL licensed Akka version - instead it is planned to migrate Skuber to the Apache Pekko open-source fork once it has a full release.
-
+Lightbend have moved Akka versions starting from 2.7.x from an Apache 2.0 to BSL license. Skuber 2.x uses Akka 2.6.x and it is not planned to move to a BSL licensed Akka version - instead it is planned that Skuber 3.x will move from Akka to the Apache Pekko open-source fork.

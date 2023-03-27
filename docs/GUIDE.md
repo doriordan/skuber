@@ -126,7 +126,7 @@ These are the basic steps to use the Skuber API:
 
 - Import the API definitions from the appropriate package(s)
 - Import the implicit JSON formatters from the appropriate package(s) as described above. The API uses these to read/write the request and response data.
-- Declare some additional Akka implicit values as shown below (this is basically to configure the Akka HTTP client which Skuber v2 uses under the hood)
+- Declare some additional Pekko implicit values as shown below (this is basically to configure the Pekko HTTP client which Skuber v2 uses under the hood)
 - Create a Kubernetes client by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
 - Invoke the required requests using the client
 - The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
@@ -136,7 +136,7 @@ For example, the following creates a pod  on our Kubernetes cluster:
 import skuber._
 import skuber.json.format._
     
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 implicit val system = ActorSystem()
 implicit val dispatcher = system.dispatcher
     
@@ -256,8 +256,8 @@ import skuber._
 import skuber.json.format._
 import skuber.apps.v1.Deployment
    
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.Sink
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.Sink
     
 object WatchExamples {
   implicit val system = ActorSystem()

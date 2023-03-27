@@ -5,7 +5,7 @@ import skuber.json.format._
 
 import scala.concurrent.Future
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 
 /**
  * @author David O'Riordan

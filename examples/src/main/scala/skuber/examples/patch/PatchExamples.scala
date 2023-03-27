@@ -1,6 +1,6 @@
 package skuber.examples.patch
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import skuber._
 import skuber.json.format._
 import skuber.apps.v1beta1.StatefulSet

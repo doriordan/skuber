@@ -1,6 +1,6 @@
 package skuber.api
 
-import akka.http.scaladsl.model.{HttpCharsets, MediaType}
+import org.apache.pekko.http.scaladsl.model.{HttpCharsets, MediaType}
 import play.api.libs.json.Writes
 
 package object patch {

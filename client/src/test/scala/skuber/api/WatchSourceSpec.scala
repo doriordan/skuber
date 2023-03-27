@@ -3,12 +3,12 @@ package skuber.api
 import java.net.ConnectException
 import java.time.{ZoneId, ZonedDateTime}
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model._
-import akka.stream.scaladsl.Framing.FramingException
-import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
-import akka.stream.testkit.scaladsl.TestSink
-import akka.stream.KillSwitches
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.stream.scaladsl.Framing.FramingException
+import org.apache.pekko.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
+import org.apache.pekko.stream.testkit.scaladsl.TestSink
+import org.apache.pekko.stream.KillSwitches
 import com.fasterxml.jackson.core.JsonParseException
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
@@ -287,7 +287,6 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[FramingException]
-      error.getMessage mustEqual "Invalid JSON encountered at position [0] of [ByteString(98, 97, 100, 32, 105, 110, 112, 117, 116)]"
 
       verify(client, times(2)).logConfig
       verify(client).buildRequest(

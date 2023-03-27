@@ -5,7 +5,7 @@ import java.time.Instant
 
 import scala.util.Try
 import org.specs2.mutable.Specification
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import skuber._
 import skuber.api.client._
 

@@ -8,7 +8,7 @@ Because skuber now uses [Akka Http](https://doc.akka.io/docs/akka-http/current/s
 
 ```
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 
 implicit val system = ActorSystem()
 
@@ -38,7 +38,7 @@ frontendFetch onSuccess { case frontend =>
 can be migrated to 2.x using something like the following:
 
 ```
-import akka.stream.scaladsl.Sink
+import org.apache.pekko.stream.scaladsl.Sink
 val frontendReplicaCountMonitor = Sink.foreach[K8SWatchEvent[ReplicationController]] { frontendEvent =>
       println("Current frontend replicas: " + frontendEvent._object.status.get.replicas)
 }

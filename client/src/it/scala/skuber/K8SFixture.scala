@@ -1,6 +1,6 @@
 package skuber
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import org.scalatest.FutureOutcome
 import com.typesafe.config.ConfigFactory
 import org.scalatest.flatspec.FixtureAsyncFlatSpec
