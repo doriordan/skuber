@@ -48,7 +48,8 @@ object PersistentVolume {
                    source: Volume.PersistentSource,
                    accessModes: List[AccessMode.AccessMode] = List(),
                    claimRef: Option[ObjectReference] = None,
-                   persistentVolumeReclaimPolicy: Option[ReclaimPolicy.ReclaimPolicy] = None)
+                   persistentVolumeReclaimPolicy: Option[ReclaimPolicy.ReclaimPolicy] = None,
+                   storageClassName: Option[String] = None)
 
   case class Status(phase: Option[Phase.Phase] = None,
                      accessModes: List[AccessMode.AccessMode] = List())
