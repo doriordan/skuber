@@ -883,7 +883,8 @@ package object format {
     JsPath.format[PersistentSource] and
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
     (JsPath \ "claimRef").formatNullable[ObjectReference] and
-    (JsPath \ "persistentVolumeReclaimPolicy").formatNullableEnum(PersistentVolume.ReclaimPolicy)) (PersistentVolume.Spec.apply, p => (p.capacity, p.source, p.accessModes, p.claimRef, p.persistentVolumeReclaimPolicy))
+    (JsPath \ "persistentVolumeReclaimPolicy").formatNullableEnum(PersistentVolume.ReclaimPolicy) and
+    (JsPath \ "storageClassName").formatNullable[String]) (PersistentVolume.Spec.apply, p => (p.capacity, p.source, p.accessModes, p.claimRef, p.persistentVolumeReclaimPolicy, p.storageClassName))
 
   implicit val persVolStatusFmt: Format[PersistentVolume.Status] = ((JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]) (PersistentVolume.Status.apply, p => (p.phase, p.accessModes))

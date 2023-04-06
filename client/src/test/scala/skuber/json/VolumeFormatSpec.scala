@@ -3,10 +3,11 @@ package skuber.json
 import org.specs2.execute.{Failure, Result}
 import org.specs2.mutable.Specification
 import play.api.libs.json._
+import skuber.PersistentVolume.{AccessMode, ReclaimPolicy}
 import skuber._
 import skuber.json.format._
-import scala.io.Source
 
+import scala.io.Source
 import skuber.PersistentVolumeClaim.VolumeMode
 
 /**
@@ -32,8 +33,25 @@ class VolumeReadWriteSpec extends Specification {
       readPvc.spec mustEqual pvc.spec
       readPvc.spec.get.storageClassName must beSome("a-storage-class-name")
     }
-
   }
+
+  "A PersistentVolume spec can be symmetrically written to json and the same value read back in \n" >> {
+      val pvc = PersistentVolume(metadata = ObjectMeta(name = "mypv"),
+        spec = Some(PersistentVolume.Spec(accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
+          capacity = Map("storage" -> "30Gi"),
+          claimRef = Some(ObjectReference(name = "claimRef")),
+          persistentVolumeReclaimPolicy = Some(ReclaimPolicy.Retain),
+          source = NFS("server", "path"),
+          storageClassName = Some("a-storage-class-name"))))
+      val pvJson = Json.toJson(pvc)
+      val readPv = Json.fromJson[PersistentVolume](pvJson).get
+      readPv.name mustEqual pvc.name
+      readPv.spec mustEqual pvc.spec
+      readPv.spec.get.claimRef must beSome(ObjectReference(name = "claimRef"))
+      readPv.spec.get.persistentVolumeReclaimPolicy must beSome(ReclaimPolicy.Retain)
+      readPv.spec.get.source mustEqual NFS("server", "path")
+      readPv.spec.get.storageClassName must beSome("a-storage-class-name")
+    }
 
   "A PersistentVolume with unsupported volume type can be read as json using GenericVolumeSource" >> {
     import skuber.Volume.GenericVolumeSource
