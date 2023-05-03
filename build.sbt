@@ -125,7 +125,9 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
   )
 }
 
+
 inThisBuild(List(
+  githubWorkflowJavaVersions += JavaSpec.temurin("17"),
   githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
