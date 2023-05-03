@@ -63,7 +63,7 @@ Read the [documentation](https://skuber.co) and join [discord community](https:/
 
 ## Prerequisites
 
-- Java 8
+- Java 17
 - Kubernetes cluster
 
 A Kubernetes cluster is needed at runtime. For local development purposes, minikube is recommended.
