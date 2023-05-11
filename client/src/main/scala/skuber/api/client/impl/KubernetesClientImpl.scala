@@ -470,14 +470,14 @@ class KubernetesClientImpl private[client] (
   override def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
-    Watch.events(this, name, sinceResourceVersion, bufSize)
+    Watch.events(this, name, sinceResourceVersion, bufSize, None)
   }
 
   // watch events on all objects of specified kind in current namespace
   override def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
-    Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize)
+    Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, None)
   }
 
   override def watchContinuously[O <: ObjectResource](obj: O)(
@@ -486,24 +486,24 @@ class KubernetesClientImpl private[client] (
     watchContinuously(obj.name)
   }
 
-  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
-    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize)
+    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, errorHandler)
   }
 
-  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds))
-    WatchSource(this, buildLongPollingPool(), None, options, bufSize)
+    WatchSource(this, buildLongPollingPool(), None, options, bufSize, errorHandler)
   }
 
-  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000)(
+  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
-    WatchSource(this, buildLongPollingPool(), None, options, bufsize)
+    WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler)
   }
 
   private def buildLongPollingPool[O <: ObjectResource]() = {

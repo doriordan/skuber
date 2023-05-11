@@ -31,7 +31,9 @@ private[api] object WatchSource {
                                  pool: Pool[Start[O]],
                                  name: Option[String],
                                  options: ListOptions,
-                                 bufSize: Int)(implicit sys: ActorSystem,
+                                 bufSize: Int,
+                                 errorHandler: Option[String => _])
+                                     (implicit sys: ActorSystem,
                                                format: Format[O],
                                                rd: ResourceDefinition[O],
                                                lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
@@ -69,7 +71,7 @@ private[api] object WatchSource {
           case (Success(HttpResponse(StatusCodes.OK, _, entity, _)), se) =>
             client.logInfo(client.logConfig.logResponseBasic, s"received response with HTTP status 200")
             singleStart(se).concat(
-              BytesToWatchEventSource[O](entity.dataBytes, bufSize).map { event =>
+              BytesToWatchEventSource[O](client, entity.dataBytes, bufSize, errorHandler).map { event =>
                 Result[O](event._object.resourceVersion, event)
               }
             ).concat(singleEnd)
