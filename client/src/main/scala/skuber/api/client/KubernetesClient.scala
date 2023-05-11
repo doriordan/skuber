@@ -232,10 +232,11 @@ trait KubernetesClient {
     * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method to receive any future updates. If no resource version is specified,
     * a single ADDED event will be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for received object updates, normally the default is more than enough
+    * @param errorHandler an optional function that takes a single string parameter - it will be invoked with the error details whenever ERROR events are received
     * @tparam O the type of the resource
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**
@@ -248,10 +249,11 @@ trait KubernetesClient {
     * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method to receive any future updates. If no resource version is specified,
     * a single ADDED event will be produced for an already existing object followed by events for any future changes.
     * @param bufSize optional buffer size for received object updates, normally the default is more than enough
+    * @param errorHandler an optional function that takes a single string parameter - it will be invoked with the error details whenever ERROR events are received
     * @tparam O the type pf the resource
     * @return A future containing an Akka streams Source of WatchEvents that will be emitted
     */
-  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
 /**
@@ -261,10 +263,11 @@ trait KubernetesClient {
   * for the meaning of the options. Note that the `watch` flag in the options will be ignored / overridden by the client, which
   * ensures a watch is always requested on the server.
   * @param bufsize optional buffer size for received object updates, normally the default is more than enough
+  * @param errorHandler an optional function that takes a single string parameter - it will be invoked with the error details whenever ERROR events are received
   * @tparam O the resource type to watch
   * @return A future containing an Akka streams Source of WatchEvents that will be emitted
   */
-  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000)(
+  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 
   /**

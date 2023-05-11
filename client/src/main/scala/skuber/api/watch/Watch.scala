@@ -2,7 +2,7 @@ package skuber.api.watch
 
 import akka.http.scaladsl.model.{HttpMethods, _}
 import akka.stream.scaladsl.Source
-import play.api.libs.json.Format
+import play.api.libs.json.{Format, JsObject}
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.{ListOptions, ObjectResource, ResourceDefinition}
@@ -28,7 +28,7 @@ object Watch {
     * @tparam O the object resource type
     * @return
     */
-  def events[O <: ObjectResource](context: KubernetesClientImpl, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int)(
+  def events[O <: ObjectResource](context: KubernetesClientImpl, name: String, sinceResourceVersion: Option[String] = None, bufSize: Int, errorHandler: Option[String => _])(
     implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
     context.logInfo(context.logConfig.logRequestBasic, s"creating watch on resource $name of kind ${rd.spec.names.kind}")
@@ -41,7 +41,7 @@ object Watch {
     )
     val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
     val responseFut = context.invokeWatch(request)
-    toFutureWatchEventSource(context, responseFut, bufSize)
+    toFutureWatchEventSource(context, responseFut, bufSize, errorHandler)
   }
 
   /**
@@ -54,7 +54,7 @@ object Watch {
     * @tparam O the object resource type
     * @return a Future which will eventually return a Source of events
     */
-  def eventsOnKind[O <: ObjectResource](context: KubernetesClientImpl, sinceResourceVersion: Option[String] = None, bufSize: Int)(
+  def eventsOnKind[O <: ObjectResource](context: KubernetesClientImpl, sinceResourceVersion: Option[String] = None, bufSize: Int, errorHandler: Option[String => _])(
     implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
   {
     context.logInfo(context.logConfig.logRequestBasic, s"creating skuber watch on kind ${rd.spec.names.kind}")
@@ -62,7 +62,7 @@ object Watch {
     val watchOptions=ListOptions(resourceVersion = sinceResourceVersion, watch = Some(true))
     val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
     val responseFut = context.invokeWatch(request)
-    toFutureWatchEventSource(context, responseFut, bufSize)
+    toFutureWatchEventSource(context, responseFut, bufSize, errorHandler)
   }
 
   /**
@@ -74,13 +74,13 @@ object Watch {
     * @tparam O the Kubernetes kind of each events object
     * @return a Future which will eventually return a Source of events
     */
-  private def toFutureWatchEventSource[O <: ObjectResource](context: KubernetesClientImpl, eventStreamResponseFut: Future[HttpResponse], bufSize: Int)(
+  private def toFutureWatchEventSource[O <: ObjectResource](context: KubernetesClientImpl, eventStreamResponseFut: Future[HttpResponse], bufSize: Int, errorHandler: Option[String => _])(
     implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     implicit val ec: ExecutionContext = context.actorSystem.dispatcher
 
     eventStreamResponseFut.map { eventStreamResponse =>
-      BytesToWatchEventSource(eventStreamResponse.entity.dataBytes, bufSize)
+      BytesToWatchEventSource(context, eventStreamResponse.entity.dataBytes, bufSize, errorHandler)
     }
   }
 }

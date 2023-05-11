@@ -50,7 +50,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -94,7 +94,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -143,7 +143,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(resourceVersion= Some("12802"),timeoutSeconds = Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(resourceVersion= Some("12802"),timeoutSeconds = Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -191,7 +191,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(timeoutSeconds = Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(timeoutSeconds = Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -238,7 +238,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -277,7 +277,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -311,7 +311,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -344,7 +344,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -378,7 +378,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -413,7 +413,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(new TcpIdleTimeoutException("timeout", 10.seconds)), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(new TcpIdleTimeoutException("timeout", 10.seconds)), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -447,7 +447,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(new ConnectException(s"Connect timeout of 10s expired")), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000)
+        WatchSource[ReplicationController](client, mockPool(new ConnectException(s"Connect timeout of 10s expired")), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
