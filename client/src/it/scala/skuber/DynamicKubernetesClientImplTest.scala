@@ -36,8 +36,7 @@ class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Ma
 
     val getDeployment: DynamicKubernetesObject = kubernetesDynamicClient.get(
       deploymentName1,
-      apiGroup = "apps",
-      apiVersion = "v1",
+      apiVersion = "apps/v1",
       resourcePlural = "deployments").valueT
 
     assert(getDeployment.metadata.map(_.name).contains(deploymentName1))

@@ -64,7 +64,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
 
 
   private[skuber] def buildRequest(method: HttpMethod,
-                                   apiGroup: String,
                                    apiVersion: String,
                                    resourcePlural: String,
                                    nameComponent: Option[String],
@@ -78,7 +77,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
 
     val k8sUrlOptionalParts = List(clusterServer,
       "apis",
-      apiGroup,
       apiVersion,
       nsPathComponent,
       resourcePlural,
@@ -226,10 +224,9 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
 
   def getOption(name: String,
                 namespace: Option[String] = None,
-                apiGroup: String,
                 apiVersion: String,
                 resourcePlural: String)(implicit lc: LoggingContext): Future[Option[DynamicKubernetesObject]] = {
-    _get(name, namespace, apiGroup, apiVersion, resourcePlural) map { result =>
+    _get(name, namespace, apiVersion, resourcePlural) map { result =>
       Some(result)
     } recover {
       case ex: K8SException if ex.status.code.contains(StatusCodes.NotFound.intValue) => None
@@ -238,19 +235,17 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
 
   def get(name: String,
           namespace: Option[String] = None,
-          apiGroup: String,
           apiVersion: String,
           resourcePlural: String)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
-    _get(name, namespace, apiGroup, apiVersion, resourcePlural)
+    _get(name, namespace, apiVersion, resourcePlural)
   }
 
 
   private[api] def _get(name: String,
                         namespace: Option[String],
-                        apiGroup: String,
                         apiVersion: String,
                         resourcePlural: String)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
-    val req = buildRequest(HttpMethods.GET, apiGroup, apiVersion, resourcePlural, Some(name), namespace = namespace)
+    val req = buildRequest(HttpMethods.GET, apiVersion, resourcePlural, Some(name), namespace = namespace)
     makeRequestReturningObjectResource(req)
   }
 
