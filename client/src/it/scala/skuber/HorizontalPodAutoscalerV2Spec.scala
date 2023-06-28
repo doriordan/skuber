@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
   // Tagging the tests in order to exclude them in earlier CI k8s versions (before 1.23)
-  object HorizontalPodAutoscalerV2 extends Tag("HorizontalPodAutoscalerV2")
+  object HorizontalPodAutoscalerV2Tag extends Tag("HorizontalPodAutoscalerV2Tag")
 
   val horizontalPodAutoscaler1: String = randomUUID().toString
   val horizontalPodAutoscaler2: String = randomUUID().toString
@@ -56,7 +56,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
 
   behavior of "HorizontalPodAutoscalerV2"
 
-  it should "create a HorizontalPodAutoscaler" taggedAs HorizontalPodAutoscalerV2 in { k8s =>
+  it should "create a HorizontalPodAutoscaler" taggedAs HorizontalPodAutoscalerV2Tag in { k8s =>
 
     println(horizontalPodAutoscaler1)
     k8s.create(getNginxDeployment(deployment1, "1.7.9")).valueT
@@ -65,8 +65,8 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
           .withMaxReplicas(2)
           .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80))))
           .withBehavior(HorizontalPodAutoscalerBehavior(
-            scaleDown = Some(HPAScalingRules(List(HPAScalingPolicy(60, "Pods", 2)))),
-            scaleUp = Some(HPAScalingRules(List(HPAScalingPolicy(120, "Pods", 1))))
+            scaleDown = Some(HPAScalingRules(List(HPAScalingPolicy(60, "Pods", 2)), Some("Max"), Some(100))),
+            scaleUp = Some(HPAScalingRules(List(HPAScalingPolicy(120, "Pods", 1)), Some("Max"), Some(5)))
           )))).valueT
 
     assert(result.name == horizontalPodAutoscaler1)
@@ -75,12 +75,12 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
         .withMaxReplicas(2)
         .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80))))
         .withBehavior(HorizontalPodAutoscalerBehavior(
-          scaleDown = Some(HPAScalingRules(List(HPAScalingPolicy(60, "Pods", 2)))),
-          scaleUp = Some(HPAScalingRules(List(HPAScalingPolicy(120, "Pods", 1))))
+          scaleDown = Some(HPAScalingRules(List(HPAScalingPolicy(60, "Pods", 2)), Some("Max"), Some(100))),
+          scaleUp = Some(HPAScalingRules(List(HPAScalingPolicy(120, "Pods", 1)), Some("Max"), Some(5)))
         ))))
   }
 
-  it should "update a HorizontalPodAutoscaler" taggedAs HorizontalPodAutoscalerV2 in { k8s =>
+  it should "update a HorizontalPodAutoscaler" taggedAs HorizontalPodAutoscalerV2Tag in { k8s =>
 
     k8s.create(getNginxDeployment(deployment2, "1.7.9")).valueT
     val created = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler2).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
@@ -110,7 +110,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
 
   }
 
-  it should "delete a HorizontalPodAutoscaler" taggedAs HorizontalPodAutoscalerV2 in { k8s =>
+  it should "delete a HorizontalPodAutoscaler" taggedAs HorizontalPodAutoscalerV2Tag in { k8s =>
 
     k8s.create(getNginxDeployment(deployment3, "1.7.9")).valueT
     val created = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
