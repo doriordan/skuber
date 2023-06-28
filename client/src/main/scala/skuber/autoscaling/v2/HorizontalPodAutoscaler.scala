@@ -143,7 +143,7 @@ object HorizontalPodAutoscaler {
 
   case class Status(observedGeneration: Option[Int],
                     lastScaleTime: Option[Timestamp],
-                    currentReplicas: Int,
+                    currentReplicas: Option[Int],
                     desiredReplicas: Int,
                     currentMetrics: List[MetricStatus],
                     conditions: List[Condition])
@@ -265,7 +265,7 @@ object HorizontalPodAutoscaler {
 
   implicit val depStatusFmt: Format[Status] = ((JsPath \ "observedGeneration").formatNullable[Int] and
     (JsPath \ "lastScaleTime").formatNullable[Timestamp] and
-    (JsPath \ "currentReplicas").format[Int] and
+    (JsPath \ "currentReplicas").formatNullable[Int] and
     (JsPath \ "desiredReplicas").format[Int] and
     (JsPath \ "currentMetrics").formatMaybeEmptyList[MetricStatus] and
     (JsPath \ "conditions").formatMaybeEmptyList[Condition]) (Status.apply,

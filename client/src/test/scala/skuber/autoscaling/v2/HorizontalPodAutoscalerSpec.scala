@@ -46,7 +46,7 @@ class HorizontalPodAutoscalerSpec extends Specification {
       )))
       .withStatus(HorizontalPodAutoscaler.Status(Some(100),
       Some(lastScaleTime),
-      201,
+      Some(201),
       202,
       List(ObjectMetricStatusHolder(ObjectMetricStatus(CrossVersionObjectReference("v2", "Deployment", "someDeploymentName"),
         MetricIdentifier("someObjectMetricName",Some("application" is "someObjectapp")),
