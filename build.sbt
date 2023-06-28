@@ -96,7 +96,7 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
   val finalSbtCommand: String = {
     val additionalFlags: String = {
       if (excludedTestsTags.nonEmpty) {
-        s"* -- -l ${excludedTestsTags.mkString(" ")}"
+        s"* -- ${excludedTestsTags.map(tag => s"-l $tag").mkString(" ")}"
       } else {
         ""
       }
@@ -134,10 +134,10 @@ inThisBuild(List(
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("test", "It/compile"))),
   githubWorkflowAddedJobs := Seq(
-    workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6"),
-    workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11"),
-    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5"),
-    workflowJobMinikube(jobName = "integration-kubernetes-v1-22", k8sServerVersion = "v1.22.9", List("CustomResourceTag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-19", k8sServerVersion = "v1.19.6", List("HorizontalPodAutoscalerV2Tag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-20", k8sServerVersion = "v1.20.11", List("HorizontalPodAutoscalerV2Tag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-21", k8sServerVersion = "v1.21.5", List("HorizontalPodAutoscalerV2Tag")),
+    workflowJobMinikube(jobName = "integration-kubernetes-v1-22", k8sServerVersion = "v1.22.9", List("CustomResourceTag", "HorizontalPodAutoscalerV2Tag")),
     workflowJobMinikube(jobName = "integration-kubernetes-v1-23", k8sServerVersion = "v1.23.6", List("CustomResourceTag")),
     workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1", List("CustomResourceTag"))
   ),
