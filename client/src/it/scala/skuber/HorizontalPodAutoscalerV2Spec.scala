@@ -61,7 +61,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
     val result = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler1).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(2)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80))))
           .withBehavior(HorizontalPodAutoscalerBehavior(
             scaleDown = Some(HPAScalingRules(List(HPAScalingPolicy(60, "Pods", 2)))),
             scaleUp = Some(HPAScalingRules(List(HPAScalingPolicy(120, "Pods", 1))))
@@ -71,7 +71,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
     assert(result.spec.contains(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
         .withMinReplicas(1)
         .withMaxReplicas(2)
-        .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))
+        .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80))))
         .withBehavior(HorizontalPodAutoscalerBehavior(
           scaleDown = Some(HPAScalingRules(List(HPAScalingPolicy(60, "Pods", 2)))),
           scaleUp = Some(HPAScalingRules(List(HPAScalingPolicy(120, "Pods", 1))))
@@ -84,7 +84,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
     val created = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler2).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(2)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))).valueT
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80)))))).valueT
 
     Thread.sleep(5000)
 
@@ -92,7 +92,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
     val updated = existing.withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
       .withMinReplicas(1)
       .withMaxReplicas(3)
-      .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))
+      .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80)))))
       k8s.update(updated).valueT
 
     Thread.sleep(5000)
@@ -103,7 +103,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
       assert(result.spec.contains(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(3)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None))))
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80))))))
     }
 
   }
@@ -114,7 +114,7 @@ class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matc
     val created = k8s.create(HorizontalPodAutoscaler(horizontalPodAutoscaler3).withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
           .withMinReplicas(1)
           .withMaxReplicas(2)
-          .addResourceMetric(ResourceMetricSource(Resource.cpu, Some(80), None)))).valueT
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, MetricTarget("Utilization", Some(80)))))).valueT
 
     Thread.sleep(5000)
 
