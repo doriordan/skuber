@@ -2,6 +2,7 @@ package skuber.api.dynamic.client.impl
 
 import akka.actor.ActorSystem
 import akka.event.Logging
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
@@ -44,15 +45,78 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     }.getOrElse(Http().defaultClientHttpsContext)
 
   private val clusterServer = context.cluster.server
-  private val clusterServerUri = Uri(clusterServer)
 
-  private var isClosed = false
+  /**
+    * Get a resource from the Kubernetes API server
+    *
+    * @param name           is the name of the resource to retrieve
+    * @param namespace      is the namespace of the resource to retrieve
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * */
+  def getOption(name: String,
+                namespace: Option[String] = None,
+                apiVersion: String,
+                resourcePlural: String)(implicit lc: LoggingContext): Future[Option[DynamicKubernetesObject]] = {
+    _get(name, namespace, apiVersion, resourcePlural) map { result =>
+      Some(result)
+    } recover {
+      case ex: K8SException if ex.status.code.contains(StatusCodes.NotFound.intValue) => None
+    }
+  }
+
+  /**
+    * Get a resource from the Kubernetes API server
+    *
+    * @param name           is the name of the resource to retrieve
+    * @param namespace      is the namespace of the resource to retrieve
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * */
+  def get(name: String,
+          namespace: Option[String] = None,
+          apiVersion: String,
+          resourcePlural: String)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
+    _get(name, namespace, apiVersion, resourcePlural)
+  }
+
+  /**
+    * Get a resource from the Kubernetes API server
+    *
+    * @param rawInput       is the raw json input of the object to create
+    * @param namespace      is the namespace of the resource
+    * @param resourcePlural is the plural name of the resource type: e.g: "pods", "deployments"
+    * */
+  def create(rawInput: JsonRaw, namespace: Option[String] = None, resourcePlural: String): Future[DynamicKubernetesObject] = {
+    modify(
+      method = HttpMethods.POST,
+      rawInput = rawInput,
+      namespace = namespace,
+      resourcePlural = resourcePlural
+    )
+  }
+
+  private def modify(method: HttpMethod,
+                     rawInput: JsonRaw,
+                     resourcePlural: String,
+                     namespace: Option[String])(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
+    // if this is a POST we don't include the resource name in the URL
+    val nameComponent: Option[String] = method match {
+      case HttpMethods.POST => None
+      case _ => (rawInput.jsValue \ "metadata" \ "name").asOpt[String]
+    }
+    val apiVersion = (rawInput.jsValue \ "apiVersion").asOpt[String].getOrElse(throw new Exception(s"apiVersion not specified in raw input: $rawInput"))
+
+    val marshal = Marshal(rawInput.jsValue)
+    for {
+      requestEntity <- marshal.to[RequestEntity]
+      httpRequest = buildRequest(method, apiVersion, resourcePlural, nameComponent, namespace = namespace)
+        .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      newOrUpdatedResource <- makeRequestReturningObjectResource(httpRequest)
+    } yield newOrUpdatedResource
+  }
 
   private[skuber] def invoke(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = {
-    if (isClosed) {
-      logError("Attempt was made to invoke request on closed API request context")
-      throw new IllegalStateException("Request context has been closed")
-    }
     logInfo(logConfig.logRequestBasic, s"about to send HTTP request: ${request.method.value} ${request.uri.toString}")
     val responseFut = Http().singleRequest(request, connectionContext = connectionContext)
     responseFut onComplete {
@@ -128,19 +192,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   private[skuber] def logDebug(msg: => String)(implicit lc: LoggingContext) = {
     if (log.isDebugEnabled)
       log.debug(s"[ ${lc.output} - $msg ]")
-  }
-
-  private[skuber] def logRequestObjectDetails[O <: ObjectResource](method: HttpMethod, resource: O)(implicit lc: LoggingContext) = {
-    logInfoOpt(logConfig.logRequestBasicMetadata, {
-      val name = resource.name
-      val version = resource.metadata.resourceVersion
-      method match {
-        case HttpMethods.PUT | HttpMethods.PATCH => Some(s"Requesting update of resource: { name:$name, version:$version ... }")
-        case HttpMethods.POST => Some(s"Requesting creation of resource: { name: $name ...}")
-        case _ => None
-      }
-    })
-    logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${resource.toString}")
   }
 
   private[skuber] def logReceivedObjectDetails(resource: DynamicKubernetesObject)(implicit lc: LoggingContext) = {
@@ -221,24 +272,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   //    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt, namespace)
   //    makeRequestReturningListResource[L](req)
   //  }
-
-  def getOption(name: String,
-                namespace: Option[String] = None,
-                apiVersion: String,
-                resourcePlural: String)(implicit lc: LoggingContext): Future[Option[DynamicKubernetesObject]] = {
-    _get(name, namespace, apiVersion, resourcePlural) map { result =>
-      Some(result)
-    } recover {
-      case ex: K8SException if ex.status.code.contains(StatusCodes.NotFound.intValue) => None
-    }
-  }
-
-  def get(name: String,
-          namespace: Option[String] = None,
-          apiVersion: String,
-          resourcePlural: String)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
-    _get(name, namespace, apiVersion, resourcePlural)
-  }
 
 
   private[api] def _get(name: String,
@@ -338,14 +371,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   //    WatchSource(this, buildLongPollingPool(), None, options, bufsize, namespace)
   //  }
 
-  private def buildLongPollingPool[O <: ObjectResource]() = {
-    LongPollingPool[WatchSource.Start[O]](clusterServerUri.scheme,
-      clusterServerUri.authority.host.address(),
-      clusterServerUri.effectivePort,
-      10.minutes,
-      sslContext.map(ConnectionContext.httpsClient),
-      poolSettings.connectionSettings.withIdleTimeout(10.minutes))
-  }
 
   //  def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
   //                                            (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
@@ -381,12 +406,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   }
 
 
-  def close: Unit = {
-    isClosed = true
-    closeHook foreach {
-      _()
-    } // invoke the specified close hook if specified
-  }
 
 
   // check for non-OK status, returning (in a Future) some Status object if not ok or otherwise None
