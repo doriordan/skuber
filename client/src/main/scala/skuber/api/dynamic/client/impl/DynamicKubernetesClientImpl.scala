@@ -9,15 +9,13 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import play.api.libs.json.JsString
 import skuber._
-import skuber.api.client.{K8SException => _, _}
+import skuber.api.client._
 import skuber.api.security.{HTTPRequestAuth, TLS}
-import skuber.api.watch.{LongPollingPool, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-
+import skuber.json.format._
 /**
   * This is non-typed kubernetes client, for typed client see [[skuber.api.client.impl.KubernetesClientImpl]]
   * This class provides a dynamic client for the Kubernetes API server.
@@ -81,7 +79,7 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   }
 
   /**
-    * Get a resource from the Kubernetes API server
+    * Create a kubernetes resource
     *
     * @param rawInput       is the raw json input of the object to create
     * @param namespace      is the namespace of the resource
@@ -90,6 +88,22 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   def create(rawInput: JsonRaw, namespace: Option[String] = None, resourcePlural: String): Future[DynamicKubernetesObject] = {
     modify(
       method = HttpMethods.POST,
+      rawInput = rawInput,
+      namespace = namespace,
+      resourcePlural = resourcePlural
+    )
+  }
+
+  /**
+    * Update a resource from the Kubernetes API server
+    *
+    * @param rawInput       is the raw json input of the object to create
+    * @param namespace      is the namespace of the resource
+    * @param resourcePlural is the plural name of the resource type: e.g: "pods", "deployments"
+    * */
+  def update(rawInput: JsonRaw, namespace: Option[String] = None, resourcePlural: String): Future[DynamicKubernetesObject] = {
+    modify(
+      method = HttpMethods.PUT,
       rawInput = rawInput,
       namespace = namespace,
       resourcePlural = resourcePlural
@@ -214,17 +228,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     } yield result
   }
 
-  //  def create[O <: ObjectResource](obj: O, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
-  //    modify(HttpMethods.POST)(obj, namespace)
-  //  }
-
-  //  def getNamespaceNames(implicit lc: LoggingContext): Future[List[String]] = {
-  //    list[NamespaceList].map { namespaceList =>
-  //      val namespaces = namespaceList.items
-  //      namespaces.map(_.name)
-  //    }
-  //  }
-
 
   private[skuber] def toKubernetesResponse(response: HttpResponse)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
     val statusOptFut = checkResponseStatus(response)
@@ -282,23 +285,39 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     makeRequestReturningObjectResource(req)
   }
 
-  //  def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] = {
-  //    val grace = if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
-  //    val options = DeleteOptions(gracePeriodSeconds = grace)
-  //    deleteWithOptions[O](name, options, namespace = namespace)
-  //  }
-  //
-  //  def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions, namespace: Option[String] = None)(implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] = {
-  //    val marshalledOptions = Marshal(options)
-  //    for {
-  //      requestEntity <- marshalledOptions.to[RequestEntity]
-  //      request = buildRequest(method = HttpMethods.DELETE, rd = rd, nameComponent = Some(name), namespace = namespace)
-  //        .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-  //      response <- invoke(request)
-  //      responseStatusOpt <- checkResponseStatus(response)
-  //      _ <- ignoreResponseBody(response, responseStatusOpt)
-  //    } yield ()
-  //  }
+  /**
+    * Delete a resource from the Kubernetes API server
+    *
+    * @param name           resource name
+    * @param namespace      is the namespace of the resource
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * */
+  def delete(name: String, namespace: Option[String] = None, apiVersion: String, resourcePlural: String): Future[Unit] = {
+    val options = DeleteOptions()
+    deleteWithOptions(name, options, namespace = namespace, apiVersion = apiVersion, resourcePlural = resourcePlural)
+  }
+
+  /**
+    * Delete a resource from the Kubernetes API server
+    *
+    * @param name           resource name
+    * @param options        delete options see [[DeleteOptions]]
+    * @param namespace      is the namespace of the resource
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * */
+  def deleteWithOptions(name: String, options: DeleteOptions, apiVersion: String, resourcePlural: String, namespace: Option[String] = None): Future[Unit] = {
+    val marshalledOptions = Marshal(options)
+    for {
+      requestEntity <- marshalledOptions.to[RequestEntity]
+      request = buildRequest(method = HttpMethods.DELETE, apiVersion = apiVersion, resourcePlural = resourcePlural, nameComponent = Some(name), namespace = namespace)
+        .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      response <- invoke(request)
+      responseStatusOpt <- checkResponseStatus(response)
+      _ <- ignoreResponseBody(response, responseStatusOpt)
+    } yield ()
+  }
   //
   //  def deleteAll[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
   //    _deleteAll[L](rd, None, namespace)
@@ -324,76 +343,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
   //    makeRequestReturningListResource[L](req)
   //  }
 
-
-  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return Akka streams sources that will reactively emit a stream of updated
-  // values of the watched resources.
-  //  def watch[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] = {
-  //    watch(name = obj.name, namespace = namespace)
-  //  }
-  //
-  //  def watch[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] = {
-  //    watch(name = obj.name)
-  //  }
-
-  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return Akka streams sources that will reactively emit a stream of updated
-  // values of the watched resources.
-
-  //  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] = {
-  //    Watch.events(this, name, sinceResourceVersion, bufSize, namespace)
-  //  }
-
-  // watch events on all objects of specified kind in current namespace
-  //  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] = {
-  //    Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, namespace)
-  //  }
-
-  //  def watchContinuously[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] = {
-  //    watchContinuously(name = obj.name, namespace = namespace)
-  //  }
-
-  //  def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] = {
-  //    watchContinuously(name = obj.name)
-  //  }
-
-  //  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] = {
-  //    val options = ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(300.minutes.toSeconds))
-  //    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, namespace)
-  //  }
-
-  //  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] = {
-  //    val options = ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(300.minutes.toSeconds))
-  //    WatchSource(this, buildLongPollingPool(), None, options, bufSize, namespace)
-  //  }
-  //
-  //  def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] = {
-  //    WatchSource(this, buildLongPollingPool(), None, options, bufsize, namespace)
-  //  }
-
-
-  //  def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
-  //                                            (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
-  //    val targetNamespace = namespace.orElse(Some(namespaceName))
-  //    val contentType = patchData.strategy match {
-  //      case StrategicMergePatchStrategy =>
-  //        CustomMediaTypes.`application/strategic-merge-patch+json`
-  //      case JsonMergePatchStrategy =>
-  //        CustomMediaTypes.`application/merge-patch+json`
-  //      case JsonPatchStrategy =>
-  //        MediaTypes.`application/json-patch+json`
-  //    }
-  //    logInfo(logConfig.logRequestBasicMetadata, s"Requesting patch of resource: { name:$name ... }")
-  //    logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${patchData.toString}")
-  //    val marshal = Marshal(patchData)
-  //    for {
-  //      requestEntity <- marshal.to[RequestEntity]
-  //      httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespace = targetNamespace)
-  //        .withEntity(requestEntity.withContentType(contentType))
-  //      newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
-  //    } yield newOrUpdatedResource
-  //  }
-
   // get API versions supported by the cluster
   def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]] = {
     val url = clusterServer + "/api"
@@ -404,8 +353,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
       apiVersionResource <- toKubernetesResponse(response)
     } yield apiVersionResource.jsonRaw.jsValue.as[List[String]]
   }
-
-
 
 
   // check for non-OK status, returning (in a Future) some Status object if not ok or otherwise None

@@ -9,6 +9,7 @@ import skuber.FutureUtil.FutureOps
 import skuber.api.dynamic.client.impl.{DynamicKubernetesClientImpl, DynamicKubernetesObject, JsonRaw}
 import skuber.apps.v1.Deployment
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
 
@@ -34,8 +35,8 @@ class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Ma
 
     val createdDeployment = Json.parse {
       s"""
-        "apiVersion": "apps/v1",
        {
+        "apiVersion": "apps/v1",
         "kind": "Deployment",
         "metadata": {
           "name": "$deploymentName1"
@@ -85,5 +86,90 @@ class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Ma
 
     assert(getDeployment.metadata.map(_.name).contains(deploymentName1))
   }
+
+
+  it should "update a deployment replicas" in { k8s =>
+
+    //create a deployment
+    k8s.create(getNginxDeployment(deploymentName1)).valueT
+
+    val updated = Json.parse {
+      s"""
+       {
+        "kind": "Deployment",
+        "apiVersion": "apps/v1",
+        "metadata": {
+          "name": "$deploymentName1"
+        },
+        "spec": {
+          "replicas": 3,
+          "selector": {
+            "matchLabels": {
+              "app": "nginx"
+            }
+          },
+          "template": {
+            "metadata": {
+              "name": "nginx",
+              "labels": {
+                "app": "nginx"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "nginx",
+                  "image": "nginx:1.7.9",
+                  "ports": [
+                    {
+                      "containerPort": 80,
+                      "protocol": "TCP"
+                    }
+                  ]
+                }
+              ],
+              "restartPolicy": "Always",
+              "dnsPolicy": "ClusterFirst"
+            }
+          }
+        }
+      }""".stripMargin
+    }
+
+
+    val updatedDeploymentResponse = kubernetesDynamicClient.update(JsonRaw(updated), resourcePlural = "deployments").valueT
+
+    assert(updatedDeploymentResponse.metadata.map(_.name).contains(deploymentName1))
+
+    val getDeployment: DynamicKubernetesObject = kubernetesDynamicClient.get(
+      deploymentName1,
+      apiVersion = "apps/v1",
+      resourcePlural = "deployments").valueT
+
+    assert((getDeployment.jsonRaw.jsValue \ "spec" \ "replicas").asOpt[Int].contains(3))
+  }
+
+  it should "delete a deployment" in { k8s =>
+
+    //create a deployment
+    k8s.create(getNginxDeployment(deploymentName1)).valueT
+
+    // delete a deployment
+    kubernetesDynamicClient.delete(deploymentName1, apiVersion = "apps/v1", resourcePlural = "deployments").valueT
+
+    Thread.sleep(5000)
+
+    eventually(timeout(30.seconds), interval(3.seconds)) {
+      whenReady(kubernetesDynamicClient.get(deploymentName1, apiVersion = "apps/v1", resourcePlural = "deployments").withTimeout().failed) { result =>
+        result shouldBe a[K8SException]
+        result match {
+          case ex: K8SException => ex.status.code shouldBe Some(404)
+          case _ => assert(false)
+        }
+      }
+    }
+  }
+
+
 
 }
