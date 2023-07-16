@@ -5,17 +5,17 @@ import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ConnectionPoolSettings
-import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import play.api.libs.json.JsString
-import skuber._
+import skuber.{DeleteOptions, ListOptions}
 import skuber.api.client._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import skuber.json.format._
+import skuber.json.format.deleteOptionsFmt
 /**
   * This is non-typed kubernetes client, for typed client see [[skuber.api.client.impl.KubernetesClientImpl]]
   * This class provides a dynamic client for the Kubernetes API server.
@@ -48,6 +48,21 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     * Get a resource from the Kubernetes API server
     *
     * @param name           is the name of the resource to retrieve
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * @param namespace      is the namespace of the resource to retrieve
+    * */
+  def get(name: String,
+          apiVersion: String,
+          resourcePlural: String,
+          namespace: Option[String] = None)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
+    _get(name, namespace, apiVersion, resourcePlural)
+  }
+
+  /**
+    * Get a resource from the Kubernetes API server
+    *
+    * @param name           is the name of the resource to retrieve
     * @param namespace      is the namespace of the resource to retrieve
     * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
     * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
@@ -61,21 +76,6 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     } recover {
       case ex: K8SException if ex.status.code.contains(StatusCodes.NotFound.intValue) => None
     }
-  }
-
-  /**
-    * Get a resource from the Kubernetes API server
-    *
-    * @param name           is the name of the resource to retrieve
-    * @param namespace      is the namespace of the resource to retrieve
-    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
-    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
-    * */
-  def get(name: String,
-          namespace: Option[String] = None,
-          apiVersion: String,
-          resourcePlural: String)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
-    _get(name, namespace, apiVersion, resourcePlural)
   }
 
   /**
@@ -110,10 +110,80 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     )
   }
 
+  /**
+    * List objects of specific resource kind in current namespace
+    *
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * @param namespace      is the namespace of the resource
+    * @param options        see [[ListOptions]]
+    */
+  def list(apiVersion: String,
+           resourcePlural: String,
+           namespace: Option[String] = None,
+           options: Option[ListOptions] = None): Future[DynamicKubernetesObjectList] = {
+    val queryOpt = options map { opts =>
+      Uri.Query(opts.asMap)
+    }
+    val req = buildRequest(method = HttpMethods.GET,
+      apiVersion = apiVersion,
+      resourcePlural = resourcePlural,
+      query = queryOpt,
+      nameComponent = None,
+      namespace = namespace)
+    makeRequestReturningObjectResource[DynamicKubernetesObjectList](req)
+  }
+
+  /**
+    * Delete a resource from the Kubernetes API server
+    *
+    * @param name           resource name
+    * @param namespace      is the namespace of the resource
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * */
+  def delete(name: String, namespace: Option[String] = None, apiVersion: String, resourcePlural: String): Future[Unit] = {
+    val options = DeleteOptions()
+    deleteWithOptions(name, options, namespace = namespace, apiVersion = apiVersion, resourcePlural = resourcePlural)
+  }
+
+  /**
+    * Delete a resource from the Kubernetes API server
+    *
+    * @param name           resource name
+    * @param options        delete options see [[DeleteOptions]]
+    * @param namespace      is the namespace of the resource
+    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
+    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
+    * */
+  def deleteWithOptions(name: String, options: DeleteOptions, apiVersion: String, resourcePlural: String, namespace: Option[String] = None): Future[Unit] = {
+    val marshalledOptions = Marshal(options)
+    for {
+      requestEntity <- marshalledOptions.to[RequestEntity]
+      request = buildRequest(method = HttpMethods.DELETE, apiVersion = apiVersion, resourcePlural = resourcePlural, nameComponent = Some(name), namespace = namespace)
+        .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      response <- invoke(request)
+      responseStatusOpt <- checkResponseStatus(response)
+      _ <- ignoreResponseBody(response, responseStatusOpt)
+    } yield ()
+  }
+
+  // get API versions supported by the cluster
+  def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]] = {
+    val url = clusterServer + "/api"
+    val noAuthReq: HttpRequest = HttpRequest(method = HttpMethods.GET, uri = Uri(url))
+    val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
+    for {
+      response <- invoke(request)
+      apiVersionResource <- toKubernetesResponse[DynamicKubernetesObject](response)
+    } yield apiVersionResource.jsonRaw.jsValue.as[List[String]]
+  }
+
+
   private def modify(method: HttpMethod,
                      rawInput: JsonRaw,
                      resourcePlural: String,
-                     namespace: Option[String])(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
+                     namespace: Option[String])(implicit lc: LoggingContext, um: Unmarshaller[HttpResponse, DynamicKubernetesObject]): Future[DynamicKubernetesObject] = {
     // if this is a POST we don't include the resource name in the URL
     val nameComponent: Option[String] = method match {
       case HttpMethods.POST => None
@@ -126,7 +196,7 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
       requestEntity <- marshal.to[RequestEntity]
       httpRequest = buildRequest(method, apiVersion, resourcePlural, nameComponent, namespace = namespace)
         .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      newOrUpdatedResource <- makeRequestReturningObjectResource(httpRequest)
+      newOrUpdatedResource <- makeRequestReturningObjectResource[DynamicKubernetesObject](httpRequest)
     } yield newOrUpdatedResource
   }
 
@@ -177,66 +247,32 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     HTTPRequestAuth.addAuth(req, requestAuth)
   }
 
-  private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) = {
+  private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext): Unit = {
     if (log.isInfoEnabled && enabledLogEvent) {
       log.info(s"[ ${lc.output} - ${msg}]")
     }
   }
 
-  private[skuber] def logInfoOpt(enabledLogEvent: Boolean, msgOpt: => Option[String])(implicit lc: LoggingContext) = {
-    if (log.isInfoEnabled && enabledLogEvent) {
-      msgOpt foreach { msg =>
-        log.info(s"[ ${lc.output} - ${msg}]")
-      }
-    }
-  }
-
-  private[skuber] def logWarn(msg: String)(implicit lc: LoggingContext) = {
-    log.error(s"[ ${lc.output} - $msg ]")
-  }
-
-  private[skuber] def logError(msg: String)(implicit lc: LoggingContext) = {
-    log.error(s"[ ${lc.output} - $msg ]")
-  }
-
-  private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) = {
+  private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext): Unit = {
     log.error(ex, s"[ ${lc.output} - $msg ]")
   }
 
-  private[skuber] def logDebug(msg: => String)(implicit lc: LoggingContext) = {
-    if (log.isDebugEnabled)
-      log.debug(s"[ ${lc.output} - $msg ]")
-  }
-
-  private[skuber] def logReceivedObjectDetails(resource: DynamicKubernetesObject)(implicit lc: LoggingContext) = {
-    logInfo(logConfig.logResponseBasicMetadata, s" resource: { kind:${resource.kind} name:${resource.metadata.map(_.name)} version:${resource.metadata.map(_.resourceVersion)} ... }")
-    logInfo(logConfig.logResponseFullObjectResource, s" received and parsed: ${resource.toString}")
-  }
-
-  private[skuber] def logReceivedListDetails[L <: ListResource[_]](result: L)(implicit lc: LoggingContext) = {
-    logInfo(logConfig.logResponseBasicMetadata, s"received list resource of kind ${result.kind}")
-    logInfo(logConfig.logResponseListSize, s"number of items in received list resource: ${result.items.size}")
-    logInfo(logConfig.logResponseListNames, s"received ${result.kind} contains item(s): ${result.itemNames}]")
-    logInfo(logConfig.logResponseFullListResource, s" Unmarshalled list resource: ${result.toString}")
-  }
-
-  private[skuber] def makeRequestReturningObjectResource(httpRequest: HttpRequest)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
+  private[skuber] def makeRequestReturningObjectResource[T](httpRequest: HttpRequest)(implicit lc: LoggingContext, um: Unmarshaller[HttpResponse, T]): Future[T] = {
     for {
       httpResponse <- invoke(httpRequest)
-      result <- toKubernetesResponse(httpResponse)
-      _ = logReceivedObjectDetails(result)
+      result <- toKubernetesResponse[T](httpResponse)
     } yield result
   }
 
 
-  private[skuber] def toKubernetesResponse(response: HttpResponse)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
+  private[skuber] def toKubernetesResponse[T](response: HttpResponse)(implicit lc: LoggingContext, um: Unmarshaller[HttpResponse, T]): Future[T] = {
     val statusOptFut = checkResponseStatus(response)
     statusOptFut flatMap {
       case Some(status) =>
         throw new K8SException(status)
       case None =>
         try {
-          Unmarshal(response).to[DynamicKubernetesObject]
+          Unmarshal(response).to[T]
         }
         catch {
           case ex: Exception =>
@@ -246,112 +282,12 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
     }
   }
 
-  /*
-   * List objects of specific resource kind in current namespace
-   */
-  //  def list[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
-  //    _list[L](rd, None, namespace)
-  //  }
-  //
-  //  /*
-  //   * Retrieve the list of objects of given type in the current namespace that match the supplied label selector
-  //   */
-  //  def listSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
-  //    _list[L](rd, Some(ListOptions(labelSelector = Some(labelSelector))), namespace)
-  //  }
-  //
-  //  def listWithOptions[L <: ListResource[_]](options: ListOptions, namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
-  //    _list[L](rd, Some(options), namespace)
-  //  }
-  //
-  //  private def _list[L <: ListResource[_]](maybeOptions: Option[ListOptions], namespace: Option[String])(implicit fmt: Format[L], lc: LoggingContext): Future[L] = {
-  //    val queryOpt = maybeOptions map { opts =>
-  //      Uri.Query(opts.asMap)
-  //    }
-  //    if (log.isDebugEnabled) {
-  //      val optsInfo = maybeOptions map { opts => s" with options '${opts.asMap.toString}'" } getOrElse ""
-  //      logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${optsInfo}")
-  //    }
-  //    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt, namespace)
-  //    makeRequestReturningListResource[L](req)
-  //  }
-
-
   private[api] def _get(name: String,
                         namespace: Option[String],
                         apiVersion: String,
                         resourcePlural: String)(implicit lc: LoggingContext): Future[DynamicKubernetesObject] = {
     val req = buildRequest(HttpMethods.GET, apiVersion, resourcePlural, Some(name), namespace = namespace)
-    makeRequestReturningObjectResource(req)
-  }
-
-  /**
-    * Delete a resource from the Kubernetes API server
-    *
-    * @param name           resource name
-    * @param namespace      is the namespace of the resource
-    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
-    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
-    * */
-  def delete(name: String, namespace: Option[String] = None, apiVersion: String, resourcePlural: String): Future[Unit] = {
-    val options = DeleteOptions()
-    deleteWithOptions(name, options, namespace = namespace, apiVersion = apiVersion, resourcePlural = resourcePlural)
-  }
-
-  /**
-    * Delete a resource from the Kubernetes API server
-    *
-    * @param name           resource name
-    * @param options        delete options see [[DeleteOptions]]
-    * @param namespace      is the namespace of the resource
-    * @param apiVersion     is the api version of the resource type to retrieve, e.g: "apps/v1"
-    * @param resourcePlural is the plural name of the resource type to retrieve: e.g: "pods", "deployments"
-    * */
-  def deleteWithOptions(name: String, options: DeleteOptions, apiVersion: String, resourcePlural: String, namespace: Option[String] = None): Future[Unit] = {
-    val marshalledOptions = Marshal(options)
-    for {
-      requestEntity <- marshalledOptions.to[RequestEntity]
-      request = buildRequest(method = HttpMethods.DELETE, apiVersion = apiVersion, resourcePlural = resourcePlural, nameComponent = Some(name), namespace = namespace)
-        .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      response <- invoke(request)
-      responseStatusOpt <- checkResponseStatus(response)
-      _ <- ignoreResponseBody(response, responseStatusOpt)
-    } yield ()
-  }
-  //
-  //  def deleteAll[L <: ListResource[_]](namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
-  //    _deleteAll[L](rd, None, namespace)
-  //  }
-
-  //  def deleteAll[L <: ListResource[_]](implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
-  //    _deleteAll[L](rd, None, None)
-  //  }
-  //
-  //  def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector, namespace: Option[String] = None)(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
-  //    _deleteAll[L](rd, Some(labelSelector), namespace)
-  //  }
-
-  //  private def _deleteAll[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector], namespace: Option[String])(implicit fmt: Format[L], lc: LoggingContext): Future[L] = {
-  //    val queryOpt = maybeLabelSelector map { ls =>
-  //      Uri.Query("labelSelector" -> ls.toString)
-  //    }
-  //    if (log.isDebugEnabled) {
-  //      val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
-  //      logDebug(s"[Delete request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
-  //    }
-  //    val req = buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt, namespace)
-  //    makeRequestReturningListResource[L](req)
-  //  }
-
-  // get API versions supported by the cluster
-  def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]] = {
-    val url = clusterServer + "/api"
-    val noAuthReq: HttpRequest = HttpRequest(method = HttpMethods.GET, uri = Uri(url))
-    val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
-    for {
-      response <- invoke(request)
-      apiVersionResource <- toKubernetesResponse(response)
-    } yield apiVersionResource.jsonRaw.jsValue.as[List[String]]
+    makeRequestReturningObjectResource[DynamicKubernetesObject](req)
   }
 
 

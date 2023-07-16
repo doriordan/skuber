@@ -30,16 +30,21 @@ trait K8SFixture extends FixtureAnyFlatSpec {
   }
 
   def createNamespace(name: String, k8s: FixtureParam): Namespace = k8s.create[Namespace](Namespace.forName(name)).valueT
+
   def deleteNamespace(name: String, k8s: FixtureParam): Unit = k8s.delete[Namespace](name).withTimeout().recover { case _ => () }
 
   def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 
-  def getNginxDeployment(name: String, version: String = "1.7.9"): Deployment = {
+  def getNginxDeployment(name: String, version: String = "1.7.9", labels: Map[String, String] = Map.empty): Deployment = {
     import LabelSelector.dsl._
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
     val labelSelector = LabelSelector(IsEqualRequirement("app", "nginx"))
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector(labelSelector)
+
+    Deployment(name)
+      .copy(metadata = ObjectMeta(name = name, labels = labels))
+      .withTemplate(nginxTemplate)
+      .withLabelSelector(labelSelector)
   }
 
 
