@@ -26,9 +26,14 @@ class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Ma
 
     val results = Future.sequence(List(deploymentName1, deploymentName2, deploymentName3, deploymentName4, deploymentName5).map { name =>
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
-    }).withTimeout()
+    }).withTimeout().recover{ case _ => () }
 
     results.futureValue
+
+    results.onComplete { _ =>
+      k8s.close
+      system.terminate().recover { case _ => () }.valueT
+    }
   }
 
   behavior of "DynamicKubernetesClientImplTest"
