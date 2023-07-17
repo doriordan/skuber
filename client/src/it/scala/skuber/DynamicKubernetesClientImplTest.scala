@@ -28,7 +28,7 @@ class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Ma
       k8s.delete[Deployment](name).withTimeout().recover { case _ => () }
     }).withTimeout().recover{ case _ => () }
 
-    results.futureValue
+    results.valueT
 
     results.onComplete { _ =>
       k8s.close
