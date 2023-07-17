@@ -543,6 +543,96 @@ Supports `NetworkPolicy` resources (for Kubernetes v1.7 and above) - see Kuberne
 
 [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) are a powerful feature which enable Kubernetes clients to define and use their own custom resources to be treated in the same way as built-in kinds. They are useful for building Kubernetes operators and other advanced use cases. See the `CustomResourceSpec.scala` integration test which demonstrates how to use them in skuber.
 
+### Dynamic Kubernetes Client
+Dynamic Kubernetes Client is a client that can be used to interact with Kubernetes resources without having to define the resource types in the client.
+
+It is useful for interacting with resources that are not yet supported by skuber or for interacting with resources that are not known at compile time.
+
+Code example for using Dynamic Kubernetes Client `DynamicKubernetesClientImpl`
+
+```scala
+import java.util.UUID.randomUUID
+import akka.actor.ActorSystem
+import play.api.libs.json.Json
+import skuber.api.dynamic.client.impl.{DynamicKubernetesClientImpl, JsonRaw}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor}
+
+object DynamicKubernetesClientImplExample extends App {
+
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
+
+  private val deploymentName1: String = randomUUID().toString
+
+  private val kubernetesDynamicClient = DynamicKubernetesClientImpl.build()
+
+  private val createDeploymentInput = Json.parse {
+    s"""
+       {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {
+          "name": "$deploymentName1"
+        },
+        "spec": {
+          "replicas": 1,
+          "selector": {
+            "matchLabels": {
+              "app": "nginx"
+            }
+          },
+          "template": {
+            "metadata": {
+              "name": "nginx",
+              "labels": {
+                "app": "nginx"
+              }
+            },
+            "spec": {
+              "containers": [
+                {
+                  "name": "nginx",
+                  "image": "nginx:1.7.9",
+                  "ports": [
+                    {
+                      "containerPort": 80,
+                      "protocol": "TCP"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }""".stripMargin
+  }
+
+
+  private val createdDeployment = kubernetesDynamicClient.create(JsonRaw(createDeploymentInput), resourcePlural = "deployments")
+
+  val nameF = createdDeployment.flatMap { _ =>
+    val getDeployment = kubernetesDynamicClient.get(
+      deploymentName1,
+      apiVersion = "apps/v1",
+      resourcePlural = "deployments")
+    getDeployment.map(_.metadata.map(_.name))
+  }
+
+  Await.result(nameF, 30.seconds)
+
+  nameF.foreach { name =>
+    println(s"Deployment name: $name")
+  }
+
+  kubernetesDynamicClient.delete(deploymentName1, apiVersion = "apps/v1", resourcePlural = "deployments")
+
+  Await.result(system.terminate(), 10.seconds)
+
+}
+
+```
+
 ### Custom resource
 Code example for adding a resource that not exist in skuber.
 
