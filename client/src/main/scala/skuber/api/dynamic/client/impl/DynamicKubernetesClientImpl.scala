@@ -2,12 +2,12 @@ package skuber.api.dynamic.client.impl
 
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.http.scaladsl.marshalling.Marshal
+import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToEntityMarshaller}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
-import play.api.libs.json.JsString
+import play.api.libs.json.{JsString, JsValue}
 import skuber.{DeleteOptions, ListOptions}
 import skuber.api.client._
 import skuber.api.security.{HTTPRequestAuth, TLS}
@@ -16,6 +16,8 @@ import skuber.json.format.apiobj.statusReads
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import skuber.json.format.deleteOptionsFmt
+import DynamicKubernetesClientImpl.jsValueToRequestEntityMarshaller
+import akka.util.ByteString
 /**
   * This is non-typed kubernetes client, for typed client see [[skuber.api.client.impl.KubernetesClientImpl]]
   * This class provides a dynamic client for the Kubernetes API server.
@@ -346,4 +348,12 @@ object DynamicKubernetesClientImpl {
     val k8sContextFinal = k8sContext.getOrElse(defaultK8sConfig.currentContext)
     new DynamicKubernetesClientImpl(k8sContextFinal, logConfFinal, closeHook, connectionPoolSettingsFinal)
   }
+
+
+  implicit val jsValueToRequestEntityMarshaller: ToEntityMarshaller[JsValue] =
+    Marshaller.withFixedContentType(MediaTypes.`application/json`) { jsValue =>
+      val jsonString = jsValue.toString()
+      HttpEntity.Strict(MediaTypes.`application/json`, ByteString(jsonString))
+    }
+
 }
