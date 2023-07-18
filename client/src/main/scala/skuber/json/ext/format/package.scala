@@ -7,13 +7,14 @@ package skuber.json.ext
  */
 
 import java.awt.font.ImageGraphicAttribute
-
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import skuber._
-import skuber.autoscaling.HorizontalPodAutoscaler
 import skuber.ext._
 import skuber.json.format._
+import skuber.model.Pod
+import skuber.model.autoscaling.HorizontalPodAutoscaler
+import skuber.model.ext.{DaemonSet, Deployment, ReplicaSet}
 //import skuber.networking.Ingress // reuse some core formatters
 
 package object format {

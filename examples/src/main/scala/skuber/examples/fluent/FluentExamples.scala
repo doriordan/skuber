@@ -4,8 +4,8 @@ import skuber._
 import skuber.json.format._
 
 import scala.concurrent.Future
-
 import akka.actor.ActorSystem
+import skuber.model.{Pod, ReplicationController, Service}
 
 /**
  * @author David O'Riordan

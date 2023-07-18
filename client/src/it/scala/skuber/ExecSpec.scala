@@ -6,6 +6,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import skuber.json.format._
+import skuber.model.Pod
 
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration

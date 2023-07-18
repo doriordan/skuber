@@ -1,6 +1,6 @@
 package skuber.api.client
 
-import skuber.ListMeta
+import skuber.model.ListMeta
 
 /**
   * @author David O'Riordan

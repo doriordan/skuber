@@ -1,11 +1,12 @@
 package skuber.api.watch
 
-import akka.http.scaladsl.model.{HttpMethods, _}
+import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Source
 import play.api.libs.json.{Format, JsObject}
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
-import skuber.{ListOptions, ObjectResource, ResourceDefinition}
+import skuber.model.ResourceDefinition
+import skuber.{ListOptions, ObjectResource}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps

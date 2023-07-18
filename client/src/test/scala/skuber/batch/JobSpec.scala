@@ -4,9 +4,11 @@ import java.time.ZonedDateTime.parse
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber.Pod.Template
-import skuber.{Container, Pod, RestartPolicy}
+import skuber.model.Pod.Template
+import skuber.{Container, RestartPolicy}
 import skuber.json.batch.format._
+import skuber.model.Pod
+
 /**
   * @author Cory Klein
   */

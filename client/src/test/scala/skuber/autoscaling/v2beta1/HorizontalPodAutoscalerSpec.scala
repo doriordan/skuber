@@ -4,8 +4,9 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import org.specs2.mutable.Specification
 import play.api.libs.json.{JsSuccess, Json}
-import skuber.{Resource, Timestamp}
+import skuber.Timestamp
 import skuber.LabelSelector.dsl._
+import skuber.model.Resource
 
 class HorizontalPodAutoscalerSpec extends Specification {
 

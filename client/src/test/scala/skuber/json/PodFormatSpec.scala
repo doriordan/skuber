@@ -1,14 +1,14 @@
 package skuber.json
 
 import java.net.URL
-
 import org.specs2.execute.{Failure, Result}
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber.Volume.{ConfigMapProjection, KeyToPath, SecretProjection, ServiceAccountTokenProjection}
+import skuber.model.Volume.{ConfigMapProjection, KeyToPath, SecretProjection, ServiceAccountTokenProjection}
 import skuber._
 import skuber.apps.StatefulSet
 import skuber.json.format._
+import skuber.model.{Pod, PodSecurityContext, Resource, Security, SecurityContext, Volume}
 
 import scala.io.Source
 
@@ -18,7 +18,7 @@ import scala.io.Source
 class PodFormatSpec extends Specification {
   "This is a unit specification for the skuber Pod related json formatter.\n ".txt
   
-import Pod._
+import skuber.model.Pod._
   
   // Pod reader and writer
   "A Pod can be symmetrically written to json and the same value read back in\n" >> {
@@ -411,7 +411,7 @@ import Pod._
     }
 
     "a pod with unsupported volume type can be read as json using GenericVolumeSource" >> {
-      import skuber.Volume.GenericVolumeSource
+      import skuber.model.Volume.GenericVolumeSource
 
       val podJsonSource = Source.fromURL(getClass.getResource("/examplePodWithCephVolume.json"))
       val podJsonStr = podJsonSource.mkString

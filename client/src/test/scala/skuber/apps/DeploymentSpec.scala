@@ -5,6 +5,7 @@ import play.api.libs.json.Json
 import skuber.LabelSelector.dsl._
 import skuber._
 import skuber.json.apps.format._
+import skuber.model.Pod
 
 /**
  * @author David O'Riordan

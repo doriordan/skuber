@@ -8,7 +8,8 @@ import akka.stream.SourceShape
 import play.api.libs.json.Format
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
-import skuber.{ObjectResource, ResourceDefinition, ListOptions}
+import skuber.model.ResourceDefinition
+import skuber.{ObjectResource, ListOptions}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

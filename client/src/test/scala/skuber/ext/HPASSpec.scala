@@ -2,9 +2,10 @@ package skuber.autoscaling
 import org.specs2.mutable.Specification
 
 import scala.math.BigInt
-import skuber.{Container, ObjectMeta, Pod, ReplicationController}
+import skuber.{Container, ObjectMeta}
 import play.api.libs.json._
 import skuber.autoscaling.HorizontalPodAutoscaler.CrossVersionObjectReference
+import skuber.model.{Pod, ReplicationController}
 
 /**
  * @author David O'Riordan

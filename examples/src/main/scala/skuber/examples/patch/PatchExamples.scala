@@ -9,6 +9,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import play.api.libs.json.{Format, Json}
 import skuber.api.patch.JsonMergePatch
+import skuber.model.{Pod, Service}
 /**
  * @author David O'Riordan
  * 

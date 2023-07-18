@@ -1,7 +1,8 @@
 package skuber.policy.v1beta1
 
-import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{IntOrString, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, Scale, Timestamp}
+import skuber.model.ResourceSpecification.{Names, Scope}
+import skuber.model.{NonCoreResourceSpecification, ResourceDefinition, Scale}
+import skuber.{IntOrString, LabelSelector, ObjectMeta, ObjectResource, Timestamp}
 
 case class PodDisruptionBudget(
   kind: String = "PodDisruptionBudget",

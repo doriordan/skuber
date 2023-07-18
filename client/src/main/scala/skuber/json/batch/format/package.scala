@@ -1,7 +1,9 @@
 package skuber.json.batch
 
 import play.api.libs.json.{Format, JsPath, Json}
-import skuber.batch.{Job, JobList, JobTemplate, CronJob, CronJobList}
+import skuber.batch.{CronJobList, JobList}
+import skuber.model.Pod
+import skuber.model.batch.{CronJob, Job, JobTemplate}
 
 /**
   * Created by Cory Klein on 9/30/16.

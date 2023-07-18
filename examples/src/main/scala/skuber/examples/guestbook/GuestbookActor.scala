@@ -3,15 +3,14 @@ package skuber.examples.guestbook
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.util.{Try, Success,Failure}
-
-import akka.actor.{Actor, ActorRef, ActorLogging}
+import scala.util.{Failure, Success, Try}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.actor.Props
-import akka.event.{LoggingReceive}
+import akka.event.LoggingReceive
 import akka.pattern.ask
 import akka.util.Timeout
-
 import model.GuestbookServiceSpecification
+import skuber.model.Service
 
 object GuestbookActor {
   
@@ -42,7 +41,7 @@ object GuestbookActor {
         image="kubernetes/example-guestbook-php-redis", 
         containerPort=80, 
         replicas=3, 
-        serviceType=skuber.Service.Type.NodePort, 
+        serviceType=Service.Type.NodePort,
         nodePort=30291)   
 }
 

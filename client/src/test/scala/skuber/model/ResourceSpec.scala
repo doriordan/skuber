@@ -1,6 +1,7 @@
 package skuber
 
-import org.specs2.mutable.Specification // for unit-style testing
+import org.specs2.mutable.Specification
+import skuber.model.Resource
 
 import scala.math.BigInt
 

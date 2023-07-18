@@ -2,11 +2,10 @@ package skuber.examples.ingress
 
 import java.io.Serializable
 import java.net.HttpURLConnection
-
 import akka.actor.ActorSystem
-
 import skuber._
 import skuber.ext.ReplicaSet
+import skuber.model.{Pod, Service}
 import skuber.networking.Ingress
 
 import scala.annotation.tailrec

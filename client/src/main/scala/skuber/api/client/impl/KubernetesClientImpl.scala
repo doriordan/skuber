@@ -10,17 +10,19 @@ import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
+
 import javax.net.ssl.SSLContext
-import play.api.libs.json.{Format, Writes, Reads}
-import skuber._
+import play.api.libs.json.{Format, Reads, Writes}
+import skuber.model._
 import skuber.api.client.exec.PodExecImpl
-import skuber.api.client.{K8SException => _, _}
+import skuber.api.client._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
 import skuber.api.patch._
+import skuber.model.{Pod, ResourceDefinition, ResourceSpecification, Scale}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -531,7 +533,7 @@ class KubernetesClientImpl private[client] (
   override def scale[O <: ObjectResource](objName: String, count: Int)(
     implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] =
   {
-    val scale = Scale(
+    val scale = model.Scale(
       apiVersion = sc.apiVersion,
       metadata = ObjectMeta(name = objName, namespace = namespaceName),
       spec = Scale.Spec(replicas = Some(count))

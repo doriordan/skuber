@@ -4,6 +4,7 @@ import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber.LabelSelector.dsl._
 import skuber._
+import skuber.model.{Pod, Resource}
 
 class StatefulSetSpec extends Specification {
   "This is a unit specification for the skuber apps/v1 StatefulSet class. ".txt

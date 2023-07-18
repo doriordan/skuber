@@ -2,7 +2,8 @@ package skuber
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
-import skuber.apps.v1.Deployment
+import skuber.model.Pod
+import skuber.model.apps.v1.Deployment
 import skuber.policy.v1beta1.PodDisruptionBudget
 import skuber.policy.v1beta1.PodDisruptionBudget._
 

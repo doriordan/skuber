@@ -3,14 +3,13 @@ package skuber.json
 import scala.language.implicitConversions
 import java.time._
 import java.time.format._
-
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import skuber.Volume.{ConfigMapVolumeSource, KeyToPath}
-import skuber._
-import skuber.annotation.MatchExpression
+import skuber.model.Volume.{ConfigMapVolumeSource, KeyToPath}
+import skuber.model._
 import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
+import skuber.model.{Pod, PodSecurityContext, ReplicationController, Resource, Security, SecurityContext, Service, ServiceAccount, Volume}
 
 /**
  * @author David O'Riordan
@@ -263,7 +262,7 @@ package object format {
 
   implicit val tolerationEffectFmt: Format[Pod.TolerationEffect] = new Format[Pod.TolerationEffect] {
 
-    import Pod.TolerationEffect._
+    import skuber.model.Pod.TolerationEffect._
 
     override def reads(json: JsValue): JsResult[Pod.TolerationEffect] = json match {
       case JsString(value) => value match {
@@ -402,7 +401,7 @@ package object format {
     (JsPath \ "requests").formatMaybeEmptyMap[Resource.Quantity]
   )(Resource.Requirements.apply _, unlift(Resource.Requirements.unapply))
 
-  implicit val protocolFmt: Format[skuber.Protocol.Value] = Format(enumReads(Protocol, Protocol.TCP), enumWrites)
+  implicit val protocolFmt: Format[skuber.model.Protocol.Value] = Format(enumReads(Protocol, Protocol.TCP), enumWrites)
 
   implicit val formatCntrProt: Format[Container.Port] = (
     (JsPath \ "containerPort").format[Int] and
@@ -489,40 +488,38 @@ package object format {
 
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]
 
-  import Volume._
-
-  implicit val storageMediumFormat: Format[StorageMedium] = Format[StorageMedium](Reads[StorageMedium] {
-    case JsString(med) if med == "Memory" => JsSuccess(MemoryStorageMedium)
-    case JsString(med) if med == "HugePages" => JsSuccess(HugePagesStorageMedium)
-    case _ => JsSuccess(DefaultStorageMedium)
-  }, Writes[StorageMedium] {
-    case DefaultStorageMedium => JsString("")
-    case MemoryStorageMedium => JsString("Memory")
-    case HugePagesStorageMedium => JsString("HugePages")
+  implicit val storageMediumFormat: Format[Volume.StorageMedium] = Format[Volume.StorageMedium](Reads[Volume.StorageMedium] {
+    case JsString(med) if med == "Memory" => JsSuccess(Volume.MemoryStorageMedium)
+    case JsString(med) if med == "HugePages" => JsSuccess(Volume.HugePagesStorageMedium)
+    case _ => JsSuccess(Volume.DefaultStorageMedium)
+  }, Writes[Volume.StorageMedium] {
+    case Volume.DefaultStorageMedium => JsString("")
+    case Volume.MemoryStorageMedium => JsString("Memory")
+    case Volume.HugePagesStorageMedium => JsString("HugePages")
   })
 
-  implicit val emptyDirFormat: Format[EmptyDir] = (
-    (JsPath \ "medium").formatWithDefault[StorageMedium](DefaultStorageMedium) and
+  implicit val emptyDirFormat: Format[Volume.EmptyDir] = (
+    (JsPath \ "medium").formatWithDefault[Volume.StorageMedium](Volume.DefaultStorageMedium) and
     (JsPath \ "sizeLimit").formatNullable[Resource.Quantity]
-  )(EmptyDir.apply _, unlift(EmptyDir.unapply))
+  )(Volume.EmptyDir.apply _, unlift(Volume.EmptyDir.unapply))
 
-  implicit val hostPathFormat: Format[HostPath] = Json.format[HostPath]
+  implicit val hostPathFormat: Format[Volume.HostPath] = Json.format[Volume.HostPath]
   implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
-  implicit val volumeSecretFormat: Format[skuber.Volume.Secret] = Json.format[skuber.Volume.Secret]
-  implicit val gitFormat: Format[GitRepo] = Json.format[GitRepo]
+  implicit val volumeSecretFormat: Format[Volume.Secret] = Json.format[Volume.Secret]
+  implicit val gitFormat: Format[Volume.GitRepo] = Json.format[Volume.GitRepo]
 
-  implicit val objectFieldSelectorFormat: Format[ObjectFieldSelector] = (
+  implicit val objectFieldSelectorFormat: Format[Volume.ObjectFieldSelector] = (
     (JsPath \ "apiVersion").formatMaybeEmptyString() and
     (JsPath \ "fieldPath").format[String]
-  )(ObjectFieldSelector.apply _, unlift(ObjectFieldSelector.unapply))
+  )(Volume.ObjectFieldSelector.apply _, unlift(Volume.ObjectFieldSelector.unapply))
 
-  implicit val resourceFieldSelectorFormat: Format[ResourceFieldSelector] = Json.format[ResourceFieldSelector]
-  implicit val downwardApiVolumeFileFormat: Format[DownwardApiVolumeFile] = Json.format[DownwardApiVolumeFile]
+  implicit val resourceFieldSelectorFormat: Format[Volume.ResourceFieldSelector] = Json.format[Volume.ResourceFieldSelector]
+  implicit val downwardApiVolumeFileFormat: Format[Volume.DownwardApiVolumeFile] = Json.format[Volume.DownwardApiVolumeFile]
 
-  implicit val downwardApiVolumeSourceFormat: Format[DownwardApiVolumeSource] = (
+  implicit val downwardApiVolumeSourceFormat: Format[Volume.DownwardApiVolumeSource] = (
       (JsPath \ "defaultMode").formatNullable[Int] and
-      (JsPath \ "items").formatMaybeEmptyList[DownwardApiVolumeFile]
-    )(DownwardApiVolumeSource.apply _, unlift(DownwardApiVolumeSource.unapply))
+      (JsPath \ "items").formatMaybeEmptyList[Volume.DownwardApiVolumeFile]
+    )(Volume.DownwardApiVolumeSource.apply _, unlift(Volume.DownwardApiVolumeSource.unapply))
 
   implicit val configMapVolFormat: Format[ConfigMapVolumeSource] = (
       (JsPath \ "name").format[String] and
@@ -531,33 +528,33 @@ package object format {
       (JsPath \ "optional").formatNullable[Boolean]
     )(ConfigMapVolumeSource.apply _, unlift(ConfigMapVolumeSource.unapply))
 
-  implicit  val gceFormat: Format[GCEPersistentDisk] = (
+  implicit  val gceFormat: Format[Volume.GCEPersistentDisk] = (
      (JsPath \ "pdName").format[String] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(GCEPersistentDisk.apply _, unlift(GCEPersistentDisk.unapply))
+   )(Volume.GCEPersistentDisk.apply _, unlift(Volume.GCEPersistentDisk.unapply))
 
-   implicit val awsFormat: Format[AWSElasticBlockStore] = (
+   implicit val awsFormat: Format[Volume.AWSElasticBlockStore] = (
      (JsPath \ "volumeID").format[String] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(AWSElasticBlockStore.apply _, unlift(AWSElasticBlockStore.unapply))
+   )(Volume.AWSElasticBlockStore.apply _, unlift(Volume.AWSElasticBlockStore.unapply))
 
-    implicit val nfsFormat: Format[NFS] = (
+    implicit val nfsFormat: Format[Volume.NFS] = (
      (JsPath \ "server").format[String] and
      (JsPath \ "path").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(NFS.apply _, unlift(NFS.unapply))
+   )(Volume.NFS.apply _, unlift(Volume.NFS.unapply))
 
-   implicit val glusterfsFormat: Format[Glusterfs] = (
+   implicit val glusterfsFormat: Format[Volume.Glusterfs] = (
      (JsPath \ "endpoints").format[String] and
      (JsPath \ "path").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Glusterfs.apply _, unlift(Glusterfs.unapply))
+   )(Volume.Glusterfs.apply _, unlift(Volume.Glusterfs.unapply))
 
-   implicit val rbdFormat: Format[RBD] = (
+   implicit val rbdFormat: Format[Volume.RBD] = (
      (JsPath \ "monitors").format[List[String]] and
      (JsPath \ "image").format[String] and
      (JsPath \ "fsType").format[String] and
@@ -566,51 +563,50 @@ package object format {
      (JsPath \ "keyring").formatMaybeEmptyString() and
      (JsPath \ "secretRef").formatNullable[LocalObjectReference] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(RBD.apply _, unlift(RBD.unapply))
+   )(Volume.RBD.apply _, unlift(Volume.RBD.unapply))
 
-   implicit val iscsiFormat: Format[ISCSI] = (
+   implicit val iscsiFormat: Format[Volume.ISCSI] = (
      (JsPath \ "targetPortal").format[String] and
      (JsPath \ "iqn").format[String] and
      (JsPath \ "portals").formatMaybeEmptyList[String] and
      (JsPath \ "lun").format[Int] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(ISCSI.apply _, unlift(ISCSI.unapply))
+   )(Volume.ISCSI.apply _, unlift(Volume.ISCSI.unapply))
 
    implicit val persistentVolumeClaimRefFormat: Format[Volume.PersistentVolumeClaimRef] = (
      (JsPath \ "claimName").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
    )(Volume.PersistentVolumeClaimRef.apply _, unlift(Volume.PersistentVolumeClaimRef.unapply))
 
-   implicit val persVolumeSourceReads: Reads[PersistentSource] = (
-     (JsPath \ "hostPath").read[HostPath].map(x => x: PersistentSource) |
-     (JsPath \ "gcePersistentDisk").read[GCEPersistentDisk].map(x => x: PersistentSource) |
-     (JsPath \ "awsElasticBlockStore").read[AWSElasticBlockStore].map(x => x: PersistentSource) |
-     (JsPath \ "nfs").read[NFS].map(x => x: PersistentSource) |
-     (JsPath \ "glusterfs").read[Glusterfs].map(x => x: PersistentSource) |
-     (JsPath \ "rbd").read[RBD].map(x => x: PersistentSource) |
-     (JsPath \ "iscsi").read[ISCSI].map(x => x: PersistentSource) |
-     JsPath.read[JsValue].map[PersistentSource](j => GenericVolumeSource(j.toString))
+   implicit val persVolumeSourceReads: Reads[Volume.PersistentSource] = (
+     (JsPath \ "hostPath").read[Volume.HostPath].map(x => x: Volume.PersistentSource) |
+     (JsPath \ "awsElasticBlockStore").read[Volume.AWSElasticBlockStore].map(x => x: Volume.PersistentSource) |
+     (JsPath \ "nfs").read[Volume.NFS].map(x => x: Volume.PersistentSource) |
+     (JsPath \ "glusterfs").read[Volume.Glusterfs].map(x => x: Volume.PersistentSource) |
+     (JsPath \ "rbd").read[Volume.RBD].map(x => x: Volume.PersistentSource) |
+     (JsPath \ "iscsi").read[Volume.ISCSI].map(x => x: Volume.PersistentSource) |
+     JsPath.read[JsValue].map[Volume.PersistentSource](j => Volume.GenericVolumeSource(j.toString))
    )
 
 
-  implicit val secretProjectionFormat: Format[Volume.SecretProjection] = Json.format[SecretProjection]
-  implicit val configMapProjectionFormat: Format[Volume.ConfigMapProjection] = Json.format[ConfigMapProjection]
-  implicit val downwardApiProjectionFormat: Format[Volume.DownwardAPIProjection] = Json.format[DownwardAPIProjection]
-  implicit val serviceAccountTokenProjectionFormat: Format[Volume.ServiceAccountTokenProjection] = Json.format[ServiceAccountTokenProjection]
+  implicit val secretProjectionFormat: Format[Volume.SecretProjection] = Json.format[Volume.SecretProjection]
+  implicit val configMapProjectionFormat: Format[Volume.ConfigMapProjection] = Json.format[Volume.ConfigMapProjection]
+  implicit val downwardApiProjectionFormat: Format[Volume.DownwardAPIProjection] = Json.format[Volume.DownwardAPIProjection]
+  implicit val serviceAccountTokenProjectionFormat: Format[Volume.ServiceAccountTokenProjection] = Json.format[Volume.ServiceAccountTokenProjection]
 
-  implicit val projectedVolumeSourceWrites: Writes[VolumeProjection] = Writes[VolumeProjection] {
-    case s: SecretProjection => (JsPath \ "secret").write[SecretProjection](secretProjectionFormat).writes(s)
-    case cm: ConfigMapProjection => (JsPath \ "configMap").write[ConfigMapProjection](configMapProjectionFormat).writes(cm)
-    case dapi: DownwardAPIProjection => (JsPath \ "downwardAPI").write[DownwardAPIProjection](downwardApiProjectionFormat).writes(dapi)
-    case sa: ServiceAccountTokenProjection => (JsPath \ "serviceAccountToken").write[ServiceAccountTokenProjection](serviceAccountTokenProjectionFormat).writes(sa)
+  implicit val projectedVolumeSourceWrites: Writes[Volume.VolumeProjection] = Writes[Volume.VolumeProjection] {
+    case s: Volume.SecretProjection => (JsPath \ "secret").write[Volume.SecretProjection](secretProjectionFormat).writes(s)
+    case cm: Volume.ConfigMapProjection => (JsPath \ "configMap").write[Volume.ConfigMapProjection](configMapProjectionFormat).writes(cm)
+    case dapi: Volume.DownwardAPIProjection => (JsPath \ "downwardAPI").write[Volume.DownwardAPIProjection](downwardApiProjectionFormat).writes(dapi)
+    case sa: Volume.ServiceAccountTokenProjection => (JsPath \ "serviceAccountToken").write[Volume.ServiceAccountTokenProjection](serviceAccountTokenProjectionFormat).writes(sa)
   }
 
-  implicit val projectedFormat: Format[ProjectedVolumeSource] = new Format[ProjectedVolumeSource] {
-    override def writes(o: ProjectedVolumeSource): JsValue = Json.writes[ProjectedVolumeSource].writes(o)
+  implicit val projectedFormat: Format[Volume.ProjectedVolumeSource] = new Format[Volume.ProjectedVolumeSource] {
+    override def writes(o: Volume.ProjectedVolumeSource): JsValue = Json.writes[Volume.ProjectedVolumeSource].writes(o)
 
-    override def reads(json: JsValue): JsResult[ProjectedVolumeSource] =
-      JsSuccess(ProjectedVolumeSource(
+    override def reads(json: JsValue): JsResult[Volume.ProjectedVolumeSource] =
+      JsSuccess(Volume.ProjectedVolumeSource(
         (json \ "defaultMode").asOpt[Int],
         (json \ "sources").as[List[JsObject]].flatMap(s => {
           s.keys.headOption map {
@@ -622,36 +618,36 @@ package object format {
         })))
   }
 
-   implicit val volumeSourceReads: Reads[Source] = (
-     (JsPath \ "emptyDir").read[EmptyDir].map(x => x: Source) |
-     (JsPath \ "projected").read[ProjectedVolumeSource].map(x => x: Source) |
-     (JsPath \ "secret").read[skuber.Volume.Secret].map(x => x: Source) |
-     (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Source) |
-     (JsPath \ "gitRepo").read[GitRepo].map(x => x: Source) |
-     (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Source) |
-     (JsPath \ "downwardAPI").read[DownwardApiVolumeSource].map(x => x: Source) |
-     persVolumeSourceReads.map(x => x: Source)
+   implicit val volumeSourceReads: Reads[Volume.Source] = (
+     (JsPath \ "emptyDir").read[Volume.EmptyDir].map(x => x: Volume.Source) |
+     (JsPath \ "projected").read[Volume.ProjectedVolumeSource].map(x => x: Volume.Source) |
+     (JsPath \ "secret").read[Volume.Secret].map(x => x: Volume.Source) |
+     (JsPath \ "configMap").read[ConfigMapVolumeSource].map(x => x: Volume.Source) |
+     (JsPath \ "gitRepo").read[Volume.GitRepo].map(x => x: Volume.Source) |
+     (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Volume.Source) |
+     (JsPath \ "downwardAPI").read[Volume.DownwardApiVolumeSource].map(x => x: Volume.Source) |
+     persVolumeSourceReads.map(x => x: Volume.Source)
    )
 
-   implicit val persVolumeSourceWrites: Writes[PersistentSource] = Writes[PersistentSource] {
-     case hp: HostPath => (JsPath \ "hostPath").write[HostPath](hostPathFormat).writes(hp)
-     case gced: GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[GCEPersistentDisk](gceFormat).writes(gced)
-     case awse: AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[AWSElasticBlockStore](awsFormat).writes(awse)
-     case nfs: NFS => (JsPath \ "nfs").write[NFS](nfsFormat).writes(nfs)
-     case gfs: Glusterfs => (JsPath \ "glusterfs").write[Glusterfs](glusterfsFormat).writes(gfs)
-     case rbd: RBD => (JsPath \ "rbd").write[RBD](rbdFormat).writes(rbd)
-     case iscsi: ISCSI => (JsPath \ "iscsi").write[ISCSI](iscsiFormat).writes(iscsi)
-     case GenericVolumeSource(json) => Json.parse(json)
+   implicit val persVolumeSourceWrites: Writes[Volume.PersistentSource] = Writes[Volume.PersistentSource] {
+     case hp: Volume.HostPath => (JsPath \ "hostPath").write[Volume.HostPath](hostPathFormat).writes(hp)
+     case gced: Volume.GCEPersistentDisk => (JsPath \ "gcePersistentDisk").write[Volume.GCEPersistentDisk](gceFormat).writes(gced)
+     case awse: Volume.AWSElasticBlockStore => (JsPath \ "awsElasticBlockStore").write[Volume.AWSElasticBlockStore](awsFormat).writes(awse)
+     case nfs: Volume.NFS => (JsPath \ "nfs").write[Volume.NFS](nfsFormat).writes(nfs)
+     case gfs: Volume.Glusterfs => (JsPath \ "glusterfs").write[Volume.Glusterfs](glusterfsFormat).writes(gfs)
+     case rbd: Volume.RBD => (JsPath \ "rbd").write[Volume.RBD](rbdFormat).writes(rbd)
+     case iscsi: Volume.ISCSI => (JsPath \ "iscsi").write[Volume.ISCSI](iscsiFormat).writes(iscsi)
+     case Volume.GenericVolumeSource(json) => Json.parse(json)
    }
 
-   implicit val volumeSourceWrites: Writes[Source] = Writes[Source] {
-       case ps: PersistentSource => persVolumeSourceWrites.writes(ps)
-       case ed: EmptyDir => (JsPath \ "emptyDir").write[EmptyDir](emptyDirFormat).writes(ed)
-       case p: ProjectedVolumeSource => (JsPath \ "projected").write[ProjectedVolumeSource](projectedFormat).writes(p)
-       case secr: skuber.Volume.Secret => (JsPath \ "secret").write[skuber.Volume.Secret](volumeSecretFormat).writes(secr)
+   implicit val volumeSourceWrites: Writes[Volume.Source] = Writes[Volume.Source] {
+       case ps: Volume.PersistentSource => persVolumeSourceWrites.writes(ps)
+       case ed: Volume.EmptyDir => (JsPath \ "emptyDir").write[Volume.EmptyDir](emptyDirFormat).writes(ed)
+       case p: Volume.ProjectedVolumeSource => (JsPath \ "projected").write[Volume.ProjectedVolumeSource](projectedFormat).writes(p)
+       case secr: Volume.Secret => (JsPath \ "secret").write[Volume.Secret](volumeSecretFormat).writes(secr)
        case cfgMp: ConfigMapVolumeSource => (JsPath \ "configMap").write[ConfigMapVolumeSource](configMapVolFormat).writes(cfgMp)
-       case gitr: GitRepo => (JsPath \ "gitRepo").write[GitRepo](gitFormat).writes(gitr)
-       case da: DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
+       case gitr: Volume.GitRepo => (JsPath \ "gitRepo").write[Volume.GitRepo](gitFormat).writes(gitr)
+       case da: Volume.DownwardApiVolumeSource => (JsPath \ "downwardAPI").write[Volume.DownwardApiVolumeSource](downwardApiVolumeSourceFormat).writes(da)
        case pvc: Volume.PersistentVolumeClaimRef => (JsPath \ "persistentVolumeClaim").write[Volume.PersistentVolumeClaimRef](persistentVolumeClaimRefFormat).writes(pvc)
    }
 
@@ -663,12 +659,12 @@ package object format {
 
    implicit val volumeWrites: Writes[Volume] = (
      (JsPath \ "name").write[String] and
-     JsPath.write[Source]
+     JsPath.write[Volume.Source]
    )(unlift(Volume.unapply))
 
    implicit val volumeFormat: Format[Volume] = Format(volumeReads, volumeWrites)
 
-   implicit val persVolSourceFormat: Format[PersistentSource] = Format(persVolumeSourceReads, persVolumeSourceWrites)
+   implicit val persVolSourceFormat: Format[Volume.PersistentSource] = Format(persVolumeSourceReads, persVolumeSourceWrites)
 
 
    implicit val volMountFormat: Format[Volume.Mount] = (
@@ -807,7 +803,7 @@ package object format {
   // which has finally necessitated a hack to get around Play Json limitations supporting case classes with > 22 members
   // (see e.g. https://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5)
 
-  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], skuber.RestartPolicy.Value, Option[Int], Option[Int], skuber.DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[PodSecurityContext])] = (
+  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], RestartPolicy.Value, Option[Int], Option[Int], DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[PodSecurityContext])] = (
       (JsPath \ "containers").format[List[Container]] and
       (JsPath \ "initContainers").formatMaybeEmptyList[Container] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
@@ -840,7 +836,7 @@ package object format {
   ).tupled
 
   def fromTuples(
-    partOne: (scala.List[Container], scala.List[Container], scala.List[Volume], skuber.RestartPolicy.Value, Option[Int], Option[Int], skuber.DNSPolicy.Value, Map[String, String], String, String, Boolean, scala.List[skuber.LocalObjectReference], Option[Pod.Affinity], scala.List[Pod.Toleration], Option[PodSecurityContext]),
+    partOne: (scala.List[Container], scala.List[Container], scala.List[Volume], RestartPolicy.Value, Option[Int], Option[Int], DNSPolicy.Value, Map[String, String], String, String, Boolean, scala.List[LocalObjectReference], Option[Pod.Affinity], scala.List[Pod.Toleration], Option[PodSecurityContext]),
     partTwo: (Option[String], scala.List[Pod.HostAlias], Option[Boolean], Option[Boolean], Option[Boolean], Option[Int], Option[String], Option[String], Option[String], Option[Pod.DNSConfig], Option[Boolean])
   ): Pod.Spec = {
     val (conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc) = partOne
@@ -1015,7 +1011,7 @@ package object format {
 
   implicit val perVolSpecFmt: Format[PersistentVolume.Spec] = (
       (JsPath \ "capacity").formatMaybeEmptyMap[Resource.Quantity] and
-      JsPath.format[PersistentSource] and
+      JsPath.format[Volume.PersistentSource] and
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
       (JsPath \ "claimRef").formatNullable[ObjectReference] and
       (JsPath \ "persistentVolumeReclaimPolicy").formatNullableEnum(PersistentVolume.ReclaimPolicy)
@@ -1076,11 +1072,11 @@ package object format {
       .inmap(_.map({case (k,v) => k -> Base64.decodeBase64(v.getBytes)}),
         (map: Map[String, Array[Byte]]) => map.map({case (k,v) => k -> Base64.encodeBase64String(v)}))
 
-  implicit val secretFmt: Format[skuber.Secret] = (
+  implicit val secretFmt: Format[Secret] = (
     objFormat and
     (JsPath \ "data").formatMaybeEmptyByteArrayMap and
     (JsPath \ "type").formatMaybeEmptyString()
-  )(skuber.Secret.apply _, unlift(skuber.Secret.unapply))
+  )(Secret.apply _, unlift(Secret.unapply))
 
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType)
 
@@ -1129,7 +1125,7 @@ package object format {
   implicit val persVolClaimListFmt: Format[PersistentVolumeClaimList] = ListResourceFormat[PersistentVolumeClaim]
   implicit val svcAcctListFmt: Format[ServiceAccountList] = ListResourceFormat[ServiceAccount]
   implicit val resQuotaListFmt: Format[ResourceQuotaList] = ListResourceFormat[Resource.Quota]
-  implicit val secretListFmt: Format[SecretList] = ListResourceFormat[skuber.Secret]
+  implicit val secretListFmt: Format[SecretList] = ListResourceFormat[Secret]
   implicit val limitRangeListFmt: Format[LimitRangeList] = ListResourceFormat[LimitRange]
 
   implicit val precondFmt: Format[Preconditions] =

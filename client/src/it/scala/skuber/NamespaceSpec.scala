@@ -1,10 +1,10 @@
 package skuber
 
 import java.util.UUID.randomUUID
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import json.format.{namespaceFormat, podFormat}
+import skuber.model.Pod
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -105,6 +105,6 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers {
     val nginxContainer = getNginxContainer(version)
     val nginxPodSpec   = Pod.Spec(containers=List(nginxContainer))
     val podMeta        = ObjectMeta(namespace=namespace, name = name)
-    Pod(metadata=podMeta, spec=Some(nginxPodSpec))
+    model.Pod(metadata=podMeta, spec=Some(nginxPodSpec))
   }
 }

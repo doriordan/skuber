@@ -1,12 +1,13 @@
 package skuber.examples.list
 
 import akka.actor.ActorSystem
-import skuber.Pod.Phase
+import skuber.model.Pod.Phase
 import skuber._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import skuber.json.format._
+import skuber.model.Pod
 
 /**
  * @author David O'Riordan

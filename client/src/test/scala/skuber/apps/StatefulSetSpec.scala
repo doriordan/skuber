@@ -5,6 +5,7 @@ import play.api.libs.json._
 import skuber.LabelSelector.dsl._
 import skuber._
 import skuber.json.apps.format._
+import skuber.model.{Pod, Resource}
 
 /**
   * Created by hollinwilkins on 4/5/17.

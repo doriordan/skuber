@@ -1,16 +1,16 @@
 package skuber.examples.guestbook
 
-import akka.actor.{Actor, ActorRef, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.actor.Props
 import akka.util.Timeout
 import akka.event.LoggingReceive
 
-import scala.util.{Success,Failure}
+import scala.util.{Failure, Success}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-
 import model.GuestbookServiceSpecification
+import skuber.model.{ReplicationController, Service}
 
 /*
  * A service actor manages a single Guestbook service, encapsulating access to both the service
@@ -142,8 +142,8 @@ class CreateResultHandler(consumer: ActorRef, name: String) extends ServiceResul
     case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
     case ResourceNotFound => 
           complete(UnexpectedServiceError(name, new Exception("Not Found")))
-    case r:skuber.ReplicationController => gotExpectedResult
-    case s:skuber.Service => gotExpectedResult
+    case r:ReplicationController => gotExpectedResult
+    case s:Service => gotExpectedResult
   }
 }
 

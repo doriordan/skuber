@@ -17,7 +17,7 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 // the client API request/response handing uses Akka Http
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
-val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
+val akkaActors = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
@@ -70,7 +70,7 @@ lazy val skuberSettings = Seq(
 
 lazy val examplesSettings = Seq(
   name := "skuber-examples",
-  libraryDependencies ++= Seq(akka, akkaSlf4j, logback)
+  libraryDependencies ++= Seq(akkaActors, akkaSlf4j, logback)
 )
 
 // by default run the guestbook example when executing a fat examples JAR
@@ -82,7 +82,7 @@ publishArtifact in root := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)
-  .aggregate(skuber, examples)
+  .aggregate(skuber, examples, akkaBackend)
 
 lazy val skuber= (project in file("client"))
   .configs(IntegrationTest)
@@ -93,8 +93,15 @@ lazy val skuber= (project in file("client"))
     libraryDependencies += scalaTest % "it"
   )
 
+lazy val akkaBackend= (project in file("akka"))
+    .settings(
+      commonSettings,
+      skuberSettings)
+    .dependsOn(skuber)
+
 lazy val examples = (project in file("examples"))
   .settings(commonSettings: _*)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
+

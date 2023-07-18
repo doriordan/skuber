@@ -2,7 +2,6 @@ package skuber.api
 
 import client._
 import skuber.json.format._
-import skuber.ReplicationController
 import org.specs2.mutable.Specification
 import akka.util.ByteString
 import akka.stream.scaladsl.{Sink, Source}
@@ -10,6 +9,7 @@ import akka.actor.ActorSystem
 import org.scalatestplus.mockito.MockitoSugar.mock
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.watch.BytesToWatchEventSource
+import skuber.model.ReplicationController
 
 import scala.collection.mutable
 import scala.concurrent.{Await, ExecutionContext, Future}

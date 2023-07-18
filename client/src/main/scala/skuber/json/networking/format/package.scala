@@ -8,8 +8,9 @@ package skuber.json.networking
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import skuber.networking.Ingress.Backend
+import skuber.model.networking.Ingress.Backend
 import skuber.json.format._
+import skuber.model.networking.Ingress
 import skuber.networking._
 
 package object format {

@@ -3,6 +3,7 @@ package skuber
 import skuber.json.format.serviceFmt
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
+import skuber.model.Service
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

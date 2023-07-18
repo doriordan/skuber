@@ -10,7 +10,7 @@ import scala.util.Failure
 import java.util.{Base64, Date}
 
 import org.yaml.snakeyaml.Yaml
-import skuber.Namespace
+import skuber.model.Namespace
 import skuber.api.client._
 
 import scala.io.Source

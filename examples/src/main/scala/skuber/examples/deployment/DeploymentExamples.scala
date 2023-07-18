@@ -3,10 +3,10 @@ package skuber.examples.deployment
 import skuber._
 import skuber.ext.Deployment
 import skuber.json.ext.format._
-
 import akka.actor.ActorSystem
+import skuber.model.Pod
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 /**

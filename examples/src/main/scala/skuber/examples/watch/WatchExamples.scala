@@ -5,6 +5,7 @@ import skuber.json.format._
 import skuber.K8SWatchEvent
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
+import skuber.model.{Pod, ReplicationController}
 
 
 /**

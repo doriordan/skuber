@@ -5,6 +5,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import skuber.api.patch._
 import skuber.json.format._
+import skuber.model.Pod
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -113,7 +114,7 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
   def getNginxPod(name: String, version: String): Pod = {
     val nginxContainer = getNginxContainer(version)
     val nginxPodSpec = Pod.Spec(containers = List((nginxContainer)))
-    Pod(metadata = ObjectMeta(nginxPodName, labels = Map("label" -> "1"), annotations = Map("annotation" -> "1"))
+    model.Pod(metadata = ObjectMeta(nginxPodName, labels = Map("label" -> "1"), annotations = Map("annotation" -> "1"))
       , spec = Some(nginxPodSpec))
   }
 }

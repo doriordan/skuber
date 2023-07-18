@@ -1,10 +1,9 @@
 package skuber.api.client
 
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.ByteString
 import play.api.libs.json.{Writes,Format}
-import skuber.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
+import skuber.model.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource}
 import skuber.api.patch.Patch
+import skuber.model.{Pod, ResourceDefinition, Scale}
 
 import scala.concurrent.{Future, Promise}
 
@@ -32,6 +31,7 @@ trait KubernetesClient {
 
   /**
     * Retrieve the object resource with the specified name and type
+    *
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name the name of the object resource
     * @return A future containing the retrieved resource (or an exception if resource not found)
@@ -40,6 +40,7 @@ trait KubernetesClient {
 
   /**
     * Retrieve the object resource with the specified name and type, returning None if resource does not exist
+    *
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name the name of the object resource
     * @return A future containing Some(resource) if the resource is found on the cluster, or None if not found
@@ -48,8 +49,9 @@ trait KubernetesClient {
 
   /**
     * Retrieve the object resource with the specified name and type from the specified namespace
+    *
     * @tparam O the specific object resource type e.g. Pod, Deployment
-    * @param name the name of the object resource
+    * @param name      the name of the object resource
     * @param namespace the namespace containing the object resource
     * @return A future conatining Some(resource) if the resource is found on the cluster otherwise None
     */
@@ -58,6 +60,7 @@ trait KubernetesClient {
   /**
     * Create a new object resource. If the namespace metadata field is set to a non-empty value then the object will be created
     * in that namespace, otherwise it will be created in the configured namespace of the client.
+    *
     * @param obj the resource to create on the cluster
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @return A future containing the created resource returned by Kubernetes
@@ -66,6 +69,7 @@ trait KubernetesClient {
 
   /**
     * Update an existing object resource
+    *
     * @param obj the resource with the desired updates
     * @return A future containing the updated resource returned by Kubernetes
     */
@@ -73,7 +77,8 @@ trait KubernetesClient {
 
   /**
     * Delete an existing object resource
-    * @param name the name of the resource to delete
+    *
+    * @param name               the name of the resource to delete
     * @param gracePeriodSeconds optional parameter specifying a grace period to be applied before hard killing the resource
     * @return A future that will be set to success if the deletion request was accepted by Kubernetes, otherwise failure
     */
@@ -81,7 +86,8 @@ trait KubernetesClient {
 
   /**
     * Delete an existing object resource
-    * @param name the name of the resource to delete
+    *
+    * @param name    the name of the resource to delete
     * @param options contains various options that can be passed to the deletion operation, see Kubernetes documentation
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @return A future that will be set to success if the deletion request was accepted by Kubernetes, otherwise failure
@@ -90,6 +96,7 @@ trait KubernetesClient {
 
   /**
     * Delete all resources of specified type in current namespace
+    *
     * @tparam L list resource type of resources to delete e.g. PodList, DeploymentList
     * @return A future containing the list of all deleted resources
     */
@@ -97,6 +104,7 @@ trait KubernetesClient {
 
   /**
     * Delete all resources of specified type selected by a specified label selector in current namespace
+    *
     * @param labelSelector selects the resources to delete
     * @tparam L the list resource type of resources to delete e.g. PodList, DeploymentList
     * @return A future containing the list of all deleted resources
@@ -105,12 +113,14 @@ trait KubernetesClient {
 
   /**
     * Return a list of the names of all namespaces in the cluster
+    *
     * @return a future containing the list of names of all namespaces in the cluster
     */
   def getNamespaceNames(implicit lc: LoggingContext): Future[List[String]]
 
   /**
     * Get list of all resources across all namespaces in the cluster of a specified list type, grouped by namespace
+    *
     * @tparam L the list resource type of resources to list e.g. PodList, DeploymentList
     * @return A future with a map containing an entry for each namespace, each entry consists of a list of resources keyed by the name of their namesapce
     */
@@ -118,6 +128,7 @@ trait KubernetesClient {
 
   /**
     * Get list of resources of a given type in a specified namespace
+    *
     * @param theNamespace the namespace to search
     * @tparam L the list resource type of the objects to retrieve e.g. PodList, DeploymentList
     * @return A future containing the resource list retrieved
@@ -126,6 +137,7 @@ trait KubernetesClient {
 
   /**
     * Get list of all resources of specified type in the configured namespace for the client
+    *
     * @tparam L the list type to retrieve e.g. PodList, DeploymentList
     * @return A future containing the resource list retrieved
     */
@@ -133,6 +145,7 @@ trait KubernetesClient {
 
   /**
     * Get list of selected resources of specified type in the configured namespace for the client
+    *
     * @param labelSelector the label selector to use to select the resources to return
     * @tparam L the list type of the resources to retrieve e.g. PodList, DeploymentList
     * @return A future containing the resource list retrieved
@@ -141,6 +154,7 @@ trait KubernetesClient {
 
   /**
     * Get list of resources of specified type, applying the specified options to the list request
+    *
     * @param options a set of options to be added to the request that can modify how the request is handled by Kubernetes.
     * @tparam L the list type of the resources to retrieve e.g. PodList, DeploymentList
     * @return A future containing the resource list retrieved
@@ -151,124 +165,25 @@ trait KubernetesClient {
     * Update the status subresource of a given object resource. Only supported by certain object resource kinds (which need to have defined an
     * implicit HasStatusResource)
     * This method is generally for advanced use cases such as custom controllers
+    *
     * @param statusEv this implicit provides evidence that the resource kind has status subresources, so supports this method
-    * @param obj the name of the object resource whose status subresource is to be updated
+    * @param obj      the name of the object resource whose status subresource is to be updated
     * @tparam O The resource type
     * @return A future containing the full updated object resource
     */
-  def updateStatus[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O],statusEv: HasStatusSubresource[O], lc: LoggingContext): Future[O]
+  def updateStatus[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], statusEv: HasStatusSubresource[O], lc: LoggingContext): Future[O]
 
   /**
     * Get the status subresource of a given object resource. Only supported by certain object resource kinds (which need to have defined an
     * implicit HasStatusResource)
     * This method is generally for advanced use cases such as custom controllers.
-    * @param name the name of the object resource
+    *
+    * @param name     the name of the object resource
     * @param statusEv this implicit provides evidence that the resource kind has status subresources, so supports this method
     * @tparam O the resource type e.g. Pod, Deployment
     * @return A future containing the object resource including current status
     */
-  def getStatus[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O],statusEv: HasStatusSubresource[O], lc: LoggingContext): Future[O]
-
-  /**
-    * Place a watch on a specific object - this returns a source of events that will be produced whenever the object is added, modified or deleted
-    * on the cluster
-    * Note: Most applications should probably use watchContinuously instead, which transparently reconnects and continues the watch in the case of server
-    * timeouts - the source returned by this method will complete in the presence of such timeouts or other disconnections.
-    * @param obj the name of the object to watch
-    * @tparam O the type of the object to watch e.g. Pod, Deployment
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
-    */
-  def watch[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
-
-  /**
-    * Place a watch for any changes to a specific object, optionally since a given resource version - this returns a source of events that will be produced
-    * whenever the object is modified or deleted on the cluster, if the resource version on the updated object is greater than or equal to that specified.
-    * Note: Most applications should probably use watchContinuously instead, which transparently reconnects and continues the watch in the case of server
-    * timeouts - the source returned by this method will complete in the presence of such timeouts or other disconnections.
-    * @param name the name of the object
-    * @param sinceResourceVersion the resource version - normally the applications gets the current resource from the metadata of a list call on the
-    * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method. If no resource version is specified, a single ADDED event will
-    * be produced for an already existing object followed by events for any future changes.
-    * @param bufSize An optional buffer size for the returned on-the-wire representation of each modified object - normally the default is more than enough.
-    * @tparam O the type of the resource to watch
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
-    */
-  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
-
-  /**
-    * Place a watch on changes to all objects of a specific resource type - this returns a source of events that will be produced whenever an object
-    * of the specified type is added, modified or deleted on the cluster
-    * Note: Most applications should probably use watchAllContinuously instead, which transparently reconnects and continues the watch in the case of server
-    * timeouts - the source returned by this method will complete in the presence of such timeouts or other disconnections.
-    *
-    * @param sinceResourceVersion the resource version - normally the applications gets the current resource from the metadata of a list call on the
-    * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method. If no resource version is specified, a single ADDED event will
-    * be produced for an already existing object followed by events for any future changes.
-    * @param bufSize optional buffer size for each modified object received, normally the default is more than enough
-    * @tparam O the type of resource to watch e.g. Pod, Dpeloyment
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
-    */
-  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
-
-  /**
-    * Watch a specific object resource continuously. This returns a source that will continue to produce
-    * events on any updates to the object even if the server times out, by transparently restarting the watch as needed.
-    * @param obj  the object resource to watch
-    * @tparam O the type of the resource e.g Pod
-    * @return  A future containing an Akka streams Source of WatchEvents that will be emitted
-    */
-  def watchContinuously[O <: ObjectResource](obj: O)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
-
-  /**
-    * Watch a specific object resource continuously. This returns a source that will continue to produce
-    * events on any updates to the object even if the server times out, by transparently restarting the watch as needed.
-    * The optional resourceVersion can be used to specify that only events on versions of the object greater than or equal to
-    * the resource version should be produced.
-    *
-    * @param name the name of the resource to watch
-    * @param sinceResourceVersion the resource version - normally the applications gets the current resource version from the metadata of a list call on the
-    * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method to receive any future updates. If no resource version is specified,
-    * a single ADDED event will be produced for an already existing object followed by events for any future changes.
-    * @param bufSize optional buffer size for received object updates, normally the default is more than enough
-    * @param errorHandler an optional function that takes a single string parameter - it will be invoked with the error details whenever ERROR events are received
-    * @tparam O the type of the resource
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
-    */
-  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
-
-  /**
-    * Watch all object resources of a specified type continuously. This returns a source that will continue to produce
-    * events even if the server times out, by transparently restarting the watch as needed.
-    * The optional resourceVersion can be used to specify that only events on versions of objects greater than or equal to
-    * the resource version should be produced.
-    *
-    * @param sinceResourceVersion the resource version - normally the applications gets the current resource version from the metadata of a list call on the
-    * applicable type (e.g. PodList, DeploymentList) and then supplies that to this method to receive any future updates. If no resource version is specified,
-    * a single ADDED event will be produced for an already existing object followed by events for any future changes.
-    * @param bufSize optional buffer size for received object updates, normally the default is more than enough
-    * @param errorHandler an optional function that takes a single string parameter - it will be invoked with the error details whenever ERROR events are received
-    * @tparam O the type pf the resource
-    * @return A future containing an Akka streams Source of WatchEvents that will be emitted
-    */
-  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
-
-/**
-  * Watch all object resources of a specified type continuously, passing the specified options to the API server with the watch request.
-  * This returns a source that will continue to produce events even if the server times out, by transparently restarting the watch as needed.
-  * @param options a set of list options to pass to the server. See https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#ListOptions
-  * for the meaning of the options. Note that the `watch` flag in the options will be ignored / overridden by the client, which
-  * ensures a watch is always requested on the server.
-  * @param bufsize optional buffer size for received object updates, normally the default is more than enough
-  * @param errorHandler an optional function that takes a single string parameter - it will be invoked with the error details whenever ERROR events are received
-  * @tparam O the resource type to watch
-  * @return A future containing an Akka streams Source of WatchEvents that will be emitted
-  */
-  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+  def getStatus[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], statusEv: HasStatusSubresource[O], lc: LoggingContext): Future[O]
 
   /**
    * Get the scale subresource of the named object resource
@@ -321,37 +236,6 @@ trait KubernetesClient {
     */
   @deprecated("use patch instead","v2.1")
   def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(implicit rd: ResourceDefinition[O], fmt: Format[O], lc: LoggingContext): Future[O]
-
-  /**
-    * Get the logs from a pod (similar to `kubectl logs ...`). The logs are streamed using an Akka streams source
-    * @param name the name of the pod
-    * @param queryParams optional parameters of the request (for example container name)
-    * @param namespace if set this specifies the namespace of the pod (otherwise the configured namespace is used)
-    * @return A future containing a Source for the logs stream.
-    */
-  def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(implicit lc: LoggingContext): Future[Source[ByteString, _]]
-
-  /**
-    * Execute a command in a pod (similar to `kubectl exec ...`)
-    * @param podName the name of the pod
-    * @param command the command to execute
-    * @param maybeContainerName an optional container name
-    * @param maybeStdin optional Akka Source for sending input to stdin for the command
-    * @param maybeStdout optional Akka Sink to receive output from stdout for the command
-    * @param maybeStderr optional Akka Sink to receive output from stderr for the command
-    * @param tty optionally set tty on
-    * @param maybeClose if set, this can be used to close the connection to the pod by completing the promise
-    * @return A future indicating the exec command has been submitted
-    */
-  def exec(
-    podName: String,
-    command: Seq[String],
-    maybeContainerName: Option[String] = None,
-    maybeStdin: Option[Source[String, _]] = None,
-    maybeStdout: Option[Sink[String, _]] = None,
-    maybeStderr: Option[Sink[String, _]] = None,
-    tty: Boolean = false,
-    maybeClose: Option[Promise[Unit]] = None)(implicit lc: LoggingContext): Future[Unit]
 
   /**
     * Return list of API versions supported by the server

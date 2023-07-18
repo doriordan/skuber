@@ -1,6 +1,6 @@
 package skuber.api.client
 
-import skuber.Namespace
+import skuber.model.Namespace
 
 /**
   * @author David O'Riordan

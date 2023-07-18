@@ -1,14 +1,14 @@
 package skuber
 
 import java.time.ZonedDateTime
-
 import akka.stream.scaladsl.TcpIdleTimeoutException
 import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
-import skuber.Pod.LogQueryParams
+import skuber.model.Pod.LogQueryParams
 import skuber.json.format._
+import skuber.model.Pod
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

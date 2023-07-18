@@ -3,8 +3,9 @@ package skuber.settings
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath}
 import skuber.json.format.{objFormat,maybeEmptyFormatMethods,jsPath2LabelSelFormat,envVarFormat,envFromSourceFmt, volMountFormat, volumeFormat}
-import skuber.ResourceSpecification.{Names, Scope}
-import skuber.{EnvFromSource, EnvVar, LabelSelector, NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition, Volume}
+import skuber.model.ResourceSpecification.{Names, Scope}
+import skuber.model.{NonCoreResourceSpecification, ResourceDefinition, Volume}
+import skuber.{EnvFromSource, EnvVar, LabelSelector, ObjectMeta, ObjectResource}
 
 /**
   * @author David O'Riordan

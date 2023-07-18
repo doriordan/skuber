@@ -1,12 +1,12 @@
 package skuber.examples.scale
 
 import akka.actor.ActorSystem
-
 import skuber._
 import skuber.autoscaling.HorizontalPodAutoscaler
 import skuber.json.format._
 import skuber.json.apps.format._
 import skuber.apps._
+import skuber.model.{Pod, Service}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf

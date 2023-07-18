@@ -5,8 +5,9 @@ import akka.stream.scaladsl._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json._
-import skuber.ResourceSpecification.{ScaleSubresource, Schema, StatusSubresource, Subresources}
-import skuber.apiextensions.v1beta1.CustomResourceDefinition
+import skuber.model.ResourceSpecification.{ScaleSubresource, Schema, StatusSubresource, Subresources}
+import skuber.model.ResourceDefinition
+import skuber.model.apiextensions.v1beta1.CustomResourceDefinition
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

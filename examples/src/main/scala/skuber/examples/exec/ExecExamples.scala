@@ -8,6 +8,8 @@ import skuber._
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration.Duration.Inf
 import skuber.json.format._
+import skuber.model.Pod
+
 import scala.concurrent.Future
 
 object ExecExamples extends App {

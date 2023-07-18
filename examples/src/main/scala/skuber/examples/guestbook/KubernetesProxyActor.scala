@@ -2,13 +2,13 @@ package skuber.examples.guestbook
 
 import skuber._
 import skuber.json.format._
-
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.actor.Props
 import akka.event.LoggingReceive
 import akka.pattern.pipe
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Source,Sink}
+import akka.stream.scaladsl.{Sink, Source}
+import skuber.model.{ReplicationController, Service}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

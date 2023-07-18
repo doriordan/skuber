@@ -3,7 +3,8 @@ package skuber
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.LabelSelector.IsEqualRequirement
-import skuber.apps.v1.Deployment
+import skuber.model.Pod
+import skuber.model.apps.v1.Deployment
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

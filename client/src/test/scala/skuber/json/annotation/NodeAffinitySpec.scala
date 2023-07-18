@@ -2,9 +2,10 @@ package skuber.json.annotation
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
+import skuber.model.annotation.NodeAffinity.{MatchExpressions, NodeSelectorTerms}
 import skuber.annotation._
 import skuber.json.annotation.format._
+import skuber.model.annotation.{MatchExpression, NodeAffinity, NodeSelectorTerm, PreferredDuringSchedulingIgnoredDuringExecution, RequiredDuringSchedulingIgnoredDuringExecution}
 
 /**
   * Created by Cory Klein on 2/22/17.

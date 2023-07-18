@@ -2,11 +2,12 @@ package skuber
 
 import akka.stream._
 import akka.stream.scaladsl._
-import skuber.apiextensions.v1.CustomResourceDefinition
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
-import skuber.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
+import skuber.model.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
+import skuber.model.apiextensions.v1.CustomResourceDefinition
+import skuber.model.{ResourceDefinition, ResourceSpecification}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

@@ -1,6 +1,7 @@
 package skuber.examples.guestbook
 
 import skuber._
+import skuber.model.{Pod, ReplicationController, Service}
 
 package object model {
 

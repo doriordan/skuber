@@ -1,10 +1,8 @@
 package skuber.examples.guestbook
 
-import skuber.ReplicationController
-
 import akka.actor.{Actor, ActorRef, ActorLogging}
 import akka.actor.Props
-import akka.event.{LoggingReceive}
+import akka.event.LoggingReceive
 import akka.util.Timeout
 import akka.pattern.ask
 import akka.actor.Status.Failure
@@ -13,6 +11,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 
 import akka.actor.Status.Failure
+import skuber.model.ReplicationController
 
 /**
  * The scaler actor is responsible for scaling a replica count up/down for a Guestbook service

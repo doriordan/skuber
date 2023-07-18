@@ -2,11 +2,10 @@ package skuber.json.rbac
 
 import skuber._
 import skuber.rbac._
-
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-
-import skuber.json.format._ // reuse some core formatters
+import skuber.json.format._
+import skuber.model.rbac.{ClusterRole, ClusterRoleBinding, PolicyRule, Role, RoleBinding, RoleRef, Subject} // reuse some core formatters
 
 /**
   * Created by jordan on 1/13/17.

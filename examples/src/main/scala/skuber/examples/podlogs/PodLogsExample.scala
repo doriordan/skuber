@@ -7,6 +7,7 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import skuber.api.client
+import skuber.model.Pod
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

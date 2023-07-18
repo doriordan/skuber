@@ -4,6 +4,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import skuber.json.format._
+import skuber.model.Pod
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -96,6 +97,6 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
     val nginxContainer = getNginxContainer(name, version)
     val nginxPodSpec = Pod.Spec(containers = List((nginxContainer)))
     val podMeta=ObjectMeta(name = name, labels = labels ++ defaultLabels)
-    Pod(metadata = podMeta, spec = Some(nginxPodSpec))
+    model.Pod(metadata = podMeta, spec = Some(nginxPodSpec))
   }
 }

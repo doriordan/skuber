@@ -4,6 +4,7 @@ import org.specs2.mutable.Specification
 import play.api.libs.json.Json
 import skuber.LabelSelector.dsl._
 import skuber._
+import skuber.model.Pod
 
 /**
  * @author David O'Riordan

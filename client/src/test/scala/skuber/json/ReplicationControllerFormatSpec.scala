@@ -1,19 +1,17 @@
 package skuber.json
 
-import org.specs2.mutable.Specification // for unit-style testing
+import org.specs2.mutable.Specification
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
 import org.specs2.execute.Success
 
 import scala.math.BigInt
-
 import java.util.Calendar
 import java.net.URL
-
 import skuber._
 import format._
-
 import play.api.libs.json._
+import skuber.model.{Pod, ReplicationController}
 
 
 
@@ -23,7 +21,7 @@ import play.api.libs.json._
 class ReplicationControllerFormatSpec extends Specification {
   "This is a unit specification for the skuber Service related json formatter.\n ".txt
   
-import ReplicationController._
+import skuber.model.ReplicationController._
   
   // RC reader and writer
   "A Replication Controller can be symmetrically written to json and the same value read back in\n" >> {
