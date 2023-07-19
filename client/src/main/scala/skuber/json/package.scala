@@ -1028,8 +1028,6 @@ package object format {
     (JsPath \ "status").formatNullable[PersistentVolume.Status]
   )(PersistentVolume.apply _, unlift(PersistentVolume.unapply))
 
-  import skuber.json.annotation.format.matchExpressionFormat
-  implicit val selectorFmt: Format[Selector] = Json.format[Selector]
 
   implicit val pvClaimSpecFmt: Format[PersistentVolumeClaim.Spec] = (
     (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
@@ -1037,7 +1035,7 @@ package object format {
       ((JsPath \ "volumeName").formatNullable[String]) and
       (JsPath \ "storageClassName").formatNullable[String] and
       (JsPath \ "volumeMode").formatNullableEnum(PersistentVolumeClaim.VolumeMode) and
-      (JsPath \ "selector").formatNullable[Selector]
+      (JsPath \ "selector").formatNullableLabelSelector
     )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
 
   implicit val pvClaimStatusFmt: Format[PersistentVolumeClaim.Status] = (

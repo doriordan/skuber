@@ -49,7 +49,7 @@ object NetworkPolicy {
   /*
    * selects all pods and applies an ingress policy with no ingress rules, which denies any ingress to any pod
    */
-  def denyAllIngress(name: String, namespace: skuber.Namespace = skuber.Namespace.default) =
+  def denyAllIngress(name: String, namespace: Namespace = Namespace.default) =
     NetworkPolicy
       .named(name)
       .inNamespace(namespace.name)
@@ -59,7 +59,7 @@ object NetworkPolicy {
   /*
    * create an ingress network policy for all pods, with  an "empty" ingress rule which effectively whitelists all ingresses
    */
-  def allowAllIngress(name: String, namespace: skuber.Namespace = skuber.Namespace.default) =
+  def allowAllIngress(name: String, namespace: Namespace = Namespace.default) =
     NetworkPolicy
       .named(name)
       .inNamespace(namespace.name)
@@ -70,7 +70,7 @@ object NetworkPolicy {
   /*
    * selects all pods and applies an egress policy with no whitelisted egresses, which denies egress from any pod
    */
-  def denyAllEgress(name: String, namespace: skuber.Namespace = skuber.Namespace.default) =
+  def denyAllEgress(name: String, namespace: Namespace = Namespace.default) =
     NetworkPolicy
       .named(name)
       .inNamespace(namespace.name)
@@ -80,7 +80,7 @@ object NetworkPolicy {
   /*
    * creates an egress policy for all pods, with  an "empty" ingress rule which effectively whitelists all ingresses
    */
-  def allowAllEgress(name: String, namespace: skuber.Namespace = skuber.Namespace.default) =
+  def allowAllEgress(name: String, namespace: Namespace = Namespace.default) =
     NetworkPolicy
       .named(name)
       .inNamespace(namespace.name)
@@ -91,7 +91,7 @@ object NetworkPolicy {
   /*
    * create a policy that denies all ingress and egress for all pods
    */
-  def denyAllIngressAndEgress(name: String, namespace: skuber.Namespace = skuber.Namespace.default) =
+  def denyAllIngressAndEgress(name: String, namespace: Namespace = Namespace.default) =
     NetworkPolicy
      .named(name)
      .inNamespace(namespace.name)

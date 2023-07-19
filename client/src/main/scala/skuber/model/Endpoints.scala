@@ -14,12 +14,10 @@ case class Endpoints(
 
     def withEndpoint(ip: String, port: Int, protocol: Protocol.Value = Protocol.TCP) =
           this.copy(subsets=Endpoints.Subset(
-                                    Endpoints.Address(ip)::Nil,
+            Endpoints.Address(ip)::Nil,
             None,
-                                    Endpoints.Port(port,protocol)::Nil
-                                  )
-                                  ::Nil
-                   )
+            Endpoints.Port(port,protocol)::Nil
+         )::Nil)
                    
     def addEndpoints(subset: Endpoints.Subset) = this.copy(subsets = subset::subsets)
 }

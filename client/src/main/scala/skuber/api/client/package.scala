@@ -14,7 +14,7 @@ import play.api.libs.json._
 
 import scala.sys.SystemProperties
 import scala.util.Try
-import skuber.ObjectResource
+import skuber.model.ObjectResource
 import skuber.api.client.impl.KubernetesClientImpl
 
 /**

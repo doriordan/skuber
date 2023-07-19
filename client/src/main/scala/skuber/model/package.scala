@@ -273,4 +273,14 @@ package object model {
   // implicit value of HasStatusSubresource type to enable the client `status` API methods to be used on
   // such resources
   trait HasStatusSubresource[O <: ObjectResource]
+  case class MatchExpression(key: String, operator: Operator.Value, values: List[String])
+
+  type MatchExpressions = List[MatchExpression]
+
+  def MatchExpressions(xs: MatchExpression*) = List(xs: _*)
+
+  object Operator extends Enumeration {
+    type Operator = Value
+    val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
+  }
 }

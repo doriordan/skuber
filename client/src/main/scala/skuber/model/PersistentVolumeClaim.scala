@@ -48,7 +48,7 @@ object PersistentVolumeClaim {
     volumeName: Option[String] = None,
     storageClassName: Option[String] = None,
     volumeMode: Option[VolumeMode.VolumeMode] = None,
-    selector: Option[Selector] = None
+    selector: Option[LabelSelector] = None
   )
 
   import PersistentVolume.Phase

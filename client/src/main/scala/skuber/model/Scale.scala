@@ -3,6 +3,8 @@ package skuber.model
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json}
 
+import skuber.json.format._
+
 /**
  * @author David O'Riordan
  *  Scale subresource

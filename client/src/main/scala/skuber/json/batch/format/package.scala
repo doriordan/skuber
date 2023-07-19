@@ -1,15 +1,14 @@
 package skuber.json.batch
 
 import play.api.libs.json.{Format, JsPath, Json}
-import skuber.batch.{CronJobList, JobList}
 import skuber.model.Pod
-import skuber.model.batch.{CronJob, Job, JobTemplate}
+import skuber.model.batch.{CronJob, CronJobList, Job, JobList, JobTemplate}
 
 /**
   * Created by Cory Klein on 9/30/16.
   */
 import play.api.libs.functional.syntax._
-import skuber._
+import skuber.model.{Timestamp, ObjectMeta, ObjectReference}
 import skuber.json.format._ // reuse some core formatters
 
 package object format {

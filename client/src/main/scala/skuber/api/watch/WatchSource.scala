@@ -9,7 +9,7 @@ import play.api.libs.json.Format
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.model.ResourceDefinition
-import skuber.{ObjectResource, ListOptions}
+import skuber.model.{ObjectResource, ListOptions}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._

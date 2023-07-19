@@ -6,7 +6,7 @@ import play.api.libs.json.{Format, JsObject}
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.model.ResourceDefinition
-import skuber.{ListOptions, ObjectResource}
+import skuber.model.{ListOptions, ObjectResource}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps

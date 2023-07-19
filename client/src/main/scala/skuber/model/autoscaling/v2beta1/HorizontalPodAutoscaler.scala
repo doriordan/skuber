@@ -2,10 +2,8 @@ package skuber.model.autoscaling.v2beta1
 
 import play.api.libs.json._
 import skuber.model.ResourceSpecification.{Names, Scope}
-import skuber.apps.v1.{DeploymentList}
-import skuber.model.apps.v1.Deployment
 import skuber.model.{NonCoreResourceSpecification, Resource, ResourceDefinition}
-import skuber.{LabelSelector, LimitRange, ObjectMeta, ObjectResource, Timestamp}
+import skuber.model.{LabelSelector, LimitRange, ObjectMeta, ObjectResource, Timestamp}
 
 case class HorizontalPodAutoscaler(override val kind: String = "HorizontalPodAutoscaler",
                                    override val apiVersion: String = autoscalingAPIVersion,

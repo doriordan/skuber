@@ -11,7 +11,7 @@ import play.api.libs.functional.syntax._
 import skuber.model.networking.Ingress.Backend
 import skuber.json.format._
 import skuber.model.networking.Ingress
-import skuber.networking._
+import skuber.model.networking._
 
 package object format {
 

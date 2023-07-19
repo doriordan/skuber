@@ -1,7 +1,5 @@
 package skuber.model
 
-import skuber.model.Pod
-
 /**
  * @author David O'Riordan
  */
@@ -15,7 +13,7 @@ case class Namespace(
 {
     def meta(name: String): ObjectMeta = ObjectMeta(name=name, namespace=this.name)
     def pod(name: String) = Pod(metadata=meta(name))
-    def pod(name: String, spec: Pod.Spec) = model.Pod(metadata=meta(name), spec=Some(spec))
+    def pod(name: String, spec: Pod.Spec) = Pod(metadata=meta(name), spec=Some(spec))
     def node(name: String) = Node(metadata=meta(name))
     def node(name: String, spec: Node.Spec) = Node(metadata=meta(name), spec=Some(spec))
     def replicationController(name: String) = ReplicationController(metadata=meta(name))

@@ -4,7 +4,7 @@ import akka.NotUsed
 import akka.stream.scaladsl.{JsonFraming, Sink, Source}
 import akka.util.ByteString
 import play.api.libs.json.{Format, JsError, JsObject, JsString, JsSuccess, JsValue, Json}
-import skuber.ObjectResource
+import skuber.model.ObjectResource
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.client.{K8SException, LoggingContext, Status, WatchEvent}
 

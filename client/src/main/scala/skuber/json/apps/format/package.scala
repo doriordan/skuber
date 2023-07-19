@@ -3,10 +3,9 @@ package skuber.json.apps
 import skuber._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import skuber.apps._
+import skuber.model.apps._
 import skuber.json.format._
 import skuber.model.Pod
-import skuber.model.apps.Deployment // reuse some core formatters
 
 /**
   * @author Hollin Wilkins

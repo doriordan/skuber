@@ -430,7 +430,7 @@ class KubernetesClientImpl private[client] (
     makeRequestReturningListResource[L](req)
   }
 
-  override def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
+  def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
     implicit lc: LoggingContext): Future[Source[ByteString, _]] =
   {
     val targetNamespace=namespace.getOrElse(this.namespaceName)
@@ -459,7 +459,7 @@ class KubernetesClientImpl private[client] (
   // The methods return Akka streams sources that will reactively emit a stream of updated
   // values of the watched resources.
 
-  override def watch[O <: ObjectResource](obj: O)(
+  def watch[O <: ObjectResource](obj: O)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     watch(obj.name)
@@ -469,40 +469,40 @@ class KubernetesClientImpl private[client] (
   // The methods return Akka streams sources that will reactively emit a stream of updated
   // values of the watched resources.
 
-  override def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     Watch.events(this, name, sinceResourceVersion, bufSize, None)
   }
 
   // watch events on all objects of specified kind in current namespace
-  override def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
     Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, None)
   }
 
-  override def watchContinuously[O <: ObjectResource](obj: O)(
+  def watchContinuously[O <: ObjectResource](obj: O)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     watchContinuously(obj.name)
   }
 
-  override def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
+  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
     WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, errorHandler)
   }
 
-  override def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
+  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds))
     WatchSource(this, buildLongPollingPool(), None, options, bufSize, errorHandler)
   }
 
-  override def watchWithOptions[O <: skuber.ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
+  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
   {
     WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler)
@@ -533,7 +533,7 @@ class KubernetesClientImpl private[client] (
   override def scale[O <: ObjectResource](objName: String, count: Int)(
     implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] =
   {
-    val scale = model.Scale(
+    val scale = Scale(
       apiVersion = sc.apiVersion,
       metadata = ObjectMeta(name = objName, namespace = namespaceName),
       spec = Scale.Spec(replicas = Some(count))
@@ -610,7 +610,7 @@ class KubernetesClientImpl private[client] (
   /*
    * Execute a command in a pod
    */
-  override def exec(
+  def exec(
     podName: String,
     command: Seq[String],
     maybeContainerName: Option[String] = None,

@@ -1,4 +1,4 @@
-package skuber
+package skuber.model
 
 /**
   * @author David O'Riordan
