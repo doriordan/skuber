@@ -2,12 +2,12 @@ package skuber.api
 
 import java.nio.file.Paths
 import java.time.Instant
-
 import scala.util.Try
 import org.specs2.mutable.Specification
 import akka.actor.ActorSystem
 import skuber._
 import skuber.api.client._
+import skuber.model.{K8SCluster, K8SConfiguration, K8SContext, Namespace}
 
 /**
  * @author David O'Riordan
@@ -97,7 +97,7 @@ users:
       name: gcp
 """
 
-  implicit val system=ActorSystem("test")
+  // implicit val system=ActorSystem("test")
   implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
 
   "An example kubeconfig file can be parsed correctly" >> {
@@ -160,8 +160,8 @@ users:
     client-key-data: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZzJ2Z1NUYzl4NXFCWVp4d00KK044MHNtdklQOGpWdUYzOWdPRzl6NU41N1I2aFJBTkNBQVRzUDlVWTk2Sk1WNzBLUVh1V1lsTFhHQmFQcDBZWApzVUQ0MkFCTnZSMVkrM0tZTzJMalh0MXV2WGtUVloxVFd2VFNSZm1xZG5JcjJ3ajBGcXQzVkg1cgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
 """
     val is = new java.io.ByteArrayInputStream(ecConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
-    val k8sConfig = K8SConfiguration.parseKubeconfigStream(is).get
-    Try(k8sInit(k8sConfig)) must beSuccessfulTry
+    val k8sConfigTry = K8SConfiguration.parseKubeconfigStream(is)
+    k8sConfigTry must beSuccessfulTry
   }
 
   "Parse RSA private keys from kubeconfig file" >> {
@@ -189,8 +189,8 @@ users:
     client-key-data: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlDWEFJQkFBS0JnUURSUkJiU1RyaWlqZlZaRVB0c2xoYzhEZ0FUb0lVTjhvaHl3RVNUL0thbDdRZ3JrMWphCmNjRzBiUFRmVDY4VXA5QVoxYk1zcE1Za09qTDZjeXZaQXNwUURmMStqcU5ZMk1mL2oxN2M3dU5OYkxxWng3Q0sKL1NsREFNUmt4amZnbThza1A3NlMvVENiZzFsQ2tEQm1pbk9nRWpUYndORkJERndqeU9QdExMWDBBUUlEQVFBQgpBb0dBU1daVGh1S2J1bENHalAzNjRpUm04K2FKT2xra01qY3VpdWxMWklqS3Z3bzd3bVVGVm1GdUt1WElvZ2NtCkJ0MnhqVTQ2Y1Y4K0xIakpaclU4M1Bvd2tXOHQycVE5aFdhZkdlbVY0bWhuYjFEYWNnRlNPMjZscytFT0NzODQKTDJONHR6UnpmTVFYZHd1cG56U1RCNjRsV1hDbjN3WS9kVm0yQUg5QlN2NVY2cDBDUVFEYmZMSlh1ZWlNRU1XOAptcE5zMVJBejE2MmhmWUxHVU5idFhCSk5xcm8xUTRtUS81enlCbWovUGFnSTROWWh3amxmSWZBbUVQcW5uanVHCmlqM0lKV29MQWtFQTlCUWE4R0dURnRkK2djczVzNmtOejFpbWdMR2FrRGRWcStHZitzaktvejc1WFg3c0tLeXkKTE1uVzE4ZzlKaGhSL3d1UzJzVlFNU1EwK2l6dld1NnRvd0pCQUo0M1V5L2R1WDVPRU53VjZUUEltcmRrUDZ0cgptRHR3eHAydmd4b3RlYkV2a0JqUHljakZTaWJEd1Q4MUkrYU41V0ZvUzM2Rk9zcGRTN2QrSzI3OVdXVUNRR2RpCjNNWlZqbWh1ZnplYlRhVzhSZzArRDhrVGNkVUVtMVZqRE5DOW5KZnBaTmNsbkFMZW85bzA1THdpSlVTdHFJM1AKNlRTaHY0WVJRQjk0U1NyTFR1RUNRQXRKOVYvVUg3WTl4cTlkd3JzVkZTM2FFTlFDTitsQThWQjBjcWZOSDlpUgpORFlZRTdGblJQV244VmlNdndsT3NzNmVUTjhIWGRrbXo2Yy8vV0NycENNPQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 """
     val is = new java.io.ByteArrayInputStream(ecConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
-    val k8sConfig = K8SConfiguration.parseKubeconfigStream(is).get
-    Try(k8sInit(k8sConfig)) must beSuccessfulTry
+    val k8sConfigTry = K8SConfiguration.parseKubeconfigStream(is)
+    k8sConfigTry must beSuccessfulTry
   }
 
   "Parse PKCS#8 private keys from kubeconfig file" >> {
@@ -218,8 +218,8 @@ users:
     client-key-data: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ2s1UFVqN08waGJ5VWNscFIKMTArQWNod3d4ZjZabWZmZnEyYjNBUVJjWE5LaFJBTkNBQVFMNU4zYSt1eVZIcThrZ0wwMGZjeVhwTllhc2hUMAowZVd6WGFNbmFhWWszcklMSnkzVG5LaU9Gelh0RnhsT3hUcFFEdXVmSTVsMEdHbkFsNE9KTXNqMAotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
 """
     val is = new java.io.ByteArrayInputStream(pkcs8str.getBytes(java.nio.charset.Charset.forName("UTF-8")))
-    val k8sConfig = K8SConfiguration.parseKubeconfigStream(is).get
-    Try(k8sInit(k8sConfig)) must beSuccessfulTry
+    val k8sConfigTry = K8SConfiguration.parseKubeconfigStream(is)
+    k8sConfigTry must beSuccessfulTry
   }
 
   "If kubeconfig is not found at expected path then a Failure is returned" >> {

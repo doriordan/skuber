@@ -1,14 +1,8 @@
 package skuber.json
 
 import org.specs2.mutable.Specification
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
-import org.specs2.execute.Success
 
-import scala.math.BigInt
-import java.util.Calendar
-import java.net.URL
-import skuber._
+import skuber.model._
 import format._
 import play.api.libs.json._
 import skuber.model.{Pod, ReplicationController}

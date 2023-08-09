@@ -5,9 +5,7 @@ import akka.stream.scaladsl.{Keep, Sink}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Seconds, Span}
-import skuber.apps.v1.{DeploymentList}
 import skuber.model.Pod
-import skuber.model.apps.v1.Deployment
 
 import scala.concurrent.duration._
 import scala.concurrent.Await

@@ -3,13 +3,8 @@ package skuber.json
 import org.specs2.mutable.Specification // for unit-style testing
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
-import org.specs2.execute.Success
 
-import scala.math.BigInt
-
-import java.util.Calendar
-
-import skuber._
+import skuber.model._
 import format._
 
 import play.api.libs.json._
@@ -89,7 +84,7 @@ class NamespaceFormatSpec extends Specification {
             ns.apiVersion mustEqual "v1"
             ns.kind mustEqual "Namespace"
             ns.metadata.uid mustEqual "2a08e586-2d2d-11e5-99f8-0800279dd272"
-            ns.status mustEqual Some(skuber.Namespace.Status("Active"))
+            ns.status mustEqual Some(Namespace.Status("Active"))
             val date = ns.metadata.creationTimestamp.get
             date.getYear mustEqual 2015
             date.getMonth mustEqual java.time.Month.JULY
@@ -106,7 +101,7 @@ class NamespaceFormatSpec extends Specification {
             annots("abc") mustEqual "def"
             val res2 = Json.fromJson[Namespace](Json.toJson(ns))
             res2 match {
-              case JsSuccess(ns2, path) => ns2.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
+              case JsSuccess(ns2, _) => ns2.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
               case JsError(e) => Failure(e.toString)
             }
           case JsError(e) => Failure(e.toString)

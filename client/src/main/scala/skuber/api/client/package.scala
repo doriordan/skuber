@@ -217,5 +217,5 @@ package object client {
 
   def defaultK8sConfig: Configuration = Configuration.defaultK8sConfig
 
-  private def defaultAppConfig: Config = ConfigFactory.load()
+  def defaultAppConfig: Config = ConfigFactory.load()
 }

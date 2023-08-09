@@ -1,9 +1,6 @@
-package skuber
+package skuber.model
 
 import org.specs2.mutable.Specification
-import skuber.model.Resource
-
-import scala.math.BigInt
 
 
 /**

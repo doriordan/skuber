@@ -1,8 +1,9 @@
-package skuber
+package skuber.model
 
-import org.specs2.mutable.Specification // for unit-style testing
-
+import org.specs2.mutable.Specification
 import LabelSelector.dsl._
+
+import scala.language.postfixOps
 
 /**
   * @author David O'Riordan

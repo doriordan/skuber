@@ -2,9 +2,6 @@ package skuber
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
-import skuber.model.autoscaling.v2beta1.HorizontalPodAutoscaler.ResourceMetricSource
-import skuber.model.apps.v1.Deployment
-import skuber.model.autoscaling.v2beta1.HorizontalPodAutoscaler
 import skuber.model.{Pod, Resource}
 
 class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with Matchers {

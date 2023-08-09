@@ -1,9 +1,8 @@
 package skuber.json.apps
 
-import skuber._
+import skuber.model.apps._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import skuber.model.apps._
 import skuber.json.format._
 import skuber.model.Pod
 

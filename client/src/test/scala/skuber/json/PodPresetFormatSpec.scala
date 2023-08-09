@@ -1,12 +1,8 @@
 package skuber.json
 
-import java.net.URL
-
-import org.specs2.execute.{Failure, Result}
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber._
-import skuber.settings.PodPreset
+import skuber.model.settings.PodPreset
 
 import scala.io.Source
 

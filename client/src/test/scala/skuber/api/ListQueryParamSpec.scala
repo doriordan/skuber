@@ -9,6 +9,7 @@ import skuber._
   * - skuber 2.0 has migrated away from Play WS client
 */
 
+import skuber.model.LabelSelector
 import LabelSelector.dsl._
 
 /**

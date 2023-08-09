@@ -93,7 +93,7 @@ object CustomResourceDefinition {
     } catch {
       case _: ClassCastException =>
         val msg = "Requires an implicit resource definition that has a NonCoreResourceSpecification"
-        throw new skuber.K8SException(skuber.api.client.Status(message = Some(msg)))
+        throw new skuber.model.K8SException(skuber.api.client.Status(message = Some(msg)))
     }
     val name=s"${crdSpec.names.plural}.${crdSpec.group.get}"
     new CustomResourceDefinition(metadata=ObjectMeta(name=name), spec=crdSpec)

@@ -1,17 +1,16 @@
-package skuber.apps
+package skuber.model.apps.v1
 
 import org.specs2.mutable.Specification
 import play.api.libs.json.Json
-import skuber.LabelSelector.dsl._
-import skuber._
-import skuber.json.apps.format._
+import skuber.model.LabelSelector.dsl._
+import skuber.model._
 import skuber.model.Pod
 
 /**
  * @author David O'Riordan
  */
 class DeploymentSpec extends Specification {
-  "This is a unit specification for the skuber Deployment class. ".txt
+  "This is a unit specification for the skuber apps/v1 Deployment class. ".txt
   
   "A Deployment object can be constructed from a name and pod template spec" >> {
     val container=Container(name="example",image="example")
@@ -19,7 +18,7 @@ class DeploymentSpec extends Specification {
     val deployment=Deployment("example")
       .withReplicas(200)
       .withTemplate(template)
-    deployment.spec.get.template mustEqual Some(template)
+    deployment.spec.get.template mustEqual template
     deployment.spec.get.replicas mustEqual Some(200)
     deployment.name mustEqual "example"
     deployment.status mustEqual None
@@ -48,7 +47,7 @@ class DeploymentSpec extends Specification {
   "A Deployment object can be read directly from a JSON string" >> {
     val deplJsonStr = """
 {
-  "apiVersion": "apps/v1beta1",
+  "apiVersion": "apps/v1",
   "kind": "Deployment",
   "metadata": {
     "name": "nginx-deployment"
@@ -97,10 +96,10 @@ class DeploymentSpec extends Specification {
     depl.kind mustEqual "Deployment"
     depl.name mustEqual "nginx-deployment"
     depl.spec.get.replicas mustEqual Some(3)
-    depl.spec.get.template.get.metadata.labels mustEqual Map("app" -> "nginx")
-    depl.spec.get.template.get.spec.get.containers.length mustEqual 1
-    depl.spec.get.selector.get.requirements.size mustEqual 4
-    depl.spec.get.selector.get.requirements.find(r => (r.key == "env")) mustEqual Some("env" isNotIn List("dev"))
-    depl.spec.get.selector.get.requirements.find(r => (r.key == "domain")) mustEqual Some("domain" is "www.example.com")
+    depl.spec.get.template.metadata.labels mustEqual Map("app" -> "nginx")
+    depl.spec.get.template.spec.get.containers.length mustEqual 1
+    depl.spec.get.selector.requirements.size mustEqual 4
+    depl.spec.get.selector.requirements.find(r => (r.key == "env")) mustEqual Some("env" isNotIn List("dev"))
+    depl.spec.get.selector.requirements.find(r => (r.key == "domain")) mustEqual Some("domain" is "www.example.com")
   }
 }

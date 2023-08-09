@@ -15,13 +15,6 @@ package object skuber {
 
   import skuber.api.client.KubernetesClient
 
-  val K8SCluster = skuber.api.client.Cluster
-  val K8SContext = skuber.api.client.Context
-  type K8SRequestContext = KubernetesClient
-  type K8SException = skuber.api.client.K8SException
-  val K8SConfiguration = skuber.api.Configuration
-  type K8SWatchEvent[I <: skuber.model.ObjectResource] = skuber.api.client.WatchEvent[I]
-
   // Initialisation of the Skuber Kubernetes client
 
   import akka.actor.ActorSystem

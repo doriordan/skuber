@@ -1,15 +1,8 @@
 package skuber.json
 
 import org.specs2.mutable.Specification // for unit-style testing
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
-import org.specs2.execute.Success
 
-import scala.math.BigInt
-
-import java.util.Calendar
-
-import skuber.EnvVar
+import skuber.model.EnvVar
 import format._
 
 import play.api.libs.json._

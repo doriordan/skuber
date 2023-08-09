@@ -1,7 +1,7 @@
-package skuber.api.client.impl
+package skuber.akkaclient.impl
 
 import akka.actor.ActorSystem
-import akka.event.{Logging, LoggingAdapter}
+import akka.event.Logging
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
@@ -10,31 +10,28 @@ import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
-
-import javax.net.ssl.SSLContext
 import play.api.libs.json.{Format, Reads, Writes}
-import skuber.model._
-import skuber.api.client.exec.PodExecImpl
+import skuber.akkaclient.AkkaKubernetesClient
+import skuber.akkaclient.watch.{LongPollingPool, Watch, WatchSource}
+import skuber.akkaclient.exec.PodExecImpl
 import skuber.api.client._
+import skuber.api.patch._
 import skuber.api.security.{HTTPRequestAuth, TLS}
-import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
-import skuber.api.patch._
-import skuber.model.{Pod, ResourceDefinition, ResourceSpecification, Scale}
+import skuber.model.{K8SException, _}
 
+import javax.net.ssl.SSLContext
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
 
-
 /**
   * @author David O'Riordan
-  * This class implements the KubernetesClient API. It uses the Akka HTTP client to handle the requests to
-  * the Kubernetes API server.
+  * This class implements the KubernetesClient API using Akka as the underlying HTTP client to interact with the Kubernetes API server.
   */
-class KubernetesClientImpl private[client] (
+class AkkaKubernetesClientImpl private[akkaclient] (
   val requestMaker: (Uri, HttpMethod)  => HttpRequest, // builds the requests to send
   override val clusterServer: String, // the url of the target cluster Kubernetes API server
   val requestAuth: AuthInfo, // specifies the authentication (if any) to be added to requests
@@ -47,9 +44,9 @@ class KubernetesClientImpl private[client] (
   val sslContext: Option[SSLContext], // provides the Akka client with the SSL details needed for https connections to the API server
   override val logConfig: LoggingConfig,
   val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val executionContext: ExecutionContext)
-    extends KubernetesClient
+    extends AkkaKubernetesClient
 {
-  val log: LoggingAdapter = Logging.getLogger(actorSystem, "skuber.api")
+  val log = Logging.getLogger(actorSystem, "skuber.api")
 
   val connectionContext = sslContext
       .map { ssl =>
@@ -375,7 +372,7 @@ class KubernetesClientImpl private[client] (
     _get[O](name, namespace)
   }
 
-  private[api] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
+  private[akkaclient] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
     val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
@@ -529,17 +526,6 @@ class KubernetesClientImpl private[client] (
     makeRequestReturningObjectResource[Scale](req)
   }
 
-  @deprecated("use getScale followed by updateScale instead")
-  override def scale[O <: ObjectResource](objName: String, count: Int)(
-    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] =
-  {
-    val scale = Scale(
-      apiVersion = sc.apiVersion,
-      metadata = ObjectMeta(name = objName, namespace = namespaceName),
-      spec = Scale.Spec(replicas = Some(count))
-    )
-    updateScale[O](objName, scale)
-  }
 
   override def updateScale[O <: ObjectResource](objName: String, scale: Scale)(
     implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext): Future[Scale] =
@@ -635,8 +621,8 @@ class KubernetesClientImpl private[client] (
    * Lightweight switching of namespace for applications that need to access multiple namespaces on same cluster
    * and using same credentials and other configuration.
    */
-  override def usingNamespace(newNamespace: String): KubernetesClientImpl =
-    new KubernetesClientImpl(requestMaker, clusterServer, requestAuth,
+  override def usingNamespace(newNamespace: String): AkkaKubernetesClient =
+    new AkkaKubernetesClientImpl(requestMaker, clusterServer, requestAuth,
       newNamespace, watchContinuouslyRequestTimeout,  watchContinuouslyIdleTimeout,
       watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook
     )
@@ -698,10 +684,10 @@ class KubernetesClientImpl private[client] (
   }
 }
 
-object KubernetesClientImpl {
+object AkkaKubernetesClientImpl {
 
   def apply(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
-   (implicit actorSystem: ActorSystem): KubernetesClientImpl =
+   (implicit actorSystem: ActorSystem): AkkaKubernetesClientImpl =
   {
     appConfig.checkValid(ConfigFactory.defaultReference(), "skuber")
 
@@ -758,7 +744,7 @@ object KubernetesClientImpl {
     val podLogConnectionSettings = defaultClientSettings.connectionSettings.withIdleTimeout(podLogIdleTimeout)
     val podLogSettings = defaultClientSettings.withConnectionSettings(podLogConnectionSettings)
 
-    new KubernetesClientImpl(
+    new AkkaKubernetesClientImpl(
       requestMaker, k8sContext.cluster.server, k8sContext.authInfo,
       theNamespaceName, watchContinuouslyRequestTimeout, watchContinuouslyIdleTimeout,
       watchPoolIdleTimeout, watchSettings, podLogSettings, sslContext, logConfig, closeHook

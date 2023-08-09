@@ -68,6 +68,8 @@ lazy val skuberSettings = Seq(
   ).map(_.exclude("commons-logging", "commons-logging"))
 )
 
+lazy val akkaDependencies = Seq(akkaActors, akkaHttp, akkaStream, akkaSlf4j, logback)
+
 lazy val examplesSettings = Seq(
   name := "skuber-examples",
   libraryDependencies ++= Seq(akkaActors, akkaSlf4j, logback)
@@ -82,9 +84,9 @@ publishArtifact in root := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)
-  .aggregate(skuber, examples, akkaBackend)
+  .aggregate(skuber, examples, akka)
 
-lazy val skuber= (project in file("client"))
+lazy val skuber = (project in file("client"))
   .configs(IntegrationTest)
   .settings(
     commonSettings,
@@ -93,15 +95,18 @@ lazy val skuber= (project in file("client"))
     libraryDependencies += scalaTest % "it"
   )
 
-lazy val akkaBackend= (project in file("akka"))
-    .settings(
-      commonSettings,
-      skuberSettings)
-    .dependsOn(skuber)
+lazy val akka = (project in file("akka"))
+  .settings(
+    commonSettings,
+    skuberSettings,
+    libraryDependencies ++= akkaDependencies
+  )
+  .dependsOn(skuber)
 
 lazy val examples = (project in file("examples"))
   .settings(commonSettings: _*)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
   .dependsOn(skuber)
+  .dependsOn(akka)
 

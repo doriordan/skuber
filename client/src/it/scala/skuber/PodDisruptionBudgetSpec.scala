@@ -3,9 +3,6 @@ package skuber
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import skuber.model.Pod
-import skuber.model.apps.v1.Deployment
-import skuber.policy.v1beta1.PodDisruptionBudget
-import skuber.policy.v1beta1.PodDisruptionBudget._
 
 class PodDisruptionBudgetSpec extends K8SFixture with Eventually with Matchers {
   behavior of "PodDisruptionBudget"

@@ -283,4 +283,11 @@ package object model {
     type Operator = Value
     val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
   }
+
+  val K8SCluster = skuber.api.client.Cluster
+  val K8SContext = skuber.api.client.Context
+  type K8SException = skuber.api.client.K8SException
+  val K8SConfiguration = skuber.api.Configuration
+  type K8SWatchEvent[I <: skuber.model.ObjectResource] = skuber.api.client.WatchEvent[I]
+
 }

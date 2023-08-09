@@ -1,10 +1,8 @@
 package skuber.examples.deployment
 
-import skuber._
-import skuber.ext.Deployment
-import skuber.json.ext.format._
+import skuber.model._
 import akka.actor.ActorSystem
-import skuber.model.Pod
+import skuber.akkaclient.k8sInit
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._

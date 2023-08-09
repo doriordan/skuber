@@ -1,9 +1,7 @@
-package skuber.networking
+package skuber.model.networking
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber.LabelSelector.dsl._
-import skuber._
 import skuber.json.networking.format._
 
 /**

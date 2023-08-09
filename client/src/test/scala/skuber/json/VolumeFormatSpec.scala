@@ -3,12 +3,12 @@ package skuber.json
 import org.specs2.execute.{Failure, Result}
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber._
+
+import skuber.model._
+import PersistentVolumeClaim.VolumeMode
 import skuber.json.format._
 
 import scala.io.Source
-import skuber.PersistentVolumeClaim.VolumeMode
-import skuber.model.{Resource, Volume}
 
 /**
  * @author David O'Riordan

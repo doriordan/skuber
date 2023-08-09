@@ -1,14 +1,6 @@
-package skuber.ext
+package skuber.model.apps.v1
 
-import org.specs2.mutable.Specification // for unit-style testing
-
-import scala.math.BigInt
-
-import skuber._
-import skuber.LabelSelector.dsl._
-
-import skuber.json.ext.format._
-
+import org.specs2.mutable.Specification
 import play.api.libs.json._
 
 /**

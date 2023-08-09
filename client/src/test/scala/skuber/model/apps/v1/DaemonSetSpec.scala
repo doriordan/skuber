@@ -1,13 +1,11 @@
-package skuber.ext
+package skuber.model.apps.v1
 
 import org.specs2.mutable.Specification
-
-import scala.math.BigInt
-import skuber._
-import skuber.LabelSelector.dsl._
-import skuber.json.ext.format._
 import play.api.libs.json._
-import skuber.model.Pod
+import skuber.model.LabelSelector.dsl._
+import skuber.model._
+
+import scala.language.postfixOps
 
 /**
   * Created by jordan on 1/25/17.
@@ -20,8 +18,6 @@ class DaemonSetSpec extends Specification {
     val daemonset=DaemonSet("example")
         .withTemplate(template)
       .withLabelSelector(LabelSelector("live" doesNotExist, "microservice", "tier" is "cache", "env" isNotIn List("dev", "test")))
-
-    println(Json.toJson(daemonset))
 
     val readDaemon = Json.fromJson[DaemonSet](Json.toJson(daemonset)).get
     readDaemon mustEqual daemonset

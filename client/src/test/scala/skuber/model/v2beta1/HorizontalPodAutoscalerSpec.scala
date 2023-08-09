@@ -1,16 +1,16 @@
-package skuber.autoscaling.v2beta1
+package skuber.model.v2beta1
 
 import java.time.{ZoneId, ZonedDateTime}
-
 import org.specs2.mutable.Specification
 import play.api.libs.json.{JsSuccess, Json}
-import skuber.Timestamp
-import skuber.LabelSelector.dsl._
+import skuber.model.Timestamp
+import skuber.model.LabelSelector.dsl._
 import skuber.model.Resource
+import skuber.model.autoscaling.v2beta1.HorizontalPodAutoscaler
 
 class HorizontalPodAutoscalerSpec extends Specification {
 
-  import HorizontalPodAutoscaler._
+  import skuber.model.autoscaling.v2beta1.HorizontalPodAutoscaler._
 
   val lastScaleTime: Timestamp = ZonedDateTime.of(2018, 1, 1, 12, 30, 0, 0, ZoneId.of("Z"))
   val conditionTime: Timestamp = ZonedDateTime.of(2017, 1, 1, 12, 30, 0, 0, ZoneId.of("Z"))

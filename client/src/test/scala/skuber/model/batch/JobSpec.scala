@@ -1,11 +1,11 @@
-package skuber.batch
+package skuber.model.batch
 
 import java.time.ZonedDateTime.parse
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber.model.Pod.Template
-import skuber.{Container, RestartPolicy}
+import skuber.model.{Container, RestartPolicy}
 import skuber.json.batch.format._
 import skuber.model.Pod
 

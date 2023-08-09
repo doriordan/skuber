@@ -8,7 +8,7 @@ import org.specs2.execute.Success
 import scala.math.BigInt
 import java.util.Calendar
 import java.net.URL
-import skuber._
+import skuber.model._
 import format._
 import play.api.libs.json._
 import skuber.model.Service

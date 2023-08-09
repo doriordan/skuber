@@ -1,7 +1,9 @@
-package skuber.akka
+package skuber.akkaclient
 
-import skuber.api.client.KubernetesClient
+import skuber.api.client.{KubernetesClient, LoggingContext}
 import skuber.model.Pod
+import akka.stream.scaladsl._
+import akka.util.ByteString
 
 import scala.concurrent.{Future, Promise}
 
@@ -38,5 +40,4 @@ trait AkkaKubernetesClient extends KubernetesClient {
     maybeStderr: Option[Sink[String, _]] = None,
     tty: Boolean = false,
     maybeClose: Option[Promise[Unit]] = None)(implicit lc: LoggingContext): Future[Unit]
-
 }

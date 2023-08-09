@@ -3,8 +3,8 @@ package skuber.model.autoscaling
 import play.api.libs.json.{Format, Json}
 import skuber.json.format._
 import skuber.model.ResourceSpecification._
-import skuber.model.apps.v1.Deployment
 import skuber.model._
+import skuber.model.apps.v1.Deployment
 
 /**
  * @author David O'Riordan

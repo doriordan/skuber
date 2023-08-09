@@ -1,4 +1,4 @@
-package skuber
+package skuber.model
 
 import org.specs2.mutable.Specification
 import skuber.model.{Pod, ReplicationController}

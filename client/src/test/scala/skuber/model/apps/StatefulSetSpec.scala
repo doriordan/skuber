@@ -1,11 +1,13 @@
-package skuber.apps
+package skuber.model.apps
 
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber.LabelSelector.dsl._
-import skuber._
+import skuber.model.LabelSelector.dsl._
+import skuber.model._
 import skuber.json.apps.format._
 import skuber.model.{Pod, Resource}
+
+import scala.language.postfixOps
 
 /**
   * Created by hollinwilkins on 4/5/17.

@@ -4,9 +4,8 @@ import java.net.URL
 import org.specs2.execute.{Failure, Result}
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-import skuber.model.Volume.{ConfigMapProjection, KeyToPath, SecretProjection, ServiceAccountTokenProjection}
-import skuber._
-import skuber.apps.StatefulSet
+import skuber.model._
+import Volume.{ConfigMapProjection, KeyToPath, SecretProjection, ServiceAccountTokenProjection}
 import skuber.json.format._
 import skuber.model.{Pod, PodSecurityContext, Resource, Security, SecurityContext, Volume}
 
@@ -17,8 +16,7 @@ import scala.io.Source
  */
 class PodFormatSpec extends Specification {
   "This is a unit specification for the skuber Pod related json formatter.\n ".txt
-  
-import skuber.model.Pod._
+
   
   // Pod reader and writer
   "A Pod can be symmetrically written to json and the same value read back in\n" >> {
@@ -34,7 +32,7 @@ import skuber.model.Pod._
     } 
     "this can be done for a Pod with a simple, single container spec" >> {
       val myPod = Namespace("myNamespace").
-                    pod("myPod",Spec(Container("myContainer", "myImage")::Nil))
+                    pod("myPod",Pod.Spec(Container("myContainer", "myImage")::Nil))
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
       myPod mustEqual readPod
     }
@@ -72,7 +70,7 @@ import skuber.model.Pod._
                      )
       val vols = List(Volume("myVol1", Volume.Glusterfs("myEndpointsName", "/usr/mypath")),
                       Volume("myVol2", Volume.ISCSI("127.0.0.1:3260", "iqn.2014-12.world.server:www.server.world")))
-      val pdSpec=Spec(containers=cntrs,
+      val pdSpec=Pod.Spec(containers=cntrs,
                       volumes=vols,
                       dnsPolicy=DNSPolicy.ClusterFirst,
                       nodeSelector=Map("diskType" -> "ssd", "machineSize" -> "large"),
@@ -324,9 +322,9 @@ import skuber.model.Pod._
       myPod.spec.get.dnsPolicy mustEqual DNSPolicy.Default
       myPod.spec.get.restartPolicy mustEqual RestartPolicy.Always
       myPod.spec.get.tolerations mustEqual List(
-        ExistsToleration(Some("localhost.domain/url")),
-        EqualToleration("key",Some("value"),Some(TolerationEffect.NoExecute)),
-        ExistsToleration(None, Some(TolerationEffect.NoSchedule), None))
+        Pod.ExistsToleration(Some("localhost.domain/url")),
+        Pod.EqualToleration("key",Some("value"),Some(Pod.TolerationEffect.NoExecute)),
+        Pod.ExistsToleration(None, Some(Pod.TolerationEffect.NoSchedule), None))
 
       val vols = myPod.spec.get.volumes
       vols.length mustEqual 2
@@ -389,6 +387,7 @@ import skuber.model.Pod._
     }
 
     "a pod with nodeAffinity can be read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeAffinity, NodeSelectorOperator}
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms, RequiredDuringSchedulingIgnoredDuringExecution}
 
@@ -397,7 +396,7 @@ import skuber.model.Pod._
 
       val myPod = Json.parse(podJsonStr).as[Pod]
       myPod.spec.get.affinity must beSome(Affinity(
-        nodeAffinity = Some(NodeAffinity(
+        nodeAffinity = Some(Affinity.NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = Some(
             RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
           ),
@@ -423,7 +422,7 @@ import skuber.model.Pod._
     }
 
     "NodeSelectorTerm be properly read and written as json" >> {
-      import Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
+      import Pod.Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTerm.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
@@ -441,6 +440,7 @@ import skuber.model.Pod._
     }
 
     "NodeSelectorTerm with no matchExpressions be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchExpressions.json"))
@@ -456,6 +456,7 @@ import skuber.model.Pod._
     }
 
     "NodeSelectorTerm with no matchFields be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeSelectorOperator, NodeSelectorRequirement, NodeSelectorRequirements, NodeSelectorTerm}
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchFields.json"))
@@ -471,6 +472,7 @@ import skuber.model.Pod._
     }
 
     "NodeSelectorTerm with empty be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.NodeSelectorTerm
 
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermEmpty.json"))
@@ -482,6 +484,7 @@ import skuber.model.Pod._
     }
 
     "NodeAffinity be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeAffinity, NodeSelectorOperator}
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms, RequiredDuringSchedulingIgnoredDuringExecution}
 
@@ -504,6 +507,7 @@ import skuber.model.Pod._
     }
 
     "NodeAffinity without preferences be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeAffinity, NodeSelectorOperator}
       import NodeAffinity.{PreferredSchedulingTerms, RequiredDuringSchedulingIgnoredDuringExecution}
 
@@ -524,6 +528,7 @@ import skuber.model.Pod._
     }
 
     "NodeAffinity without requirements be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeAffinity, NodeSelectorOperator}
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
@@ -544,6 +549,7 @@ import skuber.model.Pod._
     }
 
     "PodAffinity can be properly read and written as json" >> {
+      import Pod.Affinity
       import Affinity.{NodeAffinity, NodeSelectorOperator}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
@@ -580,7 +586,7 @@ import skuber.model.Pod._
     "a statefulset with pod affinity/anti-affinity can be read and written as json successfully" >> {
       val ssJsonSource=Source.fromURL(getClass.getResource("/exampleStatefulSetWithPodAffinity.json"))
       val ssJsonStr = ssJsonSource.mkString
-      val ss = Json.parse(ssJsonStr).as[StatefulSet]
+      val ss = Json.parse(ssJsonStr).as[apps.StatefulSet]
 
       val podAffinity = ss.spec.get.template.spec.get.affinity.get.podAffinity.get
       podAffinity.preferredDuringSchedulingIgnoredDuringExecution.size mustEqual (0)
@@ -606,7 +612,7 @@ import skuber.model.Pod._
 
       // write and read it back in again and compare
       val json = Json.toJson(ss)
-      val readSS = Json.fromJson[StatefulSet](json).get
+      val readSS = Json.fromJson[apps.StatefulSet](json).get
       readSS mustEqual ss
     }
   }

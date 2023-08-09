@@ -1,9 +1,7 @@
-package skuber.apps
+package skuber.model
 
 import org.specs2.mutable.Specification
-import skuber.{Container, LabelSelector, ObjectMeta, model}
-import play.api.libs.json.Json
-import skuber.model.{Pod, ReplicationController, Scale}
+import play.api.libs.json._
 
 /**
  * @author David O'Riordan
@@ -20,7 +18,7 @@ class ScaleSpec extends Specification {
   
   "A scale object can be written to Json and then read back again successfully" >> {
 
-      val scale= model.Scale(
+      val scale= Scale(
         apiVersion="autoscaling/v1",
         metadata=ObjectMeta(name="example", namespace="na"),
         spec=Scale.Spec(replicas=Some(10))
