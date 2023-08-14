@@ -206,13 +206,6 @@ package object model {
 
   case class Lifecycle(postStart: Option[Handler] = None, preStop: Option[Handler] = None)
 
-  case class WatchedEvent(eventType: WatchedEventType.Value, eventObject: ObjectResource)
-
-  object WatchedEventType extends Enumeration {
-    type WatchedEventType = Value
-    val ADDED, MODIFIED, DELETED, ERROR = Value
-  }
-
   object DNSPolicy extends Enumeration {
     type DNSPolicy = Value
     val Default, ClusterFirst, ClusterFirstWithHostNet, None = Value
@@ -226,47 +219,6 @@ package object model {
   object Protocol extends Enumeration {
     type Protocol = Value
     val TCP, UDP = Value
-  }
-
-  // Delete options are (optionally) passed with a Delete request
-  object DeletePropagation extends Enumeration {
-    type DeletePropagation = Value
-    val Orphan, Background, Foreground = Value
-  }
-
-  case class Preconditions(uid: String = "")
-
-  case class DeleteOptions(
-    apiVersion: String = "v1",
-    kind: String = "DeleteOptions",
-    gracePeriodSeconds: Option[Int] = None,
-    preconditions: Option[Preconditions] = None,
-    propagationPolicy: Option[DeletePropagation.Value] = None)
-
-  // List options can be passed to a list or watch request.
-  case class ListOptions(
-    labelSelector: Option[LabelSelector] = None,
-    fieldSelector: Option[String] = None,
-    includeUninitialized: Option[Boolean] = None,
-    resourceVersion: Option[String] = None,
-    timeoutSeconds: Option[Long] = None,
-    limit: Option[Long] = None,
-    continue: Option[String] = None,
-    watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
-  ) {
-    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
-      "labelSelector" -> labelSelector.map(_.toString),
-      "fieldSelector" -> fieldSelector,
-      "includeUninitialized" -> includeUninitialized.map(_.toString),
-      "resourceVersion" -> resourceVersion,
-      "timeoutSeconds" -> timeoutSeconds.map(_.toString),
-      "limit" -> limit.map(_.toString),
-      "continue" -> continue,
-      "watch" -> watch.map(_.toString))
-
-    lazy val asMap: Map[String, String] = asOptionalsMap.collect {
-      case (key, Some(value)) => key -> value
-    }
   }
 
   // Any object resource type [O <: ObjectResource] that supports a `status` subresource must provide an
@@ -283,11 +235,4 @@ package object model {
     type Operator = Value
     val In, NotIn, Exists, DoesNotExist, Gt, Lt = Value
   }
-
-  val K8SCluster = skuber.api.client.Cluster
-  val K8SContext = skuber.api.client.Context
-  type K8SException = skuber.api.client.K8SException
-  val K8SConfiguration = skuber.api.Configuration
-  type K8SWatchEvent[I <: skuber.model.ObjectResource] = skuber.api.client.WatchEvent[I]
-
 }

@@ -1,11 +1,12 @@
 package skuber.examples.fluent
 
-import skuber._
 import skuber.json.format._
 
 import scala.concurrent.Future
 import akka.actor.ActorSystem
-import skuber.model.{Pod, ReplicationController, Service}
+import skuber.model.{Container, Pod, ReplicationController, ReplicationControllerList, Service, ServiceList}
+import skuber.api.client.K8SException
+import skuber.akkaclient.k8sInit
 
 /**
  * @author David O'Riordan

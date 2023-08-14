@@ -1,13 +1,13 @@
 package skuber.examples.podlogs
 
 import akka.NotUsed
-import skuber._
-import skuber.json.format._
 import akka.actor.ActorSystem
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import skuber.api.client
-import skuber.model.Pod
+import skuber.model.{Container, Pod}
+import skuber.json.format._
+import skuber.api.client.{LoggingConfig, defaultAppConfig, defaultK8sConfig}
+import skuber.akkaclient.k8sInit
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -30,9 +30,12 @@ object PodLogExample extends App {
 
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
-  val k8s = client.init(
-    client.defaultK8sConfig.currentContext,
-    client.LoggingConfig(logRequestBasic = false, logResponseBasic = false) )
+  val k8s = k8sInit(
+    defaultK8sConfig.currentContext,
+    LoggingConfig(logRequestBasic = false, logResponseBasic = false),
+    None,
+    defaultAppConfig
+  )
 
   val helloWorldContainer=Container(name="hello-world", image="busybox", command=List("sh", "-c", "echo Hello World! && echo Goodbye World && sleep 60"))
   val helloWorldContainer2=Container(name="hello-world2", image="busybox", command=List("sh", "-c", "echo Hello World again! && echo Goodbye World again && sleep 60"))

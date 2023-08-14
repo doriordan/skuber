@@ -1,7 +1,10 @@
 package skuber.examples.deployment
 
-import skuber.model._
 import akka.actor.ActorSystem
+
+import skuber.api.client._
+import skuber.model.{Container,Pod}
+import skuber.model.apps.v1.Deployment
 import skuber.akkaclient.k8sInit
 
 import scala.concurrent.{Await, Future}

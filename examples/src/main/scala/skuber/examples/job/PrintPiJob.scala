@@ -2,10 +2,12 @@ package skuber.examples.job
 
 import akka.actor.ActorSystem
 
-import skuber.{Container, RestartPolicy, k8sInit}
-import skuber.batch.Job
+import skuber.model.{Container, Pod, RestartPolicy}
+import skuber.model.batch.Job
+
 import skuber.json.batch.format._
-import skuber.model.Pod
+
+import skuber.akkaclient.k8sInit
 
 import scala.util.{Failure, Success}
 

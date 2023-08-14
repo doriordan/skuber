@@ -4,13 +4,10 @@ import akka.actor.{Actor, ActorRef, ActorLogging}
 import akka.actor.Props
 import akka.event.LoggingReceive
 import akka.util.Timeout
-import akka.pattern.ask
 import akka.actor.Status.Failure
 
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits._
 
-import akka.actor.Status.Failure
 import skuber.model.ReplicationController
 
 /**
@@ -27,8 +24,6 @@ object ScalerActor {
   def props(kubernetes: ActorRef, controllerName: String, targetReplicaCount: Int) = 
     Props(new ScalerActor(kubernetes, controllerName, targetReplicaCount))
 }
-
-import ScalerActor._
 
 class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCount: Int) extends Actor with ActorLogging {
   

@@ -3,17 +3,12 @@ package skuber.api
 import java.time.Instant
 import java.util.UUID
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model._
-import akka.stream.scaladsl.Flow
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
 import scala.sys.SystemProperties
-import scala.util.Try
 import skuber.model.ObjectResource
 
 /**
@@ -21,7 +16,55 @@ import skuber.model.ObjectResource
   */
 package object client {
 
-  type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
+  case class WatchedEvent(eventType: WatchedEventType.Value, eventObject: ObjectResource)
+
+  object WatchedEventType extends Enumeration {
+    type WatchedEventType = Value
+    val ADDED, MODIFIED, DELETED, ERROR = Value
+  }
+
+  // Delete options are (optionally) passed with a Delete request
+  object DeletePropagation extends Enumeration {
+    type DeletePropagation = Value
+    val Orphan, Background, Foreground = Value
+  }
+
+  case class Preconditions(uid: String = "")
+
+  case class DeleteOptions(
+    apiVersion: String = "v1",
+    kind: String = "DeleteOptions",
+    gracePeriodSeconds: Option[Int] = None,
+    preconditions: Option[Preconditions] = None,
+    propagationPolicy: Option[DeletePropagation.Value] = None)
+
+  // List options can be passed to a list or watch request.
+  case class ListOptions(
+    labelSelector: Option[skuber.model.LabelSelector] = None,
+    fieldSelector: Option[String] = None,
+    includeUninitialized: Option[Boolean] = None,
+    resourceVersion: Option[String] = None,
+    timeoutSeconds: Option[Long] = None,
+    limit: Option[Long] = None,
+    continue: Option[String] = None,
+    watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
+  ) {
+    lazy val asOptionalsMap: Map[String, Option[String]] = Map(
+      "labelSelector" -> labelSelector.map(_.toString),
+      "fieldSelector" -> fieldSelector,
+      "includeUninitialized" -> includeUninitialized.map(_.toString),
+      "resourceVersion" -> resourceVersion,
+      "timeoutSeconds" -> timeoutSeconds.map(_.toString),
+      "limit" -> limit.map(_.toString),
+      "continue" -> continue,
+      "watch" -> watch.map(_.toString))
+
+    lazy val asMap: Map[String, String] = asOptionalsMap.collect {
+      case (key, Some(value)) => key -> value
+    }
+  }
+
+  // type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
 
   final val sysProps = new SystemProperties
 
@@ -30,10 +73,6 @@ package object client {
 
   // K8S client API classes
   final val defaultApiServerURL = "http://localhost:8080"
-
-  // Patch content type(s)
-  final val `application/merge-patch+json`: MediaType.WithFixedCharset =
-    MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
 
   sealed trait AuthInfo
 
@@ -191,4 +230,9 @@ package object client {
   def defaultK8sConfig: Configuration = Configuration.defaultK8sConfig
 
   def defaultAppConfig: Config = ConfigFactory.load()
+
+  val K8SCluster = skuber.api.client.Cluster
+  val K8SContext = skuber.api.client.Context
+  val K8SConfiguration = skuber.api.Configuration
+  type K8SWatchEvent[I <: skuber.model.ObjectResource] = skuber.api.client.WatchEvent[I]
 }

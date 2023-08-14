@@ -1,14 +1,16 @@
 package skuber.examples.guestbook
 
-import skuber._
-import skuber.json.format._
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import akka.actor.Props
 import akka.event.LoggingReceive
 import akka.pattern.pipe
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Sink, Source}
+
 import skuber.model.{ReplicationController, Service}
+import skuber.api.client.{K8SException, K8SWatchEvent}
+import skuber.json.format._
+
+import skuber.akkaclient.k8sInit
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

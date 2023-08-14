@@ -1,18 +1,19 @@
 package skuber.examples.list
 
-import akka.actor.ActorSystem
-import skuber.model.Pod.Phase
-import skuber._
-
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+
+import akka.actor.ActorSystem
+
+import skuber.model.{Pod, PodList}
 import skuber.json.format._
-import skuber.model.Pod
+
+import skuber.akkaclient.k8sInit
 
 /**
  * @author David O'Riordan
  * 
- * A couple fo simple examples of getting lists of objects across all namespaces
+ * A couple of simple examples of getting lists of objects across all namespaces
  * 
  */
 object ListExamples extends App {

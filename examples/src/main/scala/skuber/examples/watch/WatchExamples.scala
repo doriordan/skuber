@@ -1,12 +1,13 @@
 package skuber.examples.watch
 
-import skuber._
+import skuber.model.{Pod, PodList, ReplicationController}
 import skuber.json.format._
-import skuber.K8SWatchEvent
+import skuber.api.client.K8SWatchEvent
+
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
-import skuber.model.{Pod, ReplicationController}
 
+import skuber.akkaclient.k8sInit
 
 /**
  * @author David O'Riordan

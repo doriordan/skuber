@@ -1,5 +1,6 @@
 package skuber
 
+import akka.http.scaladsl.model.{HttpCharsets, MediaType}
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client.{Context, LoggingConfig, defaultAppConfig, defaultK8sConfig}
 
@@ -17,32 +18,37 @@ package object akkaclient {
     * Initialise Skuber using default Kubernetes and application configuration.
     */
   def k8sInit(implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
-    init(defaultK8sConfig.currentContext, LoggingConfig(), None, defaultAppConfig)
+    k8sInit(defaultK8sConfig.currentContext, LoggingConfig(), None, defaultAppConfig)
   }
 
   /**
     * Initialise Skuber using the specified Kubernetes configuration and default application configuration.
     */
   def k8sInit(config: skuber.api.Configuration)(implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
-    init(config.currentContext, LoggingConfig(), None, defaultAppConfig)
+    k8sInit(config.currentContext, LoggingConfig(), None, defaultAppConfig)
   }
 
   /**
     * Initialise Skuber using default Kubernetes configuration and the specified application configuration.
     */
   def k8sInit(appConfig: Config)(implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
-    init(defaultK8sConfig.currentContext, LoggingConfig(), None, appConfig)
+    k8sInit(defaultK8sConfig.currentContext, LoggingConfig(), None, appConfig)
   }
 
   /**
     * Initialise Skuber using the specified Kubernetes and application configuration.
     */
   def k8sInit(config: skuber.api.Configuration, appConfig: Config)(implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
-    init(config.currentContext, LoggingConfig(), None, appConfig)
+    k8sInit(config.currentContext, LoggingConfig(), None, appConfig)
   }
 
-  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None, appConfig: Config)
+  def k8sInit(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None, appConfig: Config)
       (implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
     AkkaKubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig)
   }
+
+  // Patch content type(s)
+  final val `application/merge-patch+json`: MediaType.WithFixedCharset =
+    MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
+
 }

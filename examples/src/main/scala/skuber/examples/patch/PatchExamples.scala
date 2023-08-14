@@ -1,15 +1,19 @@
 package skuber.examples.patch
 
-import akka.actor.ActorSystem
-import skuber._
-import skuber.json.format._
-import skuber.apps.v1beta1.StatefulSet
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf
 import play.api.libs.json.{Format, Json}
+
+import akka.actor.ActorSystem
+import skuber.model.{Container, LabelSelector, Pod, Service}
+import skuber.model.apps.v1.StatefulSet
+import skuber.api.client.{K8SException, DeleteOptions, DeletePropagation}
 import skuber.api.patch.JsonMergePatch
-import skuber.model.{Pod, Service}
+import skuber.json.format._
+
+import skuber.akkaclient.k8sInit
+
 /**
  * @author David O'Riordan
  * 
