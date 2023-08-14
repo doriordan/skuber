@@ -15,7 +15,6 @@ import play.api.libs.json._
 import scala.sys.SystemProperties
 import scala.util.Try
 import skuber.model.ObjectResource
-import skuber.api.client.impl.KubernetesClientImpl
 
 /**
   * @author David O'Riordan
@@ -188,32 +187,6 @@ package object client {
   class K8SException(val status: Status) extends RuntimeException(status.toString) // we throw this when we receive a non-OK response
 
   type RequestContext = KubernetesClient // for backwards compatibility (with pre 2.1 clients)
-
-  def init()(implicit actorSystem: ActorSystem): KubernetesClient = {
-    init(defaultK8sConfig, defaultAppConfig)
-  }
-
-  def init(config: Configuration)(implicit actorSystem: ActorSystem): KubernetesClient = {
-    init(config.currentContext, LoggingConfig(), None, defaultAppConfig)
-  }
-
-  def init(appConfig: Config)(implicit actorSystem: ActorSystem): KubernetesClient = {
-    init(defaultK8sConfig.currentContext, LoggingConfig(), None, appConfig)
-  }
-
-  def init(config: Configuration, appConfig: Config)(implicit actorSystem: ActorSystem): KubernetesClient = {
-    init(config.currentContext, LoggingConfig(), None, appConfig)
-  }
-
-  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit] = None)
-      (implicit actorSystem: ActorSystem): KubernetesClient = {
-    init(k8sContext, logConfig, closeHook, defaultAppConfig)
-  }
-
-  def init(k8sContext: Context, logConfig: LoggingConfig, closeHook: Option[() => Unit], appConfig: Config)
-      (implicit actorSystem: ActorSystem): KubernetesClient = {
-    KubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig)
-  }
 
   def defaultK8sConfig: Configuration = Configuration.defaultK8sConfig
 

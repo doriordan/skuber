@@ -1,13 +1,11 @@
 package skuber.akkaclient.watch
 
-import akka.NotUsed
-import akka.stream.scaladsl.{JsonFraming, Sink, Source}
+import akka.stream.scaladsl.{JsonFraming, Source}
 import akka.util.ByteString
-import play.api.libs.json.{Format, JsError, JsObject, JsString, JsSuccess, JsValue, Json}
+import play.api.libs.json._
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
-import skuber.model.ObjectResource
-import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.client.{K8SException, LoggingContext, Status, WatchEvent}
+import skuber.model.ObjectResource
 
 import scala.concurrent.ExecutionContext
 

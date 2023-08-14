@@ -1,26 +1,23 @@
 package skuber
 
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
-import skuber.api.client.{Context, LoggingConfig, defaultAppConfig, defaultK8sConfig, init}
+import skuber.api.client.{Context, LoggingConfig, defaultAppConfig, defaultK8sConfig}
 
 package object akkaclient {
 
   // aliases, references and delegates that enable using the API for many use cases without
   // having to import anything from the skuber.api package
 
-  import skuber.api.client.KubernetesClient
-
-  // Initialisation of the Skuber Kubernetes client
+  // Initialisation of the Skuber Kubernetes client based on Akka back-end
 
   import akka.actor.ActorSystem
-  import akka.stream.Materializer
   import com.typesafe.config.Config
 
   /**
     * Initialise Skuber using default Kubernetes and application configuration.
     */
   def k8sInit(implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
-    init(defaultK8sConfig, defaultAppConfig)
+    init(defaultK8sConfig.currentContext, LoggingConfig(), None, defaultAppConfig)
   }
 
   /**

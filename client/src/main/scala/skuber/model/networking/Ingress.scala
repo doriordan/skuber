@@ -95,11 +95,11 @@ case class Ingress(
    *                      "inventory" -> "inventoryService:80")).
    * }}}
    */
-  def addHttpRule(host: Option[String], pathsMap: Map[String, String]): Ingress = {
+  def addHttpRule(host: Option[String], pathsMap: Map[String, String], pathType: Option[String] = None): Ingress = {
     val paths: List[Ingress.Path] = pathsMap.map { case (path: String, backend: String) =>
       backend match {
         case backendSpec(serviceName, servicePort) =>
-          Ingress.Path(path,Ingress.Backend(serviceName, toNameablePort(servicePort)))
+          Ingress.Path(path, pathType, Ingress.Backend(serviceName, toNameablePort(servicePort)))
         case _ => throw new Exception(s"invalid backend format: expected 'serviceName:servicePort' (got '$backend', for host: $host)")
       }
 
@@ -131,7 +131,7 @@ case class Ingress(
    */
   def withDefaultBackendService(serviceName: String, servicePort: NameablePort): Ingress = {
     val be = Backend(serviceName, servicePort)
-    this.copy(spec=Some(copySpec.copy(backend = Some(be)))
+    this.copy(spec=Some(copySpec.copy(defaultBackend = Some(be)))
     )
   }
 
@@ -161,13 +161,14 @@ object Ingress {
   def apply(name: String) : Ingress = Ingress(metadata=ObjectMeta(name=name))
 
   case class Backend(serviceName: String, servicePort: NameablePort)
-  case class Path(path: String, backend: Backend)
+  case class Path(path: String, pathType: Option[String], backend: Backend)
   case class HttpRule(paths: List[Path] = List())
   case class Rule(host: Option[String], http: HttpRule)
   case class TLS(hosts: List[String]=List(), secretName: Option[String] = None)
 
   case class Spec(
-    backend: Option[Backend] = None,
+    defaultBackend: Option[Backend] = None,
+    ingressClassName: Option[String] = None,
     rules: List[Rule] = List(),
     tls: List[TLS]=List())
 

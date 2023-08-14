@@ -3,6 +3,7 @@ package skuber.model.networking
 import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber.json.networking.format._
+import skuber.model._
 
 /**
  * @author Chris Baker
@@ -84,8 +85,8 @@ class IngressSpec extends Specification {
 
     ing.spec.get.rules.head.host must beSome("example.com")
     ing.spec.get.rules.head.http.paths must_== List(
-      Ingress.Path(path = "", backend = Ingress.Backend("service", "http")),
-      Ingress.Path(path = "", backend = Ingress.Backend("ssh", 22))
+      Ingress.Path(path = "", pathType = None, backend = Ingress.Backend("service", "http")),
+      Ingress.Path(path = "", pathType = None, backend = Ingress.Backend("ssh", 22))
     )
     ing.spec.get.tls must_== List(Ingress.TLS(
       hosts = List("abc","def"),

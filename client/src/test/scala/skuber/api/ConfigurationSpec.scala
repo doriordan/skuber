@@ -2,10 +2,7 @@ package skuber.api
 
 import java.nio.file.Paths
 import java.time.Instant
-import scala.util.Try
 import org.specs2.mutable.Specification
-import akka.actor.ActorSystem
-import skuber._
 import skuber.api.client._
 import skuber.model.{K8SCluster, K8SConfiguration, K8SContext, Namespace}
 

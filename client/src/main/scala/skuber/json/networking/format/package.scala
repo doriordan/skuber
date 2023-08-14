@@ -19,7 +19,8 @@ package object format {
 
   implicit val ingressPathFmt: Format[Ingress.Path] = (
     (JsPath \ "path").formatMaybeEmptyString() and
-      (JsPath \ "backend").format[Backend]
+    (JsPath \ "pathType").formatNullable[String] and
+    (JsPath \ "backend").format[Backend]
   ) (Ingress.Path.apply _, unlift(Ingress.Path.unapply))
 
 
@@ -28,7 +29,8 @@ package object format {
   implicit val ingressTLSFmt: Format[Ingress.TLS] = Json.format[Ingress.TLS]
 
   implicit val ingressSpecFormat: Format[Ingress.Spec] = (
-    (JsPath \ "backend").formatNullable[Ingress.Backend] and
+    (JsPath \ "defaultBackend").formatNullable[Ingress.Backend] and
+    (JsPath \ "ingressClassName").formatNullable[String] and
     (JsPath \ "rules").formatMaybeEmptyList[Ingress.Rule] and
     (JsPath \ "tls").formatMaybeEmptyList[Ingress.TLS]
   )(Ingress.Spec.apply _, unlift(Ingress.Spec.unapply))

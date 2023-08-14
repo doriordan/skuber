@@ -1,25 +1,21 @@
-package skuber.api
+package skuber.akkaclient.watch
 
-import java.net.ConnectException
-import java.time.{ZoneId, ZonedDateTime}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
+import akka.stream.KillSwitches
 import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
 import akka.stream.testkit.scaladsl.TestSink
-import akka.stream.KillSwitches
 import com.fasterxml.jackson.core.JsonParseException
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import org.specs2.mutable.Specification
-import skuber.api.client.impl.KubernetesClientImpl
-import skuber.api.watch.WatchSource.Start
 import skuber.api.client._
-import skuber.api.watch.WatchSource
-import skuber.model._
 import skuber.json.format._
-import skuber.model.{Pod, ReplicationController, Resource}
+import skuber.model.{K8SException, _}
 
+import java.net.ConnectException
+import java.time.{ZoneId, ZonedDateTime}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Try

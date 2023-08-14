@@ -211,9 +211,6 @@ trait KubernetesClient {
     */
   def updateScale[O <: ObjectResource](objName: String, scale: Scale)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale]
 
-  @deprecated("use getScale followed by updateScale instead")
-  def scale[O <: ObjectResource](objName: String, count: Int)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale]
-
   /**
     * Patch a resource
     * @param name The name of the resource to patch

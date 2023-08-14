@@ -586,6 +586,7 @@ package object format {
      (JsPath \ "glusterfs").read[Volume.Glusterfs].map(x => x: Volume.PersistentSource) |
      (JsPath \ "rbd").read[Volume.RBD].map(x => x: Volume.PersistentSource) |
      (JsPath \ "iscsi").read[Volume.ISCSI].map(x => x: Volume.PersistentSource) |
+     (JsPath \ "gcePersistentDisk").read[Volume.GCEPersistentDisk].map(x => x: Volume.PersistentSource) |
      JsPath.read[JsValue].map[Volume.PersistentSource](j => Volume.GenericVolumeSource(j.toString))
    )
 

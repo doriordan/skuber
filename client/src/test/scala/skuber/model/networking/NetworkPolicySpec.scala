@@ -2,8 +2,8 @@ package skuber.model.networking
 
 import org.specs2.mutable.Specification
 import play.api.libs.json.Json
-import skuber.LabelSelector.dsl._
-import skuber._
+import skuber.model.LabelSelector.dsl._
+import skuber.model._
 import NetworkPolicy._
 
 /**
@@ -101,7 +101,6 @@ class NetworkPolicySpec extends Specification {
 
   "A NetworkPolicy object can be written to Json and read back again" >> {
     val json=Json.toJson(networkPolicyExample)
-    val jsonStr = json.toString
     val examplePolicy=Json.fromJson[NetworkPolicy](json).get
     examplePolicy mustEqual networkPolicyExample
   }

@@ -1,13 +1,6 @@
 package skuber.api
 
 import org.specs2.mutable.Specification
-import skuber._
-
-/**
-  * NOTE: This was MockWS based, but not any more due to:
-  * - unexplained failures suddenly started to happen when running on Travis CI (but not locally)
-  * - skuber 2.0 has migrated away from Play WS client
-*/
 
 import skuber.model.LabelSelector
 import LabelSelector.dsl._

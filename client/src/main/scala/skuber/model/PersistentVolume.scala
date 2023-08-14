@@ -1,4 +1,4 @@
-package skuber.model
+ package skuber.model
 
 import java.util.Date
 

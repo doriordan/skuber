@@ -1,23 +1,21 @@
-package skuber.api
-
-import java.io.InputStream
-import java.security.{KeyStore, SecureRandom}
+package skuber.akkaclient.watch
 
 import akka.Done
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.settings.ClientConnectionSettings
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.sslconfig.akka.AkkaSSLConfig
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.specs2.mutable.Specification
-import skuber.api.watch.LongPollingPool
 
+import java.io.InputStream
+import java.security.{KeyStore, SecureRandom}
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Success

@@ -9,7 +9,6 @@ import akka.stream.SinkShape
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
-import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.client.{K8SException, LoggingContext, Status}
 import skuber.api.security.HTTPRequestAuth
 

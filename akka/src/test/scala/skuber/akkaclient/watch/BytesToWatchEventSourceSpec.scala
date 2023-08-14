@@ -1,19 +1,18 @@
-package skuber.api
+package skuber.akkaclient.watch
 
-import client._
-import skuber.json.format._
-import org.specs2.mutable.Specification
-import akka.util.ByteString
-import akka.stream.scaladsl.{Sink, Source}
 import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Sink, Source}
+import akka.util.ByteString
 import org.scalatestplus.mockito.MockitoSugar.mock
-import skuber.api.client.impl.KubernetesClientImpl
-import skuber.api.watch.BytesToWatchEventSource
+import org.specs2.mutable.Specification
+import skuber.akkaclient.impl.AkkaKubernetesClientImpl
+import skuber.api.client.{LoggingContext, WatchEvent}
+import skuber.json.format._
 import skuber.model.ReplicationController
 
 import scala.collection.mutable
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
  * @author David O'Riordan
@@ -24,7 +23,7 @@ class BytesToWatchEventSourceSpec extends Specification {
   implicit val system: ActorSystem = ActorSystem("test")
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
-  val client = mock[KubernetesClientImpl]
+  val client = mock[AkkaKubernetesClientImpl]
 
   "A single chunk containing a single Watch event can be read correctly" >> {
     val eventsAsStr =  """{"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12803","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":3,"observedGeneration":2}}}"""

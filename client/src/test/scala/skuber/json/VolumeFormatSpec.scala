@@ -3,10 +3,10 @@ package skuber.json
 import org.specs2.execute.{Failure, Result}
 import org.specs2.mutable.Specification
 import play.api.libs.json._
-
 import skuber.model._
 import PersistentVolumeClaim.VolumeMode
 import skuber.json.format._
+import skuber.model.LabelSelector.IsEqualRequirement
 
 import scala.io.Source
 
@@ -30,7 +30,7 @@ class VolumeReadWriteSpec extends Specification {
           volumeName = Some("volume-name"),
           storageClassName = Some("a-storage-class-name"),
           volumeMode = Some(VolumeMode.Filesystem),
-          selector = Some(Selector(matchLabels = Some(Map("label" -> "value")), matchExpressions = None))
+          selector = Some(LabelSelector(IsEqualRequirement("label","value")))
         ))
       )
       val pvcJson = Json.toJson(pvc)
@@ -179,29 +179,21 @@ class VolumeReadWriteSpec extends Specification {
       val myVolJson = Json.toJson(gceVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.name mustEqual "myVol"
-      readVol.source match { 
-        case Volume.GCEPersistentDisk(pdName,fsType,partition,readonly) => 
-          pdName mustEqual "pd1"
-          fsType mustEqual "ext4"
-          partition mustEqual 3
-          readonly mustEqual false
-        case _ => Failure("not a GCE disk!")
-      }   
       readVol.source mustEqual Volume.GCEPersistentDisk("pd1","ext4", 3)
       
-      val gceVol2 = Volume("myVol", Volume.GCEPersistentDisk("pd1","ext4",readOnly = true))
+      val gceVol2 = Volume("myVol", Volume.GCEPersistentDisk("pd2","ext4",readOnly = true))
       val myVolJson2 = Json.toJson(gceVol2)
       val readVol2 = Json.fromJson[Volume](myVolJson2).get
       readVol2.name mustEqual "myVol"
       readVol2.source match { 
         case Volume.GCEPersistentDisk(pdName,fsType,partition,readonly) => 
-          pdName mustEqual "pd1"
+          pdName mustEqual "pd2"
           fsType mustEqual "ext4"
           partition mustEqual 0
           readonly mustEqual true
         case _ => Failure("not a GCE disk!")
       }   
-      readVol2.source mustEqual Volume.GCEPersistentDisk("pd1","ext4",0, true)
+      readVol2.source mustEqual Volume.GCEPersistentDisk("pd2","ext4",0, true)
     }
 
     "this can be done for the a AWS EBS source spec" >> {

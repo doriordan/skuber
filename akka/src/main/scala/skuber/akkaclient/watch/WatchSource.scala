@@ -3,17 +3,14 @@ package skuber.akkaclient.watch
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
-import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
 import akka.stream.SourceShape
+import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
 import play.api.libs.json.Format
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client._
-import skuber.api.client.impl.KubernetesClientImpl
-import skuber.model.ResourceDefinition
-import skuber.model.{ListOptions, ObjectResource}
+import skuber.model.{ListOptions, ObjectResource, ResourceDefinition}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 private[akkaclient] object WatchSource {
