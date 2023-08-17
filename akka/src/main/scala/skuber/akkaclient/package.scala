@@ -1,18 +1,21 @@
 package skuber
 
-import akka.http.scaladsl.model.{HttpCharsets, MediaType}
+import scala.util.Try
+
+import akka.actor.ActorSystem
+import akka.NotUsed
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.stream.scaladsl.Flow
+import com.typesafe.config.Config
+
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client.{Context, LoggingConfig, defaultAppConfig, defaultK8sConfig}
 
 package object akkaclient {
 
-  // aliases, references and delegates that enable using the API for many use cases without
-  // having to import anything from the skuber.api package
+  type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
 
   // Initialisation of the Skuber Kubernetes client based on Akka back-end
-
-  import akka.actor.ActorSystem
-  import com.typesafe.config.Config
 
   /**
     * Initialise Skuber using default Kubernetes and application configuration.
@@ -46,9 +49,4 @@ package object akkaclient {
       (implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
     AkkaKubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig)
   }
-
-  // Patch content type(s)
-  final val `application/merge-patch+json`: MediaType.WithFixedCharset =
-    MediaType.customWithFixedCharset("application", "merge-patch+json", HttpCharsets.`UTF-8`)
-
 }

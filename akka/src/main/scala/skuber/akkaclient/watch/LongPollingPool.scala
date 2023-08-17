@@ -4,7 +4,7 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.{Http, HttpsConnectionContext}
-import skuber.api.client.Pool
+import skuber.akkaclient.Pool
 
 import scala.concurrent.duration._
 

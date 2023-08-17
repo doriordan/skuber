@@ -6,10 +6,10 @@ import java.time.format._
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import skuber.model.Volume.{ConfigMapVolumeSource, KeyToPath}
 import skuber.model._
+import Volume.{ConfigMapVolumeSource, KeyToPath}
+import skuber.api.client.{DeleteOptions, DeletePropagation, Preconditions}
 import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
-import skuber.model.{Pod, PodSecurityContext, ReplicationController, Resource, Security, SecurityContext, Service, ServiceAccount, Volume}
 
 /**
  * @author David O'Riordan

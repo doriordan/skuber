@@ -64,8 +64,6 @@ package object client {
     }
   }
 
-  // type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
-
   final val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
@@ -205,6 +203,21 @@ package object client {
   object EventType extends Enumeration {
     type EventType = Value
     val ADDED, MODIFIED, DELETED, ERROR = Value
+  }
+
+  object WatchStream {
+
+    sealed trait StreamElement[O <: ObjectResource] {}
+    case class End[O <: ObjectResource]() extends StreamElement[O]
+    case class Start[O <: ObjectResource](resourceVersion: Option[String]) extends StreamElement[O]
+    case class Result[O <: ObjectResource](resourceVersion: String, value: WatchEvent[O]) extends StreamElement[O]
+
+    sealed trait StreamState {}
+    case object Waiting extends StreamState
+    case object Processing extends StreamState
+    case object Finished extends StreamState
+
+    case class StreamContext(currentResourceVersion: Option[String], state: StreamState)
   }
 
   trait LoggingContext {

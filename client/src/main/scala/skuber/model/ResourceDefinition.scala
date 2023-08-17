@@ -45,16 +45,6 @@ object ResourceDefinition {
   }
 
   /*
-   * Generate a ResourceDefinition for a specific CustomResource type from the associated beta CRD
-   */
-  @deprecated("Pass a skuber.apiextensions.v1.CustomResourceDefinition instance")
-  def apply[T <: TypeMeta](crd: skuber.model.apiextensions.v1beta1.CustomResourceDefinition): ResourceDefinition[T] = {
-    new ResourceDefinition[T] {
-      override def spec: ResourceSpecification = crd.spec
-    }
-  }
-
-  /*
    * Generate a ResourceDefinition for a specific CustomResource type from the associated v1 CRD
    */
   def apply[T <: TypeMeta](crd: skuber.model.apiextensions.v1.CustomResourceDefinition): ResourceDefinition[T] = {

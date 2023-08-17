@@ -6,25 +6,17 @@ import akka.http.scaladsl.model._
 import akka.stream.SourceShape
 import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
 import play.api.libs.json.Format
+import skuber.akkaclient.Pool
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client._
-import skuber.model.{ListOptions, ObjectResource, ResourceDefinition}
+import skuber.model.{ObjectResource, ResourceDefinition}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
 private[akkaclient] object WatchSource {
-  sealed trait StreamElement[O <: ObjectResource] {}
-  case class End[O <: ObjectResource]() extends StreamElement[O]
-  case class Start[O <: ObjectResource](resourceVersion: Option[String]) extends StreamElement[O]
-  case class Result[O <: ObjectResource](resourceVersion: String, value: WatchEvent[O]) extends StreamElement[O]
 
-  sealed trait StreamState {}
-  case object Waiting extends StreamState
-  case object Processing extends StreamState
-  case object Finished extends StreamState
-
-  case class StreamContext(currentResourceVersion: Option[String], state: StreamState)
+  import skuber.api.client.WatchStream._
 
   def apply[O <: ObjectResource](client: AkkaKubernetesClientImpl,
                                  pool: Pool[Start[O]],

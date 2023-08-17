@@ -3,8 +3,9 @@ package skuber.api
 import java.nio.file.Paths
 import java.time.Instant
 import org.specs2.mutable.Specification
+
 import skuber.api.client._
-import skuber.model.{K8SCluster, K8SConfiguration, K8SContext, Namespace}
+import skuber.model.Namespace
 
 /**
  * @author David O'Riordan
@@ -233,5 +234,4 @@ users:
     val clientCertificate = parsedFromStringConfig.users("green-user").asInstanceOf[CertAuth].clientCertificate
     clientCertificate mustEqual Left("/top/level/path/path/to/my/client/cert")
   }
-
 }

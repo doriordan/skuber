@@ -5,7 +5,7 @@ import akka.stream.scaladsl.Source
 import play.api.libs.json.Format
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client._
-import skuber.model.{ListOptions, ObjectResource, ResourceDefinition}
+import skuber.model.{ObjectResource, ResourceDefinition}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps

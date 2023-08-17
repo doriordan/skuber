@@ -1,11 +1,11 @@
 package skuber.api.client
 
 import play.api.libs.json.{Writes,Format}
-import skuber.model.{DeleteOptions, HasStatusSubresource, LabelSelector, ListOptions, ListResource, ObjectResource}
+import skuber.model.{HasStatusSubresource, LabelSelector, ListResource, ObjectResource}
 import skuber.api.patch.Patch
-import skuber.model.{Pod, ResourceDefinition, Scale}
+import skuber.model.{ResourceDefinition, Scale}
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 /**
   * @author David O'Riordan
@@ -223,16 +223,6 @@ trait KubernetesClient {
     */
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
       (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O]
-
-  /**
-    * Apply a patch to a specified object resource using json merge patch strategy
-    * @param obj the name of the resource to patch
-    * @param patch the patch (in json patch format)
-    * @tparam O the type of the resource
-    * @return A future containing the patched resource
-    */
-  @deprecated("use patch instead","v2.1")
-  def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(implicit rd: ResourceDefinition[O], fmt: Format[O], lc: LoggingContext): Future[O]
 
   /**
     * Return list of API versions supported by the server

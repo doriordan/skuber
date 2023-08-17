@@ -88,13 +88,7 @@ object CustomResourceDefinition {
   }
 
   def apply[T <: TypeMeta : ResourceDefinition]: CustomResourceDefinition = {
-    val crdSpec: Spec = try {
-      implicitly[ResourceDefinition[T]].spec.asInstanceOf[Spec]
-    } catch {
-      case _: ClassCastException =>
-        val msg = "Requires an implicit resource definition that has a NonCoreResourceSpecification"
-        throw new skuber.model.K8SException(skuber.api.client.Status(message = Some(msg)))
-    }
+    val crdSpec: Spec = implicitly[ResourceDefinition[T]].spec.asInstanceOf[Spec]
     val name=s"${crdSpec.names.plural}.${crdSpec.group.get}"
     new CustomResourceDefinition(metadata=ObjectMeta(name=name), spec=crdSpec)
   }

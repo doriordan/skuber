@@ -13,6 +13,7 @@ import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads, Writes}
 
+import skuber.model.{APIVersions, HasStatusSubresource, ObjectResource, LabelSelector, ListResource, NamespaceList, Pod, ResourceDefinition, ResourceSpecification, Scale, TypeMeta}
 import skuber.akkaclient.AkkaKubernetesClient
 import skuber.akkaclient.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.akkaclient.exec.PodExecImpl
@@ -22,7 +23,6 @@ import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.json.PlayJsonSupportForAkkaHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
-import skuber.model.{K8SException, _}
 
 import javax.net.ssl.SSLContext
 import scala.concurrent.duration._
@@ -508,7 +508,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   }
 
   private def buildLongPollingPool[O <: ObjectResource]() = {
-    LongPollingPool[WatchSource.Start[O]](
+    LongPollingPool[WatchStream.Start[O]](
       clusterServerUri.scheme,
       clusterServerUri.authority.host.address(),
       clusterServerUri.effectivePort,
@@ -562,26 +562,6 @@ class AkkaKubernetesClientImpl private[akkaclient] (
           .withEntity(requestEntity.withContentType(contentType))
       newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
     } yield newOrUpdatedResource
-  }
-
-  /**
-    * Perform a Json merge patch on a resource
-    * The patch is passed a String type which should contain the JSON patch formatted per https://tools.ietf.org/html/rfc7386
-    * It is a String type instead of a JSON object in order to allow clients to use their own favourite JSON library to create the
-    * patch, or alternatively to simply manually craft the JSON and insert it into a String.  Also patches are generally expected to be
-    * relatively small, so storing the whole patch in memory should not be problematic.
-    * It is thus the responsibility of the client to ensure that the `patch` parameter contains a valid JSON merge patch entity for the
-    * targetted Kubernetes resource `obj`
-    * @param obj The resource to update with the patch
-    * @param patch A string containing the JSON patch entity
-    * @return The patched resource (in a Future)
-    */
-  override def jsonMergePatch[O <: ObjectResource](obj: O, patch: String)(
-    implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext): Future[O] =
-  {
-    val patchRequestEntity = HttpEntity.Strict(`application/merge-patch+json`, ByteString(patch))
-    val httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(obj.name)).withEntity(patchRequestEntity)
-    makeRequestReturningObjectResource[O](httpRequest)
   }
 
   // get API versions supported by the cluster
