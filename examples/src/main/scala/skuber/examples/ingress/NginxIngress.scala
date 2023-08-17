@@ -1,19 +1,16 @@
 package skuber.examples.ingress
 
-import java.io.Serializable
 import java.net.HttpURLConnection
-import akka.actor.ActorSystem
-import skuber._
-import skuber.ext.ReplicaSet
-import skuber.model.{Pod, Service}
-import skuber.networking.Ingress
+
 
 import scala.annotation.tailrec
+import akka.actor.ActorSystem
 
-//  the extensions group kinds used in this example
-
+import skuber.api.client.{K8SException, KubernetesClient}
+import skuber.model._
+import skuber.model.apps.v1.ReplicaSet
+import skuber.model.networking.Ingress
 import skuber.json.format._
-import skuber.json.ext.format._
 import skuber.json.networking.format._
 
 import scala.concurrent.Future
@@ -135,7 +132,7 @@ object NginxIngress extends App {
     (List(echoheadersX, echoheadersY), rset)
   }
 
-  def testIngress(ingress: Ingress)(implicit k8s: K8SRequestContext, ec: scala.concurrent.ExecutionContext) = {
+  def testIngress(ingress: Ingress)(implicit k8s: KubernetesClient, ec: scala.concurrent.ExecutionContext) = {
     // we test the ingress simply by sending a GET with an appropriate Host header
 
     // for this simple use case we leverage the built in Java URL / HTTP support, iwth code brutally
@@ -243,7 +240,7 @@ object NginxIngress extends App {
     implicit val system = ActorSystem()
     implicit val dispatcher = system.dispatcher
 
-    implicit val k8s = k8sInit
+    implicit val k8s = skuber.akkaclient.k8sInit
 
     // build the resources
     val be = buildDefaultBackendService

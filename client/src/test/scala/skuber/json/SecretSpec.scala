@@ -4,7 +4,6 @@ import org.specs2.mutable.Specification
 import skuber.model.{ObjectMeta, Secret}
 import format._
 import play.api.libs.json._
-import skuber.model.Secret
 
 /**
   * @author Cory Klein

@@ -1,9 +1,8 @@
 package skuber.examples.guestbook
 
-import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.actor.Props
 import akka.event.LoggingReceive

@@ -5,10 +5,7 @@ import akka.actor.Props
 import akka.util.Timeout
 import akka.event.LoggingReceive
 
-import scala.util.{Failure, Success}
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits._
 import model.GuestbookServiceSpecification
 import skuber.model.{ReplicationController, Service}
 

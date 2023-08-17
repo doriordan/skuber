@@ -1,12 +1,21 @@
 package skuber.akkaclient
 
-import skuber.api.client.{KubernetesClient, LoggingContext}
-import skuber.model.Pod
+
+import play.api.libs.json.Format
 import akka.stream.scaladsl._
 import akka.util.ByteString
 
 import scala.concurrent.{Future, Promise}
 
+import skuber.api.client.{KubernetesClient, ListOptions, LoggingContext, WatchEvent}
+import skuber.model.{ObjectResource, Pod, ResourceDefinition}
+
+
+/**
+  * This trait extends the generic KubernetesClient trait with streaming operations. These streaming operations
+  * have signatures that have types from the underlying streaming library, in this case Akka streams.
+  * This is the interface for any skuber client that is returned by `skuber.akkaclient.k8sInit` calls
+  */
 trait AkkaKubernetesClient extends KubernetesClient {
   /**
     * Get the logs from a pod (similar to `kubectl logs ...`). The logs are streamed using an Akka streams source
@@ -40,4 +49,34 @@ trait AkkaKubernetesClient extends KubernetesClient {
     maybeStderr: Option[Sink[String, _]] = None,
     tty: Boolean = false,
     maybeClose: Option[Promise[Unit]] = None)(implicit lc: LoggingContext): Future[Unit]
+
+  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
+  // The methods return Akka streams sources that will reactively emit a stream of updated
+  // values of the watched resources.
+
+  def watch[O <: ObjectResource](obj: O)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+
+  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
+  // The methods return Akka streams sources that will reactively emit a stream of updated
+  // values of the watched resources.
+
+  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+
+  // watch events on all objects of specified kind in current namespace
+  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]]
+
+  def watchContinuously[O <: ObjectResource](obj: O)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+
+  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+
+  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
+
+  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _]
 }

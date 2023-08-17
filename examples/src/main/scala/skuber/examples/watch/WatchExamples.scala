@@ -3,20 +3,20 @@ package skuber.examples.watch
 import skuber.model.{Pod, PodList, ReplicationController}
 import skuber.json.format._
 import skuber.api.client.K8SWatchEvent
-
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
+import skuber.akkaclient.{AkkaKubernetesClient, k8sInit}
 
-import skuber.akkaclient.k8sInit
+import scala.concurrent.ExecutionContextExecutor
 
 /**
  * @author David O'Riordan
  */
 object WatchExamples extends App {
 
-  implicit val system = ActorSystem("watch")
-  implicit val dispatcher = system.dispatcher
-  implicit val k8s = k8sInit
+  implicit val system: ActorSystem = ActorSystem("watch")
+  implicit val dispatcher: ExecutionContextExecutor = system.dispatcher
+  implicit val k8s: AkkaKubernetesClient = k8sInit
 
   def  watchFrontEndScaling = {
 
@@ -46,7 +46,7 @@ object WatchExamples extends App {
     } yield done
   }
 
-  // Note: run appropriate kubectl commands (like 'run') or an example like gueestbook to see events being output
+  // Note: run appropriate kubectl commands (like 'run') or an example like guestbook to see events being output
   watchPodPhases
   watchFrontEndScaling
 
