@@ -77,7 +77,7 @@ object ExecExamples extends App {
   fut.onComplete { _ =>
     println("\nFinishing up")
     k8s.delete[Pod]("sleep")
-    k8s.close
+    k8s.close()
     system.terminate().foreach { f =>
       System.exit(0)
     }

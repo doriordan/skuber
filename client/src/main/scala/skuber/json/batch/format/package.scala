@@ -21,7 +21,7 @@ package object format {
       (JsPath \ "lastTransitionTime").formatNullable[Timestamp] and
       (JsPath \ "reason").formatNullable[String] and
       (JsPath \ "message").formatNullable[String]
-    )(Job.Condition.apply _, unlift(Job.Condition.unapply))
+    )(Job.Condition.apply, unlift(Job.Condition.unapply))
 
   implicit val jobStatusFormat: Format[Job.Status] = (
       (JsPath \ "conditions").formatMaybeEmptyList[Job.Condition] and
@@ -30,7 +30,7 @@ package object format {
       (JsPath \ "active").formatNullable[Int] and
       (JsPath \ "succeeded").formatNullable[Int] and
       (JsPath \ "failed").formatNullable[Int]
-    )(Job.Status.apply _, unlift(Job.Status.unapply))
+    )(Job.Status.apply, unlift(Job.Status.unapply))
 
   implicit val jobSpecFormat: Format[Job.Spec] = (
       (JsPath \ "parallelism").formatNullable[Int] and
@@ -41,7 +41,7 @@ package object format {
       (JsPath \ "template").formatNullable[Pod.Template.Spec] and
       (JsPath \ "backoffLimit").formatNullable[Int] and
       (JsPath \ "ttlSecondsAfterFinished").formatNullable[Int]
-    )(Job.Spec.apply _, unlift(Job.Spec.unapply))
+    )(Job.Spec.apply, unlift(Job.Spec.unapply))
 
   implicit val jobFormat: Format[Job] = (
       (JsPath \ "kind").formatMaybeEmptyString() and
@@ -49,7 +49,7 @@ package object format {
       (JsPath \ "metadata").format[ObjectMeta] and
       (JsPath \ "spec").formatNullable[Job.Spec] and
       (JsPath \ "status").formatNullable[Job.Status]
-    )(Job.apply _, unlift(Job.unapply))
+    )(Job.apply, unlift(Job.unapply))
 
   implicit val jobTmplSpecFmt: Format[JobTemplate.Spec] = Json.format[JobTemplate.Spec]
 
@@ -58,7 +58,7 @@ package object format {
   implicit val cronJobStatusFmt: Format[CronJob.Status] = (
       (JsPath \ "lastScheduleTime").formatNullable[Timestamp] and
       (JsPath \ "active").formatMaybeEmptyList[ObjectReference]
-  )(CronJob.Status.apply _, unlift(CronJob.Status.unapply))
+  )(CronJob.Status.apply, unlift(CronJob.Status.unapply))
 
   implicit val cronJob: Format[CronJob] = (
       (JsPath \ "kind").formatMaybeEmptyString() and
@@ -66,7 +66,7 @@ package object format {
       (JsPath \ "metadata").format[ObjectMeta] and
       (JsPath \ "spec").formatNullable[CronJob.Spec] and
       (JsPath \ "status").formatNullable[CronJob.Status]
-  )(CronJob.apply _, unlift(CronJob.unapply))
+  )(CronJob.apply, unlift(CronJob.unapply))
 
   implicit val jobListFmt: Format[JobList] = ListResourceFormat[Job]
   implicit val cronJobListFmt: Format[CronJobList] = ListResourceFormat[CronJob]

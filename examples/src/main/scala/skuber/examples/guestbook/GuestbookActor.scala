@@ -55,7 +55,7 @@ class GuestbookActor extends Actor with ActorLogging {
   import KubernetesProxyActor.ResourceNotFound
   
   // Create the other actors supporting the deployment
-  val kubernetesProxy = context.actorOf(Props[KubernetesProxyActor], "kubernetes") 
+  val kubernetesProxy = context.actorOf(Props[KubernetesProxyActor](), "kubernetes")
   val redisMasterService = context.actorOf(ServiceActor.props(kubernetesProxy, redisMasterSpec), "redisMaster")
   val redisSlaveService = context.actorOf(ServiceActor.props(kubernetesProxy, redisSlaveSpec), "redisSlave")
   val frontEndService = context.actorOf(ServiceActor.props(kubernetesProxy, frontEndSpec), "frontEnd")
@@ -67,7 +67,7 @@ class GuestbookActor extends Actor with ActorLogging {
   var redisSlaveRunning=false
   var frontEndRunning=false
   
-  var requester = sender
+  var requester = sender()
   
   // A simple wrapper of requests to the Guestbook service actors, ensuring the returned future
   // fails with an appropriate exception if error / unexpected reply is received. This makes
@@ -137,7 +137,7 @@ class GuestbookActor extends Actor with ActorLogging {
     // perform a requested deployment by calling the high level steps above in turn
     case Deploy => {
       System.out.println("Deploying Guestbook application to Kubernetes.\nThis involves four steps:\n=> stopping the Guestbook services if they are running (by specifying replica counts of 0)\n=> housekeeping the Guestbook application (i.e. removing the resources from Kubernetes if they exist)\n=> (re)creating the Guestbook application on Kubernetes\n=> validating that all replicas are running\n")
-      requester = sender
+      requester = sender()
       log.debug("Received Deploy instruction")
       System.out.println("*** Now stopping services (if they already exist and are running)\n")
       val deploy = for {

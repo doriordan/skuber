@@ -238,14 +238,12 @@ package object client {
 
   class K8SException(val status: Status) extends RuntimeException(status.toString) // we throw this when we receive a non-OK response
 
-  type RequestContext = KubernetesClient // for backwards compatibility (with pre 2.1 clients)
-
   def defaultK8sConfig: Configuration = Configuration.defaultK8sConfig
 
   def defaultAppConfig: Config = ConfigFactory.load()
 
-  val K8SCluster = skuber.api.client.Cluster
-  val K8SContext = skuber.api.client.Context
-  val K8SConfiguration = skuber.api.Configuration
+  val K8SCluster: Cluster.type = skuber.api.client.Cluster
+  val K8SContext: Context.type = skuber.api.client.Context
+  val K8SConfiguration: Configuration.type = skuber.api.Configuration
   type K8SWatchEvent[I <: skuber.model.ObjectResource] = skuber.api.client.WatchEvent[I]
 }

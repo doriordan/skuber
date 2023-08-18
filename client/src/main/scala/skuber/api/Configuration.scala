@@ -1,14 +1,12 @@
 package skuber.api
 
-import java.net.URL
+import java.net.URI
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 import scala.util.Failure
 import java.util.{Base64, Date}
-
 import org.yaml.snakeyaml.Yaml
 import skuber.model.Namespace
 import skuber.api.client._
@@ -210,19 +208,19 @@ object Configuration {
 
         def toK8SContext(contextConfig: YamlMap) = {
           val cluster=contextConfig.asScala.get("cluster").filterNot(_.asInstanceOf[String] == "").map { clusterName =>
-            k8sClusterMap.get(clusterName.asInstanceOf[String]).get
+            k8sClusterMap(clusterName.asInstanceOf[String])
           }.getOrElse(Cluster())
           val authInfo =contextConfig.asScala.get("user").filterNot(_.asInstanceOf[String] == "").map { userKey =>
-            k8sAuthInfoMap.get(userKey.asInstanceOf[String]).get
+            k8sAuthInfoMap(userKey.asInstanceOf[String])
           }.getOrElse(NoAuth)
           val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
           Context(cluster,authInfo,namespace)
         }
 
-        val k8sContextMap = topLevelYamlToK8SConfigMap("context", toK8SContext _)
+        val k8sContextMap = topLevelYamlToK8SConfigMap("context", toK8SContext)
 
         val currentContextStr: Option[String] = optionalValueAt(mainConfig, "current-context")
-        val currentContext = currentContextStr.flatMap(k8sContextMap.get(_)).getOrElse(Context())
+        val currentContext = currentContextStr.flatMap(k8sContextMap.get).getOrElse(Context())
 
         Configuration(k8sClusterMap, k8sContextMap, currentContext, k8sAuthInfoMap)
       }
@@ -294,7 +292,7 @@ object Configuration {
           case Some(conf) if conf == "proxy" =>
             Configuration.useLocalProxyDefault
           case Some(fileUrl) =>
-            val path = Paths.get(new URL(fileUrl).toURI)
+            val path = Paths.get(new URI(fileUrl))
             Configuration.parseKubeconfigFile(path).get
           case None =>
             // try KUBECONFIG

@@ -61,16 +61,16 @@ object ListExamples extends App {
   System.out.println("\nGetting lists of pods in all namespaces in the cluster ==>")
 
   val allPodsMapFut: Future[Map[String, PodList]] = k8s.listByNamespace[PodList]()
-  val allPods: Future[List[Pod]] = allPodsMapFut map { allPodsMap =>
+  val allPods: Future[List[Pod]] = allPodsMapFut.map { allPodsMap =>
     allPodsMap.values.flatMap(_.items).toList
   }
 
-  val printAllPods = allPods map { pods=> listPods(pods) }
-  printAllPods.failed.foreach { ex => System.err.println("Failed => " + ex) }
+  val printAllPods = allPods map { pods => listPods(pods) }
+  printAllPods.failed.foreach { ex => System.err.println(s"Failed => $ex") }
 
   Await.ready(printAllPods, 30.seconds)
 
-  k8s.close
+  k8s.close()
   system.terminate().foreach { f =>
     System.exit(0)
   }

@@ -314,7 +314,7 @@ object FluentExamples extends App {
     deployAll.failed.foreach {  case ex: K8SException => System.err.println("Request failed with status : " + ex.status) }
     
     deployAll andThen { case _ =>
-      k8s.close
+      k8s.close()
       system.terminate().foreach { f =>
         System.exit(0)
       }

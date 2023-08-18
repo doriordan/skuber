@@ -9,7 +9,7 @@ import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.KeyFactory
 import java.security.spec.PKCS8EncodedKeySpec
 import scala.io.Source
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import skuber.api.client.PathOrData
 
 import scala.util.{Success, Try}

@@ -19,11 +19,11 @@ package object format {
 
   // Formatters for the Java 8 ZonedDateTime objects that represent
   // (ISO 8601 / RFC 3329 compatible) Kubernetes timestamp fields
-  implicit val timeWrites = Writes.temporalWrites[ZonedDateTime, DateTimeFormatter](
+  implicit val timeWrites: Writes[Timestamp] = Writes.temporalWrites[ZonedDateTime, DateTimeFormatter](
       DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   @deprecated("Use timeWrites instead", "2.3.0")
-  def timewWrites = timeWrites
-  implicit val timeReads = Reads.DefaultZonedDateTimeReads
+  def timewWrites: Writes[Timestamp] = timeWrites
+  implicit val timeReads: Reads[Timestamp] = Reads.DefaultZonedDateTimeReads
 
   // Many Kubernetes fields are interpreted as "empty" if they have certain values:
   // Strings: zero length
@@ -62,44 +62,39 @@ package object format {
   }
 
   // we make the above formatter methods available on JsPath objects via this implicit conversion
-  implicit def maybeEmptyFormatMethods(path: JsPath) = new MaybeEmpty(path)
+  implicit def maybeEmptyFormatMethods(path: JsPath): MaybeEmpty = new MaybeEmpty(path)
 
   // general formatting for Enumerations - derived from https://gist.github.com/mikesname/5237809
-  implicit def enumReads[E <: Enumeration](enum: E) : Reads[E#Value] = new Reads[E#Value] {
-    def reads(json: JsValue): JsResult[E#Value] = json match {
-      case JsString(s) => {
-        try {
-          JsSuccess(enum.withName(s))
-        } catch {
-          case _: NoSuchElementException => JsError(s"Enumeration expected of type: '${enum.getClass}', but it does not appear to contain the value: '$s'")
-        }
+  implicit def enumReads[E <: Enumeration](enumeration: E) : Reads[E#Value] = {
+    case JsString(s) =>
+      try {
+        JsSuccess(enumeration.withName(s))
+      } catch {
+        case _: NoSuchElementException => JsError(s"Enumeration expected of type: '${enumeration.getClass}', but it does not appear to contain the value: '$s'")
       }
-      case _ => JsError("String value expected")
-    }
+    case _ => JsError("String value expected")
   }
 
-  implicit def enumReads[E <: Enumeration](enum: E, default: E#Value) : Reads[E#Value] = enumReads(enum) or Reads.pure(default)
+  implicit def enumReads[E <: Enumeration](enumeration: E, default: E#Value) : Reads[E#Value] = enumReads(enumeration) or Reads.pure(default)
 
-  implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = new Writes[E#Value] {
-    def writes(v: E#Value): JsValue = JsString(v.toString)
-  }
+  implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = (v: E#Value) => JsString(v.toString)
 
-  implicit def enumFormat[E <: Enumeration](enum: E) : Format[E#Value] = Format(enumReads(enum), enumWrites)
+  implicit def enumFormat[E <: Enumeration](enumeration: E) : Format[E#Value] = Format(enumReads(enumeration), enumWrites)
 
   class EnumFormatter(val path: JsPath) {
-     def formatEnum[E <: Enumeration](enum: E, default: Option[E#Value]=None) : OFormat[E#Value] =
-        path.formatNullable[String].inmap[E#Value](_.map(s => enum.withName(s)).getOrElse(default.get), e =>  Some(e.toString))
-     def formatNullableEnum[E <: Enumeration](enum: E)  : OFormat[Option[E#Value]] =
-        path.formatNullable[String].inmap[Option[E#Value]](_.map(s => enum.withName(s)), e => e map { _.toString } )
+     def formatEnum[E <: Enumeration](enumeration: E, default: Option[E#Value]=None) : OFormat[E#Value] =
+        path.formatNullable[String].inmap[E#Value](_.map(s => enumeration.withName(s)).getOrElse(default.get), e =>  Some(e.toString))
+     def formatNullableEnum[E <: Enumeration](enumeration: E)  : OFormat[Option[E#Value]] =
+        path.formatNullable[String].inmap[Option[E#Value]](_.map(s => enumeration.withName(s)), e => e map { _.toString } )
   }
-  implicit def enumFormatMethods(path: JsPath)  = new EnumFormatter(path)
+  implicit def enumFormatMethods(path: JsPath): EnumFormatter = new EnumFormatter(path)
 
   case class SelMatchExpression(
     key: String,
     operator: String = "Exists",
     values: Option[List[String]] = None
   )
-  implicit val selMatchExpressionFmt = Json.format[SelMatchExpression]
+  implicit val selMatchExpressionFmt: Format[SelMatchExpression] = Json.format[SelMatchExpression]
   case class OnTheWireSelector(matchLabels: Option[Map[String,String]]=None, matchExpressions: Option[List[SelMatchExpression]]=None)
 
   import LabelSelector._
@@ -144,7 +139,7 @@ package object format {
     OnTheWireSelector(matchLabels = matchLabels, matchExpressions = matchExpressions)
   }
 
-  implicit val otwsFormat = Json.format[OnTheWireSelector]
+  implicit val otwsFormat: Format[OnTheWireSelector] = Json.format[OnTheWireSelector]
 
   class LabelSelectorFormat(path: JsPath) {
     def formatNullableLabelSelector: OFormat[Option[LabelSelector]] =
@@ -155,12 +150,12 @@ package object format {
 
     def formatLabelSelector: OFormat[LabelSelector] =
       path.format[OnTheWireSelector].inmap[LabelSelector](
-        otwSelectorToLabelSelector(_),
-        labelSelToOtwSelector(_)
+        otwSelectorToLabelSelector,
+        labelSelToOtwSelector
       )
   }
 
-  implicit def jsPath2LabelSelFormat(path: JsPath) = new LabelSelectorFormat(path)
+  implicit def jsPath2LabelSelFormat(path: JsPath): LabelSelectorFormat = new LabelSelectorFormat(path)
 
   // formatting of the Kubernetes types
 
@@ -176,7 +171,7 @@ package object format {
     (JsPath \ "metadata").formatNullable[ListMeta] and
     (JsPath \ "items").formatMaybeEmptyList[O]
 
-  def ListResourceFormat[O <: ObjectResource](implicit f: Format[O]): OFormat[ListResource[O]] = listResourceFormatBuilder[O].apply(ListResource.apply _, unlift(ListResource.unapply))
+  def ListResourceFormat[O <: ObjectResource](implicit f: Format[O]): OFormat[ListResource[O]] = listResourceFormatBuilder[O].apply(ListResource.apply, unlift(ListResource.unapply))
 
   implicit val ownerRefFmt: Format[OwnerReference] = (
     (JsPath \ "apiVersion").formatMaybeEmptyString() and
@@ -185,7 +180,7 @@ package object format {
     (JsPath \ "uid").formatMaybeEmptyString() and
     (JsPath \ "controller").formatNullable[Boolean] and
     (JsPath \ "blockOwnerDeletion").formatNullable[Boolean]
-  )(OwnerReference.apply _,unlift((OwnerReference.unapply)))
+  )(OwnerReference.apply,unlift(OwnerReference.unapply))
 
   implicit lazy val objectMetaFormat: Format[ObjectMeta] = (
     (JsPath \ "name").formatMaybeEmptyString() and
@@ -203,17 +198,17 @@ package object format {
     (JsPath \ "generation").formatMaybeEmptyInt() and
     (JsPath \ "finalizers").formatNullable[List[String]] and
     (JsPath \ "clusterName").formatNullable[String]
-  )(ObjectMeta.apply _, unlift(ObjectMeta.unapply))
+  )(ObjectMeta.apply, unlift(ObjectMeta.unapply))
 
   implicit val listMetaFormat: Format[ListMeta] = (
     (JsPath \ "selfLink").formatMaybeEmptyString() and
     (JsPath \ "resourceVersion").formatMaybeEmptyString() and
     (JsPath \ "continue").formatNullable[String]
-  )(ListMeta.apply _, unlift(ListMeta.unapply))
+  )(ListMeta.apply, unlift(ListMeta.unapply))
 
-  implicit val localObjRefFormat = Json.format[LocalObjectReference]
+  implicit val localObjRefFormat: Format[LocalObjectReference] = Json.format[LocalObjectReference]
 
-  implicit val apiVersionsFormat = Json.format[APIVersions]
+  implicit val apiVersionsFormat: Format[APIVersions] = Json.format[APIVersions]
 
   implicit val objRefFormat: Format[ObjectReference] = (
     (JsPath \ "kind").formatMaybeEmptyString() and
@@ -223,7 +218,7 @@ package object format {
     (JsPath \ "uid").formatMaybeEmptyString() and
     (JsPath \ "resourceVersion").formatMaybeEmptyString() and
     (JsPath \ "fieldPath").formatMaybeEmptyString()
-  )(ObjectReference.apply _, unlift(ObjectReference.unapply))
+  )(ObjectReference.apply, unlift(ObjectReference.unapply))
 
   implicit val nsSpecFormat: Format[Namespace.Spec] = Json.format[Namespace.Spec]
   implicit val nsStatusFormat: Format[Namespace.Status] = Json.format[Namespace.Status]
@@ -232,19 +227,19 @@ package object format {
       objFormat and
     	(JsPath \ "spec").formatNullable[Namespace.Spec] and
     	(JsPath \ "status").formatNullable[Namespace.Status]
-    ) (Namespace.apply _, unlift(Namespace.unapply))
+    ) (Namespace.apply, unlift(Namespace.unapply))
 
   implicit val secSELFormat: Format[Security.SELinuxOptions] = (
       (JsPath \ "user").formatMaybeEmptyString() and
       (JsPath \ "role").formatMaybeEmptyString() and
       (JsPath \ "type").formatMaybeEmptyString() and
       (JsPath \ "level").formatMaybeEmptyString()
-   )(Security.SELinuxOptions.apply _, unlift(Security.SELinuxOptions.unapply))
+   )(Security.SELinuxOptions.apply, unlift(Security.SELinuxOptions.unapply))
 
   implicit val secCapabFormat: Format[Security.Capabilities] = (
       (JsPath \ "add").formatMaybeEmptyList[Security.Capability] and
       (JsPath \ "drop").formatMaybeEmptyList[Security.Capability]
-  )(Security.Capabilities.apply _, unlift(Security.Capabilities.unapply))
+  )(Security.Capabilities.apply, unlift(Security.Capabilities.unapply))
 
   implicit val secSysctlFormat: Format[Security.Sysctl] = Json.format[Security.Sysctl]
 
@@ -258,7 +253,7 @@ package object format {
       (JsPath \ "seLinuxOptions").formatNullable[Security.SELinuxOptions] and
       (JsPath \ "supplementalGroups").formatMaybeEmptyList[Int] and
       (JsPath \ "sysctls").formatMaybeEmptyList[Security.Sysctl]
-  )(PodSecurityContext.apply _, unlift(PodSecurityContext.unapply))
+  )(PodSecurityContext.apply, unlift(PodSecurityContext.unapply))
 
   implicit val tolerationEffectFmt: Format[Pod.TolerationEffect] = new Format[Pod.TolerationEffect] {
 
@@ -330,26 +325,23 @@ package object format {
   implicit val envVarFldRefFmt: Format[EnvVar.FieldRef] = (
     (JsPath \ "fieldPath").format[String] and
     (JsPath \ "apiVersion").formatMaybeEmptyString()
-  )(EnvVar.FieldRef.apply _, unlift(EnvVar.FieldRef.unapply))
+  )(EnvVar.FieldRef.apply, unlift(EnvVar.FieldRef.unapply))
 
-  implicit val envVarCfgMapRefFmt = Json.format[EnvVar.ConfigMapKeyRef]
-  implicit val envVarSecKeyRefFmt = Json.format[EnvVar.SecretKeyRef]
+  implicit val envVarCfgMapRefFmt: Format[EnvVar.ConfigMapKeyRef] = Json.format[EnvVar.ConfigMapKeyRef]
+  implicit val envVarSecKeyRefFmt: Format[EnvVar.SecretKeyRef] = Json.format[EnvVar.SecretKeyRef]
 
-  implicit val envVarValueWrite = Writes[EnvVar.Value] {
-     value => value match {
-       case EnvVar.StringValue(str) => (JsPath \ "value").write[String].writes(str)
-       case fr: EnvVar.FieldRef => (JsPath \ "valueFrom" \ "fieldRef").write[EnvVar.FieldRef].writes(fr)
-       case cmr: EnvVar.ConfigMapKeyRef => (JsPath \ "valueFrom" \ "configMapKeyRef").write[EnvVar.ConfigMapKeyRef].writes(cmr)
-       case skr: EnvVar.SecretKeyRef => (JsPath \ "valueFrom" \ "secretKeyRef").write[EnvVar.SecretKeyRef].writes(skr)
-     }
+  implicit val envVarValueWrite: Writes[EnvVar.Value] = Writes[EnvVar.Value] {
+    case EnvVar.StringValue(str) => (JsPath \ "value").write[String].writes(str)
+    case fr: EnvVar.FieldRef => (JsPath \ "valueFrom" \ "fieldRef").write[EnvVar.FieldRef].writes(fr)
+    case cmr: EnvVar.ConfigMapKeyRef => (JsPath \ "valueFrom" \ "configMapKeyRef").write[EnvVar.ConfigMapKeyRef].writes(cmr)
+    case skr: EnvVar.SecretKeyRef => (JsPath \ "valueFrom" \ "secretKeyRef").write[EnvVar.SecretKeyRef].writes(skr)
   }
 
-  implicit val envVarValueReads: Reads[EnvVar.Value] = (
+  implicit val envVarValueReads: Reads[EnvVar.Value] =
       (JsPath \ "valueFrom" \ "fieldRef").read[EnvVar.FieldRef].map(x => x: EnvVar.Value) |
       (JsPath \ "valueFrom" \ "configMapKeyRef").read[EnvVar.ConfigMapKeyRef].map(x => x: EnvVar.Value) |
       (JsPath \ "valueFrom" \ "secretKeyRef").read[EnvVar.SecretKeyRef].map(x => x: EnvVar.Value) |
       (JsPath \ "value").readNullable[String].map(value => EnvVar.StringValue(value.getOrElse("")))
-  )
 
    implicit val envVarWrites : Writes[EnvVar] = (
     (JsPath \ "name").write[String] and
@@ -361,7 +353,7 @@ package object format {
     JsPath.read[EnvVar.Value]
   )(EnvVar.apply _)
 
-  implicit val envVarFormat = Format(envVarReads, envVarWrites)
+  implicit val envVarFormat: Format[EnvVar] = Format(envVarReads, envVarWrites)
 
   implicit val configMapEnvSourceFmt: Format[EnvFromSource.ConfigMapEnvSource] = Json.format[EnvFromSource.ConfigMapEnvSource]
   implicit val secretRefEnvSourceFmt: Format[EnvFromSource.SecretEnvSource] = Json.format[EnvFromSource.SecretEnvSource]
@@ -370,11 +362,9 @@ package object format {
     (JsPath \ "configMapRef").read[EnvFromSource.ConfigMapEnvSource].map(x => x: EnvFromSource.EnvSource) |
     (JsPath \ "secretRef").read[EnvFromSource.SecretEnvSource].map(x => x: EnvFromSource.EnvSource)
 
-  implicit val envSourceWrite = Writes[EnvFromSource.EnvSource] {
-    value => value match {
-      case c: EnvFromSource.ConfigMapEnvSource => (JsPath \ "configMapRef").write[EnvFromSource.ConfigMapEnvSource].writes(c)
-      case s: EnvFromSource.SecretEnvSource => (JsPath \ "secretRef").write[EnvFromSource.SecretEnvSource].writes(s)
-    }
+  implicit val envSourceWrite: Writes[EnvFromSource.EnvSource] = Writes[EnvFromSource.EnvSource] {
+    case c: EnvFromSource.ConfigMapEnvSource => (JsPath \ "configMapRef").write[EnvFromSource.ConfigMapEnvSource].writes(c)
+    case s: EnvFromSource.SecretEnvSource => (JsPath \ "secretRef").write[EnvFromSource.SecretEnvSource].writes(s)
   }
 
   implicit val envFromSourceReads: Reads[EnvFromSource] = (
@@ -389,17 +379,17 @@ package object format {
 
   implicit val envFromSourceFmt: Format[EnvFromSource] = Format(envFromSourceReads, envFromSourceWrites)
 
-  implicit val quantityFormat = new Format[Resource.Quantity] {
+  implicit val quantityFormat: Format[Resource.Quantity] = new Format[Resource.Quantity] {
      // Note: validate on read in future?
-     def reads(json: JsValue) =
+     def reads(json: JsValue): JsResult[Resource.Quantity] =
         Json.fromJson[String](json).flatMap { s => JsSuccess(Resource.Quantity(s)) }
-     def writes(o: Resource.Quantity) = Json.toJson(o.value)
+     def writes(o: Resource.Quantity): JsValue = Json.toJson(o.value)
   }
 
   implicit val resRqtsFormat: Format[Resource.Requirements] = (
     (JsPath \ "limits").formatMaybeEmptyMap[Resource.Quantity] and
     (JsPath \ "requests").formatMaybeEmptyMap[Resource.Quantity]
-  )(Resource.Requirements.apply _, unlift(Resource.Requirements.unapply))
+  )(Resource.Requirements.apply, unlift(Resource.Requirements.unapply))
 
   implicit val protocolFmt: Format[skuber.model.Protocol.Value] = Format(enumReads(Protocol, Protocol.TCP), enumWrites)
 
@@ -409,43 +399,36 @@ package object format {
     (JsPath \ "name").formatMaybeEmptyString() and
     (JsPath \ "hostIP").formatMaybeEmptyString() and
     (JsPath \ "hostPort").formatNullable[Int]
-  )(Container.Port.apply _, unlift(Container.Port.unapply))
+  )(Container.Port.apply, unlift(Container.Port.unapply))
 
-  implicit val cntrStateWaitingFormat=Json.format[Container.Waiting]
-  implicit val cntrStateRunningFormat=Json.format[Container.Running]
-  implicit val cntrStateTerminatedFormat=Json.format[Container.Terminated]
+  implicit val cntrStateWaitingFormat: Format[Container.Waiting] =Json.format[Container.Waiting]
+  implicit val cntrStateRunningFormat: Format[Container.Running] =Json.format[Container.Running]
+  implicit val cntrStateTerminatedFormat: Format[Container.Terminated] =Json.format[Container.Terminated]
 
-  implicit val cntrStateReads: Reads[Container.State] = (
+  implicit val cntrStateReads: Reads[Container.State] =
     (JsPath \ "waiting").read[Container.Waiting].map(x => x: Container.State) |
     (JsPath \ "running").read[Container.Running].map(x => x: Container.State) |
     (JsPath \ "terminated").read[Container.Terminated].map(x => x: Container.State) |
     Reads.pure(Container.Waiting()) // default
-  )
 
   implicit val cntrStateWrites: Writes[Container.State] = Writes[Container.State] {
-    state => state match {
-      case wt: Container.Waiting => (JsPath \ "waiting").write[Container.Waiting](cntrStateWaitingFormat).writes(wt)
-      case rn: Container.Running => (JsPath \ "running").write[Container.Running](cntrStateRunningFormat).writes(rn)
-      case te: Container.Terminated => (JsPath \ "terminated").write[Container.Terminated](cntrStateTerminatedFormat).writes(te)
-    }
+    case wt: Container.Waiting => (JsPath \ "waiting").write[Container.Waiting](cntrStateWaitingFormat).writes(wt)
+    case rn: Container.Running => (JsPath \ "running").write[Container.Running](cntrStateRunningFormat).writes(rn)
+    case te: Container.Terminated => (JsPath \ "terminated").write[Container.Terminated](cntrStateTerminatedFormat).writes(te)
   }
 
-  implicit val cntrStatusFormat = Json.format[Container.Status]
+  implicit val cntrStatusFormat: Format[Container.Status] = Json.format[Container.Status]
 
-  implicit val execActionFormat: Format[ExecAction] = (
+  implicit val execActionFormat: Format[ExecAction] =
     (JsPath \ "command").format[List[String]].inmap(cmd => ExecAction(cmd), (ea: ExecAction) => ea.command)
-  )
 
-  implicit val intOrStrReads: Reads[IntOrString] = (
+  implicit val intOrStrReads: Reads[IntOrString] =
     JsPath.read[Int].map(value => Left(value)) |
     JsPath.read[String].map(value => Right(value) )
-  )
 
-  implicit val intOrStrWrites = Writes[IntOrString] {
-     value => value match {
-       case Left(i) => Writes.IntWrites.writes(i)
-       case Right(s) => Writes.StringWrites.writes(s)
-     }
+  implicit val intOrStrWrites: Writes[IntOrString] = Writes[IntOrString] {
+    case Left(i) => Writes.IntWrites.writes(i)
+    case Right(s) => Writes.StringWrites.writes(s)
   }
 
   implicit val intOrStringFormat: Format[IntOrString] = Format(intOrStrReads, intOrStrWrites)
@@ -455,25 +438,21 @@ package object format {
       (JsPath \ "host").formatMaybeEmptyString() and
       (JsPath \ "path").formatMaybeEmptyString() and
       (JsPath \ "scheme").formatMaybeEmptyString()
-   )(HTTPGetAction.apply _, unlift(HTTPGetAction.unapply))
+   )(HTTPGetAction.apply, unlift(HTTPGetAction.unapply))
 
 
-  implicit val tcpSocketActionFormat: Format[TCPSocketAction] = (
+  implicit val tcpSocketActionFormat: Format[TCPSocketAction] =
       (JsPath \ "port").format[NameablePort].inmap(port => TCPSocketAction(port), (tsa: TCPSocketAction) => tsa.port)
-  )
 
-   implicit val handlerReads: Reads[Handler] = (
-      (JsPath \ "exec").read[ExecAction].map(x => x:Handler) |
-      (JsPath \ "httpGet").read[HTTPGetAction].map(x => x:Handler) |
-      (JsPath \ "tcpSocket").read[TCPSocketAction].map(x => x:Handler)
-  )
+   implicit val handlerReads: Reads[Handler] =
+     (JsPath \ "exec").read[ExecAction].map(x => x:Handler) |
+     (JsPath \ "httpGet").read[HTTPGetAction].map(x => x:Handler) |
+     (JsPath \ "tcpSocket").read[TCPSocketAction].map(x => x:Handler)
 
   implicit val handlerWrites: Writes[Handler] = Writes[Handler] {
-    handler => handler match {
-      case ea: ExecAction => (JsPath \ "exec").write[ExecAction](execActionFormat).writes(ea)
-      case hga: HTTPGetAction => (JsPath \ "httpGet").write[HTTPGetAction](httpGetActionFormat).writes(hga)
-      case tsa: TCPSocketAction => (JsPath \ "tcpSocket").write[TCPSocketAction](tcpSocketActionFormat).writes(tsa)
-    }
+    case ea: ExecAction => (JsPath \ "exec").write[ExecAction](execActionFormat).writes(ea)
+    case hga: HTTPGetAction => (JsPath \ "httpGet").write[HTTPGetAction](httpGetActionFormat).writes(hga)
+    case tsa: TCPSocketAction => (JsPath \ "tcpSocket").write[TCPSocketAction](tcpSocketActionFormat).writes(tsa)
   }
   implicit val handlerFormat: Format[Handler] = Format(handlerReads, handlerWrites)
 
@@ -484,7 +463,7 @@ package object format {
     (JsPath \ "periodSeconds").formatNullable[Int] and
     (JsPath \ "successThreshold").formatNullable[Int] and
     (JsPath \ "failureThreshold").formatNullable[Int]
-  )(Probe.apply _, unlift(Probe.unapply))
+  )(Probe.apply, unlift(Probe.unapply))
 
   implicit val lifecycleFormat: Format[Lifecycle] = Json.format[Lifecycle]
 
@@ -501,7 +480,7 @@ package object format {
   implicit val emptyDirFormat: Format[Volume.EmptyDir] = (
     (JsPath \ "medium").formatWithDefault[Volume.StorageMedium](Volume.DefaultStorageMedium) and
     (JsPath \ "sizeLimit").formatNullable[Resource.Quantity]
-  )(Volume.EmptyDir.apply _, unlift(Volume.EmptyDir.unapply))
+  )(Volume.EmptyDir.apply, unlift(Volume.EmptyDir.unapply))
 
   implicit val hostPathFormat: Format[Volume.HostPath] = Json.format[Volume.HostPath]
   implicit val keyToPathFormat: Format[KeyToPath] = Json.format[KeyToPath]
@@ -511,7 +490,7 @@ package object format {
   implicit val objectFieldSelectorFormat: Format[Volume.ObjectFieldSelector] = (
     (JsPath \ "apiVersion").formatMaybeEmptyString() and
     (JsPath \ "fieldPath").format[String]
-  )(Volume.ObjectFieldSelector.apply _, unlift(Volume.ObjectFieldSelector.unapply))
+  )(Volume.ObjectFieldSelector.apply, unlift(Volume.ObjectFieldSelector.unapply))
 
   implicit val resourceFieldSelectorFormat: Format[Volume.ResourceFieldSelector] = Json.format[Volume.ResourceFieldSelector]
   implicit val downwardApiVolumeFileFormat: Format[Volume.DownwardApiVolumeFile] = Json.format[Volume.DownwardApiVolumeFile]
@@ -519,40 +498,40 @@ package object format {
   implicit val downwardApiVolumeSourceFormat: Format[Volume.DownwardApiVolumeSource] = (
       (JsPath \ "defaultMode").formatNullable[Int] and
       (JsPath \ "items").formatMaybeEmptyList[Volume.DownwardApiVolumeFile]
-    )(Volume.DownwardApiVolumeSource.apply _, unlift(Volume.DownwardApiVolumeSource.unapply))
+    )(Volume.DownwardApiVolumeSource.apply, unlift(Volume.DownwardApiVolumeSource.unapply))
 
   implicit val configMapVolFormat: Format[ConfigMapVolumeSource] = (
       (JsPath \ "name").format[String] and
       (JsPath \ "items").formatMaybeEmptyList[KeyToPath] and
       (JsPath \ "defaultMode").formatNullable[Int] and
       (JsPath \ "optional").formatNullable[Boolean]
-    )(ConfigMapVolumeSource.apply _, unlift(ConfigMapVolumeSource.unapply))
+    )(ConfigMapVolumeSource.apply, unlift(ConfigMapVolumeSource.unapply))
 
   implicit  val gceFormat: Format[Volume.GCEPersistentDisk] = (
      (JsPath \ "pdName").format[String] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.GCEPersistentDisk.apply _, unlift(Volume.GCEPersistentDisk.unapply))
+   )(Volume.GCEPersistentDisk.apply, unlift(Volume.GCEPersistentDisk.unapply))
 
    implicit val awsFormat: Format[Volume.AWSElasticBlockStore] = (
      (JsPath \ "volumeID").format[String] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "partition").formatMaybeEmptyInt() and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.AWSElasticBlockStore.apply _, unlift(Volume.AWSElasticBlockStore.unapply))
+   )(Volume.AWSElasticBlockStore.apply, unlift(Volume.AWSElasticBlockStore.unapply))
 
     implicit val nfsFormat: Format[Volume.NFS] = (
      (JsPath \ "server").format[String] and
      (JsPath \ "path").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.NFS.apply _, unlift(Volume.NFS.unapply))
+   )(Volume.NFS.apply, unlift(Volume.NFS.unapply))
 
    implicit val glusterfsFormat: Format[Volume.Glusterfs] = (
      (JsPath \ "endpoints").format[String] and
      (JsPath \ "path").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.Glusterfs.apply _, unlift(Volume.Glusterfs.unapply))
+   )(Volume.Glusterfs.apply, unlift(Volume.Glusterfs.unapply))
 
    implicit val rbdFormat: Format[Volume.RBD] = (
      (JsPath \ "monitors").format[List[String]] and
@@ -563,7 +542,7 @@ package object format {
      (JsPath \ "keyring").formatMaybeEmptyString() and
      (JsPath \ "secretRef").formatNullable[LocalObjectReference] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.RBD.apply _, unlift(Volume.RBD.unapply))
+   )(Volume.RBD.apply, unlift(Volume.RBD.unapply))
 
    implicit val iscsiFormat: Format[Volume.ISCSI] = (
      (JsPath \ "targetPortal").format[String] and
@@ -572,14 +551,14 @@ package object format {
      (JsPath \ "lun").format[Int] and
      (JsPath \ "fsType").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.ISCSI.apply _, unlift(Volume.ISCSI.unapply))
+   )(Volume.ISCSI.apply, unlift(Volume.ISCSI.unapply))
 
    implicit val persistentVolumeClaimRefFormat: Format[Volume.PersistentVolumeClaimRef] = (
      (JsPath \ "claimName").format[String] and
      (JsPath \ "readOnly").formatMaybeEmptyBoolean()
-   )(Volume.PersistentVolumeClaimRef.apply _, unlift(Volume.PersistentVolumeClaimRef.unapply))
+   )(Volume.PersistentVolumeClaimRef.apply, unlift(Volume.PersistentVolumeClaimRef.unapply))
 
-   implicit val persVolumeSourceReads: Reads[Volume.PersistentSource] = (
+   implicit val persVolumeSourceReads: Reads[Volume.PersistentSource] =
      (JsPath \ "hostPath").read[Volume.HostPath].map(x => x: Volume.PersistentSource) |
      (JsPath \ "awsElasticBlockStore").read[Volume.AWSElasticBlockStore].map(x => x: Volume.PersistentSource) |
      (JsPath \ "nfs").read[Volume.NFS].map(x => x: Volume.PersistentSource) |
@@ -588,8 +567,6 @@ package object format {
      (JsPath \ "iscsi").read[Volume.ISCSI].map(x => x: Volume.PersistentSource) |
      (JsPath \ "gcePersistentDisk").read[Volume.GCEPersistentDisk].map(x => x: Volume.PersistentSource) |
      JsPath.read[JsValue].map[Volume.PersistentSource](j => Volume.GenericVolumeSource(j.toString))
-   )
-
 
   implicit val secretProjectionFormat: Format[Volume.SecretProjection] = Json.format[Volume.SecretProjection]
   implicit val configMapProjectionFormat: Format[Volume.ConfigMapProjection] = Json.format[Volume.ConfigMapProjection]
@@ -619,7 +596,7 @@ package object format {
         })))
   }
 
-   implicit val volumeSourceReads: Reads[Volume.Source] = (
+   implicit val volumeSourceReads: Reads[Volume.Source] =
      (JsPath \ "emptyDir").read[Volume.EmptyDir].map(x => x: Volume.Source) |
      (JsPath \ "projected").read[Volume.ProjectedVolumeSource].map(x => x: Volume.Source) |
      (JsPath \ "secret").read[Volume.Secret].map(x => x: Volume.Source) |
@@ -628,7 +605,6 @@ package object format {
      (JsPath \ "persistentVolumeClaim").read[Volume.PersistentVolumeClaimRef].map(x => x: Volume.Source) |
      (JsPath \ "downwardAPI").read[Volume.DownwardApiVolumeSource].map(x => x: Volume.Source) |
      persVolumeSourceReads.map(x => x: Volume.Source)
-   )
 
    implicit val persVolumeSourceWrites: Writes[Volume.PersistentSource] = Writes[Volume.PersistentSource] {
      case hp: Volume.HostPath => (JsPath \ "hostPath").write[Volume.HostPath](hostPathFormat).writes(hp)
@@ -674,7 +650,7 @@ package object format {
      (JsPath \ "readOnly").formatMaybeEmptyBoolean() and
      (JsPath \ "subPath").formatMaybeEmptyString() and
      (JsPath \ "mountPropagation").formatNullableEnum(Volume.MountPropagationMode)
-   )(Volume.Mount.apply _, unlift(Volume.Mount.unapply))
+   )(Volume.Mount.apply, unlift(Volume.Mount.unapply))
 
 
   implicit val volDeviceFmt: Format[Volume.Device] = Json.format[Volume.Device]
@@ -708,12 +684,12 @@ package object format {
     (JsPath \ "tty").formatNullable[Boolean] and
     (JsPath \ "volumeDevices").formatMaybeEmptyList[Volume.Device] and
     (JsPath \ "startupProbe").formatNullable[Probe] 
-  )(Container.apply _, unlift(Container.unapply))
+  )(Container.apply, unlift(Container.unapply))
 
   implicit val cntnrImageFmt: Format[Container.Image] = (
     (JsPath \ "names").formatMaybeEmptyList[String] and
     (JsPath \ "sizeBytes").formatNullable[Long]
-  )(Container.Image.apply _, unlift(Container.Image.unapply))
+  )(Container.Image.apply, unlift(Container.Image.unapply))
 
   implicit val podStatusCondFormat : Format[Pod.Condition] = (
       (JsPath \ "type").format[String] and
@@ -722,7 +698,7 @@ package object format {
       (JsPath \ "message").formatNullable[String] and
       (JsPath \ "lastProbeTime").formatNullable[Timestamp] and
       (JsPath \ "lastTransitionTime").formatNullable[Timestamp]
-    )(Pod.Condition.apply _, unlift(Pod.Condition.unapply))
+    )(Pod.Condition.apply, unlift(Pod.Condition.unapply))
 
   implicit val podStatusFormat: Format[Pod.Status] = (
       (JsPath \ "phase").formatNullableEnum(Pod.Phase) and
@@ -736,13 +712,13 @@ package object format {
       (JsPath \ "initContainerStatuses").formatMaybeEmptyList[Container.Status] and
       (JsPath \ "qosClass").formatNullable[String] and
       (JsPath \ "nominatedNodeName").formatNullable[String]
-    )(Pod.Status.apply _, unlift(Pod.Status.unapply))
+    )(Pod.Status.apply, unlift(Pod.Status.unapply))
 
   implicit lazy val podFormat : Format[Pod] = (
       objFormat and
       (JsPath \ "spec").formatNullable[Pod.Spec] and
       (JsPath \ "status").formatNullable[Pod.Status]
-    ) (Pod.apply _, unlift(Pod.unapply))
+    ) (Pod.apply, unlift(Pod.unapply))
 
 
   implicit val nodeAffinityOperatorFormat: Format[Pod.Affinity.NodeSelectorOperator.Operator] = Format(enumReads(Pod.Affinity.NodeSelectorOperator), enumWrites)
@@ -751,17 +727,17 @@ package object format {
     (JsPath \ "key").formatMaybeEmptyString() and
       (JsPath \ "operator").formatEnum(Pod.Affinity.NodeSelectorOperator) and
       (JsPath \ "values").formatMaybeEmptyList[String]
-    )(Pod.Affinity.NodeSelectorRequirement.apply _, unlift(Pod.Affinity.NodeSelectorRequirement.unapply))
+    )(Pod.Affinity.NodeSelectorRequirement.apply, unlift(Pod.Affinity.NodeSelectorRequirement.unapply))
 
   implicit val nodeSelectorTermFormat: Format[Pod.Affinity.NodeSelectorTerm] = (
     (JsPath \ "matchExpressions").formatMaybeEmptyList[Pod.Affinity.NodeSelectorRequirement] and
       (JsPath \ "matchFields").formatMaybeEmptyList[Pod.Affinity.NodeSelectorRequirement]
-    )(Pod.Affinity.NodeSelectorTerm.apply _, unlift(Pod.Affinity.NodeSelectorTerm.unapply))
+    )(Pod.Affinity.NodeSelectorTerm.apply, unlift(Pod.Affinity.NodeSelectorTerm.unapply))
 
-  implicit val nodeRequiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] = (
+  implicit val nodeRequiredDuringSchedulingIgnoredDuringExecutionFormat: Format[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] =
     (JsPath \ "nodeSelectorTerms").format[Pod.Affinity.NodeSelectorTerms].inmap(
       nodeSelectorTerms => Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution(nodeSelectorTerms),
-      (rdside: Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms)
+      (rdside: Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution) => rdside.nodeSelectorTerms
     )
 
   implicit lazy val nodePreferredSchedulingTermFormat : Format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm] = Json.format[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
@@ -769,25 +745,25 @@ package object format {
   implicit lazy val nodeAffinityFormat : Format[Pod.Affinity.NodeAffinity] = (
     (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatNullable[Pod.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution] and
     (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.NodeAffinity.PreferredSchedulingTerm]
-  )(Pod.Affinity.NodeAffinity.apply _, unlift(Pod.Affinity.NodeAffinity.unapply))
+  )(Pod.Affinity.NodeAffinity.apply, unlift(Pod.Affinity.NodeAffinity.unapply))
 
   implicit lazy val podAffinityTermFormat: Format[Pod.Affinity.PodAffinityTerm] = (
     (JsPath \ "labelSelector").formatNullableLabelSelector and
     (JsPath \ "namespaces").formatMaybeEmptyList[String] and
     (JsPath \ "topologyKey").format[String]
-  )(Pod.Affinity.PodAffinityTerm.apply _, unlift(Pod.Affinity.PodAffinityTerm.unapply))
+  )(Pod.Affinity.PodAffinityTerm.apply, unlift(Pod.Affinity.PodAffinityTerm.unapply))
 
   implicit lazy val weightedPodAffinityTermFmt: Format[Pod.Affinity.WeightedPodAffinityTerm] = Json.format[Pod.Affinity.WeightedPodAffinityTerm]
 
   implicit lazy val podAffinityFormat: Format[Pod.Affinity.PodAffinity] = (
     (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.PodAffinityTerm] and
     (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.WeightedPodAffinityTerm]
-  )(Pod.Affinity.PodAffinity.apply _, unlift(Pod.Affinity.PodAffinity.unapply))
+  )(Pod.Affinity.PodAffinity.apply, unlift(Pod.Affinity.PodAffinity.unapply))
 
   implicit lazy val podAntiAffinityFormat: Format[Pod.Affinity.PodAntiAffinity] = (
     (JsPath \ "requiredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.PodAffinityTerm] and
     (JsPath \ "preferredDuringSchedulingIgnoredDuringExecution").formatMaybeEmptyList[Pod.Affinity.WeightedPodAffinityTerm]
-  )(Pod.Affinity.PodAntiAffinity.apply _, unlift(Pod.Affinity.PodAntiAffinity.unapply))
+  )(Pod.Affinity.PodAntiAffinity.apply, unlift(Pod.Affinity.PodAntiAffinity.unapply))
 
 
   implicit lazy val affinityFormat : Format[Pod.Affinity] = Json.format[Pod.Affinity]
@@ -798,7 +774,7 @@ package object format {
       (JsPath \ "nameservers").formatMaybeEmptyList[String] and
       (JsPath \ "options").formatMaybeEmptyList[Pod.DNSConfigOption] and
       (JsPath \ "searches").formatMaybeEmptyList[String]
-  )(Pod.DNSConfig.apply _, unlift(Pod.DNSConfig.unapply))
+  )(Pod.DNSConfig.apply, unlift(Pod.DNSConfig.unapply))
 
   // the following ugliness is to do with the Kubernetes pod spec schema expanding until it takes over the entire universe,
   // which has finally necessitated a hack to get around Play Json limitations supporting case classes with > 22 members
@@ -886,16 +862,16 @@ package object format {
   implicit lazy val podTemplFormat : Format[Pod.Template] = (
       objFormat and
       (JsPath \ "spec").formatNullable[Pod.Template.Spec]
-    ) (Pod.Template.apply _, unlift(Pod.Template.unapply))
+    ) (Pod.Template.apply, unlift(Pod.Template.unapply))
 
-  implicit val repCtrlrSpecFormat = Json.format[ReplicationController.Spec]
-  implicit val repCtrlrStatusFormat = Json.format[ReplicationController.Status]
+  implicit val repCtrlrSpecFormat: Format[ReplicationController.Spec] = Json.format[ReplicationController.Spec]
+  implicit val repCtrlrStatusFormat: Format[ReplicationController.Status] = Json.format[ReplicationController.Status]
 
    implicit lazy val repCtrlrFormat: Format[ReplicationController] = (
     objFormat and
     (JsPath \ "spec").formatNullable[ReplicationController.Spec] and
     (JsPath \ "status").formatNullable[ReplicationController.Status]
-  ) (ReplicationController.apply _, unlift(ReplicationController.unapply))
+  ) (ReplicationController.apply, unlift(ReplicationController.unapply))
 
 
   implicit val loadBalIngressFmt: Format[Service.LoadBalancer.Ingress] = Json.format[Service.LoadBalancer.Ingress]
@@ -913,7 +889,7 @@ package object format {
     (JsPath \ "port").format[Int] and
     (JsPath \ "targetPort").formatNullable[NameablePort] and
     (JsPath \ "nodePort").formatMaybeEmptyInt()
-  ) (Service.Port.apply _, unlift(Service.Port.unapply))
+  ) (Service.Port.apply, unlift(Service.Port.unapply))
 
   implicit val serviceSpecFmt: Format[Service.Spec] = (
       (JsPath \ "ports").formatMaybeEmptyList[Service.Port] and
@@ -926,13 +902,13 @@ package object format {
       (JsPath \ "sessionAffinity").formatEnum(Service.Affinity, Some(Service.Affinity.None)) and
       (JsPath \ "loadBalancerIP").formatMaybeEmptyString() and
       (JsPath \ "publishNotReadyAddresses").formatMaybeEmptyBoolean()
-   )(Service.Spec.apply _, unlift(Service.Spec.unapply))
+   )(Service.Spec.apply, unlift(Service.Spec.unapply))
 
   implicit val serviceFmt: Format[Service] = (
      objFormat and
      (JsPath \ "spec").formatNullable[Service.Spec] and
      (JsPath \ "status").formatNullable[Service.Status]
-  )(Service.apply _, unlift(Service.unapply))
+  )(Service.apply, unlift(Service.unapply))
 
   implicit val endpointsAddressFmt: Format[Endpoints.Address] = Json.format[Endpoints.Address]
   implicit val endpointPortFmt: Format[Endpoints.Port] = Json.format[Endpoints.Port]
@@ -941,14 +917,14 @@ package object format {
   implicit val endpointFmt: Format[Endpoints] = (
     objFormat and
     (JsPath \ "subsets").format[List[Endpoints.Subset]]
-  )(Endpoints.apply _, unlift(Endpoints.unapply))
+  )(Endpoints.apply, unlift(Endpoints.unapply))
 
   implicit val nodeSysInfoFmt: Format[Node.SystemInfo] = Json.format[Node.SystemInfo]
 
   implicit val nodeAddrFmt: Format[Node.Address] = (
     (JsPath \ "type").format[String] and
     (JsPath \ "address").format[String]
-  )(Node.Address.apply _, unlift(Node.Address.unapply))
+  )(Node.Address.apply, unlift(Node.Address.unapply))
 
   implicit val nodeCondFmt: Format[Node.Condition] = (
     (JsPath \ "type").format[String] and
@@ -957,7 +933,7 @@ package object format {
     (JsPath \ "lastTransitionTime").formatNullable[Timestamp] and
     (JsPath \ "reason").formatNullable[String] and
     (JsPath \ "message").formatNullable[String]
-  )(Node.Condition.apply _, unlift(Node.Condition.unapply))
+  )(Node.Condition.apply, unlift(Node.Condition.unapply))
 
   implicit val nodeDaemEndpFmt: Format[Node.DaemonEndpoint] = Json.format[Node.DaemonEndpoint]
   implicit val nodeDaemEndpsFmt: Format[Node.DaemonEndpoints] = Json.format[Node.DaemonEndpoints]
@@ -974,7 +950,7 @@ package object format {
     (JsPath \ "images").formatMaybeEmptyList[Container.Image] and
     (JsPath \ "volumesInUse").formatMaybeEmptyList[String] and
     (JsPath \ "volumesAttached").formatMaybeEmptyList[Node.AttachedVolume]
-  )(Node.Status.apply _, unlift(Node.Status.unapply))
+  )(Node.Status.apply, unlift(Node.Status.unapply))
 
   implicit val nodeTaintFmt: Format[Node.Taint] = Json.format[Node.Taint]
 
@@ -984,13 +960,13 @@ package object format {
     (JsPath \ "unschedulable").formatMaybeEmptyBoolean() and
     (JsPath \ "externalID").formatMaybeEmptyString() and
     (JsPath \ "taints").formatMaybeEmptyList[Node.Taint]
-  )(Node.Spec.apply _, unlift(Node.Spec.unapply))
+  )(Node.Spec.apply, unlift(Node.Spec.unapply))
 
   implicit val nodeFmt: Format[Node] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Node.Spec] and
     (JsPath \ "status").formatNullable[Node.Status]
-  )(Node.apply _, unlift(Node.unapply))
+  )(Node.apply, unlift(Node.unapply))
 
   implicit val eventSrcFmt: Format[Event.Source] = Json.format[Event.Source]
 
@@ -1004,7 +980,7 @@ package object format {
     (JsPath \ "lastTimestamp").formatNullable[Timestamp] and
     (JsPath \ "count").formatNullable[Int] and
     (JsPath \ "type").formatNullable[String]
-  )(Event.apply _, unlift(Event.unapply))
+  )(Event.apply, unlift(Event.unapply))
 
   implicit val accessModeFmt: Format[PersistentVolume.AccessMode.AccessMode] = Format(enumReads(PersistentVolume.AccessMode), enumWrites)
   implicit val pvolPhaseFmt: Format[PersistentVolume.Phase.Phase] = Format(enumReads(PersistentVolume.Phase), enumWrites)
@@ -1016,55 +992,54 @@ package object format {
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
       (JsPath \ "claimRef").formatNullable[ObjectReference] and
       (JsPath \ "persistentVolumeReclaimPolicy").formatNullableEnum(PersistentVolume.ReclaimPolicy)
-  )(PersistentVolume.Spec.apply _, unlift(PersistentVolume.Spec.unapply))
+  )(PersistentVolume.Spec.apply, unlift(PersistentVolume.Spec.unapply))
 
   implicit val persVolStatusFmt: Format[PersistentVolume.Status] = (
       (JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
-  )(PersistentVolume.Status.apply _, unlift(PersistentVolume.Status.unapply))
+  )(PersistentVolume.Status.apply, unlift(PersistentVolume.Status.unapply))
 
   implicit val persVolFmt: Format[PersistentVolume] = (
     objFormat and
     (JsPath \ "spec").formatNullable[PersistentVolume.Spec] and
     (JsPath \ "status").formatNullable[PersistentVolume.Status]
-  )(PersistentVolume.apply _, unlift(PersistentVolume.unapply))
+  )(PersistentVolume.apply, unlift(PersistentVolume.unapply))
 
 
   implicit val pvClaimSpecFmt: Format[PersistentVolumeClaim.Spec] = (
-    (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
+      (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode] and
       (JsPath \ "resources").formatNullable[Resource.Requirements] and
-      ((JsPath \ "volumeName").formatNullable[String]) and
+      (JsPath \ "volumeName").formatNullable[String] and
       (JsPath \ "storageClassName").formatNullable[String] and
       (JsPath \ "volumeMode").formatNullableEnum(PersistentVolumeClaim.VolumeMode) and
       (JsPath \ "selector").formatNullableLabelSelector
-    )(PersistentVolumeClaim.Spec.apply _, unlift(PersistentVolumeClaim.Spec.unapply))
+    )(PersistentVolumeClaim.Spec.apply, unlift(PersistentVolumeClaim.Spec.unapply))
 
   implicit val pvClaimStatusFmt: Format[PersistentVolumeClaim.Status] = (
-    (JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
+      (JsPath \ "phase").formatNullableEnum(PersistentVolume.Phase) and
       (JsPath \ "accessModes").formatMaybeEmptyList[PersistentVolume.AccessMode.AccessMode]
-    )(PersistentVolumeClaim.Status.apply _, unlift(PersistentVolumeClaim.Status.unapply))
+    )(PersistentVolumeClaim.Status.apply, unlift(PersistentVolumeClaim.Status.unapply))
 
   implicit val pvcFmt: Format[PersistentVolumeClaim] =  (
     objFormat and
       (JsPath \ "spec").formatNullable[PersistentVolumeClaim.Spec] and
       (JsPath \ "status").formatNullable[PersistentVolumeClaim.Status]
-    )(PersistentVolumeClaim.apply _, unlift(PersistentVolumeClaim.unapply))
+    )(PersistentVolumeClaim.apply, unlift(PersistentVolumeClaim.unapply))
 
 
   implicit val configMapFmt: Format[ConfigMap] = (
     objFormat and
     (JsPath \ "data").formatMaybeEmptyMap[String]
-  )(ConfigMap.apply _, unlift(ConfigMap.unapply))
+  )(ConfigMap.apply, unlift(ConfigMap.unapply))
 
   implicit val svcAccountFmt: Format[ServiceAccount] = (
     objFormat and
     (JsPath \ "secrets").formatMaybeEmptyList[ObjectReference] and
     (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference]
-  )(ServiceAccount.apply _, unlift(ServiceAccount.unapply))
+  )(ServiceAccount.apply, unlift(ServiceAccount.unapply))
 
-  implicit val base64Format: Format[Array[Byte]] = (
+  implicit val base64Format: Format[Array[Byte]] =
       JsPath.format[String].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes))
-  )
 
   implicit val mapStringByteArrayFormat: Format[Map[String,Array[Byte]]] =
     JsPath.format[Map[String,String]]
@@ -1075,7 +1050,7 @@ package object format {
     objFormat and
     (JsPath \ "data").formatMaybeEmptyByteArrayMap and
     (JsPath \ "type").formatMaybeEmptyString()
-  )(Secret.apply _, unlift(Secret.unapply))
+  )(Secret.apply, unlift(Secret.unapply))
 
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType)
 
@@ -1086,7 +1061,7 @@ package object format {
      (JsPath \ "default").formatMaybeEmptyMap[Resource.Quantity] and
      (JsPath \ "defaultRequirements").formatMaybeEmptyMap[Resource.Quantity] and
      (JsPath \ "maxLimitRequestRatio").formatMaybeEmptyMap[Resource.Quantity]
-  )(LimitRange.Item.apply _, unlift(LimitRange.Item.unapply))
+  )(LimitRange.Item.apply, unlift(LimitRange.Item.unapply))
 
   implicit val limitRangeSpecFmt: Format[LimitRange.Spec] =
      (JsPath \ "items").formatMaybeEmptyList[LimitRange.Item].inmap(
@@ -1095,7 +1070,7 @@ package object format {
   implicit val limitRangeFmt: Format[LimitRange] = (
      objFormat and
      (JsPath \ "spec").formatNullable[LimitRange.Spec]
-  )(LimitRange.apply _, unlift(LimitRange.unapply))
+  )(LimitRange.apply, unlift(LimitRange.unapply))
 
   implicit val resourceQuotaSpecFmt: Format[Resource.Quota.Spec] =
     (JsPath \ "hard").formatMaybeEmptyMap[Resource.Quantity].inmap(
@@ -1104,13 +1079,13 @@ package object format {
   implicit val resouceQuotaStatusFmt: Format[Resource.Quota.Status] = (
     (JsPath \ "hard").formatMaybeEmptyMap[Resource.Quantity] and
     (JsPath \ "used").formatMaybeEmptyMap[Resource.Quantity]
-  )(Resource.Quota.Status.apply _,unlift(Resource.Quota.Status.unapply))
+  )(Resource.Quota.Status.apply,unlift(Resource.Quota.Status.unapply))
 
   implicit val resourceQuotaFmt: Format[Resource.Quota] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Resource.Quota.Spec] and
     (JsPath \ "status").formatNullable[Resource.Quota.Status]
-  )(Resource.Quota.apply _,unlift(Resource.Quota.unapply))
+  )(Resource.Quota.apply,unlift(Resource.Quota.unapply))
 
   implicit val podListFmt: Format[PodList] = ListResourceFormat[Pod]
   implicit val nodeListFmt: Format[NodeList] = ListResourceFormat[Node]
@@ -1136,7 +1111,7 @@ package object format {
     (JsPath \ "gracePeriodSeconds").formatNullable[Int] and
     (JsPath \ "preconditions").formatNullable[Preconditions] and
     (JsPath \ "propagationPolicy").formatNullableEnum(DeletePropagation)
-  )(DeleteOptions.apply _, unlift(DeleteOptions.unapply))
+  )(DeleteOptions.apply, unlift(DeleteOptions.unapply))
 
   // formatters for API 'supporting' types i.e. non resource types such as status and watch events
   object apiobj {
@@ -1158,11 +1133,11 @@ package object format {
     def watchEventFormat[T <: ObjectResource](implicit objfmt: Format[T]) : Format[WatchEvent[T]] = (
       (JsPath \ "type").formatEnum(EventType) and
       (JsPath \ "object").format[T]
-    )(WatchEvent.apply[T] _, unlift(WatchEvent.unapply[T]))
+    )(WatchEvent.apply[T], unlift(WatchEvent.unapply[T]))
 
   }
 
-  implicit def jsonPatchOperationWrite = Writes[JsonPatchOperation.Operation] { value =>
+  implicit def jsonPatchOperationWrite: Writes[JsonPatchOperation.Operation] = Writes[JsonPatchOperation.Operation] { value =>
     JsObject(Map("op" -> JsString(value.op)) ++ (value match {
       case v: JsonPatchOperation.ValueOperation[_] =>
         Map(
@@ -1181,10 +1156,10 @@ package object format {
     }))
   }
 
-  implicit def jsonPatchWrite = Writes[JsonPatch] { value =>
+  implicit def jsonPatchWrite: Writes[JsonPatch] = Writes[JsonPatch] { value =>
     JsArray(value.operations.map(jsonPatchOperationWrite.writes)) }
 
-  implicit val metadataPatchWrite = Writes[MetadataPatch] { value =>
+  implicit val metadataPatchWrite: Writes[MetadataPatch] = Writes[MetadataPatch] { value =>
     val labels = value.labels.map { m =>
       val fields = m.map { case (k,v) => (k, JsString(v)) }.toSeq
       JsObject(fields)

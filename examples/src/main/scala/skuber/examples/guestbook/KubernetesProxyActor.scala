@@ -91,16 +91,16 @@ class KubernetesProxyActor extends Actor with ActorLogging {
       currentlyWatching match {
         case Some(watching) => {
           // already watching this RC - just add the watcher to the set of watching actors
-          log.debug("Controller '" + rc.name +"' is already beng wateched - adding new watcher " + watcher.path)
-          val newWatching = watching.copy(watchers = watching.watchers + watcher)
+          log.debug(s"Controller '${rc.name}' is already being watched - adding new watcher ${watcher.path}")
+          val newWatching = watching.copy(watchers = watching.watchers.concat(Set(watcher)))
           rcWatching.put(rc.name, newWatching)
         }
         case None => {
           // not yet watching this controller
           // create a new watch on Kubernetes, and initialize the set of watchers on it
           
-          log.debug("creating a watch on Kubernetes for controller + '" + rc.name + "', watcher is " + watcher.path )
-          val watchFut = k8s watch rc
+          log.debug(s"creating a watch on Kubernetes for controller '${rc.name}', watcher is ${watcher.path}")
+          val watchFut = k8s.watch(rc)
           val watching = Set(watcher)
           rcWatching += rc.name -> Watching(watchFut, watching)
           
@@ -118,19 +118,19 @@ class KubernetesProxyActor extends Actor with ActorLogging {
     
     case UnwatchReplicationController(rc: ReplicationController, watcher: ActorRef) => {
       rcWatching.get(rc.name).foreach { watching =>
-        val newWatchers = watching.watchers - watcher
-        log.debug("removing watcher on '" + rc.name + "'")
+        val newWatchers = watching.watchers.filterNot(_ == watcher)
+        log.debug(s"removing watcher on '${rc.name}'")
         rcWatching.put(rc.name, watching.copy(watchers=newWatchers))
       }
     }
     
     case Close => {
-      k8s.close
+      k8s.close()
       System.out.println("Closed skuber client")
       system.terminate().foreach { f =>
         System.exit(0)
       }
-      sender ! Closed
+      sender() ! Closed
     }
   }  
 }

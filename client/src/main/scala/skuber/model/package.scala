@@ -1,15 +1,15 @@
 package skuber
 
-import java.net.URL
+import java.net.{URI, URL}
 
 package object model {
   // define standard empty values - some Json formatters use them
   val emptyS = ""
   val emptyB = false
 
-  def emptyL[T] = List[T]()
+  def emptyL[T]: List[T] = List[T]()
 
-  def emptyM[V] = Map[String, V]()
+  def emptyM[V]: Map[String, V] = Map[String, V]()
 
   def v1 = "v1"
 
@@ -45,11 +45,11 @@ package object model {
   abstract class ObjectResource extends TypeMeta {
     val metadata: ObjectMeta
 
-    def name = metadata.name
+    def name: String = metadata.name
 
-    def resourceVersion = metadata.resourceVersion
+    def resourceVersion: String = metadata.resourceVersion
 
-    def ns = if (metadata.namespace == emptyS) "default" else metadata.namespace
+    def ns: String = if (metadata.namespace == emptyS) "default" else metadata.namespace
   }
 
   // This trait is used to edit common fields (currently just metadata) of an object
@@ -85,9 +85,9 @@ package object model {
     override val kind: String,
     override val metadata: Option[ListMeta],
     override val items: List[K]) extends KList[K] {
-    def resourceVersion = metadata.map(_.resourceVersion).getOrElse("")
+    def resourceVersion: String = metadata.map(_.resourceVersion).getOrElse("")
 
-    def itemNames: String = items.map { k => k.name } mkString (",")
+    def itemNames: String = items.map { k => k.name }.mkString (",")
   }
 
   implicit def toList[I <: KListItem](resource: KList[I]): List[I] = resource.items
@@ -120,11 +120,11 @@ package object model {
     )
 
   // a few functions for backwards compatibility (some the tests use them)
-  def PodList(items: List[Pod]) = listResourceFromItems(items)
+  def PodList(items: List[Pod]): ListResource[Pod] = listResourceFromItems(items)
 
-  def ServiceList(items: List[Service]) = listResourceFromItems(items)
+  def ServiceList(items: List[Service]): ListResource[Service] = listResourceFromItems(items)
 
-  def ReplicationControllerList(items: List[ReplicationController]) = listResourceFromItems(items)
+  def ReplicationControllerList(items: List[ReplicationController]): ListResource[ReplicationController] = listResourceFromItems(items)
 
 
   type Finalizer = String
@@ -134,11 +134,11 @@ package object model {
 
   implicit def strToQuantity(value: String): Resource.Quantity = Resource.Quantity(value)
 
-  implicit def dblToQuantity(value: Double): Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
+  implicit def dblToQuantity(value: Double): Resource.Quantity = Resource.Quantity(s"${(value * 1000).floor.toInt.toString}m")
 
-  implicit def fltToQuantity(value: Float): Resource.Quantity = Resource.Quantity((value * 1000).floor.toInt + "m")
+  implicit def fltToQuantity(value: Float): Resource.Quantity = Resource.Quantity(s"${(value * 1000).floor.toInt.toString}m")
 
-  implicit def intToQuantity(value: Int): Resource.Quantity = Resource.Quantity((value * 1000) + "m")
+  implicit def intToQuantity(value: Int): Resource.Quantity = Resource.Quantity(s"${value * 1000}m")
 
   case class LocalObjectReference(name: String)
 
@@ -149,11 +149,12 @@ package object model {
     name: String = "",
     uid: String = "",
     resourceVersion: String = "",
-    fieldPath: String = "") {
-    def \(addPath: String) = this.copy(fieldPath = fieldPath + "/" + addPath)
-  }
+    fieldPath: String = "")
+  {
+     def \(addPath: String): ObjectReference = this.copy(fieldPath = s"$fieldPath/$addPath")
+    }
 
-  implicit def objResourceToRef(obj: ObjectResource) =
+  implicit def objResourceToRef(obj: ObjectResource): ObjectReference =
     ObjectReference(kind = obj.kind,
       apiVersion = obj.apiVersion,
       namespace = obj.ns,
@@ -178,11 +179,11 @@ package object model {
     port: NameablePort,
     host: String = "",
     path: String = "",
-    schema: String = "HTTP") extends Handler {
-    def url = {
+    schema: String = "http") extends Handler {
+    def url: URL = {
       this.port match {
-        case Left(p) => new URL(schema, host, p, path)
-        case Right(p) => throw new Exception("Don't know how to create URL with a named port")
+        case Left(p) => (new URI(schema, null, host, p, path, null, null)).toURL
+        case Right(_) => throw new Exception("Don't know how to create URL with a named port")
       }
     }
   }

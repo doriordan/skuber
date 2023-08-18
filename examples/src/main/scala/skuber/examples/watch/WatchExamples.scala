@@ -35,7 +35,7 @@ object WatchExamples extends App {
     val podPhaseMonitor = Sink.foreach[K8SWatchEvent[Pod]] { podEvent =>
       val pod = podEvent._object
       val phase = pod.status flatMap { _.phase }
-      println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
+      println(s"""${podEvent._type} => Pod '${pod.name}' .. phase = ${phase.getOrElse("<None>")}""")
     }
 
     for {
@@ -51,7 +51,7 @@ object WatchExamples extends App {
   watchFrontEndScaling
 
   Thread.sleep(1200000) // watch for a lengthy time before closing the session
-  k8s.close
+  k8s.close()
   system.terminate().foreach { f =>
     System.exit(0)
   }

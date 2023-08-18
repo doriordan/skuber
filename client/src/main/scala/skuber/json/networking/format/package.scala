@@ -21,7 +21,7 @@ package object format {
     (JsPath \ "path").formatMaybeEmptyString() and
     (JsPath \ "pathType").formatNullable[String] and
     (JsPath \ "backend").format[Backend]
-  ) (Ingress.Path.apply _, unlift(Ingress.Path.unapply))
+  ) (Ingress.Path.apply, unlift(Ingress.Path.unapply))
 
 
   implicit val ingressHttpRuledFmt: Format[Ingress.HttpRule] = Json.format[Ingress.HttpRule]
@@ -33,25 +33,24 @@ package object format {
     (JsPath \ "ingressClassName").formatNullable[String] and
     (JsPath \ "rules").formatMaybeEmptyList[Ingress.Rule] and
     (JsPath \ "tls").formatMaybeEmptyList[Ingress.TLS]
-  )(Ingress.Spec.apply _, unlift(Ingress.Spec.unapply))
+  )(Ingress.Spec.apply, unlift(Ingress.Spec.unapply))
 
   implicit val ingrlbingFormat: Format[Ingress.Status.LoadBalancer.Ingress] =
     Json.format[Ingress.Status.LoadBalancer.Ingress]
 
-  implicit val ingrlbFormat: Format[Ingress.Status.LoadBalancer] = (
+  implicit val ingrlbFormat: Format[Ingress.Status.LoadBalancer] =
     (JsPath \ "ingress").formatMaybeEmptyList[Ingress.Status.LoadBalancer.Ingress].inmap(
       ings => Ingress.Status.LoadBalancer(ings),
       lb => lb.ingress
     )
-  )
 
-  implicit val ingressStatusFormat = Json.format[Ingress.Status]
+  implicit val ingressStatusFormat: Format[Ingress.Status] = Json.format[Ingress.Status]
 
   implicit lazy val ingressFormat: Format[Ingress] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Ingress.Spec] and
     (JsPath \ "status").formatNullable[Ingress.Status]
-) (Ingress.apply _, unlift(Ingress.unapply))
+) (Ingress.apply, unlift(Ingress.unapply))
 
   implicit val ingressListFmt: Format[IngressList] = ListResourceFormat[Ingress]
 }

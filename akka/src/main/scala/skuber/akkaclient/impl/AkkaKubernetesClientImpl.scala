@@ -265,7 +265,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
 
   override def getNamespaceNames(implicit lc: LoggingContext): Future[List[String]] =
   {
-    list[NamespaceList].map { namespaceList =>
+    list[NamespaceList]().map { namespaceList =>
       val namespaces = namespaceList.items
       namespaces.map(_.name)
     }

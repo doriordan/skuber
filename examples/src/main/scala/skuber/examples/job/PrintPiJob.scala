@@ -35,13 +35,13 @@ object PrintPiJob extends App {
   jobCreateFut onComplete {
     case Success(job) =>
       System.out.println("Job successfully created on the cluster")
-      k8s.close
+      k8s.close()
       system.terminate().foreach { f =>
         System.exit(0)
       }
     case Failure(ex) =>
       System.err.println("Failed to create job: " + ex)
-      k8s.close
+      k8s.close()
       system.terminate().foreach { f =>
         System.exit(1)
       }

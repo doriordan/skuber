@@ -25,10 +25,10 @@ object TLS {
     def checkServerTrusted(certs: Array[X509Certificate], s: String, sslEngine: SSLEngine): Unit = {}
   }
    
-  val skipTLSTrustManagers = Array[TrustManager](InsecureSkipTLSVerifyTrustManager)
+  private val skipTLSTrustManagers: Array[TrustManager] = Array[TrustManager](InsecureSkipTLSVerifyTrustManager)
  
-  val HttpsPattern = "https:.*".r
-  val HttpPattern = "http:.*".r
+  private val HttpsPattern = "https:.*".r
+  private val HttpPattern = "http:.*".r
   
   def establishSSLContext(k8sContext: Context): Option[SSLContext] = {
     k8sContext.cluster.server match {
@@ -59,7 +59,7 @@ object TLS {
        serverCertConfig map { certPathOrData =>
            val clusterServerCerts = SecurityHelper.getCertificates(certPathOrData)
            val trustStore = SecurityHelper.createTrustStore(clusterServerCerts)
-           val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+           val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
            tmf.init(trustStore)
            tmf.getTrustManagers
        }
