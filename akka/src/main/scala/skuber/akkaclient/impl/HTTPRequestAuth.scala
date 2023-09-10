@@ -1,4 +1,5 @@
-package skuber.api.security
+package skuber.akkaclient.impl
+
 
 import akka.http.scaladsl.model.{HttpHeader, HttpRequest}
 import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials, OAuth2BearerToken}

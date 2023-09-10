@@ -1,17 +1,19 @@
 package skuber
 
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 import akka.stream._
 import akka.stream.scaladsl._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
+
+import skuber.api.client.K8SException
 import skuber.model.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
 import skuber.model.apiextensions.v1.CustomResourceDefinition
-import skuber.model.{ResourceDefinition, ResourceSpecification}
+import skuber.model.{CustomResource, ListResource, ResourceDefinition, ResourceSpecification}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success}
 
 /**
   * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined

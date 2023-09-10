@@ -1,4 +1,4 @@
-package skuber.json
+package skuber.akkaclient.impl
 
 /*
  * Support for using Play Json formatters with Akka HTTP client

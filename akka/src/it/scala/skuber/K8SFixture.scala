@@ -5,9 +5,11 @@ import org.scalatest.FutureOutcome
 import com.typesafe.config.ConfigFactory
 import org.scalatest.flatspec.FixtureAsyncFlatSpec
 
+import skuber.akkaclient._
+
 trait K8SFixture extends FixtureAsyncFlatSpec {
 
-  override type FixtureParam =  K8SRequestContext
+  override type FixtureParam =  AkkaKubernetesClient
 
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher

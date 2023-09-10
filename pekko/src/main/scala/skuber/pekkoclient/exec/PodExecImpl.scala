@@ -1,16 +1,16 @@
-package skuber.akkaclient.exec
+package skuber.pekkoclient.exec
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
-import akka.http.scaladsl.{ConnectionContext, Http}
-import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
-import akka.stream.SinkShape
-import akka.util.ByteString
-import akka.{Done, NotUsed}
-import skuber.akkaclient.impl.AkkaKubernetesClientImpl
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model.headers.RawHeader
+import org.apache.pekko.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http}
+import org.apache.pekko.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
+import org.apache.pekko.stream.SinkShape
+import org.apache.pekko.util.ByteString
+import org.apache.pekko.{Done, NotUsed}
+import skuber.pekkoclient.impl.PekkoKubernetesClientImpl
 import skuber.api.client.{K8SException, LoggingContext, Status}
-import skuber.akkaclient.impl.HTTPRequestAuth
+import skuber.pekkoclient.impl.HTTPRequestAuth
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -20,8 +20,8 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
   */
 object PodExecImpl {
 
-  private[akkaclient] def exec(
-    requestContext: AkkaKubernetesClientImpl,
+  private[pekkoclient] def exec(
+    requestContext: PekkoKubernetesClientImpl,
     podName: String,
     command: Seq[String],
     maybeContainerName: Option[String] = None,
