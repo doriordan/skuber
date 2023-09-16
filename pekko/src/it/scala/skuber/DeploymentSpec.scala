@@ -7,7 +7,7 @@ import skuber.model.apps.v1.Deployment
 import skuber.api.client.{DeleteOptions,DeletePropagation,K8SException}
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.util.{Failure, Success}
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers {

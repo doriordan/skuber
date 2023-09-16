@@ -2,6 +2,7 @@ package skuber
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
+
 import skuber.api.client.K8SException
 import skuber.model.{Container, LabelSelector, Pod}
 import skuber.model.apps.v1.Deployment

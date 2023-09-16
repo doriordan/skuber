@@ -1,19 +1,23 @@
 package skuber
 
-import akka.Done
-import akka.stream.scaladsl.{Sink, Source}
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.Eventually
-import org.scalatest.matchers.should.Matchers
-import skuber.akkaclient.k8sInit
-import skuber.api.client.K8SException
-import skuber.json.format._
-import skuber.model.{Container, Pod}
-
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
+
+import org.apache.pekko
+import pekko.Done
+import pekko.stream.scaladsl.{Sink, Source}
+
+import skuber.api.client.K8SException
+import skuber.json.format._
+import skuber.model.{Container, Pod}
+
+
+import skuber.pekkoclient.k8sInit
 
 class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
   val nginxPodName: String = java.util.UUID.randomUUID().toString

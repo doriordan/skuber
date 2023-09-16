@@ -19,7 +19,7 @@ scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.6.7"
+ThisBuild / version := "3.0.0-beta2"
 
 sonatypeProfileName := "io.skuber"
 
@@ -49,16 +49,17 @@ lazy val commonSettings = Seq(
 
 // skuber core - contains the skuber model and core API - has no dependencies on Akka/Pekko
 lazy val skuberSettings = Seq(
-  name := "skuber",
   libraryDependencies ++= Seq(
     playJson, snakeYaml, commonsIO, commonsCodec,
     scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
 )
-lazy val skuberCore = (project in file("client"))
+
+lazy val core = (project in file("core"))
   .configs(IntegrationTest)
   .settings(
+    name := "skuber-core",
     commonSettings,
     skuberSettings,
     libraryDependencies ++= Seq(typesafeConfig, scalaTest % "it")
@@ -68,45 +69,50 @@ lazy val skuberCore = (project in file("client"))
 
 val akkaVersion = "2.6.19"
 val akkaHttpVersion = "10.2.9"
+
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
 val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 val akkaActors = "com.typesafe.akka" %% "akka-actor" % akkaVersion
-lazy val akkaClientDependencies = Seq(akkaActors, akkaHttp, akkaStream, akkaSlf4j, logback, scalaTest % "it")
-lazy val skuberAkkaClient = (project in file("akka"))
+
+lazy val akkaClientDependencies = Seq(akkaActors, akkaHttp, akkaStream, akkaSlf4j, logback, akkaStreamTestKit, scalaTest % "it")
+
+lazy val akka = (project in file("akka"))
   .configs(IntegrationTest)
   .settings(
+    name := "skuber-akka",
     commonSettings,
-    skuberSettings,
     Defaults.itSettings,
     libraryDependencies ++= akkaClientDependencies
   )
-  .dependsOn(skuberCore)
+  .dependsOn(core)
 
 // Skuber Pekko client - concrete Kubernetes Scala client implementation based on Pekko HTTP and Pekko Streams
 // Does not have any Akka dependencies
 
-val pekko = "org.apache.pekko"
-val pekkoActorsVersion = "1.0.1"
-val pekkoStreamVersion = "1.0.0"
+val pekkoGroup = "org.apache.pekko"
+
+val pekkoVersion = "1.0.1"
 val pekkoHttpVersion = "1.0.0"
-val pekkoSlf4jVersion = "1.0.1"
-val pekkoSlf4j = pekko %% "pekko-slf4j" % pekkoSlf4jVersion
-val pekkoHttp = pekko %% "pekko-http" % pekkoHttpVersion
-val pekkoStream = pekko %% "pekko-stream-testkit" % pekkoStreamVersion
-val pekkoStreamTestkit = pekko %% "pekko-stream-testkit" % pekkoStreamVersion
-val pekkoActors = pekko %% "pekko-actor" % pekkoActorsVersion
+
+val pekkoSlf4j = pekkoGroup %% "pekko-slf4j" % pekkoVersion
+val pekkoHttp = pekkoGroup %% "pekko-http" % pekkoHttpVersion
+val pekkoStream = pekkoGroup %% "pekko-stream-testkit" % pekkoVersion
+val pekkoStreamTestkit = pekkoGroup %% "pekko-stream-testkit" % pekkoVersion
+val pekkoActors = pekkoGroup %% "pekko-actor" % pekkoVersion
+
 lazy val pekkoClientDependencies = Seq(pekkoActors, pekkoHttp, pekkoStream, pekkoSlf4j, logback, pekkoStreamTestkit, scalaTest % "it")
-lazy val skuberPekkoClient = (project in file("pekko"))
+
+lazy val pekko = (project in file("pekko"))
     .configs(IntegrationTest)
+    .settings(name := "skuber-pekko")
     .settings(
       commonSettings,
-      skuberSettings,
       Defaults.itSettings,
       libraryDependencies ++= pekkoClientDependencies
     )
-    .dependsOn(skuberCore)
+    .dependsOn(core)
 
 // Examples project
 lazy val examplesSettings = Seq(
@@ -121,12 +127,15 @@ lazy val examples = (project in file("examples"))
   .settings(commonSettings: _*)
   .settings(examplesSettings: _*)
   .settings(examplesAssemblySettings: _*)
-  .dependsOn(skuberCore)
-  .dependsOn(skuberAkkaClient) // TODO migrate examples to Pekko client
+  .dependsOn(core)
+  .dependsOn(akka) // TODO migrate examples to Pekko client
 
 lazy val root = (project in file("."))
-    .settings(commonSettings: _*)
-    .aggregate(skuberCore, skuberAkkaClient, skuberPekkoClient, examples)
+    .settings(
+      publish / skip := true,
+      commonSettings
+    )
+    .aggregate(core, akka, pekko, examples)
 
 root / publishArtifact := false
 

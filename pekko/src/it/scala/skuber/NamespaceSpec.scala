@@ -1,15 +1,17 @@
 package skuber
 
 import java.util.UUID.randomUUID
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.concurrent.Eventually
-import json.format.{namespaceFormat, podFormat}
-import skuber.model.{Container, Namespace, ObjectMeta, Pod}
-import skuber.api.client._
 
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
+
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.concurrent.Eventually
+
+import skuber.json.format.{namespaceFormat, podFormat}
+import skuber.model.{Container, Namespace, ObjectMeta, Pod}
+import skuber.api.client._
 
 /**
   * @author David O'Riordan

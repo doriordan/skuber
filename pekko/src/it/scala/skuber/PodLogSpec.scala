@@ -1,18 +1,22 @@
 package skuber
 
 import java.time.ZonedDateTime
-import akka.stream.scaladsl.TcpIdleTimeoutException
-import com.typesafe.config.ConfigFactory
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.Eventually
-import org.scalatest.matchers.should.Matchers
-import skuber.akkaclient.k8sInit
-import skuber.model.Pod.LogQueryParams
-import skuber.json.format._
-import skuber.model.{Container, Pod}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
+
+import org.apache.pekko.stream.scaladsl.TcpIdleTimeoutException
+import com.typesafe.config.ConfigFactory
+
+import skuber.pekkoclient.k8sInit
+
+import skuber.model.Pod.LogQueryParams
+import skuber.json.format._
+import skuber.model.{Container, Pod}
 
 class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
   val podName: String = java.util.UUID.randomUUID().toString

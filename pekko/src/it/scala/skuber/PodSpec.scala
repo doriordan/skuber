@@ -1,15 +1,18 @@
 package skuber
 
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.Eventually
-import org.scalatest.matchers.should.Matchers
-import skuber.akkaclient.k8sInit
-import skuber.json.format._
-import skuber.model.{Container, LabelSelector, ObjectMeta, Pod, PodList}
-import skuber.api.client.K8SException
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
+
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
+
+import skuber.pekkoclient.k8sInit
+
+import skuber.json.format._
+import skuber.model.{Container, LabelSelector, ObjectMeta, Pod, PodList}
+import skuber.api.client.K8SException
 
 class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
   val nginxPodName: String = java.util.UUID.randomUUID().toString

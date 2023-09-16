@@ -12,8 +12,8 @@ import skuber.model.{ObjectResource, Pod, ResourceDefinition}
 
 /**
   * This trait extends the generic KubernetesClient trait with streaming operations. These streaming operations
-  * have signatures that have types from the underlying streaming library, in this case Akka streams.
-  * This is the interface for any skuber client that is returned by `skuber.akkaclient.k8sInit` calls
+  * have signatures that have types from the underlying streaming library, in this case Pekka streams.
+  * This is the interface supported by any skuber client that is returned by `skuber.pekkoclient.k8sInit` calls
   */
 trait PekkoKubernetesClient extends KubernetesClient {
   /**

@@ -1,13 +1,13 @@
 package skuber.examples.scale
 
 import skuber.model.{Container, LabelSelector, Pod, Service}
-import skuber.model.autoscaling.HorizontalPodAutoscaler
 import skuber.model.apps.v1.{Deployment, StatefulSet}
 import skuber.json.format._
 import skuber.api.client.{K8SException, DeleteOptions, DeletePropagation}
 
 import akka.actor.ActorSystem
 import skuber.akkaclient.k8sInit
+import skuber.model.autoscaling.v1.HorizontalPodAutoscaler
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration.Inf

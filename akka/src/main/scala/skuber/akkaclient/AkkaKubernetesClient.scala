@@ -1,6 +1,5 @@
 package skuber.akkaclient
 
-
 import play.api.libs.json.Format
 import akka.stream.scaladsl._
 import akka.util.ByteString

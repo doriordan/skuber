@@ -1,11 +1,11 @@
-package skuber.akkaclient.watch
+package skuber.pekkoclient.watch
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model._
-import akka.stream.KillSwitches
-import akka.stream.scaladsl.Framing.FramingException
-import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
-import akka.stream.testkit.scaladsl.TestSink
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.stream.KillSwitches
+import org.apache.pekko.stream.scaladsl.Framing.FramingException
+import org.apache.pekko.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
+import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import com.fasterxml.jackson.core.JsonParseException
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatestplus.mockito.MockitoSugar
@@ -15,8 +15,8 @@ import skuber.api.client.WatchStream.Start
 import skuber.api.client._
 import skuber.model.{Container, DNSPolicy, ObjectMeta, ObjectResource, Pod, Protocol, ReplicationController, Resource, RestartPolicy}
 import skuber.json.format._
-import skuber.akkaclient.Pool
-import skuber.akkaclient.impl.AkkaKubernetesClientImpl
+import skuber.pekkoclient.Pool
+import skuber.pekkoclient.impl.PekkoKubernetesClientImpl
 
 import java.net.ConnectException
 import java.time.{ZoneId, ZonedDateTime}
@@ -32,7 +32,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
   "WatchSource" should {
     "read event continuously with no name specified and from a point in time" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
@@ -76,7 +76,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "read event continuously with no name specified from the beginning" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
@@ -120,7 +120,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "read event continuously with name specified from a point in time" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
       val name = "someName"
@@ -170,7 +170,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "read event continuously with name specified from the beginning" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
       val name="someName"
@@ -218,7 +218,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle empty responses from the cluster when request timeout times out" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
       val thirdRequest = HttpRequest(uri = Uri("http://watch/3"))
@@ -264,7 +264,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle bad input from cluster" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
@@ -297,7 +297,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle bad json from cluster" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
@@ -330,7 +330,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle a HTTP 500 error from service" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
@@ -364,7 +364,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle a HTTP 401 error from service" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
@@ -399,7 +399,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle idle timeout from service" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
@@ -433,7 +433,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
     }
 
     "handle connection timeout from service" >> {
-      val client = mock[AkkaKubernetesClientImpl]
+      val client = mock[PekkoKubernetesClientImpl]
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())

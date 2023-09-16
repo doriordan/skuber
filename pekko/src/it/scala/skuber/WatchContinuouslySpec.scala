@@ -1,16 +1,18 @@
 package skuber
 
-import akka.stream.KillSwitches
-import akka.stream.scaladsl.{Keep, Sink}
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.time.{Seconds, Span}
-import skuber.model.{Container, LabelSelector, Pod}
-import skuber.model.apps.v1.{Deployment, DeploymentList}
-
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.language.postfixOps
+
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.time.{Seconds, Span}
+
+import org.apache.pekko.stream.KillSwitches
+import org.apache.pekko.stream.scaladsl.{Keep, Sink}
+
+import skuber.model.{Container, LabelSelector, Pod}
+import skuber.model.apps.v1.{Deployment, DeploymentList}
 
 class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers with ScalaFutures {
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(200, Seconds), interval = Span(5, Seconds))

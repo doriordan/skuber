@@ -1,14 +1,15 @@
 package skuber
 
-import skuber.json.format.serviceFmt
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.concurrent.Eventually
-import skuber.model.Service
-import skuber.api.client.K8SException
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Random, Success}
+
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.concurrent.Eventually
+
+import skuber.json.format.serviceFmt
+import skuber.model.Service
+import skuber.api.client.K8SException
 
 class ServiceSpec extends K8SFixture with Eventually with Matchers {
   val nginxServiceName: String = Random.alphanumeric.filter(_.isLetter).take(20).mkString.toLowerCase
