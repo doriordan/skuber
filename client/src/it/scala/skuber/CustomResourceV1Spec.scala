@@ -2,9 +2,10 @@ package skuber
 
 import akka.stream._
 import akka.stream.scaladsl._
+import org.scalatest.BeforeAndAfterAll
 import skuber.apiextensions.v1.CustomResourceDefinition
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import play.api.libs.json._
 import skuber.FutureUtil.FutureOps
 import skuber.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
@@ -33,13 +34,23 @@ import scala.util.{Failure, Success}
  *
  * @author David O'Riordan
  */
-class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
+class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll {
 
   val testResourceName: String = java.util.UUID.randomUUID().toString
 
   // Convenient aliases for the custom object and list resource types to be passed to the skuber API methods
-  type TestResource=CustomResource[TestResource.Spec,TestResource.Status]
-  type TestResourceList=ListResource[TestResource]
+  type TestResource = CustomResource[TestResource.Spec, TestResource.Status]
+  type TestResourceList = ListResource[TestResource]
+
+  override def afterAll(): Unit = {
+    val k8s = k8sInit(config)
+
+    val results = k8s.delete[CustomResourceDefinition](TestResource.crd.name).withTimeout().recover { case _ => () }
+    results.futureValue
+
+    k8s.close
+    system.terminate().recover { case _ => () }.valueT
+  }
 
   object TestResource {
 
@@ -114,8 +125,8 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
     implicit val testResourceDefinition = ResourceDefinition[TestResource](
       group = "test.skuber.io",
       version = "v1alpha1",
-      kind = "SkuberTest",
-      shortNames = List("test","tests"),  // not needed, but handy if debugging the tests
+      kind = "SkuberTestV1",
+      shortNames = List("testv1", "testv1s"), // not needed, but handy if debugging the tests
       versions = getVersions() // only needed for creating or updating the CRD, not needed if just manipulating custom resources
     )
 
@@ -129,13 +140,13 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
     val crd = CustomResourceDefinition[TestResource]
 
     // Convenience method for constructing custom resources of the required type from a name snd a spec
-    def apply(name: String, spec: Spec) = CustomResource[Spec,Status](spec).withName(name)
+    def apply(name: String, spec: Spec) = CustomResource[Spec, Status](spec).withName(name)
   }
 
-  val initialDesiredReplicas=1
+  val initialDesiredReplicas = 1
 
-  val modifiedDesiredReplicas=2
-  val modifiedActualReplicas=3
+  val modifiedDesiredReplicas = 2
+  val modifiedActualReplicas = 3
 
   behavior of "CustomResource"
 
@@ -154,11 +165,11 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
   }
 
   it should "create a new custom resource defined by the crd" in { k8s =>
-    val testSpec=TestResource.Spec(1)
-    val testResource=TestResource(testResourceName, testSpec)
+    val testSpec = TestResource.Spec(1)
+    val testResource = TestResource(testResourceName, testSpec)
     k8s.create(testResource).map { testResource =>
-      assert(testResource.name==testResourceName)
-      assert(testResource.spec==testSpec)
+      assert(testResource.name == testResourceName)
+      assert(testResource.spec == testSpec)
     }
   }
 
@@ -177,12 +188,12 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
       updated <- k8s.get[TestResource](testResourceName)
     } yield updated
     updatedFut.map { updated =>
-      assert(updated.spec.desiredReplicas==modifiedDesiredReplicas)
+      assert(updated.spec.desiredReplicas == modifiedDesiredReplicas)
     }
   }
 
   it should "update the status on the custom resource with a modified actual replicas count" in { k8s =>
-    val status=TestResource.Status(modifiedActualReplicas)
+    val status = TestResource.Status(modifiedActualReplicas)
     val updatedFut = for {
       testResource <- k8s.get[TestResource](testResourceName)
       updatedTestResource <- k8s.updateStatus(testResource.withStatus(status))
@@ -202,8 +213,8 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
   it should "delete the custom resource" in { k8s =>
     k8s.delete[TestResource](testResourceName)
     eventually(timeout(200.seconds), interval(3.seconds)) {
-      val retrieveCr= k8s.get[TestResource](testResourceName)
-      val crRetrieved=Await.ready(retrieveCr, 2.seconds).value.get
+      val retrieveCr = k8s.get[TestResource](testResourceName)
+      val crRetrieved = Await.ready(retrieveCr, 2.seconds).value.get
       crRetrieved match {
         case s: Success[_] => assert(false)
         case Failure(ex) => ex match {
@@ -218,11 +229,11 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
     import skuber.api.client.{EventType, WatchEvent}
     import scala.collection.mutable.ListBuffer
 
-    val testResourceName=java.util.UUID.randomUUID().toString
+    val testResourceName = java.util.UUID.randomUUID().toString
     val testResource = TestResource(testResourceName, TestResource.Spec(1))
 
     val trackedEvents = ListBuffer.empty[WatchEvent[TestResource]]
-    val trackEvents: Sink[WatchEvent[TestResource],_] = Sink.foreach { event =>
+    val trackEvents: Sink[WatchEvent[TestResource], _] = Sink.foreach { event =>
       trackedEvents += event
     }
 
@@ -262,8 +273,8 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers {
   it should "delete the crd" in { k8s =>
     k8s.delete[CustomResourceDefinition](TestResource.crd.name)
     eventually(timeout(200.seconds), interval(3.seconds)) {
-      val retrieveCrd= k8s.get[CustomResourceDefinition](TestResource.crd.name)
-      val crdRetrieved=Await.ready(retrieveCrd, 2.seconds).value.get
+      val retrieveCrd = k8s.get[CustomResourceDefinition](TestResource.crd.name)
+      val crdRetrieved = Await.ready(retrieveCrd, 2.seconds).value.get
       crdRetrieved match {
         case s: Success[_] => assert(false)
         case Failure(ex) => ex match {
