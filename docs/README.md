@@ -799,8 +799,8 @@ Skuber has the functionality to refresh EKS (AWS) token with an IAM role and clu
 
 The initiative:
 * Refreshing tokens increasing k8s cluster security
-* Since kubernetes v1.21 service account tokens has an expiration of 1 hour.
-  https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-1.21
+* Since kubernetes v1.21 service account tokens has an expiration of 90 days.
+  https://docs.aws.amazon.com/eks/latest/userguide/service-accounts.html
 
 
 ## Step-by-step guide
