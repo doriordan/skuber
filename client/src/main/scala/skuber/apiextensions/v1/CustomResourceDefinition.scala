@@ -112,7 +112,6 @@ object CustomResourceDefinition {
 
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
     override def writes(o: StatusSubresource): JsValue = Json.obj()
-
     override def reads(json: JsValue): JsResult[StatusSubresource] = JsSuccess(StatusSubresource())
   }
 
