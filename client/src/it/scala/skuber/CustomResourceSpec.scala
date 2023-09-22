@@ -4,8 +4,8 @@ import java.util.UUID.randomUUID
 import akka.stream._
 import akka.stream.scaladsl._
 import org.scalactic.source.Position
-import skuber.apiextensions.CustomResourceDefinition
-import skuber.apiextensions.CustomResourceDefinition._
+import skuber.apiextensions.v1beta1.CustomResourceDefinition
+import skuber.apiextensions.v1beta1.CustomResourceDefinition._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, Futures, ScalaFutures}
 import play.api.libs.json._

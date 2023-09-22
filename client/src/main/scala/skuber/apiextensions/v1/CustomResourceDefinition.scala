@@ -1,11 +1,12 @@
 package skuber.apiextensions.v1
 
-import play.api.libs.json.{JsPath, JsResult, JsSuccess, JsValue}
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+import skuber.json.format.{enumFormatMethods, maybeEmptyFormatMethods, objectMetaFormat}
 import skuber.ResourceSpecification.{Schema, StatusSubresource}
-import skuber.apiextensions.CustomResourceDefinitionList
-import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
+import skuber.{ListResource, NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
 
-case class CustomResourceDefinition(
+final case class CustomResourceDefinition(
   kind: String = "CustomResourceDefinition",
   override val apiVersion: String = "apiextensions.k8s.io/v1",
   metadata: ObjectMeta,
@@ -27,6 +28,8 @@ object CustomResourceDefinition {
   type Subresources = ResourceSpecification.Subresources
   type ScaleSubresource = ResourceSpecification.ScaleSubresource
   type StatusSubresource = ResourceSpecification.StatusSubresource
+
+  type CustomResourceDefinitionList = ListResource[CustomResourceDefinition]
 
   val crdNames = Names("customresourcedefinitions", "customresourcedefinition", "CustomResourceDefinition", List("crd"))
 
@@ -92,14 +95,10 @@ object CustomResourceDefinition {
   implicit val crdEditor = new ObjectEditor[CustomResourceDefinition] {
     override def updateMetadata(obj: CustomResourceDefinition, newMetadata: ObjectMeta): CustomResourceDefinition = obj.copy(metadata = newMetadata)
   }
+
   // json formatters for sending/receiving CRD resources
-
-  import play.api.libs.json.{Format, Json}
-  import play.api.libs.functional.syntax._
-
-  import skuber.json.format.{enumFormatMethods, maybeEmptyFormatMethods, objectMetaFormat}
-
   implicit val scopeFormat = Json.formatEnum(Scope)
+
   implicit val namesFormat = (
     (JsPath \ "plural").format[String] and
       (JsPath \ "singular").format[String] and
@@ -110,11 +109,13 @@ object CustomResourceDefinition {
     )(Names.apply, unlift(Names.unapply))
 
   implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
+
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
     override def writes(o: StatusSubresource): JsValue = Json.obj()
 
     override def reads(json: JsValue): JsResult[StatusSubresource] = JsSuccess(StatusSubresource())
   }
+
   implicit val subresourcesFmt: Format[Subresources] = Json.format[Subresources]
 
   implicit val schemaFormat: Format[Schema] = Json.format[Schema]
