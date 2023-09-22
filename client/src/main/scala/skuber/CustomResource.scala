@@ -50,11 +50,8 @@ object CustomResource {
    * @tparam C The specific CustomResource type for which the status methods should be enabled
    * @return HasStatusResource value that can be passed implicitly to the `updateStatus` method for this type
    */
-  def statusMethodsEnabler[C <: CustomResource[_, _]](implicit rd: ResourceDefinition[C]): HasStatusSubresource[C] = {
-    if (!rd.spec.subresources.map(_.status).isDefined)
-      throw new K8SException(Status(message = Some("Status subresource must be defined on the associated resource definition before status methods can be enabled")))
+  def statusMethodsEnabler[C <: CustomResource[_, _]](implicit rd: ResourceDefinition[C]): HasStatusSubresource[C] =
     new HasStatusSubresource[C] {}
-  }
 
   /**
    * Returns a value that can be passed as the required implicit parameter to the 'getScale' and 'updateScale' method for the
@@ -65,13 +62,10 @@ object CustomResource {
    * @tparam C The specific CustomResource type for which the status methods should be enabled
    * @return HasStatusResource value that can be passed implicitly to the `updateStatus` method for this type
    */
-  def scalingMethodsEnabler[C <: CustomResource[_, _]](implicit rd: ResourceDefinition[C]): Scale.SubresourceSpec[C] = {
-    if (!rd.spec.subresources.map(_.scale).isDefined)
-      throw new K8SException(Status(message = Some("Scale subresource must be defined on the associated resource definition before scaling methods can be enabled")))
+  def scalingMethodsEnabler[C <: CustomResource[_, _]](implicit rd: ResourceDefinition[C]): Scale.SubresourceSpec[C] =
     new Scale.SubresourceSpec[C] {
       override def apiVersion: String = "autoscaling/v1"
     }
-  }
 
   /*
    * Generic formatter for custom resource types - this should be appropriate for most use cases, but can be

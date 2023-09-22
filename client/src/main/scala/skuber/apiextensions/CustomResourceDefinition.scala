@@ -1,13 +1,14 @@
 package skuber.apiextensions
 
 import play.api.libs.json.{JsPath, JsResult, JsSuccess, JsValue, OFormat}
-import skuber.ResourceSpecification.StatusSubresource
+import skuber.ResourceSpecification.{Schema, StatusSubresource}
 import skuber.json.format.EnumFormatter
 import skuber.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta, apiextensions}
 
 /**
  * @author David O'Riordan
  */
+@deprecated("This supports the older beta CRD API - use skuber.apiextensions.v1.CustomResourceDefinition instead for v1 CRD API (Kubernetes versions >= 1.19)")
 case class CustomResourceDefinition(val kind: String = "CustomResourceDefinition",
                                     override val apiVersion: String = "apiextensions.k8s.io/v1beta1",
                                     val metadata: ObjectMeta,
@@ -110,10 +111,13 @@ object CustomResourceDefinition {
     (JsPath \ "categories").formatMaybeEmptyList[String]) (Names.apply,
     names => (names.plural, names.singular, names.kind, names.shortNames, names.listKind, names.categories))
 
-  implicit val versionFormat: Format[ResourceSpecification.Version] = ((JsPath \ "name").format[String] and
-    (JsPath \ "served").formatMaybeEmptyBoolean() and
-    (JsPath \ "storage").formatMaybeEmptyBoolean()) (ResourceSpecification.Version.apply,
-    res => (res.name, res.served, res.storage))
+  implicit val versionFormat: Format[ResourceSpecification.Version] = (
+    (JsPath \ "name").format[String] and
+      (JsPath \ "served").formatMaybeEmptyBoolean() and
+      (JsPath \ "storage").formatMaybeEmptyBoolean() and
+      (JsPath \ "schema").formatNullable[Schema] and
+      (JsPath \ "subresources").formatNullable[Subresources]
+    )(ResourceSpecification.Version.apply, unlift(ResourceSpecification.Version.unapply))
 
   implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
@@ -123,9 +127,11 @@ object CustomResourceDefinition {
   }
   implicit val subresourcesFmt: Format[Subresources] = Json.format[Subresources]
 
+  implicit val schemaFormat: Format[Schema] = Json.format[Schema]
+
   implicit val crdSpecFmt: Format[Spec] = ((JsPath \ "group").format[String] and
     (JsPath \ "version").formatNullable[String] and
-    (JsPath \ "versions").formatMaybeEmptyList[Version] and
+    (JsPath \ "versions").formatNullable[List[Version]] and
     new EnumFormatter(JsPath \ "scope").formatEnum(Scope) and
     (JsPath \ "names").format[Names] and
     (JsPath \ "subresources").formatNullable[Subresources]) (CustomResourceDefinition.Spec.apply,

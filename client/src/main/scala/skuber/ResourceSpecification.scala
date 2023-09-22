@@ -1,5 +1,6 @@
 package skuber
 
+import play.api.libs.json.JsObject
 import skuber.api.client.Status
 
 /**
@@ -24,7 +25,8 @@ abstract class ResourceSpecification {
   def prioritisedVersions: List[String] // all versions enabled for the resource, sorted by descending priority
   def scope: ResourceSpecification.Scope.Value
   def names: ResourceSpecification.Names
-  def subresources:Option[ResourceSpecification.Subresources]
+  def versions: Option[List[ResourceSpecification.Version]]
+  def subresources: Option[ResourceSpecification.Subresources]
 }
 
 object ResourceSpecification {
@@ -34,110 +36,117 @@ object ResourceSpecification {
     val Namespaced, Cluster = Value
   }
 
-  case class Names(plural: String,
+  final case class Names(
+    plural: String,
     singular: String,
     kind: String,
     shortNames: List[String],
     listKind: Option[String] = None,
-    categories: List[String] = Nil)
+    categories: List[String] = Nil
+  )
 
-  case class Version(name: String, served: Boolean = false, storage: Boolean = false)
+  final case class Schema(openAPIV3Schema: JsObject) // the JSON representation of the schema
 
-  case class Subresources(status: Option[StatusSubresource] = None,
-    scale: Option[ScaleSubresource] = None)
-  {
+  final case class Version(
+    name: String,
+    served: Boolean,
+    storage: Boolean,
+    schema: Option[Schema],
+    subresources: Option[Subresources] = None
+  )
+
+  final case class Subresources(status: Option[StatusSubresource] = None, scale: Option[ScaleSubresource] = None) {
     def withStatusSubresource(): Subresources = this.copy(status = Some(StatusSubresource()))
-    def withScaleSubresource(scale: ScaleSubresource): Subresources = this copy(scale = Some(scale))
+    def withScaleSubresource(scale: ScaleSubresource): Subresources = this.copy(scale = Some(scale))
   }
 
-  case class ScaleSubresource(specReplicasPath: String,
-    statusReplicasPath: String,
-    labelSelectorPath: Option[String]=None)
+  final case class ScaleSubresource(specReplicasPath: String, statusReplicasPath: String, labelSelectorPath: Option[String] = None)
 
-  case class StatusSubresource()
+  final case class StatusSubresource()
 }
 
-case class CoreResourceSpecification(override val group: Option[String] = None,
+final case class CoreResourceSpecification(
+  override val group: Option[String] = None,
   version: String = "v1",
   override val scope: ResourceSpecification.Scope.Value,
   override val names: ResourceSpecification.Names,
-  override val subresources: Option[ResourceSpecification.Subresources] = None) extends ResourceSpecification
-{
-  override val apiPathPrefix="api"
+  override val subresources: Option[ResourceSpecification.Subresources] = None
+) extends ResourceSpecification {
+
+  override val apiPathPrefix = "api"
   override val defaultVersion = version
-  override val prioritisedVersions: List[String]  = List(version)
+  override val prioritisedVersions: List[String] = List(version)
+  override val versions: Option[List[ResourceSpecification.Version]] = None
 }
 
-/**
- * NonCoreResourceSpecification is used to specify any resource types outside the core k8s API group, including custom resources
+/** NonCoreResourceSpecification is used to specify any resource types outside the core k8s API group, including custom resources
  */
-case class NonCoreResourceSpecification(val apiGroup: String,
+final case class NonCoreResourceSpecification(
+  val apiGroup: String,
   val version: Option[String],
-  val versions: List[ResourceSpecification.Version], // introduced in k8s v1.11 for CRD types
+  val versions: Option[List[ResourceSpecification.Version]],
   override val scope: ResourceSpecification.Scope.Value,
   override val names: ResourceSpecification.Names,
-  override val subresources: Option[ResourceSpecification.Subresources] = None) extends ResourceSpecification
-{
-  def apiPathPrefix="apis"
+  override val subresources: Option[ResourceSpecification.Subresources] = None
+) extends ResourceSpecification {
+  def apiPathPrefix = "apis"
   override def group: Option[String] = Some(apiGroup)
 
-  override lazy val defaultVersion = {
-    prioritisedVersions.headOption.getOrElse(throw new K8SException(Status(message=Some("No version defined for this resource type"))))
-  }
+  override lazy val defaultVersion =
+    prioritisedVersions.headOption.getOrElse(throw new K8SException(Status(message = Some("No version defined for this resource type"))))
 
-  override lazy val prioritisedVersions = {
-    if (versions.isEmpty)
-      version.toList
-    else {
-      // return list of served versions sorted by Kubernetes version priority - see
-      // https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/
+  override lazy val prioritisedVersions: List[String] =
+  // return list of served versions sorted by Kubernetes version priority - see
+  // https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/
 
-      // Note: this pattern matches Kubernetes versions - matching will return nulls for the optional second and third groups if a GA version e.g. "v1"
-      val kubernetesVersionPattern = """"v(\\d+)(alpha|beta)?(\\d+)?""".r
+    versions match {
+      case None | Some(Nil)  => version.toList
+      case Some(versionList) =>
+        // return list of served versions sorted by Kubernetes version priority - see
+        // https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definition-versioning/
 
-      def nullToGA(str: String) = if (str==null) "GA" else str
-      val kubernetesReleaseStages=List[String]("GA", "beta", "alpha") // ordered from highest to lowest priority, null means GA
-      def byReleaseStagePriority(stage1: String, stage2: String): Boolean = {
-        kubernetesReleaseStages.indexOf(stage1) > kubernetesReleaseStages.indexOf(stage2)
-      }
+        // Note: this pattern matches Kubernetes versions - matching will return nulls for the optional second and third groups if a GA version e.g. "v1"
+        val kubernetesVersionPattern = """"v(\\d+)(alpha|beta)?(\\d+)?""".r
 
-      def byVersionPriority(version1: String, version2: String): Boolean = {
-        val versionOneMatch = kubernetesVersionPattern.findFirstMatchIn(version1)
-        val versionTwoMatch = kubernetesVersionPattern.findFirstMatchIn(version2)
-        (versionOneMatch, versionTwoMatch) match {
-          case (None, Some(_)) => false
-          case (Some(_), None) => true
-          case (None, None) => version1 < version2
-          case (Some(v1match), Some(v2match)) =>
-            if (v1match.group(0) != v2match.group(0))
-              v1match.group(0) > v2match.group(0)
-            else if (v1match.group(1) != v2match.group(1))
-              byReleaseStagePriority(nullToGA(v1match.group(1)), nullToGA(v2match.group(1)))
-            else {
-              if (v1match.group(2) == null)
-                true
-              else if (v2match.group(2) == null)
-                false
-              else
-                v1match.group(2) > v2match.group(2)
-            }
+        def nullToGA(str: String) = if (str == null) "GA" else str
+        val kubernetesReleaseStages = List[String]("GA", "beta", "alpha") // ordered from highest to lowest priority, null means GA
+        def byReleaseStagePriority(stage1: String, stage2: String): Boolean =
+          kubernetesReleaseStages.indexOf(stage1) > kubernetesReleaseStages.indexOf(stage2)
+
+        def byVersionPriority(version1: String, version2: String): Boolean = {
+          val versionOneMatch = kubernetesVersionPattern.findFirstMatchIn(version1)
+          val versionTwoMatch = kubernetesVersionPattern.findFirstMatchIn(version2)
+          (versionOneMatch, versionTwoMatch) match {
+            case (None, Some(_)) => false
+            case (Some(_), None) => true
+            case (None, None)    => version1 < version2
+            case (Some(v1match), Some(v2match)) =>
+              if (v1match.group(0) != v2match.group(0))
+                v1match.group(0) > v2match.group(0)
+              else if (v1match.group(1) != v2match.group(1))
+                byReleaseStagePriority(nullToGA(v1match.group(1)), nullToGA(v2match.group(1)))
+              else {
+                if (v1match.group(2) == null)
+                  true
+                else if (v2match.group(2) == null)
+                  false
+                else
+                  v1match.group(2) > v2match.group(2)
+              }
+          }
         }
-      }
 
-      versions
-          .filter(v => v.served)
+        versionList
+          .filter(_.served)
           .map(_.name)
           .sortWith(byVersionPriority)
     }
-  }
 }
 
 object NonCoreResourceSpecification {
 
   def apply(apiGroup: String, version: String, scope: ResourceSpecification.Scope.Value, names: ResourceSpecification.Names): NonCoreResourceSpecification = {
-    val versions = List(ResourceSpecification.Version(name=version, true, true))
-    new NonCoreResourceSpecification(apiGroup, Some(version), versions, scope, names, None)
+    val versions = List(ResourceSpecification.Version(name = version, served = true, storage = true, schema = None))
+    new NonCoreResourceSpecification(apiGroup, Some(version), Some(versions), scope, names, None)
   }
 }
-
-

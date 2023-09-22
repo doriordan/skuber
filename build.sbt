@@ -55,7 +55,7 @@ val apacheCommonsLogging = "commons-logging" % "commons-logging" % "1.2"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-sonatypeProfileName := "io.github.hagay3"
+sonatypeProfileName := "io.github.awh21"
 
 ThisBuild / publishMavenStyle := true
 
@@ -79,7 +79,7 @@ ThisBuild / scmInfo := Some(
 ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", email="hagay3@gmail.com", url=url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
-  organization := "io.github.hagay3",
+  organization := "io.github.awh21",
   scalaVersion := currentScalaVersion,
   publishConfiguration := publishConfiguration.value.withOverwrite(true),
   publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
