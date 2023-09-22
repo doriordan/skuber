@@ -118,7 +118,7 @@ object CustomResourceDefinition {
     (JsPath \ "storage").formatMaybeEmptyBoolean() and
     (JsPath \ "schema").formatNullable[Schema] and
     (JsPath \ "subresources").formatNullable[Subresources]
-  )(ResourceSpecification.Version.apply, unlift(ResourceSpecification.Version.unapply))
+  )(ResourceSpecification.Version.apply, res => (res.name, res.served, res.storage, res.schema, res.subresources))
 
   implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
