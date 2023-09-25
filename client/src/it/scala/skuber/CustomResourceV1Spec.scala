@@ -104,7 +104,7 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
           storage = true,
           schema = Some(Schema(jsonSchema)), // schema is required since v1
           subresources = Some(Subresources()
-            .withStatusSubresource // enable status subresource
+            .withStatusSubresource() // enable status subresource
             .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource
           )
         )
@@ -122,7 +122,7 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
     // This needs to be passed implicitly to the skuber API to enable it to process TestResource requests.
     // The json paths in the Scale subresource must map to the replica fields in Spec and Status
     // respectively above
-    implicit val testResourceDefinition = ResourceDefinition[TestResource](
+    implicit val testResourceDefinition: ResourceDefinition[CustomResource[TestResource.Spec, TestResource.Status]] = ResourceDefinition[TestResource](
       group = "test.skuber.io",
       version = "v1alpha1",
       kind = "SkuberTestV1",
@@ -132,15 +132,15 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
 
     // the following implicit values enable the scale and status methods on the skuber API to be called for this type
     // (these calls will be rejected unless the subresources are enabled on the CRD)
-    implicit val statusSubEnabled = CustomResource.statusMethodsEnabler[TestResource]
-    implicit val scaleSubEnabled = CustomResource.scalingMethodsEnabler[TestResource]
+    implicit val statusSubEnabled: HasStatusSubresource[TestResource] = CustomResource.statusMethodsEnabler[TestResource]
+    implicit val scaleSubEnabled: Scale.SubresourceSpec[TestResource] = CustomResource.scalingMethodsEnabler[TestResource]
 
     // Construct an exportable Kubernetes CRD that mirrors the details in the matching implicit resource definition above -
     // the test will create it on Kubernetes so that the subsequent test requests can be handled by the cluster
-    val crd = CustomResourceDefinition[TestResource]
+    val crd = CustomResourceDefinition[TestResource](testResourceDefinition)
 
     // Convenience method for constructing custom resources of the required type from a name snd a spec
-    def apply(name: String, spec: Spec) = CustomResource[Spec, Status](spec).withName(name)
+    def apply(name: String, spec: Spec): CustomResource[TestResource.Spec, TestResource.Status] = CustomResource[TestResource.Spec, TestResource.Status](spec)(testResourceDefinition).withName(name)
   }
 
   val initialDesiredReplicas = 1
@@ -257,11 +257,11 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
       kill
     }
 
-    eventually(timeout(200.seconds), interval(3.seconds)) {
+    eventually(timeout(30.seconds), interval(3.seconds)) {
       trackedEvents.size shouldBe 2
-      trackedEvents.head._type shouldBe EventType.ADDED
-      trackedEvents.head._object.name shouldBe testResource.name
-      trackedEvents.head._object.spec shouldBe testResource.spec
+      trackedEvents(0)._type shouldBe EventType.ADDED
+      trackedEvents(0)._object.name shouldBe testResource.name
+      trackedEvents(0)._object.spec shouldBe testResource.spec
       trackedEvents(1)._type shouldBe EventType.DELETED
     }
 
