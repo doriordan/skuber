@@ -10,9 +10,8 @@ import play.api.libs.json._
 import skuber.FutureUtil.FutureOps
 import skuber.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
 
+import java.util.UUID.randomUUID
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success}
 
 /**
  * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
@@ -36,11 +35,14 @@ import scala.util.{Failure, Success}
  */
 class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll {
 
-  val testResourceName: String = java.util.UUID.randomUUID().toString
-
   // Convenient aliases for the custom object and list resource types to be passed to the skuber API methods
   type TestResource = CustomResource[TestResource.Spec, TestResource.Status]
   type TestResourceList = ListResource[TestResource]
+
+  override def beforeAll(): Unit = {
+    val k8s = k8sInit(config)
+    k8s.create(TestResource.crd).valueT
+  }
 
   override def afterAll(): Unit = {
     val k8s = k8sInit(config)
@@ -148,32 +150,33 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
   val modifiedDesiredReplicas = 2
   val modifiedActualReplicas = 3
 
-  behavior of "CustomResource"
+  behavior.of("CustomResource")
 
-  it should "create a crd" in { k8s =>
-    k8s.create(TestResource.crd) map { c =>
-      assert(c.name == TestResource.crd.name)
-      assert(c.spec.defaultVersion == "v1alpha1")
-      assert(c.spec.group.contains("test.skuber.io"))
-    }
-  }
-
-  it should "get the newly created crd" in { k8s =>
-    k8s.get[CustomResourceDefinition](TestResource.crd.name) map { c =>
-      assert(c.name == TestResource.crd.name)
-    }
+  it should "get a crd" in { k8s =>
+    val getResource = k8s.get[CustomResourceDefinition](TestResource.crd.name).valueT
+    assert(getResource.name == TestResource.crd.name)
   }
 
   it should "create a new custom resource defined by the crd" in { k8s =>
-    val testSpec = TestResource.Spec(1)
-    val testResource = TestResource(testResourceName, testSpec)
-    k8s.create(testResource).map { testResource =>
-      assert(testResource.name == testResourceName)
-      assert(testResource.spec == testSpec)
-    }
+    val testResourceName: String = randomUUID().toString
+    val testResourceCreated = createNamedTestResource(k8s = k8s, name = testResourceName, replicas = 1)
+
+    val expectedSpec = TestResource.Spec(1)
+    assert(testResourceCreated.name == testResourceName)
+    assert(testResourceCreated.spec == expectedSpec)
+
+    val resourceGet = k8s.get[TestResource](testResourceName).valueT
+
+    assert(resourceGet.name == testResourceName)
+    assert(resourceGet.spec.desiredReplicas == 1)
+    assert(resourceGet.status.isEmpty)
+
   }
 
   it should "get the custom resource" in { k8s =>
+    val testResourceName: String = randomUUID().toString
+    createNamedTestResource(k8s = k8s, name = testResourceName, replicas = 1)
+
     k8s.get[TestResource](testResourceName).map { c =>
       assert(c.name == testResourceName)
       assert(c.spec.desiredReplicas == 1)
@@ -182,28 +185,38 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
   }
 
   it should "scale the desired replicas on the spec of the custom resource" in { k8s =>
-    val updatedFut = for {
-      currentScale <- k8s.getScale[TestResource](testResourceName)
-      scaled <- k8s.updateScale[TestResource](testResourceName, currentScale.withSpecReplicas(modifiedDesiredReplicas))
-      updated <- k8s.get[TestResource](testResourceName)
-    } yield updated
-    updatedFut.map { updated =>
-      assert(updated.spec.desiredReplicas == modifiedDesiredReplicas)
-    }
+    val modifiedDesiredReplicas = 2
+    val testResourceName: String = randomUUID().toString
+    createNamedTestResource(k8s = k8s, name = testResourceName, replicas = 1)
+
+    val currentScale = k8s.getScale[TestResource](testResourceName).valueT
+
+    k8s.updateScale[TestResource](testResourceName, currentScale.withSpecReplicas(modifiedDesiredReplicas)).valueT
+    val updated = k8s.get[TestResource](testResourceName).valueT
+    assert(updated.spec.desiredReplicas == modifiedDesiredReplicas)
   }
 
   it should "update the status on the custom resource with a modified actual replicas count" in { k8s =>
+    val specReplicas = 1
+    val testResourceName: String = randomUUID().toString
+    createNamedTestResource(k8s = k8s, name = testResourceName, replicas = specReplicas)
+
+    val modifiedActualReplicas = 3
     val status = TestResource.Status(modifiedActualReplicas)
-    val updatedFut = for {
-      testResource <- k8s.get[TestResource](testResourceName)
-      updatedTestResource <- k8s.updateStatus(testResource.withStatus(status))
-    } yield updatedTestResource
-    updatedFut.map { updated =>
-      updated.status shouldBe Some(status)
-    }
+
+    val testResource = k8s.get[TestResource](testResourceName).valueT
+    val updated = k8s.updateStatus(testResource.withStatus(status)).valueT
+    updated.status shouldBe Some(status)
+
+    val scale = k8s.getScale[TestResource](testResourceName).valueT
+    scale.spec.replicas shouldBe Some(specReplicas)
+    scale.status.get.replicas shouldBe modifiedActualReplicas
   }
 
   it should "return the modified desired and actual replica counts in response to a getScale request" in { k8s =>
+    val testResourceName: String = randomUUID().toString
+    createNamedTestResource(k8s = k8s, name = testResourceName, replicas = 2)
+
     k8s.getScale[TestResource](testResourceName).map { scale =>
       assert(scale.spec.replicas.contains(modifiedDesiredReplicas))
       assert(scale.status.get.replicas == modifiedActualReplicas)
@@ -211,25 +224,41 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
   }
 
   it should "delete the custom resource" in { k8s =>
-    k8s.delete[TestResource](testResourceName)
-    eventually(timeout(200.seconds), interval(3.seconds)) {
-      val retrieveCr = k8s.get[TestResource](testResourceName)
-      val crRetrieved = Await.ready(retrieveCr, 2.seconds).value.get
-      crRetrieved match {
-        case s: Success[_] => assert(false)
-        case Failure(ex) => ex match {
-          case ex: K8SException if ex.status.code.contains(404) => assert(true)
-          case _ => assert(false)
-        }
-      }
-    }
+    val testResourceName: String = randomUUID().toString
+    createNamedTestResource(k8s = k8s, name = testResourceName, replicas = 1)
+    k8s.get[TestResource](testResourceName).valueT.name shouldBe testResourceName
+
+    k8s.delete[TestResource](testResourceName).valueT
+
+    val failure = k8s.get[TestResource](testResourceName).withTimeout().failed.futureValue
+    failure shouldBe a[K8SException]
+    failure.asInstanceOf[K8SException].status.code should contain(404)
+  }
+
+  it should "getStatus on deployment - specific namespace" in { k8s =>
+    val namespace = randomUUID().toString
+    createNamespace(namespace, k8s)
+
+    val testResourceName: String = randomUUID().toString
+    val actualReplicas = 1
+    val desiredReplicas = 7
+
+    createNamedTestResource(k8s = k8s, name = testResourceName, replicas = desiredReplicas, namespace = Some(namespace))
+
+    val testResource = k8s.get[TestResource](testResourceName, Some(namespace)).valueT
+    k8s.updateStatus(testResource.withStatus(TestResource.Status(actualReplicas)), Some(namespace)).valueT
+
+    val actualStatus = k8s.getStatus[TestResource](testResourceName, Some(namespace)).valueT
+    actualStatus.status.map(_.actualReplicas) shouldBe Some(actualReplicas)
+
+    deleteNamespace(namespace, k8s)
   }
 
   it should "watch the custom resources" in { k8s =>
     import skuber.api.client.{EventType, WatchEvent}
     import scala.collection.mutable.ListBuffer
 
-    val testResourceName = java.util.UUID.randomUUID().toString
+    val testResourceName: String = randomUUID().toString
     val testResource = TestResource(testResourceName, TestResource.Spec(1))
 
     val trackedEvents = ListBuffer.empty[WatchEvent[TestResource]]
@@ -246,14 +275,10 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
         .toMat(trackEvents)(Keep.both).run()
     }
 
-    def createTestResource = k8s.create(testResource).valueT
-
-    def deleteTestResource: Unit = k8s.delete[TestResource](testResourceName).valueT
-
     val killSwitch: UniqueKillSwitch = {
       val (kill, _) = watchAndTrackEvents(getCurrentResourceVersion)
-      createTestResource
-      deleteTestResource
+      k8s.create(testResource).valueT
+      k8s.delete[TestResource](testResourceName).valueT
       kill
     }
 
@@ -273,15 +298,14 @@ class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with
   it should "delete the crd" in { k8s =>
     k8s.delete[CustomResourceDefinition](TestResource.crd.name)
     eventually(timeout(200.seconds), interval(3.seconds)) {
-      val retrieveCrd = k8s.get[CustomResourceDefinition](TestResource.crd.name)
-      val crdRetrieved = Await.ready(retrieveCrd, 2.seconds).value.get
-      crdRetrieved match {
-        case s: Success[_] => assert(false)
-        case Failure(ex) => ex match {
-          case ex: K8SException if ex.status.code.contains(404) => assert(true)
-          case _ => assert(false)
-        }
-      }
+      val failure = k8s.get[CustomResourceDefinition](TestResource.crd.name).failed.valueT
+      failure shouldBe a[K8SException]
+      failure.asInstanceOf[K8SException].status.code should contain(404)
     }
+  }
+
+  def createNamedTestResource(k8s: FixtureParam, name: String, replicas: Int, namespace: Option[String] = None): CustomResource[TestResource.Spec, TestResource.Status] = {
+    val testSpec = TestResource.Spec(replicas)
+    k8s.create(TestResource(name, testSpec), namespace).valueT
   }
 }
