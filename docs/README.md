@@ -13,8 +13,30 @@
 
 </br>
 
++ Usage
+  * [Quick Start](#quick-start)
+  * [Release](#release)
+  * [Configuration](#configuration)
+  * [Basic imports](#basic-imports)
 
-## Quick start
++ Code Examples
+  * [List pods example](#list-pods-example)
+  * [List Namespaces](#list-namespaces)
+  * [Create Pod](#create-pod)
+  * [Create deployment](#create-deployment)
+
++ Features
+  * [API Method Summary](#api-method-summary)
+  * [Refresh EKS (AWS) Token](#refresh-eks-aws-token)
+  * [Label Selectors](#label-selectors)
+  * [Safely shutdown the client](#safely-shutdown-the-client)
+
++ Architecture
+  * [Data Model Overview](#data-model-overview)
+  * [Fluent API](#fluent-api)
+  * [JSON Mapping](#json-mapping)
+
+## Quick Start
 
 This example lists pods in `kube-system` namespace:
 
@@ -770,15 +792,15 @@ case class Status(
 [Create IAM Role](#create-iam-role) </br>
 [Create a service account](#create-a-service-account) </br>
 [Create the aws-auth mapping](#create-the-aws-auth-mapping) </br>
-[Skuber Code example](#skuber-code-example)
+[Refresh EKS Code Examples]([#refresh-eks-code-examples))
 
 ## Background
 Skuber has the functionality to refresh EKS (AWS) token with an IAM role and cluster configurations.
 
 The initiative:
 * Refreshing tokens increasing k8s cluster security
-* Since kubernetes v1.21 service account tokens has an expiration of 1 hour.
-  https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html#kubernetes-1.21
+* Since kubernetes v1.21 service account tokens has an expiration of 90 days.
+  https://docs.aws.amazon.com/eks/latest/userguide/service-accounts.html
 
 
 ## Step-by-step guide
@@ -896,7 +918,7 @@ Add the following mapping
 ```
 
 
-### Skuber Code example
+### Refresh EKS Code Examples
 * Set the environment variables according to `REMOTE_CLUSTER`
 ```bash
 export namespace=default
