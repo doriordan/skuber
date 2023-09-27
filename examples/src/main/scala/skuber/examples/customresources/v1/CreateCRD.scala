@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 
 /**
- * @author David O'Riordan, ported to V1 example by Ash White
+ * @author David O'Riordan, original v1beta1 example ported to V1 by Ash White
  *         Create the Team and ServiceSupport CRDs on k8s
  */
 object CreateCRD extends App {
