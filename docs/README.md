@@ -562,7 +562,7 @@ Two versions of the `CustomResourceDefinition` API are supported currently:
 - `v1beta1` - deprecated in Kubernetes v1.16 in favour of `v1`, no longer served as of v1.22.
 - `v1` - available since Kubernetes v1.16. **If possible, use this version**.
 
-See the CustomResourceDefinition examples in the examples submodule in this project, and the [K8s v1 CRD API version docs here](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#customresourcedefinition-v122) for information about the differences between the two versions of `CustomResourceDefinition`.
+See the CustomResourceDefinition examples in the examples submodule in this project, and the [K8s v1 CRD API version changes here](https://kubernetes.io/docs/reference/using-api/deprecation-guide/#customresourcedefinition-v122) for information about the differences between the two versions of `CustomResourceDefinition`.
 
 ***networking***
 
