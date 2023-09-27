@@ -12,7 +12,7 @@
 
 <p align="center">
   <strong>
-  <a href="https://skuber.co/" target="_blank">Read the Dcoumentation</a>.
+  <a href="https://skuber.co/" target="_blank">Read the Documentation</a>.
   </strong>
  </p>
 
@@ -81,7 +81,7 @@ libraryDependencies += "io.github.hagay3" %% "skuber" % "3.1"
 
 ## Building
 
-Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
+Building the library from source is very straightforward. Simply run `sbt test` in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
 
 ## CI + Build
 The CI parameters defined in `build.sbt`.

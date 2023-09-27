@@ -22,7 +22,7 @@ import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormatReads, deleteOptionsFmt, namespaceListFmt}
 
 import javax.net.ssl.SSLContext
-import skuber.apiextensions.CustomResourceDefinition.Scope
+import skuber.apiextensions.v1beta1.CustomResourceDefinition.Scope
 import skuber.config.SkuberConfig
 
 import scala.concurrent.duration._
