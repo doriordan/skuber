@@ -8,7 +8,10 @@ import skuber.{ListResource, NonCoreResourceSpecification, ObjectEditor, ObjectM
 /**
  * @author David O'Riordan
  */
-@deprecated("This supports the older beta CRD API - use skuber.apiextensions.v1.CustomResourceDefinition instead for v1 CRD API (Kubernetes versions >= 1.19)")
+@deprecated(
+  "The apiextensions.k8s.io/v1beta1 API version of CustomResourceDefinition is no longer served as of v1.22." +
+  "Migrate manifests and API clients to use the apiextensions.k8s.io/v1 API version, available since v1.16."
+)
 final case class CustomResourceDefinition(val kind: String = "CustomResourceDefinition",
                                           override val apiVersion: String = "apiextensions.k8s.io/v1beta1",
                                           val metadata: ObjectMeta,
