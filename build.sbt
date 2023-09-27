@@ -171,11 +171,10 @@ lazy val examplesAssemblySettings = Seq(
   assembly / mainClass := Some("skuber.examples.guestbook.Guestbook")
 )
 
-root / publishArtifact := false
-
-lazy val root = (project in file("."))
+lazy val `skuber-project` = (project in file("."))
   .settings(commonSettings,
-    crossScalaVersions := Nil)
+    crossScalaVersions := Nil,
+    publishArtifact := false)
   .aggregate(skuber, examples)
 
 lazy val skuber = (project in file("client"))
