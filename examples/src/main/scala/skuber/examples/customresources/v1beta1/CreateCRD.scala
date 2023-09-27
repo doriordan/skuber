@@ -1,4 +1,4 @@
-package skuber.examples.customresources
+package skuber.examples.customresources.v1beta1
 
 import skuber.{K8SException, k8sInit}
 import skuber.ResourceSpecification.Scope

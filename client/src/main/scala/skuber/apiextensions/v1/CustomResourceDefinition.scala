@@ -45,8 +45,8 @@ object CustomResourceDefinition {
   def apply(name: String, kind: String, shortNames: List[String]): CustomResourceDefinition =
     CustomResourceDefinition(name, kind, "v1", Scope.Namespaced, None, shortNames, Nil)
 
-  def apply(name: String, kind: String, scope: Scope.Value, shortNames: List[String]): CustomResourceDefinition =
-    CustomResourceDefinition(name, kind, "v1", scope, None, shortNames, Nil)
+  def apply(name: String, kind: String, scope: Scope.Value, shortNames: List[String], versions: List[Version]): CustomResourceDefinition =
+    CustomResourceDefinition(name, kind, "v1", scope, None, shortNames, versions)
 
   def apply(
     name: String,
