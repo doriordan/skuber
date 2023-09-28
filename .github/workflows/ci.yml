@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        scala: [2.12.13, 2.13.6, 3.2.0]
+        scala: [2.12.13, 2.13.12, 3.2.0]
         java: [temurin@8, temurin@17]
     runs-on: ${{ matrix.os }}
     steps:
@@ -70,7 +70,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -105,12 +105,12 @@ jobs:
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13.6)
+      - name: Download target directories (2.13.12)
         uses: actions/download-artifact@v3
         with:
-          name: target-${{ matrix.os }}-2.13.6-${{ matrix.java }}
+          name: target-${{ matrix.os }}-2.13.12-${{ matrix.java }}
 
-      - name: Inflate target directories (2.13.6)
+      - name: Inflate target directories (2.13.12)
         run: |
           tar xf targets.tar
           rm targets.tar
@@ -137,7 +137,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -153,14 +153,14 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
-      - run: 'sbt ''it:testOnly * -- -l HorizontalPodAutoscalerV2Tag'''
+      - run: 'sbt "it:testOnly * -- -l HorizontalPodAutoscalerV2Tag"'
 
   integration-kubernetes-v1-20:
     name: integration-kubernetes-v1-20
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -176,14 +176,14 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
-      - run: 'sbt ''it:testOnly * -- -l HorizontalPodAutoscalerV2Tag'''
+      - run: 'sbt "it:testOnly * -- -l HorizontalPodAutoscalerV2Tag"'
 
   integration-kubernetes-v1-21:
     name: integration-kubernetes-v1-21
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -199,14 +199,14 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
-      - run: 'sbt ''it:testOnly * -- -l HorizontalPodAutoscalerV2Tag'''
+      - run: 'sbt "it:testOnly * -- -l HorizontalPodAutoscalerV2Tag"'
 
   integration-kubernetes-v1-22:
     name: integration-kubernetes-v1-22
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -222,14 +222,14 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
-      - run: 'sbt ''it:testOnly * -- -l CustomResourceTag -l HorizontalPodAutoscalerV2Tag'''
+      - run: 'sbt "it:testOnly * -- -l CustomResourceTag -l HorizontalPodAutoscalerV2Tag"'
 
   integration-kubernetes-v1-23:
     name: integration-kubernetes-v1-23
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -245,14 +245,14 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
-      - run: 'sbt ''it:testOnly * -- -l CustomResourceTag'''
+      - run: 'sbt "it:testOnly * -- -l CustomResourceTag"'
 
   integration-kubernetes-v1-24:
     name: integration-kubernetes-v1-24
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.6]
+        scala: [2.13.12]
         java: [temurin@8]
     runs-on: ${{ matrix.os }}
     steps:
@@ -268,4 +268,4 @@ jobs:
           github token: ${{ secrets.GITHUB_TOKEN }}
           start args: '--extra-config=apiserver.disable-admission-plugins=ServiceAccount  --extra-config=apiserver.enable-admission-plugins=NamespaceLifecycle'
 
-      - run: 'sbt ''it:testOnly * -- -l CustomResourceTag'''
+      - run: 'sbt "it:testOnly * -- -l CustomResourceTag"'
