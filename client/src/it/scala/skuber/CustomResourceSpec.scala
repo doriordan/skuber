@@ -1,8 +1,8 @@
 package skuber
 
 import java.util.UUID.randomUUID
-import akka.stream._
-import akka.stream.scaladsl._
+import org.apache.pekko.stream._
+import org.apache.pekko.stream.scaladsl._
 import org.scalactic.source.Position
 import skuber.apiextensions.v1beta1.CustomResourceDefinition
 import skuber.apiextensions.v1beta1.CustomResourceDefinition._

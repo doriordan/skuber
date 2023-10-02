@@ -1,10 +1,10 @@
 package skuber.api.watch
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
-import akka.http.scaladsl.{Http, HttpsConnectionContext}
-import akka.stream.Materializer
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
+import org.apache.pekko.http.scaladsl.{Http, HttpsConnectionContext}
+import org.apache.pekko.stream.Materializer
 import skuber.api.client.Pool
 
 import scala.concurrent.duration._

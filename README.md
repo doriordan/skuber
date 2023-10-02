@@ -25,7 +25,7 @@ This example lists pods in `kube-system` namespace:
   ```scala
   import skuber._
   import skuber.json.format._
-  import akka.actor.ActorSystem
+  import org.apache.pekko.actor.ActorSystem
   import scala.util.{Success, Failure}
 
   implicit val system = ActorSystem()
@@ -43,9 +43,11 @@ This example lists pods in `kube-system` namespace:
 Read the [documentation](https://skuber.co) and join [discord community](https://discord.gg/byEh56vFJR) to  ask your questions!
 
 
-**Note: Since Akka license is no more an "Open Source” license, akka version won't be bumped until there will be an equivalent alternative.**
+**Note: Since Akka license is no longer an "Open Source” license, the Skuber project moved on to using [Apache Pekko](https://pekko.apache.org), an open-source Akka fork.**
 
-**Currently, skuber implemented with akka 2.6.19 and the license is open-sourced.**
+**To help migration from Akka to Pekko, please refer to Pekko's [migration guides](https://pekko.apache.org/docs/pekko/current/project/migration-guides.html).**
+
+**Important: please make sure to rename your `akka` configuration keys to `pekko`. This is important when configuring, e.g., the dispatcher for the application.** 
 
 
 ## Features

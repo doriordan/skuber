@@ -3,8 +3,8 @@ package skuber.examples.watch
 import skuber._
 import skuber.json.format._
 import skuber.K8SWatchEvent
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.Sink
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.Sink
 import scala.concurrent.ExecutionContextExecutor
 
 

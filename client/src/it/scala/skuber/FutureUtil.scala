@@ -1,6 +1,6 @@
 package skuber
 
-import akka.actor.{ActorSystem, Scheduler}
+import org.apache.pekko.actor.{ActorSystem, Scheduler}
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import scala.concurrent.{ExecutionContext, Future, Promise, TimeoutException}
 import scala.concurrent.duration._
@@ -13,12 +13,12 @@ object FutureUtil {
 
     implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 
-    def valueT(implicit executionContext: ExecutionContext, akkaActor: ActorSystem): T = value.withTimeout().futureValue
+    def valueT(implicit executionContext: ExecutionContext, pekkoActor: ActorSystem): T = value.withTimeout().futureValue
 
     def withTimeout(timeout: FiniteDuration = 10.seconds,
                     cleanup: Option[T => Unit] = None)
-                   (implicit executionContext: ExecutionContext, akkaActor: ActorSystem): Future[T] =
-      futureTimeout(akkaActor.scheduler, timeout, cleanup)(value)
+                   (implicit executionContext: ExecutionContext, pekkoActor: ActorSystem): Future[T] =
+      futureTimeout(pekkoActor.scheduler, timeout, cleanup)(value)
 
     def timeoutException(timeout: FiniteDuration) = new TimeoutException(s"Future timed out after ${timeout.toString()}") with NoStackTrace
 

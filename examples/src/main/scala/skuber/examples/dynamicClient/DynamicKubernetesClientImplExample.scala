@@ -1,7 +1,7 @@
 package skuber.examples.dynamicClient
 
 import java.util.UUID.randomUUID
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.json.Json
 import skuber.api.dynamic.client.impl.{DynamicKubernetesClientImpl, JsonRaw}
 import scala.concurrent.duration._

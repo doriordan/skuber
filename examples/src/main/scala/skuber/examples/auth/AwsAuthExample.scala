@@ -1,7 +1,7 @@
 package skuber.examples.auth
 
 import java.util.Base64
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import com.amazonaws.regions.Regions
 import org.joda.time.DateTime
 import skuber.api.Configuration

@@ -2,12 +2,12 @@ package skuber.examples.guestbook
 
 import skuber._
 import skuber.json.format._
-import akka.actor.{Actor, ActorLogging, ActorRef}
-import akka.actor.Props
-import akka.event.LoggingReceive
-import akka.pattern.pipe
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.actor.{Actor, ActorLogging, ActorRef}
+import org.apache.pekko.actor.Props
+import org.apache.pekko.event.LoggingReceive
+import org.apache.pekko.pattern.pipe
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 import scala.collection._

@@ -1,8 +1,8 @@
 package skuber
 
 import java.util.UUID.randomUUID
-import akka.stream.KillSwitches
-import akka.stream.scaladsl.{Keep, Sink}
+import org.apache.pekko.stream.KillSwitches
+import org.apache.pekko.stream.scaladsl.{Keep, Sink}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.{Eventually, ScalaFutures}

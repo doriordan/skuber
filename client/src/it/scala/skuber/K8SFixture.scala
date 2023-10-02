@@ -1,6 +1,6 @@
 package skuber
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.Outcome
 import org.scalatest.flatspec.{AnyFlatSpec, FixtureAnyFlatSpec}

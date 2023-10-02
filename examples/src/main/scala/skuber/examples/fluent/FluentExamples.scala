@@ -3,7 +3,7 @@ package skuber.examples.fluent
 import skuber._
 import skuber.json.format._
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 
 /**
  * @author David O'Riordan

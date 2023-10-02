@@ -1,8 +1,8 @@
 package skuber.examples.exec
 
-import akka.{Done, NotUsed}
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.{Done, NotUsed}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import skuber._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future, Promise}
 import scala.concurrent.duration.Duration.Inf

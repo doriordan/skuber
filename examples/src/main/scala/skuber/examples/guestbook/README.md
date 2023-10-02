@@ -110,7 +110,7 @@ You can verify the Guestbook application is available by navigating to a service
 
 ## Design
 
-The design of the reactive guestbook example is based on the [actor model](https://en.wikipedia.org/wiki/Actor_model) and uses [Akka](http://doc.akka.io/docs/akka/2.4.1/intro/what-is-akka.html). Note that Skuber itself has no dependency on Akka - an actor model was chosen for this example simply because it seemed an appropriate abstraction, especially due to the asynchronous and reactive nature of the processing. The actors in this example run purely locally.
+The design of the reactive guestbook example is based on the [actor model](https://en.wikipedia.org/wiki/Actor_model) and uses [Pekko](https://pekko.apache.org/what-is-pekko.html). Note that Skuber itself has no dependency on Pekko - an actor model was chosen for this example simply because it seemed an appropriate abstraction, especially due to the asynchronous and reactive nature of the processing. The actors in this example run purely locally.
 
 There are four actors involved in the example:
 

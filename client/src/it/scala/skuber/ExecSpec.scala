@@ -1,8 +1,8 @@
 package skuber
 
 import java.util.UUID.randomUUID
-import akka.Done
-import akka.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.Done
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
