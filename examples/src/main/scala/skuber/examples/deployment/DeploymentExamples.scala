@@ -3,7 +3,7 @@ package skuber.examples.deployment
 import skuber._
 import skuber.ext.Deployment
 import skuber.json.ext.format._
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 

@@ -5,11 +5,11 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.{Try, Success,Failure}
 
-import akka.actor.{Actor, ActorRef, ActorLogging}
-import akka.actor.Props
-import akka.event.{LoggingReceive}
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.actor.{Actor, ActorRef, ActorLogging}
+import org.apache.pekko.actor.Props
+import org.apache.pekko.event.{LoggingReceive}
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 
 import model.GuestbookServiceSpecification
 

@@ -12,14 +12,14 @@ package skuber
  * @author David O'Riordan
  */
 
-import akka.http.scaladsl.marshalling.Marshal
+import org.apache.pekko.http.scaladsl.marshalling.Marshal
 
 import scala.language.implicitConversions
 import scala.concurrent.Future
 import skuber.json.ext.format._
 import skuber.api.client._
-import akka.http.scaladsl.model._
-import skuber.json.PlayJsonSupportForAkkaHttp._
+import org.apache.pekko.http.scaladsl.model._
+import skuber.json.PlayJsonSupportForPekkoHttp._
 import skuber.networking.Ingress
 
 package object ext {

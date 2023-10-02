@@ -1,7 +1,7 @@
 package skuber.api.watch
 
-import akka.stream.scaladsl.{JsonFraming, Source}
-import akka.util.ByteString
+import org.apache.pekko.stream.scaladsl.{JsonFraming, Source}
+import org.apache.pekko.util.ByteString
 import play.api.libs.json.{Format, JsError, JsString, JsSuccess, Json}
 import skuber.ObjectResource
 import skuber.api.client.{K8SException, Status, WatchEvent}

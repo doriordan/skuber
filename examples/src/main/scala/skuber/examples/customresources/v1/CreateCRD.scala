@@ -1,6 +1,6 @@
 package skuber.examples.customresources.v1
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.json.{JsObject, Json}
 import skuber.ResourceSpecification.{Schema, Scope}
 import skuber.apiextensions.v1.CustomResourceDefinition

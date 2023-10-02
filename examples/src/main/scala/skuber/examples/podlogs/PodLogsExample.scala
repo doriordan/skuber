@@ -1,11 +1,11 @@
 package skuber.examples.podlogs
 
-import akka.NotUsed
+import org.apache.pekko.NotUsed
 import skuber._
 import skuber.json.format._
-import akka.actor.ActorSystem
-import akka.stream.scaladsl._
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl._
+import org.apache.pekko.util.ByteString
 import skuber.api.client
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.duration._

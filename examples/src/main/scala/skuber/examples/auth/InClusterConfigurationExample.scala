@@ -1,6 +1,6 @@
 package skuber.examples.auth
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import org.joda.time.DateTime
 import skuber.api.Configuration
 import skuber.api.client.KubernetesClient

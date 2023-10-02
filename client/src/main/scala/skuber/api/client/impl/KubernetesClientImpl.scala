@@ -1,14 +1,14 @@
 package skuber.api.client.impl
 
-import akka.actor.ActorSystem
-import akka.event.Logging
-import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.{ConnectionContext, Http}
-import akka.stream.scaladsl.{Sink, Source}
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.event.Logging
+import org.apache.pekko.http.scaladsl.marshalling.Marshal
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
+import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http}
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, JsString, Reads, Writes}
 import skuber._
@@ -17,7 +17,7 @@ import skuber.api.client.{K8SException => _, _}
 import skuber.api.patch._
 import skuber.api.security.{HTTPRequestAuth, TLS}
 import skuber.api.watch.{LongPollingPool, Watch, WatchSource}
-import skuber.json.PlayJsonSupportForAkkaHttp._
+import skuber.json.PlayJsonSupportForPekkoHttp._
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormatReads, deleteOptionsFmt, namespaceListFmt}
 
@@ -32,7 +32,7 @@ import scala.util.{Failure, Success}
 
 /**
   * @author David O'Riordan
-  * This class implements the KubernetesClient API. It uses the Akka HTTP client to handle the requests to
+  * This class implements the KubernetesClient API. It uses the Pekko HTTP client to handle the requests to
   * the Kubernetes API server.
   */
 class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod)  => HttpRequest, // builds the requests to send
@@ -45,7 +45,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
   val defaultPoolSettings: ConnectionPoolSettings,
   val watchSettings: ConnectionPoolSettings,
   val podLogSettings: ConnectionPoolSettings,
-  val sslContext: Option[SSLContext], // provides the Akka client with the SSL details needed for https connections to the API server
+  val sslContext: Option[SSLContext], // provides the Pekko client with the SSL details needed for https connections to the API server
   override val logConfig: LoggingConfig,
   val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val executionContext: ExecutionContext)
     extends KubernetesClient
@@ -453,7 +453,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
 
 
   // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return Akka streams sources that will reactively emit a stream of updated
+  // The methods return Pekko streams sources that will reactively emit a stream of updated
   // values of the watched resources.
   override def watch[O <: ObjectResource](obj: O, namespace: Option[String])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
@@ -466,7 +466,7 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
   }
 
   // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return Akka streams sources that will reactively emit a stream of updated
+  // The methods return Pekko streams sources that will reactively emit a stream of updated
   // values of the watched resources.
 
   override def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, namespace: Option[String] = None)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
@@ -663,9 +663,9 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
 
   /**
     * Discards the response
-    * This is for requests (e.g. delete) for which we normally have no interest in the response body, but Akka Http
+    * This is for requests (e.g. delete) for which we normally have no interest in the response body, but Pekko Http
     * requires us to drain it anyway
-    * (see https://doc.akka.io/docs/akka-http/current/scala/http/implications-of-streaming-http-entity.html)
+    * (see https://doc.pekko.io/docs/pekko-http/current/scala/http/implications-of-streaming-http-entity.html)
     * @param response the Http Response that we need to drain
     * @return A Future[Unit] that will be set to Success or Failure depending on outcome of draining
     */
@@ -692,7 +692,7 @@ object KubernetesClientImpl {
       Some(actorSystem.dispatchers.lookup(appConfig.getString(configKey)))
     }
 
-    implicit val dispatcher: ExecutionContext = skuberConfig.getSkuberConfig("akka.dispatcher", dispatcherFromConfig, actorSystem.dispatcher)
+    implicit val dispatcher: ExecutionContext = skuberConfig.getSkuberConfig("pekko.dispatcher", dispatcherFromConfig, actorSystem.dispatcher)
 
     val watchIdleTimeout: Duration = skuberConfig.getDuration("watch.idle-timeout", Duration.Inf)
     val podLogIdleTimeout: Duration = skuberConfig.getDuration("pod-log.idle-timeout", Duration.Inf)

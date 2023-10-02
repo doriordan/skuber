@@ -1,7 +1,7 @@
 package skuber.api.security
 
-import akka.http.scaladsl.model.{HttpHeader, HttpRequest}
-import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials, OAuth2BearerToken}
+import org.apache.pekko.http.scaladsl.model.{HttpHeader, HttpRequest}
+import org.apache.pekko.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials, OAuth2BearerToken}
 import skuber.api.client._
 
 /**

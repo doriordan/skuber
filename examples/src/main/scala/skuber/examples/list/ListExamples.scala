@@ -1,6 +1,6 @@
 package skuber.examples.list
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import skuber.Pod.Phase
 import skuber._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}

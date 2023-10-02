@@ -1,7 +1,7 @@
 package skuber.examples.ingress
 
 import java.net.HttpURLConnection
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import skuber._
 import skuber.ext.ReplicaSet
 import skuber.networking.Ingress

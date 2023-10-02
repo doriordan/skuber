@@ -4,9 +4,9 @@ import client._
 import skuber.json.format._
 import skuber.ReplicationController
 import org.specs2.mutable.Specification
-import akka.util.ByteString
-import akka.stream.scaladsl.{Sink, Source}
-import akka.actor.ActorSystem
+import org.apache.pekko.util.ByteString
+import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.actor.ActorSystem
 import skuber.api.watch.BytesToWatchEventSource
 
 import scala.concurrent.{Await, ExecutionContext, Future}

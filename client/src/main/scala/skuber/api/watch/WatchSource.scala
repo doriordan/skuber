@@ -1,10 +1,10 @@
 package skuber.api.watch
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model._
-import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
-import akka.stream.SourceShape
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.stream.scaladsl.{Broadcast, Flow, GraphDSL, Merge, Source}
+import org.apache.pekko.stream.SourceShape
 import play.api.libs.json.{Format, JsString}
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl

@@ -1,7 +1,7 @@
 package skuber.examples.argo
 
 import java.util.UUID.randomUUID
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.functional.syntax.unlift
 import play.api.libs.json.{Format, JsPath, Json}
 import skuber.ResourceSpecification.{Names, Scope}

@@ -1,14 +1,14 @@
 package skuber.api.client.exec
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.{ConnectionContext, Http}
-import akka.stream.SinkShape
-import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
-import akka.util.ByteString
-import akka.{Done, NotUsed}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.http.scaladsl.model.headers.RawHeader
+import org.apache.pekko.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
+import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http}
+import org.apache.pekko.stream.SinkShape
+import org.apache.pekko.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
+import org.apache.pekko.util.ByteString
+import org.apache.pekko.{Done, NotUsed}
 import play.api.libs.json.JsString
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.client.{K8SException, LoggingContext, Status}

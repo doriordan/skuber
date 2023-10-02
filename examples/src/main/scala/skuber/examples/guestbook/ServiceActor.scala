@@ -1,9 +1,10 @@
 package skuber.examples.guestbook
 
-import akka.actor.{Actor, ActorRef, ActorLogging}
-import akka.actor.Props
-import akka.util.Timeout
-import akka.event.LoggingReceive
+import org.apache.pekko
+import org.apache.pekko.actor.{Actor, ActorRef, ActorLogging}
+import org.apache.pekko.actor.Props
+import org.apache.pekko.util.Timeout
+import org.apache.pekko.event.LoggingReceive
 
 import scala.util.{Success,Failure}
 import scala.concurrent.Future
@@ -109,7 +110,7 @@ class ServiceActor(kubernetes: ActorRef, specification: GuestbookServiceSpecific
  * response to the service consumer, and stops itself.
  */
 
-abstract class ServiceResultHandler(serviceConsumer: ActorRef) extends Actor with akka.actor.ActorLogging { 
+abstract class ServiceResultHandler(serviceConsumer: ActorRef) extends Actor with pekko.actor.ActorLogging {
   def complete(response: Any): Unit = {
      log.debug("Sending service response " + response + " to " + serviceConsumer.path)
      serviceConsumer ! response
@@ -136,7 +137,7 @@ class CreateResultHandler(consumer: ActorRef, name: String) extends ServiceResul
     }
   
   override def receive: Receive = LoggingReceive {
-    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case pekko.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
     case ResourceNotFound => 
           complete(UnexpectedServiceError(name, new Exception("Not Found")))
     case r:skuber.ReplicationController => gotExpectedResult
@@ -154,7 +155,7 @@ class RemoveResultHandler(consumer: ActorRef, name: String) extends ServiceResul
   // two non error results have been received back
   var countResults = 0
   override def receive: Receive = LoggingReceive {
-    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case pekko.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
     case other => {
       countResults += 1
       if (countResults==2)
@@ -170,7 +171,7 @@ object ScaleResultHandler {
 class ScaleResultHandler(consumer: ActorRef, name: String) extends ServiceResultHandler(consumer) {
   override def receive: Receive = LoggingReceive {
     case ScalerActor.ScalingError => complete(UnexpectedServiceError(name,new Exception("An error occured while scaling")))
-    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case pekko.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
     case ResourceNotFound => complete(UnexpectedServiceError(name, new Exception("Unable to scale as resource does not exist")))
     case s: ScalerActor.ScalingDone => complete(ServiceScaledTo(name, s.toReplicaCount))
   }
@@ -183,7 +184,7 @@ object StopResultHandler {
 class StopResultHandler(consumer: ActorRef, name: String) extends ServiceResultHandler(consumer) {
   override def receive: Receive = LoggingReceive {
     case ScalerActor.ScalingError => complete(UnexpectedServiceError(name,new Exception("An error occured while scaling")))
-    case akka.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
+    case pekko.actor.Status.Failure(ex) => complete(UnexpectedServiceError(name, ex))
     case ResourceNotFound => complete(ServiceStopped) // if service not exists treat as Stopped
     case s: ScalerActor.ScalingDone => complete(ServiceStopped)
   }

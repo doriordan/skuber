@@ -13,19 +13,14 @@ ThisBuild / scalaVersion := currentScalaVersion
 
 val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
 
-/**
- * 2.6.19 is the last akka open source version
- * To comply with other companies' legal issues, akka version wont be bumped.
- * https://www.lightbend.com/blog/why-we-are-changing-the-license-for-akka
- */
-val akkaVersion = "2.6.19"
+val pekkoVersion = "1.0.1"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.17.0"
 
 val specs2 = "org.specs2" %% "specs2-core" % "4.19.2"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.17"
 
-val akkaStreamTestKit = ("com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion).cross(CrossVersion.for3Use2_13)
+val pekkoStreamTestKit = ("org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "2.0"
@@ -35,13 +30,13 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk18on" % "1.76"
 
 
-// the client API request/response handing uses Akka Http
-val akkaHttp = ("com.typesafe.akka" %% "akka-http" % "10.2.9").cross(CrossVersion.for3Use2_13)
-val akkaStream = ("com.typesafe.akka" %% "akka-stream" % akkaVersion).cross(CrossVersion.for3Use2_13)
-val akka = ("com.typesafe.akka" %% "akka-actor" % akkaVersion).cross(CrossVersion.for3Use2_13)
+// the client API request/response handing uses Pekko Http
+val pekkoHttp = ("org.apache.pekko" %% "pekko-http" % "1.0.0").cross(CrossVersion.for3Use2_13)
+val pekkoStream = ("org.apache.pekko" %% "pekko-stream" % pekkoVersion).cross(CrossVersion.for3Use2_13)
+val pekko = ("org.apache.pekko" %% "pekko-actor" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 
-// Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
-val akkaSlf4j = ("com.typesafe.akka" %% "akka-slf4j" % akkaVersion).cross(CrossVersion.for3Use2_13)
+// Skuber uses pekko logging, so the examples config uses the pekko slf4j logger with logback backend
+val pekkoSlf4j = ("org.apache.pekko" %% "pekko-slf4j" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 val logback = "ch.qos.logback" % "logback-classic" % "1.4.6" % Runtime
 
 // the Json formatters are based on Play Json
@@ -154,16 +149,16 @@ inThisBuild(List(
 lazy val skuberSettings = Seq(
   name := "skuber",
   libraryDependencies ++= Seq(
-    akkaHttp, akkaStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
+    pekkoHttp, pekkoStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
     awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging, jacksonDatabind,
-    scalaCheck % Test, specs2 % Test, akkaStreamTestKit % Test,
+    scalaCheck % Test, specs2 % Test, pekkoStreamTestKit % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
 )
 
 lazy val examplesSettings = Seq(
   name := "skuber-examples",
-  libraryDependencies ++= Seq(akka, akkaSlf4j, logback, playJson)
+  libraryDependencies ++= Seq(pekko, pekkoSlf4j, logback, playJson)
 )
 
 // by default run the guestbook example when executing a fat examples JAR

@@ -1,7 +1,7 @@
 package skuber.api.watch
 
-import akka.http.scaladsl.model.{HttpMethods, _}
-import akka.stream.scaladsl.Source
+import org.apache.pekko.http.scaladsl.model.{HttpMethods, _}
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Format
 import skuber.api.client._
 import skuber.api.client.impl.KubernetesClientImpl
@@ -13,7 +13,7 @@ import scala.language.postfixOps
 /**
  * @author David O'Riordan
  * Handling of the Json event objects streamed in response to a Kubernetes API watch request
- * Based on Akka streaming
+ * Based on Pekko streaming
  */
 object Watch {
 

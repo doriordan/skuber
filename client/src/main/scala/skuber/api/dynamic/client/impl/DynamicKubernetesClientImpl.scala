@@ -1,29 +1,29 @@
 package skuber.api.dynamic.client.impl
 
-import akka.actor.ActorSystem
-import akka.event.Logging
-import akka.http.scaladsl.marshalling.{Marshal, Marshaller, ToEntityMarshaller}
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.settings.ConnectionPoolSettings
-import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.event.Logging
+import org.apache.pekko.http.scaladsl.marshalling.{Marshal, Marshaller, ToEntityMarshaller}
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.settings.ConnectionPoolSettings
+import org.apache.pekko.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
+import org.apache.pekko.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import play.api.libs.json.{JsString, JsValue}
 import skuber.{DeleteOptions, ListOptions}
 import skuber.api.client._
 import skuber.api.security.{HTTPRequestAuth, TLS}
-import skuber.json.PlayJsonSupportForAkkaHttp._
+import skuber.json.PlayJsonSupportForPekkoHttp._
 import skuber.json.format.apiobj.statusReads
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import skuber.json.format.deleteOptionsFmt
 import DynamicKubernetesClientImpl.jsValueToRequestEntityMarshaller
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 /**
   * This is non-typed kubernetes client, for typed client see [[skuber.api.client.impl.KubernetesClientImpl]]
   * This class provides a dynamic client for the Kubernetes API server.
   * It is intended to be used for accessing resources / classes that are not part of the skuber library.
   *
-  * It uses the Akka HTTP client to handle the requests to
+  * It uses the Pekko HTTP client to handle the requests to
   * the Kubernetes API server.
   */
 class DynamicKubernetesClientImpl(context: Context = Context(),
@@ -318,9 +318,9 @@ class DynamicKubernetesClientImpl(context: Context = Context(),
 
   /**
     * Discards the response
-    * This is for requests (e.g. delete) for which we normally have no interest in the response body, but Akka Http
+    * This is for requests (e.g. delete) for which we normally have no interest in the response body, but Pekko Http
     * requires us to drain it anyway
-    * (see https://doc.akka.io/docs/akka-http/current/scala/http/implications-of-streaming-http-entity.html)
+    * (see https://doc.pekko.io/docs/pekko-http/current/scala/http/implications-of-streaming-http-entity.html)
     *
     * @param response the Http Response that we need to drain
     * @return A Future[Unit] that will be set to Success or Failure depending on outcome of draining

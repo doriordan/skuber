@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 
 import scala.util.Try
