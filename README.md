@@ -45,7 +45,7 @@ In response to this requirement, from version 3.0 Skuber will support both Pekko
 
 Migrating from Skuber 2 or between the two new clients is generally straightforward, requiring some minimal changes to your build (adding the new Skuber core dependency and one of Skuber Pekko or Akka dependencies) and a few changes to `ìmport` statements in your code.
 
-You can try out the latest Skuber 3 beta release (for Scala 2.12 or 2.13) by adding to your build (replacing the Skuber 2 `skuber`library dependency if necessary):
+You can try out the latest Skuber 3 beta release (for Scala 2.13 only at present) by adding to your build (replacing the Skuber 2 `skuber`library dependency if necessary):
 
 #### Pekko Client
 
