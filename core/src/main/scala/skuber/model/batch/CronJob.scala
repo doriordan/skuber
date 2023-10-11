@@ -14,7 +14,7 @@ case class CronJob(kind: String ="CronJob",
 
 object CronJob {
 
-  implicit val cronjobDef = new ResourceDefinition[CronJob] {
+  implicit val cronjobDef: ResourceDefinition[CronJob] = new ResourceDefinition[CronJob] {
     def spec = NonCoreResourceSpecification(
       apiGroup="batch",
       version="v2alpha1",

@@ -4,8 +4,8 @@ package skuber.model
  * @author David O'Riordan
  */
 case class Service(
-  	val kind: String ="Service",
-  	override val apiVersion: String = v1,
+    val kind: String ="Service",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta,
     spec: Option[Service.Spec] = None,
     status: Option[Service.Status] = None) 
@@ -68,8 +68,8 @@ object Service {
       shortNames = List("svc")
     )
   )
-  implicit val svcDef = new ResourceDefinition[Service] { def spec=specification }
-  implicit val svcListDef = new ResourceDefinition[ServiceList] { def spec=specification }
+  implicit val svcDef: ResourceDefinition[Service] = new ResourceDefinition[Service] { def spec=specification }
+  implicit val svcListDef: ResourceDefinition[ServiceList] = new ResourceDefinition[ServiceList] { def spec=specification }
 
   def apply(name: String): Service = Service(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: Service.Spec) : Service =
@@ -102,25 +102,25 @@ object Service {
     protocol: Protocol.Value = Protocol.TCP,
     port: Int,
     targetPort: Option[NameablePort]=None,
-    nodePort: Int = 0)
-       
-   import Type._   
-   case class Spec( 
-     ports: List[Port] = List(),
-     selector: Map[String,String]=Map(),
-     clusterIP: String = "", // empty by default - can also be "None" or an IP Address
-     _type: ServiceType=ClusterIP,
-     externalIPs: List[String] = List(),
-     externalName: String = "",
-     externalTrafficPolicy: Option[ExternalTrafficPolicy.Value] = None,
-     sessionAffinity: Affinity.Affinity = Affinity.None,
-     loadBalancerIP: String = "",
-     publishNotReadyAddresses: Boolean = false
-   )
-   {
-     def withSelector(sel: Map[String, String]) : Spec = this.copy(selector = sel)
-     def withSelector(sel: Tuple2[String,String]): Spec = withSelector(Map(sel))
-   }      
+    nodePort: Int = 0
+  )
+
+  case class Spec(
+    ports: List[Port] = List(),
+    selector: Map[String,String]=Map(),
+    clusterIP: String = "", // empty by default - can also be "None" or an IP Address
+    _type: Type.ServiceType=Type.ClusterIP,
+    externalIPs: List[String] = List(),
+    externalName: String = "",
+    externalTrafficPolicy: Option[ExternalTrafficPolicy.Value] = None,
+    sessionAffinity: Affinity.Affinity = Affinity.None,
+    loadBalancerIP: String = "",
+    publishNotReadyAddresses: Boolean = false
+  )
+  {
+    def withSelector(sel: Map[String, String]) : Spec = this.copy(selector = sel)
+    def withSelector(sel: Tuple2[String,String]): Spec = withSelector(Map(sel))
+  }
    
   case class Status(loadBalancer: Option[LoadBalancer.Status] = None)     
   

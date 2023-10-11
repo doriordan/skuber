@@ -6,6 +6,8 @@ import skuber.model.LabelSelector.dsl._
 import skuber.model._
 import skuber.model.{Pod, Resource}
 
+import scala.language.{postfixOps, reflectiveCalls}
+
 class StatefulSetSpec extends Specification {
   "This is a unit specification for the skuber apps/v1 StatefulSet class. ".txt
 

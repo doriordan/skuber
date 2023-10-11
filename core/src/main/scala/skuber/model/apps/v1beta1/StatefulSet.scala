@@ -49,8 +49,8 @@ object StatefulSet {
       shortNames = List()
     )
   )
-  implicit val stsDef = new ResourceDefinition[StatefulSet] { def spec=specification }
-  implicit val stsListDef = new ResourceDefinition[StatefulSetList] { def spec=specification }
+  implicit val stsDef: ResourceDefinition[StatefulSet] = new ResourceDefinition[StatefulSet] { def spec=specification }
+  implicit val stsListDef: ResourceDefinition[StatefulSetList] = new ResourceDefinition[StatefulSetList] { def spec=specification }
 
   def apply(name: String): StatefulSet = StatefulSet(metadata=ObjectMeta(name=name))
 
@@ -91,13 +91,12 @@ object StatefulSet {
                     conditions: Option[List[Condition]])
 
   // Stateful set formatters
-  implicit val statefulSetPodPcyMgmtFmt: Format[StatefulSet.PodManagementPolicyType.PodManagementPolicyType] = Format(enumReads(StatefulSet.PodManagementPolicyType, StatefulSet.PodManagementPolicyType.OrderedReady), enumWrites)
+  implicit val statefulSetPodPcyMgmtFmt: Format[StatefulSet.PodManagementPolicyType.PodManagementPolicyType] = Format(enumReadsWithDefault(StatefulSet.PodManagementPolicyType)(StatefulSet.PodManagementPolicyType.OrderedReady), enumWrites(StatefulSet.PodManagementPolicyType))
   implicit val statefulSetRollUp: Format[StatefulSet.RollingUpdateStrategy] = Json.format[StatefulSet.RollingUpdateStrategy]
   implicit val statefulSetUpdStrFmt: Format[StatefulSet.UpdateStrategy] = (
-      (JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType, Some(StatefulSet.UpdateStrategyType.RollingUpdate)) and
-          (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]
-      )(StatefulSet.UpdateStrategy.apply _,unlift(StatefulSet.UpdateStrategy.unapply))
-
+    (JsPath \ "type").formatEnum(StatefulSet.UpdateStrategyType)(Some(StatefulSet.UpdateStrategyType.RollingUpdate)) and
+    (JsPath \ "rollingUpdate").formatNullable[StatefulSet.RollingUpdateStrategy]
+  )(StatefulSet.UpdateStrategy.apply _, s => (s.`type`, s.rollingUpdate))
 
   implicit val statefulSetSpecFmt: Format[StatefulSet.Spec] = (
       (JsPath \ "replicas").formatNullable[Int] and
@@ -108,7 +107,7 @@ object StatefulSet {
           (JsPath \ "podManagmentPolicy").formatNullableEnum(StatefulSet.PodManagementPolicyType) and
           (JsPath \ "updateStrategy").formatNullable[StatefulSet.UpdateStrategy] and
           (JsPath \ "revisionHistoryLimit").formatNullable[Int]
-      )(StatefulSet.Spec.apply _, unlift(StatefulSet.Spec.unapply))
+      )(StatefulSet.Spec.apply _, s => (s.replicas, s.serviceName, s.selector, s.template, s.volumeClaimTemplates, s.podManagmentPolicy, s.updateStrategy, s.revisionHistoryLimit))
 
   implicit val statefulSetCondFmt: Format[StatefulSet.Condition] = Json.format[StatefulSet.Condition]
   implicit val statefulSetStatusFmt: Format[StatefulSet.Status] = Json.format[StatefulSet.Status]
@@ -117,7 +116,7 @@ object StatefulSet {
       objFormat and
           (JsPath \ "spec").formatNullable[StatefulSet.Spec] and
           (JsPath \ "status").formatNullable[StatefulSet.Status]
-      ) (StatefulSet.apply _, unlift(StatefulSet.unapply))
+      ) (StatefulSet.apply _, s => (s.kind, s.apiVersion, s.metadata, s.spec, s.status))
 
   implicit val statefulSetListFormat: Format[StatefulSetList] = ListResourceFormat[StatefulSet]
 }

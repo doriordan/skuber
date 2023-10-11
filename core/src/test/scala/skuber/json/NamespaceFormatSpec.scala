@@ -3,11 +3,9 @@ package skuber.json
 import org.specs2.mutable.Specification // for unit-style testing
 import org.specs2.execute.Result
 import org.specs2.execute.Failure
-
-import skuber.model._
-import format._
-
 import play.api.libs.json._
+import skuber.model.Namespace
+import format.{namespaceFormat, nsSpecFormat}
 
 
 /**
@@ -79,7 +77,8 @@ class NamespaceFormatSpec extends Specification {
         """)
        val res = Json.fromJson[Namespace](nsJson)
        val ret: Result = res match {
-          case JsSuccess(ns,path) =>
+          case success: JsSuccess[Namespace] =>
+            val ns: Namespace = success.get
             ns.name mustEqual "mynamespace"
             ns.apiVersion mustEqual "v1"
             ns.kind mustEqual "Namespace"
@@ -99,7 +98,8 @@ class NamespaceFormatSpec extends Specification {
             labels("three") mustEqual "four"
             val annots=ns.metadata.annotations
             annots("abc") mustEqual "def"
-            val res2 = Json.fromJson[Namespace](Json.toJson(ns))
+            val nsJson = Json.toJson(ns)
+            val res2 = Json.fromJson[Namespace](nsJson)
             res2 match {
               case JsSuccess(ns2, _) => ns2.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
               case JsError(e) => Failure(e.toString)

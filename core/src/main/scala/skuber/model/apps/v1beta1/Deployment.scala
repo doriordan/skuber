@@ -69,9 +69,9 @@ object Deployment {
       shortNames = List("deploy")
     )
   )
-  implicit val deployDef = new ResourceDefinition[Deployment] { def spec= specification }
-  implicit val deployListDef =  new ResourceDefinition[DeploymentList] { def spec= specification }
-  implicit val scDef = new Scale.SubresourceSpec[Deployment] { override def apiVersion = appsAPIVersion }
+  implicit val deployDef: ResourceDefinition[Deployment] = new ResourceDefinition[Deployment] { def spec= specification }
+  implicit val deployListDef: ResourceDefinition[DeploymentList] =  new ResourceDefinition[DeploymentList] { def spec= specification }
+  implicit val scDef: Scale.SubresourceSpec[Deployment] = new Scale.SubresourceSpec[Deployment] { override def apiVersion = appsAPIVersion }
 
   def apply(name: String) = new Deployment(metadata=ObjectMeta(name=name))
 
@@ -127,17 +127,17 @@ object Deployment {
     (JsPath \ "availableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "unavailableReplicas").formatMaybeEmptyInt() and
     (JsPath \ "observedGeneration").formatMaybeEmptyInt()
-  )(Status.apply _, unlift(Status.unapply))
+  )(Status.apply _, d => (d.replicas, d.updatedReplicas, d.availableReplicas, d.unavailableReplicas, d.observedGeneration))
 
   implicit val rollingUpdFmt: Format[RollingUpdate] = (
     (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
     (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))
-  )(RollingUpdate.apply _, unlift(RollingUpdate.unapply))
+  )(RollingUpdate.apply _, r => (r.maxUnavailable, r.maxSurge))
 
   implicit val depStrategyFmt: Format[Strategy] =  (
-    (JsPath \ "type").formatEnum(StrategyType, Some(StrategyType.RollingUpdate)) and
+    (JsPath \ "type").formatEnum(StrategyType)(Some(StrategyType.RollingUpdate)) and
     (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-  )(Strategy.apply _, unlift(Strategy.unapply))
+  )(Strategy.apply _, r => (r._type, r.rollingUpdate))
 
   implicit val depSpecFmt: Format[Deployment.Spec] = (
     (JsPath \ "replicas").formatNullable[Int] and
@@ -145,13 +145,13 @@ object Deployment {
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
     (JsPath \ "strategy").formatNullable[Deployment.Strategy] and
     (JsPath \ "minReadySeconds").formatMaybeEmptyInt()
-  )(Spec.apply _, unlift(Spec.unapply))
+  )(Spec.apply _, d => (d.replicas, d.selector, d.template, d.strategy, d.minReadySeconds))
 
   implicit lazy val depFormat: Format[Deployment] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Spec] and
     (JsPath \ "status").formatNullable[Status]
-  )(Deployment.apply _, unlift(Deployment.unapply))
+  )(Deployment.apply _, d => (d.kind, d.apiVersion, d.metadata, d.spec, d.status))
 
   implicit val deployListFormat: Format[DeploymentList] = ListResourceFormat[Deployment]
 }

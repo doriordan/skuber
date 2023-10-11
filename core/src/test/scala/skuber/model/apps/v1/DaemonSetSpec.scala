@@ -5,7 +5,7 @@ import play.api.libs.json._
 import skuber.model.LabelSelector.dsl._
 import skuber.model._
 
-import scala.language.postfixOps
+import scala.language.{postfixOps, reflectiveCalls}
 
 /**
   * Created by jordan on 1/25/17.

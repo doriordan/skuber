@@ -26,6 +26,6 @@ object ServiceAccount {
       shortNames = List("sa")
     )
   )
-  implicit val saDef = new ResourceDefinition[ServiceAccount] { def spec=specification }
-  implicit val saListDef = new ResourceDefinition[ServiceAccountList] { def spec=specification }
+  implicit val saDef: ResourceDefinition[ServiceAccount] = new ResourceDefinition[ServiceAccount] { def spec=specification }
+  implicit val saListDef: ResourceDefinition[ServiceAccountList] = new ResourceDefinition[ServiceAccountList] { def spec=specification }
 }

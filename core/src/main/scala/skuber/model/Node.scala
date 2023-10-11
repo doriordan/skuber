@@ -26,8 +26,8 @@ object Node {
       shortNames = List("no")
     )
   )
-  implicit val nodeDef = new ResourceDefinition[Node] { def spec=specification }
-  implicit val nodeListDef = new ResourceDefinition[NodeList] { def spec=specification }
+  implicit val nodeDef: ResourceDefinition[Node] = new ResourceDefinition[Node] { def spec=specification }
+  implicit val nodeListDef: ResourceDefinition[NodeList] = new ResourceDefinition[NodeList] { def spec=specification }
 
   def named(name: String) = Node(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: Node.Spec) : Node = Node(metadata=ObjectMeta(name=name), spec = Some(spec))

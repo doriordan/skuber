@@ -44,8 +44,8 @@ object HorizontalPodAutoscaler {
       shortNames = List("hpa")
     )
   )
-  implicit val hpasDef = new ResourceDefinition[HorizontalPodAutoscaler] { def spec=specification }
-  implicit val hpasListDef = new ResourceDefinition[HorizontalPodAutoscalerList] { def spec=specification }
+  implicit val hpasDef: ResourceDefinition[HorizontalPodAutoscaler] = new ResourceDefinition[HorizontalPodAutoscaler] { def spec=specification }
+  implicit val hpasListDef: ResourceDefinition[HorizontalPodAutoscalerList] = new ResourceDefinition[HorizontalPodAutoscalerList] { def spec=specification }
 
   def scale(rc: ReplicationController): HorizontalPodAutoscaler = 
     build(rc.name, rc.metadata.namespace, "ReplicationController")
@@ -59,7 +59,7 @@ object HorizontalPodAutoscaler {
         kind=kind,
         name=name,
         apiVersion=apiVersion)
-   HorizontalPodAutoscaler(metadata=meta,spec=Spec(scaleTargetRef=scaleTargetRef))
+    HorizontalPodAutoscaler(metadata=meta,spec=Spec(scaleTargetRef=scaleTargetRef))
   }
 
   case class Spec(

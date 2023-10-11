@@ -7,7 +7,7 @@ import skuber.model._
 import skuber.json.apps.format._
 import skuber.model.{Pod, Resource}
 
-import scala.language.postfixOps
+import scala.language.{postfixOps, reflectiveCalls}
 
 /**
   * Created by hollinwilkins on 4/5/17.

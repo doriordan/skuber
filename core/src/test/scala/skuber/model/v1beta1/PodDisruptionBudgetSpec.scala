@@ -3,10 +3,12 @@ package skuber.model.v1beta1
 import org.specs2.mutable.Specification
 import play.api.libs.json.{JsSuccess, Json}
 import skuber.model.LabelSelector.dsl._
-import skuber.policy.v1beta1.PodDisruptionBudget
+import skuber.model.policy.v1.PodDisruptionBudget
+
+import scala.language.reflectiveCalls
 
 class PodDisruptionBudgetSpec extends Specification {
-  import skuber.policy.v1beta1.PodDisruptionBudget._
+  import PodDisruptionBudget._
   "A PodDisruptionBudget can" >> {
     "decoded from json" >> {
       val pdb = PodDisruptionBudget("someName")

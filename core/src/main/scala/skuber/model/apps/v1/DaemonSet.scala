@@ -34,8 +34,8 @@ object DaemonSet {
       shortNames = List("ds")
     )
   )
-  implicit val dsDef = new ResourceDefinition[DaemonSet] { def spec=specification }
-  implicit val dsListDef = new ResourceDefinition[DaemonSetList] { def spec=specification }
+  implicit val dsDef: ResourceDefinition[DaemonSet] = new ResourceDefinition[DaemonSet] { def spec=specification }
+  implicit val dsListDef: ResourceDefinition[DaemonSetList] = new ResourceDefinition[DaemonSetList] { def spec=specification }
 
   def apply(name: String) = new DaemonSet(metadata=ObjectMeta(name=name))
 
@@ -97,9 +97,9 @@ object DaemonSet {
       (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)).inmap(mu => RollingUpdate(mu), (ru: RollingUpdate) => ru.maxUnavailable)
 
   implicit val updateStrategyFmt: Format[UpdateStrategy] =  (
-    (JsPath \ "type").formatEnum(UpdateStrategyType, Some(UpdateStrategyType.RollingUpdate)) and
+    (JsPath \ "type").formatEnum(UpdateStrategyType)(Some(UpdateStrategyType.RollingUpdate)) and
     (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-  )(UpdateStrategy.apply _, unlift(UpdateStrategy.unapply))
+  )(UpdateStrategy.apply _, u => (u._type, u.rollingUpdate))
 
   implicit val daemonsetStatusFmt: Format[Status] = Json.format[Status]
   implicit val daemonsetSpecFmt: Format[Spec] = (
@@ -108,13 +108,12 @@ object DaemonSet {
     (JsPath \ "template").formatNullable[Pod.Template.Spec] and
     (JsPath \ "updateStrategy").formatNullable[UpdateStrategy] and
     (JsPath \ "revisionHistoryLimit").formatNullable[Int]
-  )(Spec.apply, unlift(Spec.unapply))
+  )(Spec.apply, d => (d.minReadySeconds, d.selector, d.template, d.updateStrategy, d.revisionHistoryLimit))
 
   implicit lazy val daemonsetFmt: Format[DaemonSet] = (
       objFormat and
-          (JsPath \ "spec").formatNullable[Spec] and
-          (JsPath \ "status").formatNullable[Status]
-      ) (DaemonSet.apply _, unlift(DaemonSet.unapply))
-
+      (JsPath \ "spec").formatNullable[Spec] and
+      (JsPath \ "status").formatNullable[Status]
+  ) (DaemonSet.apply _, d => (d.kind, d.apiVersion, d.metadata, d.spec, d.status))
 }
 

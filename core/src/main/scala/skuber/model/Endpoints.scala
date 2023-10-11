@@ -33,8 +33,8 @@ object Endpoints {
       shortNames = Nil
     )
   )
-  implicit val epsDef = new ResourceDefinition[Endpoints] { def spec=specification }
-  implicit val epsListDef = new ResourceDefinition[EndpointsList] { def spec=specification }
+  implicit val epsDef: ResourceDefinition[Endpoints] = new ResourceDefinition[Endpoints] { def spec=specification }
+  implicit val epsListDef: ResourceDefinition[EndpointsList] = new ResourceDefinition[EndpointsList] { def spec=specification }
 
   case class Subset(
     addresses: List[Address],

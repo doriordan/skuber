@@ -14,7 +14,7 @@ case class Role(
 ) extends ObjectResource
 
 object Role {
-  implicit val roleDef = new ResourceDefinition[Role] {
+  implicit val roleDef: ResourceDefinition[Role] = new ResourceDefinition[Role] {
     def spec = NonCoreResourceSpecification (
       apiGroup="rbac.authorization.k8s.io",
       version="v1beta1",

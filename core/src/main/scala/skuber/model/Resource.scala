@@ -26,8 +26,8 @@ object Resource {
         shortNames=List("quota")
       )
     )
-    implicit val rqDef = new ResourceDefinition[Resource.Quota] { def spec=specification }
-    implicit val rqListDef = new ResourceDefinition[ResourceQuotaList] { def spec=specification }
+    implicit val rqDef: ResourceDefinition[Quota] = new ResourceDefinition[Resource.Quota] { def spec=specification }
+    implicit val rqListDef: ResourceDefinition[ResourceQuotaList] = new ResourceDefinition[ResourceQuotaList] { def spec=specification }
 
     case class Spec(hard: ResourceList = Map())
     case class Status(hard: ResourceList = Map(), used: ResourceList = Map())
@@ -55,7 +55,7 @@ object Resource {
     val QuantSplitRE = """^([+-]?[0-9.]+)([eEimkKMGTP]*[-+]?[0-9]*)$""".r
     val ExponentSplitRE = """^([eE])([-+]?[0-9]*)$""".r
     
-    lazy val QuantSplitRE(number, suffix) = value
+    lazy val QuantSplitRE(number, suffix) = value : @unchecked
     
     lazy val format : Quantity.Format = suffix match {
         case "Ki"| "Mi" | "Gi" | "Ti" | "Pi" | "Ei" => Quantity.BinarySI

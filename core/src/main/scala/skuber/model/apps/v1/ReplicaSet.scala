@@ -1,5 +1,6 @@
 package skuber.model.apps.v1
 
+import play.api.libs.json.OFormat
 import skuber.model.ResourceSpecification.{Names, Scope}
 import skuber.model._
 
@@ -36,8 +37,8 @@ case class ReplicaSet(
     val withTmpl = this.copy(spec = Some(copySpec.copy(template = t)))
     val withSelector = (t.metadata.labels, spec.map{_.selector}) match {
       case (labels, selector) if labels.nonEmpty && !selector.exists(_.requirements.nonEmpty) =>
-        val reqs = labels map { label: (String, String) =>
-          LabelSelector.IsEqualRequirement(label._1, label._2)
+        val reqs = labels.map { l =>
+          LabelSelector.IsEqualRequirement(l._1, l._2)
         }
         val selector = LabelSelector(reqs.toSeq: _*)
         withTmpl.withSelector(selector)
@@ -74,9 +75,9 @@ object ReplicaSet {
       shortNames = List("rs")
     )
   )
-  implicit val rsDef = new ResourceDefinition[ReplicaSet] { def spec=specification }
-  implicit val rsListDef = new ResourceDefinition[ReplicaSetList] { def spec=specification }
-  implicit val scDef = new Scale.SubresourceSpec[ReplicaSet] { override def apiVersion: String = "extensions/v1beta1"}
+  implicit val rsDef: ResourceDefinition[ReplicaSet] = new ResourceDefinition[ReplicaSet] { def spec=specification }
+  implicit val rsListDef: ResourceDefinition[ReplicaSetList] = new ResourceDefinition[ReplicaSetList] { def spec=specification }
+  implicit val scDef: Scale.SubresourceSpec[ReplicaSet] = new Scale.SubresourceSpec[ReplicaSet] { override def apiVersion: String = "extensions/v1beta1"}
 
   def apply(name: String) : ReplicaSet = ReplicaSet(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: ReplicaSet.Spec) : ReplicaSet =
@@ -116,14 +117,13 @@ object ReplicaSet {
     (JsPath \ "minReadySeconds").formatNullable[Int]   and
     (JsPath \ "selector").formatLabelSelector and
     (JsPath \ "template").format[Pod.Template.Spec]
-  )(ReplicaSet.Spec.apply _, unlift(ReplicaSet.Spec.unapply))
+  )(ReplicaSet.Spec.apply _, r => (r.replicas, r.minReadySeconds, r.selector, r.template))
 
-  implicit val replsetStatusFormat = Json.format[ReplicaSet.Status]
+  implicit val replsetStatusFormat: Format[Status] = Json.format[ReplicaSet.Status]
 
   implicit lazy val replsetFormat: Format[ReplicaSet] = (
     objFormat and
     (JsPath \ "spec").formatNullable[ReplicaSet.Spec] and
     (JsPath \ "status").formatNullable[ReplicaSet.Status]
-  )(ReplicaSet.apply _, unlift(ReplicaSet.unapply))
-
+  )(ReplicaSet.apply _, r => (r.kind, r.apiVersion, r.metadata, r.spec, r.status))
 }

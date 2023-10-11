@@ -35,6 +35,6 @@ object Secret {
       shortNames=Nil
     )
   )
-  implicit val secDef = new ResourceDefinition[Secret] { def spec=specification }
-  implicit val secListDef = new ResourceDefinition[SecretList] { def spec=specification }
+  implicit val secDef: ResourceDefinition[Secret] = new ResourceDefinition[Secret] { def spec=specification }
+  implicit val secListDef: ResourceDefinition[SecretList] = new ResourceDefinition[SecretList] { def spec=specification }
 }

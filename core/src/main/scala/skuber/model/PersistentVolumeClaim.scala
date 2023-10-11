@@ -33,10 +33,10 @@ object PersistentVolumeClaim {
       shortNames = List("pvc")
     )
   )
-  implicit val pvcDef = new ResourceDefinition[PersistentVolumeClaim] {
+  implicit val pvcDef: ResourceDefinition[PersistentVolumeClaim] = new ResourceDefinition[PersistentVolumeClaim] {
     val spec = specification
   }
-  implicit val pvcListDef = new ResourceDefinition[PersistentVolumeClaimList] {
+  implicit val pvcListDef: ResourceDefinition[PersistentVolumeClaimList] = new ResourceDefinition[PersistentVolumeClaimList] {
     val spec = specification
   }
 

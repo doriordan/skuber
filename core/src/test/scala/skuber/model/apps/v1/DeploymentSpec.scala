@@ -6,6 +6,8 @@ import skuber.model.LabelSelector.dsl._
 import skuber.model._
 import skuber.model.Pod
 
+import scala.language.{postfixOps, reflectiveCalls}
+
 /**
  * @author David O'Riordan
  */

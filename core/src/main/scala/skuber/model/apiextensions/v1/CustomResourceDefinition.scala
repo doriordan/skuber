@@ -2,8 +2,7 @@ package skuber.model.apiextensions.v1
 
 import play.api.libs.json.{JsPath, JsResult, JsSuccess, JsValue}
 import skuber.model.ResourceSpecification.{Schema, StatusSubresource}
-import skuber.model.{NonCoreResourceSpecification, ResourceDefinition, ResourceSpecification}
-import skuber.model.{ObjectEditor, ObjectMeta, ObjectResource, TypeMeta}
+import skuber.model.{NonCoreResourceSpecification, ObjectEditor, ObjectMeta, ObjectResource, ResourceDefinition, ResourceSpecification, TypeMeta}
 
 /**
   * @author David O'Riordan
@@ -93,10 +92,10 @@ object CustomResourceDefinition {
     new CustomResourceDefinition(metadata=ObjectMeta(name=name), spec=crdSpec)
   }
 
-  implicit val crdDef = new ResourceDefinition[CustomResourceDefinition] { def spec=specification }
-  implicit val crdListDef = new ResourceDefinition[CustomResourceDefinitionList] { def spec=specification }
+  implicit val crdDef: ResourceDefinition[CustomResourceDefinition] = new ResourceDefinition[CustomResourceDefinition] { def spec=specification }
+  implicit val crdListDef: ResourceDefinition[CustomResourceDefinitionList] = new ResourceDefinition[CustomResourceDefinitionList] { def spec=specification }
 
-  implicit val crdEditor = new ObjectEditor[CustomResourceDefinition] {
+  implicit val crdEditor: ObjectEditor[CustomResourceDefinition] = new ObjectEditor[CustomResourceDefinition] {
     override def updateMetadata(obj: CustomResourceDefinition, newMetadata: ObjectMeta) = obj.copy(metadata = newMetadata)
   }
   // json formatters for sending/receiving CRD resources
@@ -106,15 +105,15 @@ object CustomResourceDefinition {
 
   import skuber.json.format.{enumFormat,enumFormatMethods, maybeEmptyFormatMethods, objectMetaFormat}
 
-  implicit val scopeFormat = enumFormat(Scope)
-  implicit val namesFormat = (
+  implicit val scopeFormat: Format[ResourceSpecification.Scope.Value] = enumFormat(Scope)
+  implicit val namesFormat: Format[Names] = (
       (JsPath \ "plural").format[String] and
       (JsPath \ "singular").format[String] and
       (JsPath \ "kind").format[String] and
       (JsPath \ "shortNames").formatMaybeEmptyList[String] and
       (JsPath \ "listKind").formatNullable[String] and
       (JsPath \ "categories").formatMaybeEmptyList[String]
-  )(Names.apply _, unlift(Names.unapply))
+  )(Names.apply _, n => (n.plural, n.singular, n.kind, n.shortNames, n.listKind, n.categories))
 
   implicit val scaleSubresourceFmt: Format[ScaleSubresource] = Json.format[ScaleSubresource]
   implicit val statusSubResourceFmt: Format[StatusSubresource] = new Format[StatusSubresource] {
@@ -131,21 +130,21 @@ object CustomResourceDefinition {
     (JsPath \ "storage").formatMaybeEmptyBoolean() and
     (JsPath \ "schema").formatNullable[Schema] and
     (JsPath \ "subresources").formatNullable[Subresources]
-  )(ResourceSpecification.Version.apply _, unlift(ResourceSpecification.Version.unapply))
+  )(ResourceSpecification.Version.apply _, v => (v.name, v.served, v.storage, v.schema, v.subresources))
 
   implicit val crdSpecFmt: Format[Spec] = (
       (JsPath \ "group").format[String] and
       (JsPath \ "version").formatNullable[String] and
-      (JsPath \ "scope").formatEnum(Scope) and
+      (JsPath \ "scope").formatEnum(Scope)() and
       (JsPath \ "names").format[Names] and
       (JsPath \ "versions").formatNullable[List[Version]] and
       (JsPath \ "subresources").formatNullable[Subresources]
-  )(Spec.apply _, unlift(Spec.unapply))
+  )(Spec.apply _, c => (c.apiGroup, c.version, c.scope, c.names, c.versions, c.subresources))
 
   implicit val crdFmt: Format[CustomResourceDefinition] = (
       (JsPath \ "kind").format[String] and
       (JsPath \ "apiVersion").format[String] and
       (JsPath \ "metadata").format[ObjectMeta] and
       (JsPath \ "spec").format[Spec]
-  )(CustomResourceDefinition.apply _,unlift(CustomResourceDefinition.unapply))
+  )(CustomResourceDefinition.apply _, c => (c.kind, c.apiVersion, c.metadata, c.spec))
 }

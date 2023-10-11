@@ -15,7 +15,7 @@ case class ClusterRole(
 
 object ClusterRole {
 
-  implicit val crDef = new ResourceDefinition[ClusterRole] {
+  implicit val crDef: ResourceDefinition[ClusterRole] = new ResourceDefinition[ClusterRole] {
     def spec = NonCoreResourceSpecification (
       apiGroup="rbac.authorization.k8s.io",
       version="v1beta1",

@@ -204,8 +204,8 @@ object Pod {
         shortNames=Nil
       )
     )
-    implicit val ptDef = new ResourceDefinition[Pod.Template] { def spec=specification }
-    implicit val ptListDef = new ResourceDefinition[PodTemplateList] { def spec=specification }
+    implicit val ptDef: ResourceDefinition[Template] = new ResourceDefinition[Pod.Template] { def spec=specification }
+    implicit val ptListDef: ResourceDefinition[PodTemplateList] = new ResourceDefinition[PodTemplateList] { def spec=specification }
 
     def named(name: String) : Pod.Template = Pod.Template(metadata=ObjectMeta(name=name))
      case class Spec(

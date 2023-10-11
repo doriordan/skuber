@@ -27,8 +27,8 @@ object Event {
       shortNames=List("ev")
     )
   )
-  implicit val evDef = new ResourceDefinition[Event] { def spec=specification }
-  implicit val evListDef = new ResourceDefinition[EventList] { def spec=specification }
+  implicit val evDef: ResourceDefinition[Event] = new ResourceDefinition[Event] { def spec=specification }
+  implicit val evListDef: ResourceDefinition[EventList] = new ResourceDefinition[EventList] { def spec=specification }
 
   case class Source(component: Option[String] = None, host: Option[String] = None)
 }

@@ -11,6 +11,7 @@ import skuber.model.{EnvFromSource, EnvVar, LabelSelector, ObjectMeta, ObjectRes
   * @author David O'Riordan
   */
 
+@deprecated("PodPreset was removed in Kubernetes v1.20", "3.0.0")
 case class PodPreset(
   kind: String ="PodPreset",
   apiVersion: String = "settings.k8s.io/v1alpha1",
@@ -41,8 +42,8 @@ object PodPreset {
     )
   )
 
-  implicit val ppDef = new ResourceDefinition[PodPreset] { def spec = specification }
-  implicit val pplListDef = new ResourceDefinition[PodPresetList] { def spec = specification }
+  implicit val ppDef: ResourceDefinition[PodPreset] = new ResourceDefinition[PodPreset] { def spec = specification }
+  implicit val pplListDef: ResourceDefinition[PodPresetList] = new ResourceDefinition[PodPresetList] { def spec = specification }
 
   // Json formatters
   implicit val podPresetSpecFmt: Format[Spec] = (
@@ -51,11 +52,10 @@ object PodPreset {
     (JsPath \ "envFrom").formatMaybeEmptyList[EnvFromSource] and
     (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
     (JsPath \ "volumeMounts").formatMaybeEmptyList[Volume.Mount]
-  )(Spec.apply _, unlift(Spec.unapply))
+  )(Spec.apply _, p => (p.selector, p.env, p.envFrom, p.volumes, p.volumeMounts))
 
   implicit val podPresetFmt: Format[PodPreset] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Spec]
-  )(PodPreset.apply _, unlift(PodPreset.unapply))
-
+  )(PodPreset.apply _, p => (p.kind, p.apiVersion, p.metadata, p.spec))
 }

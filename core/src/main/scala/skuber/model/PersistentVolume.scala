@@ -31,8 +31,8 @@ object PersistentVolume {
       shortNames=Nil
     )
   )
-  implicit val pvDef = new ResourceDefinition[PersistentVolume] { def spec=specification }
-  implicit val pvListDef = new ResourceDefinition[PersistentVolumeList] { def spec=specification }
+  implicit val pvDef: ResourceDefinition[PersistentVolume] = new ResourceDefinition[PersistentVolume] { def spec=specification }
+  implicit val pvListDef: ResourceDefinition[PersistentVolumeList] = new ResourceDefinition[PersistentVolumeList] { def spec=specification }
 
   object AccessMode extends Enumeration {
     type AccessMode = Value

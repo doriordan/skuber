@@ -113,8 +113,8 @@ object NetworkPolicy {
     )
   )
 
-  implicit val npolDef = new ResourceDefinition[NetworkPolicy] { def spec = specification }
-  implicit val npolListDef = new ResourceDefinition[NetworkPolicyList] { def spec = specification }
+  implicit val npolDef: ResourceDefinition[NetworkPolicy] = new ResourceDefinition[NetworkPolicy] { def spec = specification }
+  implicit val npolListDef: ResourceDefinition[NetworkPolicyList] = new ResourceDefinition[NetworkPolicyList] { def spec = specification }
 
   // Resource Scala Model
 
@@ -138,39 +138,39 @@ object NetworkPolicy {
   implicit val ipBlockFmt: Format[IPBlock]=(
     (JsPath \ "cidr").format[String] and
     (JsPath \ "except").formatMaybeEmptyList[String]
-  )(IPBlock.apply _, unlift(IPBlock.unapply))
+  )(IPBlock.apply _, i => (i.cidr, i.except))
 
   implicit val peerFmt: Format[Peer] =(
     (JsPath \ "podSelector").formatNullableLabelSelector and
     (JsPath \ "namespaceSelector").formatNullableLabelSelector and
     (JsPath \ "ipBlock").formatNullable[IPBlock]
-  )(Peer.apply _, unlift(Peer.unapply))
+  )(Peer.apply _, p => (p.podSelector, p.namespaceSelector, p.ipBlock))
 
   implicit val portFmt: Format[Port] = (
     (JsPath \ "port").format[NameablePort] and
-    (JsPath \ "protocol").formatEnum(Protocol, Some(Protocol.TCP))
-  )(Port.apply _, unlift(Port.unapply))
+    (JsPath \ "protocol").formatEnum(Protocol)(Some(Protocol.TCP))
+  )(Port.apply _, p => (p.port, p.protocol))
 
   implicit val ingressRuleFmt: Format[IngressRule] = (
     (JsPath \ "ports").formatMaybeEmptyList[Port] and
     (JsPath \ "from").formatMaybeEmptyList[Peer]
-  )(IngressRule.apply _, unlift(IngressRule.unapply))
+  )(IngressRule.apply _, i => (i.ports, i.from))
 
   implicit val egressRuleFmt: Format[EgressRule]=(
     (JsPath \ "ports").formatMaybeEmptyList[Port] and
     (JsPath \ "to").formatMaybeEmptyList[Peer]
-  )(EgressRule.apply _, unlift(EgressRule.unapply))
+  )(EgressRule.apply _, p => (p.ports, p.to))
 
   implicit val specfmt: Format[Spec] = (
     (JsPath \ "podSelector").formatLabelSelector and
     (JsPath \ "ingress").formatMaybeEmptyList[IngressRule] and
     (JsPath \ "egress").formatMaybeEmptyList[EgressRule] and
     (JsPath \ "policyTypes").formatMaybeEmptyList[String]
-  )(Spec.apply _, unlift(Spec.unapply))
+  )(Spec.apply _, p => (p.podSelector, p.ingress, p.egress, p.policyTypes))
 
   implicit val networkPolicyFmt: Format[NetworkPolicy] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Spec]
-  )(NetworkPolicy.apply _, unlift(NetworkPolicy.unapply))
+  )(NetworkPolicy.apply _, n => (n.kind, n.apiVersion, n.metadata, n.spec))
 }
 

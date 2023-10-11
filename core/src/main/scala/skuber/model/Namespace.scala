@@ -37,8 +37,8 @@ object Namespace {
       shortNames=List("ns")
     )
   )
-  implicit val namespaceDef = new ResourceDefinition[Namespace]  { def spec=specification }
-  implicit val nsListDef = new ResourceDefinition[NamespaceList] { def spec=specification }
+  implicit val namespaceDef: ResourceDefinition[Namespace] = new ResourceDefinition[Namespace]  { def spec=specification }
+  implicit val nsListDef: ResourceDefinition[NamespaceList] = new ResourceDefinition[NamespaceList] { def spec=specification }
 
   case class Spec(finalizers: Option[List[String]])
   case class Status(phase: String)

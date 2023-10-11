@@ -6,6 +6,8 @@ import skuber.model.LabelSelector.dsl._
 import skuber.model._
 import NetworkPolicy._
 
+import scala.language.reflectiveCalls
+
 /**
  * @author David O'Riordan
  */

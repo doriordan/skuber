@@ -5,6 +5,8 @@ import org.specs2.mutable.Specification
 import skuber.model.LabelSelector
 import LabelSelector.dsl._
 
+import scala.language.{postfixOps, reflectiveCalls}
+
 /**
  * @author Chris Baker
  * @author David O'Riordan

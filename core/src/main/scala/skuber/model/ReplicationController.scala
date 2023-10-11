@@ -4,8 +4,8 @@ package skuber.model
  * @author David O'Riordan
  */
 case class ReplicationController(
-  	val kind: String ="ReplicationController",
-  	override val apiVersion: String = v1,
+    val kind: String ="ReplicationController",
+    override val apiVersion: String = v1,
     val metadata: ObjectMeta = ObjectMeta(),
     spec: Option[ReplicationController.Spec] = None,
     status: Option[ReplicationController.Status] = None) 
@@ -50,10 +50,10 @@ object ReplicationController {
       shortNames=List("rc")
     )
   )
-  implicit val rcDef = new ResourceDefinition[ReplicationController] { def spec=specification }
-  implicit val rcListDef = new ResourceDefinition[ReplicationControllerList] { def spec=specification }
+  implicit val rcDef: ResourceDefinition[ReplicationController] = new ResourceDefinition[ReplicationController] { def spec=specification }
+  implicit val rcListDef: ResourceDefinition[ReplicationControllerList] = new ResourceDefinition[ReplicationControllerList] { def spec=specification }
 
-  implicit val scSpec=new Scale.SubresourceSpec[ReplicationController] { override def apiVersion = "autoscaling/v1" }
+  implicit val scSpec: Scale.SubresourceSpec[ReplicationController] =new Scale.SubresourceSpec[ReplicationController] { override def apiVersion = "autoscaling/v1" }
 
   def apply(name: String) : ReplicationController = ReplicationController(metadata=ObjectMeta(name=name))
   def apply(name: String, spec: ReplicationController.Spec) : ReplicationController =

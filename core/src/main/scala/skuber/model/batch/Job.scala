@@ -38,8 +38,8 @@ object Job {
       shortNames = Nil
     )
   )
-  implicit val jobDef = new ResourceDefinition[Job] { def spec=specification }
-  implicit val jobListDef = new ResourceDefinition[JobList] { def spec=specification }
+  implicit val jobDef: ResourceDefinition[Job] = new ResourceDefinition[Job] { def spec=specification }
+  implicit val jobListDef: ResourceDefinition[JobList] = new ResourceDefinition[JobList] { def spec=specification }
 
   def apply(name: String) = new Job(metadata=ObjectMeta(name=name))
 

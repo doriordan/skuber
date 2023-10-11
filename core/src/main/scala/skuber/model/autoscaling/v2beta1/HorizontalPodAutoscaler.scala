@@ -191,7 +191,7 @@ object HorizontalPodAutoscaler {
   implicit val crossVersionObjectReferenceFmt: Format[CrossVersionObjectReference] = Json.format[CrossVersionObjectReference]
   implicit val conditionFmt: Format[Condition] = Json.format[Condition]
   implicit val limitRangeItemTypeFmt: Format[LimitRange.ItemType.Type] = enumFormat(LimitRange.ItemType)
-  implicit val metricsSourceTypeFmt: Format[MetricsSourceType.Value] = Format(enumReads(MetricsSourceType), enumWrites)
+  implicit val metricsSourceTypeFmt: Format[MetricsSourceType.Value] = Format(enumReads(MetricsSourceType), enumWrites(MetricsSourceType))
 
   implicit val resourceMetricStatusFmt: Format[ResourceMetricStatus] = Json.format[ResourceMetricStatus]
 
@@ -201,21 +201,20 @@ object HorizontalPodAutoscaler {
       (JsPath \ "currentValue").format[Resource.Quantity] and
       (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "averageValue").formatNullable[Resource.Quantity]
-    ) (ObjectMetricStatus.apply, unlift(ObjectMetricStatus.unapply))
+    ) (ObjectMetricStatus.apply, o => (o.target, o.metricName, o.currentValue, o.selector, o.averageValue))
 
   implicit val podsMetricStatusFmt: Format[PodsMetricStatus] = (
     (JsPath \ "metricName").format[String] and
       (JsPath \ "currentAverageValue").format[Resource.Quantity] and
       (JsPath \ "selector").formatNullableLabelSelector
-    ) (PodsMetricStatus.apply, unlift(PodsMetricStatus.unapply))
+    ) (PodsMetricStatus.apply, p => (p.metricName, p.currentAverageValue, p.selector))
 
   implicit val externalMetricStatusFmt: Format[ExternalMetricStatus] = (
     (JsPath \ "metricName").format[String] and
       (JsPath \ "metricSelector").formatNullableLabelSelector and
       (JsPath \ "currentValue").formatNullable[Resource.Quantity] and
       (JsPath \ "currentAverageValue").formatNullable[Resource.Quantity]
-    ) (ExternalMetricStatus.apply, unlift(ExternalMetricStatus.unapply))
-
+    ) (ExternalMetricStatus.apply, p => (p.metricName, p.metricSelector, p.currentValue, p.currentAverageValue))
 
   implicit val objectMetricStatusHolderFmt: Format[ObjectMetricStatusHolder] = Json.format[ObjectMetricStatusHolder]
   implicit val podsMetricStatusHolderFmt: Format[PodsMetricStatusHolder] = Json.format[PodsMetricStatusHolder]
@@ -249,8 +248,7 @@ object HorizontalPodAutoscaler {
       (JsPath \ "desiredReplicas").format[Int] and
       (JsPath \ "currentMetrics").formatMaybeEmptyList[MetricStatus] and
       (JsPath \ "conditions").formatMaybeEmptyList[Condition]
-    ) (Status.apply, unlift(Status.unapply)
-  )
+    ) (Status.apply, d => (d.observedGeneration, d.lastScaleTime, d.currentReplicas, d.desiredReplicas, d.currentMetrics, d.conditions))
 
   implicit val resourceMetricSourceFmt: Format[ResourceMetricSource] = Json.format[ResourceMetricSource]
 
@@ -260,21 +258,20 @@ object HorizontalPodAutoscaler {
       (JsPath \ "targetValue").format[Resource.Quantity] and
       (JsPath \ "selector").formatNullableLabelSelector and
       (JsPath \ "averageValue").formatNullable[Resource.Quantity]
-    ) (ObjectMetricSource.apply, unlift(ObjectMetricSource.unapply))
+    ) (ObjectMetricSource.apply, o => (o.target, o.metricName, o.targetValue, o.selector, o.averageValue))
 
   implicit val podsMetricSourceFmt: Format[PodsMetricSource] = (
     (JsPath \ "metricName").format[String] and
       (JsPath \ "targetAverageValue").format[Resource.Quantity] and
       (JsPath \ "selector").formatNullableLabelSelector
-    ) (PodsMetricSource.apply, unlift(PodsMetricSource.unapply))
+    ) (PodsMetricSource.apply, p => (p.metricName, p.targetAverageValue, p.selector))
 
   implicit val externalMetricSourceFmt: Format[ExternalMetricSource] = (
     (JsPath \ "metricName").format[String] and
       (JsPath \ "metricSelector").formatNullableLabelSelector and
       (JsPath \ "targetValue").formatNullable[Resource.Quantity] and
       (JsPath \ "targetAverageValue").formatNullable[Resource.Quantity]
-    ) (ExternalMetricSource.apply, unlift(ExternalMetricSource.unapply))
-
+    ) (ExternalMetricSource.apply, e => (e.metricName, e.metricSelector, e.targetValue, e.targetAverageValue))
 
   implicit val objectMetricFmt: Format[ObjectMetric] = Json.format[ObjectMetric]
   implicit val podsMetricFmt: Format[PodsMetric] = Json.format[PodsMetric]
@@ -303,16 +300,16 @@ object HorizontalPodAutoscaler {
 
   implicit val depSpecFmt: Format[Spec] = (
     (JsPath \ "scaleTargetRef").format[CrossVersionObjectReference] and
-      (JsPath \ "minReplicas").formatNullable[Int] and
-      (JsPath \ "maxReplicas").format[Int] and
-      (JsPath \ "metrics").formatMaybeEmptyList[Metric]
-    ) (Spec.apply, unlift(Spec.unapply))
+    (JsPath \ "minReplicas").formatNullable[Int] and
+    (JsPath \ "maxReplicas").format[Int] and
+    (JsPath \ "metrics").formatMaybeEmptyList[Metric]
+ ) (Spec.apply, d => (d.scaleTargetRef, d.minReplicas, d.maxReplicas, d.metrics))
 
   implicit lazy val horizontalPodAutoscalerFormat: Format[HorizontalPodAutoscaler] = (
     objFormat and
       (JsPath \ "spec").formatNullable[Spec] and
       (JsPath \ "status").formatNullable[Status]
-    )(HorizontalPodAutoscaler.apply, unlift(HorizontalPodAutoscaler.unapply))
+    )(HorizontalPodAutoscaler.apply, h => (h.kind, h.apiVersion, h.metadata, h.spec, h.status))
 
   implicit val horizontalPodAutoscalerListFormat: Format[HorizontalPodAutoscalerList] = ListResourceFormat[HorizontalPodAutoscaler]
 }

@@ -11,7 +11,7 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "2.0"
 val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 val logback = "ch.qos.logback" % "logback-classic" % "1.4.4" % Runtime
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.3"
+val playJson = "com.typesafe.play" %% "play-json" % "2.10.1"
 val typesafeConfig = "com.typesafe" % "config" % "1.4.2"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
@@ -19,7 +19,7 @@ scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-ThisBuild / version := "3.0.0-beta2"
+ThisBuild / version := "3.0.0-beta3"
 
 sonatypeProfileName := "io.skuber"
 
@@ -40,8 +40,8 @@ ThisBuild / developers := List(Developer(id="doriordan", name="David ORiordan", 
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.12.17", "2.13.10"),
-  scalaVersion := "2.13.10",
+  crossScalaVersions := Seq("2.13.12", "3.3.1"),
+  scalaVersion := "3.3.1",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
@@ -76,7 +76,8 @@ val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 val akkaActors = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
-lazy val akkaClientDependencies = Seq(akkaActors, akkaHttp, akkaStream, akkaSlf4j, logback, akkaStreamTestKit, scalaTest % "it")
+lazy val akkaClientDependencies = Seq(akkaActors, akkaHttp, akkaStream, akkaSlf4j, logback, akkaStreamTestKit,
+                                      scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test)
 
 lazy val akka = (project in file("akka"))
   .configs(IntegrationTest)
@@ -102,7 +103,8 @@ val pekkoStream = pekkoGroup %% "pekko-stream-testkit" % pekkoVersion
 val pekkoStreamTestkit = pekkoGroup %% "pekko-stream-testkit" % pekkoVersion
 val pekkoActors = pekkoGroup %% "pekko-actor" % pekkoVersion
 
-lazy val pekkoClientDependencies = Seq(pekkoActors, pekkoHttp, pekkoStream, pekkoSlf4j, logback, pekkoStreamTestkit, scalaTest % "it")
+lazy val pekkoClientDependencies = Seq(pekkoActors, pekkoHttp, pekkoStream, pekkoSlf4j, logback, pekkoStreamTestkit,
+                                       scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test)
 
 lazy val pekko = (project in file("pekko"))
     .configs(IntegrationTest)

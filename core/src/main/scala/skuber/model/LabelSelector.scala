@@ -62,14 +62,21 @@ object LabelSelector {
     // "status" isNot "release" -> "status!=release"
     // "env" isIn List("staging", "production") -> "env in (staging,release)"
     // "env" isNotIn List("local", "dev") -> "env notin (local,dev)"
-    implicit def strToReq(key: String) = new LabelSelector.ExistsRequirement(key) {
-      def doesNotExist = NotExistsRequirement(key)
-      def is(value: String) = IsEqualRequirement(key, value)
-      def isNot(value: String) = IsNotEqualRequirement(key,value)
-      def isIn(values: List[String]) = InRequirement(key, values)
-      def isNotIn(values: List[String]) = NotInRequirement(key, values)
-    }
-    implicit def reqToSel(req: LabelSelector.Requirement) = LabelSelector(req)
+    implicit def strToReq(fromKey: String): ExistsRequirement {
+      def doesNotExist: NotExistsRequirement
+      def is(value: String): IsEqualRequirement
+      def isNot(value: String): IsNotEqualRequirement
+      def isIn(values: List[String]): InRequirement
+      def isNotIn(values: List[String]): NotInRequirement} =
+      new LabelSelector.ExistsRequirement(fromKey) {
+        def doesNotExist: NotExistsRequirement = NotExistsRequirement(key)
+        def is(value: String): IsEqualRequirement = IsEqualRequirement(key, value)
+        def isNot(value: String): IsNotEqualRequirement = IsNotEqualRequirement(key, value)
+        def isIn(values: List[String]): InRequirement = InRequirement(key, values)
+        def isNotIn(values: List[String]): NotInRequirement = NotInRequirement(key, values)
+      }
+
+    implicit def reqToSel(req: LabelSelector.Requirement): LabelSelector = LabelSelector(req)
   }
 }
 

@@ -26,8 +26,8 @@ object LimitRange {
       shortNames=List("limits")
     )
   )
-  implicit val lrDef = new ResourceDefinition[LimitRange] { def spec=specification }
-  implicit val lrListDef = new ResourceDefinition[LimitRangeList] { def spec=specification }
+  implicit val lrDef: ResourceDefinition[LimitRange] = new ResourceDefinition[LimitRange] { def spec=specification }
+  implicit val lrListDef: ResourceDefinition[LimitRangeList] = new ResourceDefinition[LimitRangeList] { def spec=specification }
 
   case class Spec(items: List[Item] = List())
   
@@ -43,5 +43,5 @@ object LimitRange {
       min: ResourceList = Map(),
       default: ResourceList = Map(),
       defaultRequest: ResourceList = Map(),
-      maxLimitRequestRation: ResourceList = Map())
+      maxLimitRequestRatio: ResourceList = Map())
 }

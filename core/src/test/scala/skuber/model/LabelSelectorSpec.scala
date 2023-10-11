@@ -3,7 +3,7 @@ package skuber.model
 import org.specs2.mutable.Specification
 import LabelSelector.dsl._
 
-import scala.language.postfixOps
+import scala.language.{postfixOps, reflectiveCalls}
 
 /**
   * @author David O'Riordan

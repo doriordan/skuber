@@ -8,6 +8,8 @@ import skuber.model.LabelSelector.dsl._
 import skuber.model.Resource
 import skuber.model.autoscaling.v2beta1.HorizontalPodAutoscaler
 
+import scala.language.reflectiveCalls
+
 class HorizontalPodAutoscalerSpec extends Specification {
 
   import skuber.model.autoscaling.v2beta1.HorizontalPodAutoscaler._
