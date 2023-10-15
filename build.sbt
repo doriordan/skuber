@@ -79,7 +79,7 @@ val pekkoStreamTestkit = pekkoGroup %% "pekko-stream-testkit" % pekkoVersion
 val pekkoActors = pekkoGroup %% "pekko-actor" % pekkoVersion
 
 lazy val pekkoClientDependencies = Seq(pekkoActors, pekkoHttp, pekkoStream, pekkoSlf4j, logback, pekkoStreamTestkit,
-                                       scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test)
+                                       scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % "it, test")
 
 lazy val pekko = (project in file("pekko"))
     .configs(IntegrationTest)
@@ -106,7 +106,7 @@ val akkaBSLStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaBS
 val akkaBSLActors = "com.typesafe.akka" %% "akka-actor" % akkaBSLVersion
 
 lazy val akkaBSLClientDependencies = Seq(akkaBSLActors, akkaBSLHttp, akkaBSLStream, akkaBSLSlf4j, logback, akkaBSLStreamTestKit,
-  scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test)
+  scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % "it, test")
 
 lazy val akka = (project in file("akka"))
     .configs(IntegrationTest)

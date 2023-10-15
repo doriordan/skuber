@@ -9,11 +9,10 @@ import pekko.stream.scaladsl._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.Eventually
 import play.api.libs.json._
-
 import skuber.api.client.K8SException
 import skuber.model.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
 import skuber.model.apiextensions.v1.CustomResourceDefinition
-import skuber.model.{CustomResource, ListResource, ResourceDefinition, ResourceSpecification}
+import skuber.model.{CustomResource, ListResource, ResourceDefinition, ResourceSpecification, Scale}
 
 
 /**
@@ -96,7 +95,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
             storage = true,
             schema = Some(Schema(jsonSchema)), // schema is required since v1
             subresources = Some(Subresources()
-                .withStatusSubresource // enable status subresource
+                .withStatusSubresource() // enable status subresource
                 .withScaleSubresource(ScaleSubresource(".spec.desiredReplicas", ".status.actualReplicas")) // enable scale subresource
             )
           )
@@ -114,18 +113,18 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
       // This needs to be passed implicitly to the skuber API to enable it to process TestResource requests.
       // The json paths in the Scale subresource must map to the replica fields in Spec and Status
       // respectively above
-      implicit val testResourceDefinition = ResourceDefinition[TestResource](
+      implicit val testResourceDefinition: ResourceDefinition[TestResource] = ResourceDefinition[TestResource](
         group = "test.skuber.io",
         version = "v1alpha1",
         kind = "SkuberTest",
-        shortNames = List("test","tests"),  // not needed, but handy if debugging the tests
+        shortNames = List("test", "tests"), // not needed, but handy if debugging the tests
         versions = getVersions() // only needed for creating or updating the CRD, not needed if just manipulating custon resources
       )
 
       // the following implicit values enable the scale and status methods on the skuber API to be called for this type
       // (these calls will be rejected unless the subresources are enabled on the CRD)
-      implicit val statusSubEnabled=CustomResource.statusMethodsEnabler[TestResource]
-      implicit val scaleSubEnabled=CustomResource.scalingMethodsEnabler[TestResource]
+      implicit val statusSubEnabled: model.HasStatusSubresource[TestResource] = CustomResource.statusMethodsEnabler[TestResource]
+      implicit val scaleSubEnabled: Scale.SubresourceSpec[TestResource] = CustomResource.scalingMethodsEnabler[TestResource]
 
       // Construct an exportable Kubernetes CRD that mirrors the details in the matching implicit resource definition above -
       // the test will create it on Kubernetes so that the subsequent test requests can be handled by the cluster
@@ -221,6 +220,8 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
       import skuber.api.client.{EventType, WatchEvent}
       import scala.collection.mutable.ListBuffer
 
+      import TestResource.testResourceDefinition
+
       val testResourceName=java.util.UUID.randomUUID().toString
       val testResource = TestResource(testResourceName, TestResource.Spec(1))
 
@@ -229,7 +230,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
         trackedEvents += event
       }
 
-      def getCurrentResourceVersion: Future[String] = k8s.list[TestResourceList].map { l =>
+      def getCurrentResourceVersion: Future[String] = k8s.list[TestResourceList]().map { l =>
         l.resourceVersion
       }
       def watchAndTrackEvents(sinceVersion: String) =
@@ -243,7 +244,7 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
       def createTestResource= k8s.create(testResource)
       def deleteTestResource= k8s.delete[TestResource](testResourceName)
 
-      val killSwitchFut = for {
+      val killSwitchFut: Future[UniqueKillSwitch] = for {
         currentTestResourceVersion <- getCurrentResourceVersion
         (kill, _) <- watchAndTrackEvents(currentTestResourceVersion)
         testResource <- createTestResource
@@ -253,8 +254,8 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
       eventually(timeout(200.seconds), interval(3.seconds)) {
         trackedEvents.size shouldBe 2
         trackedEvents(0)._type shouldBe EventType.ADDED
-        trackedEvents(0)._object.name shouldBe testResource.name
-        trackedEvents(0)._object.spec shouldBe testResource.spec
+        trackedEvents(0)._object.name should be(testResource.name)
+        assert(trackedEvents(0)._object.spec.desiredReplicas == testResource.spec.desiredReplicas)
         trackedEvents(1)._type shouldBe EventType.DELETED
       }
 

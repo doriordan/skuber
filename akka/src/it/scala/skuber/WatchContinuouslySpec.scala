@@ -25,7 +25,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
     val deploymentOne = getNginxDeployment(deploymentOneName, "1.7.9")
     val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.7.9")
 
-    val stream = k8s.list[DeploymentList].map { l =>
+    val stream = k8s.list[DeploymentList]().map { l =>
       k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
         .viaMat(KillSwitches.single)(Keep.right)
         .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
@@ -175,6 +175,7 @@ class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers wit
 
   def getNginxDeployment(name: String, version: String): Deployment = {
     import LabelSelector.dsl._
+    import scala.language.reflectiveCalls
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
     Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")

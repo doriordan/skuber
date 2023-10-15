@@ -6,14 +6,16 @@ import skuber.api.client.K8SException
 import skuber.model.{Container, LabelSelector, Pod}
 import skuber.model.apps.v1.Deployment
 import skuber.model.policy.v1.PodDisruptionBudget
+import LabelSelector.dsl._
+
+import scala.language.{postfixOps, reflectiveCalls}
 
 class PodDisruptionBudgetSpec extends K8SFixture with Eventually with Matchers {
   behavior of "PodDisruptionBudget"
 
   it should "create a PodDisruptionBudget" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
-      import LabelSelector.dsl._
+    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { _ =>
       k8s.create(PodDisruptionBudget(name)
         .withMinAvailable(Left(1))
         .withLabelSelector("app" is "nginx")
@@ -26,8 +28,7 @@ class PodDisruptionBudgetSpec extends K8SFixture with Eventually with Matchers {
 
   it should "update a PodDisruptionBudget" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
-      import LabelSelector.dsl._
+    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { _ =>
       k8s.create(PodDisruptionBudget(name)
         .withMinAvailable(Left(1))
         .withLabelSelector("app" is "nginx")
@@ -65,7 +66,6 @@ class PodDisruptionBudgetSpec extends K8SFixture with Eventually with Matchers {
   }
 
   def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
     Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")

@@ -23,14 +23,14 @@ class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndA
     Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
-    k8s.close
+    k8s.close()
   }
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
     Await.result(k8s.delete[Pod](nginxPodName), 3.second)
     Thread.sleep(3000)
-    k8s.close
+    k8s.close()
 
     super.afterAll()
   }

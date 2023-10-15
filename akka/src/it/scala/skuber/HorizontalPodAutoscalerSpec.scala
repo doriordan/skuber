@@ -7,7 +7,11 @@ import skuber.model.autoscaling.v2.HorizontalPodAutoscaler
 import skuber.model.autoscaling.v2.HorizontalPodAutoscaler.{ResourceMetricSource, UtilizationTarget}
 import skuber.model.{Container, LabelSelector, Pod, Resource}
 import skuber.model.apps.v1.Deployment
+import LabelSelector.dsl._
+
 import skuber.api.client._
+
+import scala.language.{postfixOps, reflectiveCalls}
 
 class HorizontalPodAutoscalerSpec extends K8SFixture with Eventually with Matchers {
   behavior of "HorizontalPodAutoscalerV2"
@@ -85,7 +89,6 @@ class HorizontalPodAutoscalerSpec extends K8SFixture with Eventually with Matche
   }
 
   def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
     Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")

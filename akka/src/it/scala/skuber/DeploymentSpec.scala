@@ -5,10 +5,13 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import skuber.model.{Container, LabelSelector, Pod}
 import skuber.model.apps.v1.Deployment
 import skuber.api.client.{DeleteOptions,DeletePropagation,K8SException}
+import LabelSelector.dsl._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
+
+import scala.language.{postfixOps, reflectiveCalls}
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   val nginxDeploymentName: String = java.util.UUID.randomUUID().toString
@@ -29,7 +32,6 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
 
   it should "upgrade the newly created deployment" in { k8s =>
     k8s.get[Deployment](nginxDeploymentName).flatMap { d =>
-      println(s"DEPLOYMENT TO UPDATE ==> $d")
       val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
       k8s.update(updatedDeployment).flatMap { _ =>
         eventually(timeout(200.seconds), interval(5.seconds)) {
@@ -61,7 +63,6 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
 
   def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
     val nginxContainer = getNginxContainer(version)
     val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
     Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")

@@ -16,7 +16,6 @@ import skuber.api.client.K8SException
 import skuber.json.format._
 import skuber.model.{Container, Pod}
 
-
 import skuber.pekkoclient.k8sInit
 
 class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
@@ -31,14 +30,14 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
-    k8s.close
+    k8s.close()
   }
 
   override def afterAll(): Unit = {
     val k8s = k8sInit
     Await.result(k8s.delete[Pod](nginxPodName), 3.second)
     Thread.sleep(3000)
-    k8s.close
+    k8s.close()
 
     super.afterAll()
   }

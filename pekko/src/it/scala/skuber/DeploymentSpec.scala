@@ -9,6 +9,7 @@ import skuber.api.client.{DeleteOptions,DeletePropagation,K8SException}
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
+import scala.language.{postfixOps, reflectiveCalls}
 
 class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   val nginxDeploymentName: String = java.util.UUID.randomUUID().toString

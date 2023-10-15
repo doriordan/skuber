@@ -42,14 +42,14 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers {
     k8s.usingNamespace(namespace1Name).create(pod1)
       .map { p =>
         assert(p.name      == nginxPodName1)
-        assert(p.namespace == namespace1Name)
+        assert(p.metadata.namespace == namespace1Name)
     }
   }
 
   it should "honor namespace precedence hierarchy: object > client" in { k8s =>
     k8s.usingNamespace(namespace1Name).create(pod2).map { p =>
       assert(p.name      == nginxPodName2)
-      assert(p.namespace == namespace2Name)
+      assert(p.metadata.namespace == namespace2Name)
     }
   }
 
