@@ -380,6 +380,7 @@ class PodFormatSpec extends Specification {
       cntrStatuses(2).state.get match {
         case Container.Running(startTime) if (startTime.nonEmpty) => 
           startTime.get.getHour mustEqual 16 // just a spot check
+        case _ => failure("container unexpected status")
       }
       // write and read back in again, compare
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 

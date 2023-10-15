@@ -1,14 +1,11 @@
 package skuber.examples.list
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
-
-import akka.actor.ActorSystem
-
+import org.apache.pekko.actor.ActorSystem
 import skuber.model.{Pod, PodList}
 import skuber.json.format._
-
-import skuber.akkaclient.k8sInit
+import skuber.pekkoclient.k8sInit
 
 /**
  * @author David O'Riordan
@@ -24,9 +21,9 @@ object ListExamples extends App {
     System.out.println("POD                                               NAMESPACE           PHASE")
     System.out.println("===                                               =========           =======")
 
-    pods.map { pod: Pod =>
+    pods.map { (pod: Pod) =>
       val name = pod.name
-      val ns = pod.namespace
+      val ns = pod.metadata.namespace
       val phaseOpt = for {
         status <- pod.status
         phase <- status.phase
@@ -37,15 +34,15 @@ object ListExamples extends App {
     }
   }
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContext = system.dispatcher
 
   val k8s = k8sInit
 
   System.out.println("\nGetting list of pods in namespace of current context ==>")
 
   val currNsPods: Future[PodList] = k8s.list[PodList]()
-  val printCurrNsPods = currNsPods map { podList => listPods(podList.items) }
+  val printCurrNsPods = currNsPods.map { podList => listPods(podList.items) }
   printCurrNsPods.failed.foreach { ex => System.err.println("Failed => " + ex) }
 
   Await.ready(printCurrNsPods, 30.seconds)
@@ -53,7 +50,7 @@ object ListExamples extends App {
   System.out.println("\nGetting lists of pods in 'kube-system' namespace ==>")
 
   val ksysPods: Future[PodList] = k8s.listInNamespace[PodList]("kube-system")
-  val printKSysPods = ksysPods map { podList => listPods(podList.items) }
+  val printKSysPods = ksysPods.map { podList => listPods(podList.items) }
   printKSysPods.failed.foreach { ex => System.err.println("Failed => " + ex) }
 
   Await.ready(printKSysPods, 30.seconds)
@@ -65,7 +62,7 @@ object ListExamples extends App {
     allPodsMap.values.flatMap(_.items).toList
   }
 
-  val printAllPods = allPods map { pods => listPods(pods) }
+  val printAllPods = allPods.map { pods => listPods(pods) }
   printAllPods.failed.foreach { ex => System.err.println(s"Failed => $ex") }
 
   Await.ready(printAllPods, 30.seconds)

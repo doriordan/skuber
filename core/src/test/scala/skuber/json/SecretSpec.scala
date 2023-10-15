@@ -18,7 +18,6 @@ class SecretSpec extends Specification {
   }
   "this can be done with an empty data map" >> {
     val mySecret = Secret(metadata = ObjectMeta("mySecret"))
-    val json = Json.toJson(mySecret)
     val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
     mySecret mustEqual readSecret
   }

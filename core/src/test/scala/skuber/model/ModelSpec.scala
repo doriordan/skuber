@@ -1,10 +1,6 @@
 package skuber.model
 
 import org.specs2.mutable.Specification
-import skuber.model.{Pod, ReplicationController}
-
-import scala.math.BigInt
-
 
 /**
  * @author David O'Riordan
@@ -24,12 +20,12 @@ class ModelSpec extends Specification {
     "where a list with a single pod can be used" >> {
       val container1=Container(name="Container1","image1")
       val container2=Container(name="Container2","image2")
-      val podspec=Pod.Spec(volumes=Nil, containers=List(container1, container2), serviceAccountName="")
+      val podspec=Pod.Spec(volumes=Nil, containers=List(container1, container2))
       val pod=Pod("MyPod", podspec)
       val podList = List[Pod](pod)
       val pods=PodList(items = podList)
       pods.items.size mustEqual 1
-      pods.items(0).metadata.name mustEqual "MyPod"
+      pods.items.head.metadata.name mustEqual "MyPod"
     }    
   }   
    // ReplicationController(s)
@@ -48,7 +44,7 @@ class ModelSpec extends Specification {
       val rcList = List[ReplicationController](rc)
       val rcs=ReplicationControllerList(items = rcList)
       rcs.items.size mustEqual 1
-      rcs.items(0).metadata.name mustEqual "MyRepCon"
+      rcs.items.head.metadata.name mustEqual "MyRepCon"
       rcs(0).name mustEqual "MyRepCon"
       rcs(0).spec.get.replicas mustEqual 2
       val pspec = for (

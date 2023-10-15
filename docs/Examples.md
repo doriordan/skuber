@@ -1,6 +1,9 @@
+
 # Skuber usage examples
 
-Skuber is built on top of Akka HTTP and therefore it is non-blocking and concurrent by default.
+***NOTE this documentation is for Skuber 2 - Skuber 3 examples differ only in some `import` statements as a general rule, and normally depend on Pekko rathee than Akka. For Skuber 3 usage examples see the main README***
+
+Skuber 2 is built on top of Akka HTTP and therefore it is non-blocking and concurrent by default.
 Almost all requests return a Future, and you need to write a little bit of extra code if you want quick
 experiments in a single-threaded environment (like Ammonite REPL, or simple tests)
 It all boils down to either using Await or onComplete - see examples below.

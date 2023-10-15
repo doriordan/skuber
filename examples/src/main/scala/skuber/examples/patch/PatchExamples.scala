@@ -1,18 +1,16 @@
 package skuber.examples.patch
 
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration.Inf
 import play.api.libs.json.{Format, Json}
-
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import skuber.model.{Container, LabelSelector, Pod, Service}
 import skuber.model.apps.v1.StatefulSet
-import skuber.api.client.{K8SException, DeleteOptions, DeletePropagation}
+import skuber.api.client.{DeleteOptions, DeletePropagation, K8SException}
 import skuber.api.patch.JsonMergePatch
 import skuber.json.format._
-
-import skuber.akkaclient.k8sInit
+import skuber.pekkoclient.k8sInit
 
 /**
  * @author David O'Riordan
@@ -51,21 +49,21 @@ object PatchExamples extends App {
     // StatefulSet needs a headless service
     val nginxStsService: Service=Service(nginxStatefulSet.spec.get.serviceName.get, nginxStsLabels, 80).isHeadless
 
-    implicit val system = ActorSystem()
-    implicit val dispatcher = system.dispatcher
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val dispatcher: ExecutionContext = system.dispatcher
 
     val k8s = k8sInit
 
     println("Creating nginx stateful set")
     val createdStsFut = for {
-      svc <- k8s create nginxStsService
-      sts <- k8s create nginxStatefulSet
+      svc <- k8s.create(nginxStsService)
+      sts <- k8s.create(nginxStatefulSet)
     } yield sts
    
     val stsFut = createdStsFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the stateful set or service already exists - retrieving latest version")
-        k8s get[StatefulSet] nginxStatefulSet.name
+        k8s.get[StatefulSet](nginxStatefulSet.name)
       }
     }
 

@@ -2,11 +2,11 @@ package skuber.examples.fluent
 
 import skuber.json.format._
 
-import scala.concurrent.Future
-import akka.actor.ActorSystem
-import skuber.model.{Container, Pod, ReplicationController, ReplicationControllerList, Service, ServiceList}
+import scala.concurrent.{ExecutionContext, Future}
+import org.apache.pekko.actor.ActorSystem
+import skuber.model._
 import skuber.api.client.K8SException
-import skuber.akkaclient.k8sInit
+import skuber.pekkoclient.k8sInit
 
 /**
  * @author David O'Riordan
@@ -25,7 +25,6 @@ import skuber.akkaclient.k8sInit
 object FluentExamples extends App {
   
   val image = "nginx"
-  val namePrefix = "nginx"
     
   val env  = "env"
   val zone = "zone"
@@ -45,8 +44,8 @@ object FluentExamples extends App {
   val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
   val prodExternalSelector = Map(prodLabel, prodExternalZoneLabel)
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContext = system.dispatcher
 
   val k8s = k8sInit
   
@@ -58,7 +57,7 @@ object FluentExamples extends App {
    */
   private def getService(listRetrieval: Future[ServiceList], svcName: String) : Future[Service] = 
     listRetrieval map { list => 
-      list.find(_.name==svcName).getOrElse(Service(svcName))
+      list.items.find(_.name==svcName).getOrElse(Service(svcName))
     }
     
   
@@ -68,24 +67,9 @@ object FluentExamples extends App {
    */
    private def getController(listRetrieval: Future[ReplicationControllerList], rcName: String) : Future[ReplicationController] = 
     listRetrieval map { list => 
-      list.find(_.name==rcName).getOrElse(ReplicationController(rcName))
+      list.items.find(_.name==rcName).getOrElse(ReplicationController(rcName))
     }
-    
-  
-  /*
-   * Build a simple nginx service, which can be accessed via port 30001 on any of the cluster nodes,
-   * and is required to have 5 replicas running.
-   */
-  def buildSimpleNginxService: (Service, ReplicationController) = {
-    
-    val nginxSelector  = Map("app" -> "nginx")
-    val nginxContainer = Container("nginx",image="nginx").exposePort(80)
-    val nginxController= ReplicationController("nginx",nginxContainer,nginxSelector).withReplicas(5)
-    val nginxService   = Service("nginx", nginxSelector, Service.Port(port=80, nodePort=30001)) 
-    (nginxService,nginxController)
-  }
- 
-    
+
   /**
    * Build a set of replication controllers for nginx based services that target multiple environments
    * and zones, using labels and selectors to differentiate these different targets.
@@ -252,13 +236,13 @@ object FluentExamples extends App {
         
       println("Deploying controllers...")
     
-      newControllerBuilds flatMap { rcDeploymentList =>
+      newControllerBuilds.flatMap { rcDeploymentList =>
           
         def alreadyExists(rc: ReplicationController) = existingRCList.exists { _.name == rc.name }
           
         val updateList = for {
           rcUpdateCandidate <- rcDeploymentList
-          if (alreadyExists(rcUpdateCandidate)) 
+          if alreadyExists(rcUpdateCandidate)
         } yield rcUpdateCandidate
           
         val createList = for {
@@ -266,8 +250,8 @@ object FluentExamples extends App {
           if (!alreadyExists(rcCreateCandidate))
         } yield rcCreateCandidate
           
-        val doUpdates = updateList map { rc => k8s update rc }
-        val doCreates = createList map { rc => k8s create rc }
+        val doUpdates = updateList.map { rc => k8s.update(rc) }
+        val doCreates = createList.map { rc => k8s.create(rc) }
      
         Future.sequence(doCreates ++ doUpdates)
       }
@@ -307,15 +291,17 @@ object FluentExamples extends App {
   def deployNginxServices = {
     
    val deployAll = for {
-      s <- deployServices
+      _ <- deployServices
       c <- deployControllers
     } yield c 
     
-    deployAll.failed.foreach {  case ex: K8SException => System.err.println("Request failed with status : " + ex.status) }
+    deployAll.failed.foreach {  case ex: K8SException =>
+      System.err.println("Request failed with status : " + ex.status)
+    }
     
     deployAll andThen { case _ =>
       k8s.close()
-      system.terminate().foreach { f =>
+      system.terminate().foreach { _ =>
         System.exit(0)
       }
     }

@@ -1,11 +1,8 @@
 package skuber.examples.ingress
 
 import java.net.HttpURLConnection
-
-
 import scala.annotation.tailrec
-import akka.actor.ActorSystem
-
+import org.apache.pekko.actor.ActorSystem
 import skuber.api.client.{K8SException, KubernetesClient}
 import skuber.model._
 import skuber.model.apps.v1.ReplicaSet
@@ -13,7 +10,7 @@ import skuber.model.networking.Ingress
 import skuber.json.format._
 import skuber.json.networking.format._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * @author David O'Riordan
@@ -145,7 +142,6 @@ object NginxIngress extends App {
       import java.io.BufferedReader
       import java.io.InputStreamReader
       import java.net.URL
-      import java.nio.charset.Charset
 
       val sb = new StringBuilder()
       val urlStr = "http://" + ipAddress + ":" + port + "/" + path
@@ -237,10 +233,10 @@ object NginxIngress extends App {
 
   def run = {
 
-    implicit val system = ActorSystem()
-    implicit val dispatcher = system.dispatcher
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val dispatcher: ExecutionContext = system.dispatcher
 
-    implicit val k8s = skuber.akkaclient.k8sInit
+    implicit val k8s: KubernetesClient = skuber.pekkoclient.k8sInit
 
     // build the resources
     val be = buildDefaultBackendService
@@ -262,26 +258,26 @@ object NginxIngress extends App {
 
       }
     }
-    def createRS(rs: ReplicaSet) = (k8s create rs) recover ignore409
-    def createSvc(svc: Service) = (k8s create svc) recover ignore409
+    def createRS(rs: ReplicaSet) = k8s.create(rs).recover(ignore409)
+    def createSvc(svc: Service) = k8s.create(svc).recover(ignore409)
 
     // In the case of the ingress we update it if it already exists, as it is a resource likely to be modified
     // more often than the others in this example
     def updateIf409(ing: Ingress): PartialFunction[Throwable, Future[Ingress]] = {
       case ex: K8SException if ex.status.code.contains(409) => {
         println("Ingress already exists - updating to current rules and continuing")
-        (k8s get[Ingress] ing.name) flatMap { curr =>
+        k8s.get[Ingress](ing.name).flatMap { curr =>
           println("...retrieved ingress, now updating the rules")
           val updated = ing.copy(metadata = curr.metadata) // copies latest resource version for update
-          k8s update updated
+          k8s.update(updated)
         }
       }
     }
 
-    def createIng(ing: Ingress): Future[Ingress] = (k8s create ing) recoverWith updateIf409(ing)
+    def createIng(ing: Ingress): Future[Ingress] = k8s.create(ing).recoverWith(updateIf409(ing))
 
     // helpers for creating the resources on the cluster
-    def createEchoServices = Future.sequence(esSvcs map { createSvc(_) })
+    def createEchoServices = Future.sequence(esSvcs.map { createSvc(_) })
     def createNonIngressResources = Future.sequence(List(
           createSvc(beSvc),
           createRS(beRset),
@@ -313,7 +309,7 @@ object NginxIngress extends App {
       succeeded = testIngress(ing)
     } yield succeeded
 
-    done map { success =>
+    done.map { success =>
       if (success)
           println("Successful.")
         else

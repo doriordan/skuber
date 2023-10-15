@@ -4,7 +4,6 @@ import org.specs2.mutable.Specification
 import play.api.libs.json._
 import skuber.model.LabelSelector.dsl._
 import skuber.model._
-import skuber.json.apps.format._
 import skuber.model.{Pod, Resource}
 
 import scala.language.{postfixOps, reflectiveCalls}
@@ -66,8 +65,8 @@ class StatefulSetSpec extends Specification {
     stateSet.spec.get.template.metadata.labels mustEqual Map("domain" -> "www.example.com","proxies" -> "microservices")
     val podSpec=stateSet.spec.get.template.spec.get
     podSpec.containers.length mustEqual 1
-    val container=podSpec.containers(0)
-    container.resources.get.requests.get("cpu").get mustEqual Resource.Quantity("500m")
+    val container=podSpec.containers.head
+    container.resources.get.requests("cpu") mustEqual Resource.Quantity("500m")
     container.lifecycle.get.preStop.get mustEqual ExecAction(List("/bin/sh", "-c", "PID=$(pidof java) && kill $PID && while ps -p $PID > /dev/null; do sleep 1; done"))
     container.readinessProbe.get.action mustEqual ExecAction(List("/bin/sh", "-c", "./ready.sh"))
     container.readinessProbe.get.initialDelaySeconds mustEqual 15

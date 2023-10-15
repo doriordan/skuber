@@ -1,8 +1,6 @@
 package skuber.json
 
 import org.specs2.mutable.Specification // for unit-style testing
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
 import play.api.libs.json._
 import skuber.model.Namespace
 import format.{namespaceFormat, nsSpecFormat}
@@ -74,39 +72,32 @@ class NamespaceFormatSpec extends Specification {
              "phase": "Active"
           }
         }
-        """)
-       val res = Json.fromJson[Namespace](nsJson)
-       val ret: Result = res match {
-          case success: JsSuccess[Namespace] =>
-            val ns: Namespace = success.get
-            ns.name mustEqual "mynamespace"
-            ns.apiVersion mustEqual "v1"
-            ns.kind mustEqual "Namespace"
-            ns.metadata.uid mustEqual "2a08e586-2d2d-11e5-99f8-0800279dd272"
-            ns.status mustEqual Some(Namespace.Status("Active"))
-            val date = ns.metadata.creationTimestamp.get
-            date.getYear mustEqual 2015
-            date.getMonth mustEqual java.time.Month.JULY
-            date.getDayOfMonth mustEqual 18
-            date.getHour mustEqual 9
-            date.getMinute mustEqual 12
-            date.getSecond mustEqual 50
-            date.getOffset mustEqual java.time.ZoneOffset.UTC
-            val date2 = ns.metadata.deletionTimestamp.get
-            date2.getOffset mustEqual java.time.ZoneOffset.ofHours(1) 
-            val labels=ns.metadata.labels
-            labels("three") mustEqual "four"
-            val annots=ns.metadata.annotations
-            annots("abc") mustEqual "def"
-            val nsJson = Json.toJson(ns)
-            val res2 = Json.fromJson[Namespace](nsJson)
-            res2 match {
-              case JsSuccess(ns2, _) => ns2.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
-              case JsError(e) => Failure(e.toString)
-            }
-          case JsError(e) => Failure(e.toString)
-        }
-        ret
-    }    
-  }    
+      """)
+
+      val parsedNs = Json.fromJson[Namespace](nsJson)
+      val ns: Namespace = parsedNs.get
+      ns.name mustEqual "mynamespace"
+      ns.apiVersion mustEqual "v1"
+      ns.kind mustEqual "Namespace"
+      ns.metadata.uid mustEqual "2a08e586-2d2d-11e5-99f8-0800279dd272"
+      ns.status mustEqual Some(Namespace.Status("Active"))
+      val date = ns.metadata.creationTimestamp.get
+      date.getYear mustEqual 2015
+      date.getMonth mustEqual java.time.Month.JULY
+      date.getDayOfMonth mustEqual 18
+      date.getHour mustEqual 9
+      date.getMinute mustEqual 12
+      date.getSecond mustEqual 50
+      date.getOffset mustEqual java.time.ZoneOffset.UTC
+      val date2 = ns.metadata.deletionTimestamp.get
+      date2.getOffset mustEqual java.time.ZoneOffset.ofHours(1)
+      val labels=ns.metadata.labels
+      labels("three") mustEqual "four"
+      val annots=ns.metadata.annotations
+      annots("abc") mustEqual "def"
+      val ns2Json = Json.toJson(ns)
+      val res2 = Json.fromJson[Namespace](ns2Json)
+      res2.get.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
+    }
+  }
 }

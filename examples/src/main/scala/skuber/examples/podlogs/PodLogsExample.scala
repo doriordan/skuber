@@ -1,15 +1,15 @@
 package skuber.examples.podlogs
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.stream.scaladsl._
-import akka.util.ByteString
+import org.apache.pekko.NotUsed
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.scaladsl._
+import org.apache.pekko.util.ByteString
 import skuber.model.{Container, Pod}
 import skuber.json.format._
 import skuber.api.client.{LoggingConfig, defaultAppConfig, defaultK8sConfig}
-import skuber.akkaclient.k8sInit
+import skuber.pekkoclient.k8sInit
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
 /**
@@ -28,8 +28,8 @@ object PodLogExample extends App {
       .to(Sink.foreach(text => println(s"[${cntrName} logs] $text")))
 
 
-  implicit val system = ActorSystem()
-  implicit val dispatcher = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val dispatcher: ExecutionContext = system.dispatcher
   val k8s = k8sInit(
     defaultK8sConfig.currentContext,
     LoggingConfig(logRequestBasic = false, logResponseBasic = false),

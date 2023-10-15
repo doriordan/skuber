@@ -34,11 +34,11 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
   "LongPollingPool" should {
     "create a http pool" >> {
       val clientConfig = ClientConnectionSettings(system.settings.config)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4321)
+      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4421)
 
-      val pool = LongPollingPool[Int]("http", "localhost", 4321, 30.seconds, None, clientConfig)
+      val pool = LongPollingPool[Int]("http", "localhost", 4421, 30.seconds, None, clientConfig)
 
-      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
+      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4421/ping")))
         .map(x => x -> 1).via(pool)
         .map(_._1).runWith(Sink.head)
         .futureValue
@@ -70,7 +70,7 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
       sslContext.init(keyManagerFactory.getKeyManagers, tmf.getTrustManagers, new SecureRandom)
 
       val https: HttpsConnectionContext = ConnectionContext.https(sslContext)
-      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4322, connectionContext = https)
+      val bindingFuture = Http().bindAndHandle(Route.handlerFlow(route), "127.0.0.1", port = 4422, connectionContext = https)
 
       val clientHttps: HttpsConnectionContext = new HttpsConnectionContext(sslContext, Some(
         AkkaSSLConfig().mapSettings(x => x.withLoose {
@@ -78,9 +78,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
         })
       ))
 
-      val pool = LongPollingPool[Int]("https", "localhost", 4322, 30.seconds, Some(clientHttps), clientConfig)
+      val pool = LongPollingPool[Int]("https", "localhost", 4422, 30.seconds, Some(clientHttps), clientConfig)
 
-      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
+      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4422/ping")))
         .map(x => x -> 1).via(pool)
         .map(_._1).runWith(Sink.head)
         .futureValue
@@ -93,7 +93,7 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
     "handle unsupported scheme" >> {
       LongPollingPool[Int](
         "badScheam",
-        "localhost", 4322, 30.seconds, None,
+        "localhost", 4422, 30.seconds, None,
         ClientConnectionSettings(system.settings.config)
       ) must throwA[IllegalArgumentException]
     }

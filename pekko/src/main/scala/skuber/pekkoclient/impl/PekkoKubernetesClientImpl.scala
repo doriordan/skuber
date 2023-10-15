@@ -289,7 +289,7 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
       (implicit fmt: Format[L], lc: LoggingContext): Future[Map[String, L]] =
   {
     val nsNamesFut: Future[List[String]] = getNamespaceNames
-    val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { nsNames: List[String] =>
+    val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { (nsNames: List[String]) =>
       Future.sequence(nsNames map { (nsName: String) =>
         listInNamespace[L](nsName, rd) map { l => (nsName, l) }
       })

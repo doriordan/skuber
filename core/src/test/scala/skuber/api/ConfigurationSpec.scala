@@ -11,7 +11,10 @@ import skuber.model.Namespace
  * @author David O'Riordan
  */
 class ConfigurationSpec extends Specification {
-    val kubeConfigStr =  """
+
+  implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
+
+  val kubeConfigStr =  """
 apiVersion: v1
 clusters:
 - cluster:
@@ -94,9 +97,6 @@ users:
         token-key: '{.credential.access_token}'
       name: gcp
 """
-
-  // implicit val system=ActorSystem("test")
-  implicit val loggingContext: LoggingContext = new LoggingContext { override def output:String="test" }
 
   "An example kubeconfig file can be parsed correctly" >> {
     val is = new java.io.ByteArrayInputStream(kubeConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))

@@ -1,5 +1,7 @@
 # Skuber Programming Guide
 
+***NOTE this guide is currently for Skuber 2 - it will shortly be updated for Skuber 3 but in the meantime see the main README for Skuber 3 examples.***
+
 This guide assumes a working knowledge of Kubernetes concepts.
 
 ## Data Model Overview

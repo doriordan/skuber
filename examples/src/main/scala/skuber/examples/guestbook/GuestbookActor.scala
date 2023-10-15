@@ -3,11 +3,11 @@ package skuber.examples.guestbook
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.{Failure, Success}
-import akka.actor.{Actor, ActorLogging, ActorRef}
-import akka.actor.Props
-import akka.event.LoggingReceive
-import akka.pattern.ask
-import akka.util.Timeout
+import org.apache.pekko.actor.{Actor, ActorLogging, ActorRef}
+import org.apache.pekko.actor.Props
+import org.apache.pekko.event.LoggingReceive
+import org.apache.pekko.pattern.ask
+import org.apache.pekko.util.Timeout
 import model.GuestbookServiceSpecification
 import skuber.model.Service
 
@@ -61,7 +61,7 @@ class GuestbookActor extends Actor with ActorLogging {
   val frontEndService = context.actorOf(ServiceActor.props(kubernetesProxy, frontEndSpec), "frontEnd")
  
   // set up defaults for actor messaging
-  implicit val timeout = Timeout(20.seconds)
+  implicit val timeout: Timeout = Timeout(20.seconds)
   
   var redisMasterRunning=false
   var redisSlaveRunning=false

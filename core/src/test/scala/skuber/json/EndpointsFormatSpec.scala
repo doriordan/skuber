@@ -1,13 +1,7 @@
 package skuber.json
 
 import org.specs2.mutable.Specification
-import org.specs2.execute.Result
-import org.specs2.execute.Failure
-import org.specs2.execute.Success
 
-import scala.math.BigInt
-import java.util.Calendar
-import java.net.URL
 import skuber.model._
 import format._
 import play.api.libs.json._
@@ -21,7 +15,7 @@ import skuber.model.Service
 class EndpointsFormatSpec extends Specification {
   "This is a unit specification for the skuber Endpoint related json formatter.\n ".txt
   
-import  Endpoints._
+  import  Endpoints._
   
   // Endpoint reader and writer
   "An Endpoints can be symmetrically written to json and the same value read back in\n" >> {
@@ -97,26 +91,26 @@ import  Endpoints._
               }
             ]
           } 
-        """
-     val endps = Json.parse(epsJsonStr).as[Endpoints]
-     endps.kind mustEqual "Endpoints"
-     endps.name mustEqual "kube-dns"
-     endps.metadata.labels.size mustEqual 3
-     endps.metadata.labels("kubernetes.io/name") mustEqual "KubeDNS"
-     endps.subsets.size mustEqual 1
-     endps.subsets(0).addresses.size mustEqual 1
-     endps.subsets(0).addresses(0).ip mustEqual("10.246.1.3")
-     val tgtRef = endps.subsets(0).addresses(0).targetRef.get
-     tgtRef.kind mustEqual "Pod"
-     tgtRef.name mustEqual "kube-dns-v3-fkelw"
-     val ports = endps.subsets(0).ports
-     ports.length mustEqual 2
-     ports(0).name mustEqual Some("dns-tcp")
-     ports(0).protocol mustEqual Protocol.TCP
-     ports(0).port mustEqual 53
-     ports(1).name mustEqual Some("dns")
-     ports(1).protocol mustEqual Protocol.UDP
-     ports(1).port mustEqual 53   
+      """
+      val endps = Json.parse(epsJsonStr).as[Endpoints]
+      endps.kind mustEqual "Endpoints"
+      endps.name mustEqual "kube-dns"
+      endps.metadata.labels.size mustEqual 3
+      endps.metadata.labels("kubernetes.io/name") mustEqual "KubeDNS"
+      endps.subsets.size mustEqual 1
+      endps.subsets.head.addresses.size mustEqual 1
+      endps.subsets.head.addresses.head.ip mustEqual "10.246.1.3"
+      val tgtRef = endps.subsets.head.addresses.head.targetRef.get
+      tgtRef.kind mustEqual "Pod"
+      tgtRef.name mustEqual "kube-dns-v3-fkelw"
+      val ports = endps.subsets.head.ports
+      ports.length mustEqual 2
+      ports.head.name mustEqual Some("dns-tcp")
+      ports.head.protocol mustEqual Protocol.TCP
+      ports.head.port mustEqual 53
+      ports(1).name mustEqual Some("dns")
+      ports(1).protocol mustEqual Protocol.UDP
+      ports(1).port mustEqual 53
     }
   }    
 }

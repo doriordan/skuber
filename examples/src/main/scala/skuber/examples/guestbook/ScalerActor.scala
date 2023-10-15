@@ -1,10 +1,10 @@
 package skuber.examples.guestbook
 
-import akka.actor.{Actor, ActorRef, ActorLogging}
-import akka.actor.Props
-import akka.event.LoggingReceive
-import akka.util.Timeout
-import akka.actor.Status.Failure
+import org.apache.pekko.actor.{Actor, ActorRef, ActorLogging}
+import org.apache.pekko.actor.Props
+import org.apache.pekko.event.LoggingReceive
+import org.apache.pekko.util.Timeout
+import org.apache.pekko.actor.Status.Failure
 
 import scala.concurrent.duration._
 
@@ -37,7 +37,7 @@ class ScalerActor(kubernetes: ActorRef, controllerName: String, targetReplicaCou
   private def reportStatus(rc: ReplicationController) = 
     report(s"{rc.status.get.replicas} replicas currently running (target: ${rc.spec.get.replicas}")
     
-  implicit val timeout = Timeout(60.seconds)
+  implicit val timeout: Timeout = Timeout(60.seconds)
   
   var watching: Option[ReplicationController]= None
    

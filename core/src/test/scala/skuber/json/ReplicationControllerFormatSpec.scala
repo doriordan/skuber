@@ -15,7 +15,7 @@ import skuber.model.{Pod, ReplicationController}
 class ReplicationControllerFormatSpec extends Specification {
   "This is a unit specification for the skuber Service related json formatter.\n ".txt
   
-import skuber.model.ReplicationController._
+  import skuber.model.ReplicationController._
   
   // RC reader and writer
   "A Replication Controller can be symmetrically written to json and the same value read back in\n" >> {
@@ -48,51 +48,49 @@ import skuber.model.ReplicationController._
     
     "a replication controller can be read from Json" >> {
       val svcJsonStr="""
-          {
-           "kind":"ReplicationController",
-           "apiVersion":"v1",
-           "metadata":{
-              "name":"guestbook",
-              "labels":{
-                 "app":"guestbook"
-              }
-           },
-         "spec":{
-            "replicas":3,
-            "selector":{
-               "app":"guestbook"
-            },
-            "template":{
-               "metadata":{
-                  "labels":{
-                     "app":"guestbook"
-                   }
-               },
-               "spec":{
-                  "containers":[
-                    {
-                      "name":"guestbook",
-                      "image":"kubernetes/guestbook:v2",
-                      "ports":[
-                         {
-                          "name":"http-server",
-                          "containerPort":3000
-                         }
-                      ]
-                    }
-                  ]
-               }
-            }
-         }    
+      {
+        "kind":"ReplicationController",
+        "apiVersion":"v1",
+        "metadata":{
+          "name":"guestbook",
+          "labels":{
+            "app":"guestbook"
+          }
+        },
+        "spec":{
+          "replicas":3,
+          "selector":{
+             "app":"guestbook"
+          },
+          "template":{
+             "metadata":{
+                "labels":{
+                   "app":"guestbook"
+                 }
+             },
+             "spec":{
+                "containers":[
+                  {
+                    "name":"guestbook",
+                    "image":"kubernetes/guestbook:v2",
+                    "ports":[
+                       {
+                        "name":"http-server",
+                        "containerPort":3000
+                       }
+                    ]
+                  }
+                ]
+             }
+          }
+        }
       }        
-"""
+      """
       val myRC = Json.parse(svcJsonStr).as[ReplicationController]
       myRC.kind mustEqual "ReplicationController"
       myRC.name mustEqual "guestbook"
       val spec = myRC.spec.get
       spec.replicas mustEqual 3 
     }
-    
-    
   }    
 }

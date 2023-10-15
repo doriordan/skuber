@@ -3,13 +3,12 @@ package skuber.examples.scale
 import skuber.model.{Container, LabelSelector, Pod, Service}
 import skuber.model.apps.v1.{Deployment, StatefulSet}
 import skuber.json.format._
-import skuber.api.client.{K8SException, DeleteOptions, DeletePropagation}
-
-import akka.actor.ActorSystem
-import skuber.akkaclient.k8sInit
+import skuber.api.client.{DeleteOptions, DeletePropagation, K8SException}
+import org.apache.pekko.actor.ActorSystem
+import skuber.pekkoclient.k8sInit
 import skuber.model.autoscaling.v1.HorizontalPodAutoscaler
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration.Inf
 
 /**
@@ -46,20 +45,20 @@ object ScaleExamples extends App {
     // StatefulSet needs a headless service
     val nginxStsService: Service=Service(nginxStatefulSet.spec.get.serviceName.get, nginxStsLabels, 80).isHeadless
 
-    implicit val system = ActorSystem()
-    implicit val dispatcher = system.dispatcher
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val dispatcher: ExecutionContext = system.dispatcher
 
     val k8s = k8sInit
 
     // First scale up and down a deployment
     println("Creating nginx deployment")
 
-    val createdDeplFut = k8s create nginxDeployment
+    val createdDeplFut = k8s.create(nginxDeployment)
 
-    val deplFut = createdDeplFut recoverWith {
+    val deplFut = createdDeplFut.recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the deployment already exists - retrieving latest version")
-        k8s get[Deployment] nginxDeployment.name
+        k8s.get[Deployment](nginxDeployment.name)
       }
     }
 
@@ -88,14 +87,14 @@ object ScaleExamples extends App {
 
     println("Creating nginx stateful set")
     val createdStsFut = for {
-      svc <- k8s create nginxStsService
-      sts <- k8s create nginxStatefulSet
+      svc <- k8s.create(nginxStsService)
+      sts <- k8s.create(nginxStatefulSet)
     } yield sts
    
     val stsFut = createdStsFut recoverWith {
       case ex: K8SException if (ex.status.code.contains(409)) => {
         println("It seems the stateful set or service already exists - retrieving latest version")
-        k8s get[StatefulSet] nginxStatefulSet.name
+        k8s.get[StatefulSet](nginxStatefulSet.name)
       }
     }
 
@@ -132,14 +131,14 @@ object ScaleExamples extends App {
     println("Recreating deployment for use with HPAS")
 
     val autoscaleDone = for {
-      depl  <- k8s create nginxDeployment
+      depl  <- k8s.create(nginxDeployment)
       _ =  println("Now creating a HorizontalPodAutoscaler to automatically scale the replicas")
       _ =  println("This should cause the replica count to fall to 8 or below")
       hpas = HorizontalPodAutoscaler.scale(depl).
                withMinReplicas(2).
                withMaxReplicas(8).
                withCPUTargetUtilization(80)
-      hpa  <- k8s create[HorizontalPodAutoscaler] hpas
+      hpa  <- k8s.create(hpas)
       _ = {
             println("Successfully created horizontal pod autoscaler")
             println("waiting one minute to allow scaling to progress before cleaning up")

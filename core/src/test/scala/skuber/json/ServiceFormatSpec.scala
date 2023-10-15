@@ -17,7 +17,7 @@ import skuber.model.Service
 class ServiceReadsWritesSpec extends Specification {
   "This is a unit specification for the skuber Service related json formatter.\n ".txt
   
-import skuber.model.Service._
+  import skuber.model.Service._
   
   // Service reader and writer
   "A Service can be symmetrically written to json and the same value read back in\n" >> {
@@ -47,8 +47,6 @@ import skuber.model.Service._
       
      
       val writtenSvc = Json.toJson(mySvc)
-      val strs=Json.stringify(writtenSvc)
-      // System.err.println(strs)    
       val readSvcJsResult = Json.fromJson[Service](writtenSvc)
      
       val ret: Result = readSvcJsResult match {
@@ -105,7 +103,7 @@ import skuber.model.Service._
                 "loadBalancer": {}
               }
             }                   
-        """
+      """
       val mySvc = Json.parse(svcJsonStr).as[Service]
       mySvc.kind mustEqual "Service"
       mySvc.name mustEqual "kube-dns"
@@ -114,16 +112,16 @@ import skuber.model.Service._
       spec.publishNotReadyAddresses mustEqual true
       val ports = spec.ports
       ports.length mustEqual 2
-      val udpDnsPort = ports(0)
+      val udpDnsPort = ports.head
       udpDnsPort.port mustEqual 53
-      udpDnsPort.targetPort.get.left.get mustEqual 53
+      udpDnsPort.targetPort.get mustEqual Left(53)
       udpDnsPort.nodePort mustEqual 0
       udpDnsPort.protocol mustEqual Protocol.UDP
       udpDnsPort.name mustEqual "dns"
       
       val tcpDnsPort = ports(1)
       tcpDnsPort.port mustEqual 53
-      tcpDnsPort.targetPort.get.left.get mustEqual 53
+      tcpDnsPort.targetPort.get mustEqual Left(53)
       tcpDnsPort.nodePort mustEqual 0
       tcpDnsPort.protocol mustEqual Protocol.TCP
       tcpDnsPort.name mustEqual "dns-tcp"     

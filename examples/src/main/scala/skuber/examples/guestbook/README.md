@@ -1,4 +1,6 @@
 
+NOTE this example is many years old and not really maintained anymore - it will be removed
+
 # Reactive Guestbook Example
 
 This example shows how to build a multi-tier web application using the Skuber API. It is based on the standard Kubernetes Guestbook example (see [here](https://github.com/kubernetes/kubernetes/tree/master/examples/guestbook)). However in addition to automating the steps described in that example, it also uses the Skuber reactive watch API to monitor the scaling up and down of the pods during the deployment of the application to Kubernetes, so that it only progresses to the next deployment step when the expected number of replicas are running.

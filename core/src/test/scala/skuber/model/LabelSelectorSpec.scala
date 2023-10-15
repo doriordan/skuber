@@ -13,7 +13,7 @@ class LabelSelectorSpec extends Specification {
     "from a label existence requirement" >> {
       val sel = LabelSelector("production")
       sel.requirements.size mustEqual 1
-      sel.requirements(0) mustEqual LabelSelector.ExistsRequirement("production")
+      sel.requirements.head mustEqual LabelSelector.ExistsRequirement("production")
     }
   }
 
@@ -21,7 +21,7 @@ class LabelSelectorSpec extends Specification {
     "from a label equality requirement" >> {
       val sel = LabelSelector("env" is "production")
       sel.requirements.size mustEqual 1
-      sel.requirements(0) mustEqual LabelSelector.IsEqualRequirement("env", "production")
+      sel.requirements.head mustEqual LabelSelector.IsEqualRequirement("env", "production")
     }
   }
 
@@ -29,7 +29,7 @@ class LabelSelectorSpec extends Specification {
     "from a label inequality requirement" >> {
       val sel = LabelSelector("env" isNot "production")
       sel.requirements.size mustEqual 1
-      sel.requirements(0) mustEqual LabelSelector.IsNotEqualRequirement("env", "production")
+      sel.requirements.head mustEqual LabelSelector.IsNotEqualRequirement("env", "production")
     }
   }
 
@@ -37,7 +37,7 @@ class LabelSelectorSpec extends Specification {
     "from a 'In' set requirement" >> {
       val sel = LabelSelector("env" isIn List("production", "staging"))
       sel.requirements.size mustEqual 1
-      sel.requirements(0) mustEqual LabelSelector.InRequirement("env", List("production", "staging"))
+      sel.requirements.head mustEqual LabelSelector.InRequirement("env", List("production", "staging"))
     }
   }
 
@@ -45,7 +45,7 @@ class LabelSelectorSpec extends Specification {
     "from a 'NotIn' set requirement" >> {
       val sel = LabelSelector("env" isNotIn List("production", "staging"))
       sel.requirements.size mustEqual 1
-      sel.requirements(0) mustEqual LabelSelector.NotInRequirement("env", List("production", "staging"))
+      sel.requirements.head mustEqual LabelSelector.NotInRequirement("env", List("production", "staging"))
     }
   }
 
@@ -53,7 +53,7 @@ class LabelSelectorSpec extends Specification {
     "from a mixed equality and set based requirement" >> {
       val sel = LabelSelector("tier" is "frontend", "env" isNotIn List("production", "staging"))
       sel.requirements.size mustEqual 2
-      sel.requirements(0) mustEqual LabelSelector.IsEqualRequirement("tier", "frontend")
+      sel.requirements.head mustEqual LabelSelector.IsEqualRequirement("tier", "frontend")
       sel.requirements(1) mustEqual LabelSelector.NotInRequirement("env", List("production", "staging"))
     }
   }
@@ -65,7 +65,7 @@ class LabelSelectorSpec extends Specification {
         "release" doesNotExist,
         "env" isNotIn List("production", "staging"))
       sel.requirements.size mustEqual 3
-      sel.requirements(0) mustEqual LabelSelector.IsEqualRequirement("tier", "frontend")
+      sel.requirements.head mustEqual LabelSelector.IsEqualRequirement("tier", "frontend")
       sel.requirements(1) mustEqual LabelSelector.NotExistsRequirement("release")
       sel.requirements(2) mustEqual LabelSelector.NotInRequirement("env", List("production", "staging"))
     }

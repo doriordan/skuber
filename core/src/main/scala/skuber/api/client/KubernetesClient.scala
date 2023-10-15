@@ -53,7 +53,7 @@ trait KubernetesClient {
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name      the name of the object resource
     * @param namespace the namespace containing the object resource
-    * @return A future conatining Some(resource) if the resource is found on the cluster otherwise None
+    * @return A future containing Some(resource) if the resource is found on the cluster otherwise None
     */
   def getInNamespace[O <: ObjectResource](name: String, namespace: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O]
 
@@ -219,7 +219,7 @@ trait KubernetesClient {
     * @param patchfmt an implicit parameter that knows how to serialise the patch data to Json
     * @tparam P the patch type (specifies the patch strategy details)
     * @tparam O the type of the resource to be patched
-    * @return a future conating the patched resource
+    * @return a future containing the patched resource
     */
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
       (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O]

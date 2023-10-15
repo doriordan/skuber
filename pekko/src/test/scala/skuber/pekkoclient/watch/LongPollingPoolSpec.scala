@@ -80,7 +80,7 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
 
       val pool = LongPollingPool[Int]("https", "localhost", 4322, 30.seconds, Some(clientHttps), clientConfig)
 
-      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4321/ping")))
+      val result = Source.single(HttpRequest(HttpMethods.GET, Uri("http://localhost:4322/ping")))
         .map(x => x -> 1).via(pool)
         .map(_._1).runWith(Sink.head)
         .futureValue
