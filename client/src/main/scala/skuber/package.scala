@@ -70,6 +70,23 @@ package object skuber {
     kind: String,
     versions: List[String])
 
+  case class APIGroupList(
+    kind: String,
+    apiVersion: String,
+    groups: List[APIGroup]
+  )
+
+  case class APIGroup(
+    name: String,
+    versions: List[APIGroupVersion],
+    preferredVersion: APIGroupVersion
+  )
+
+  case class APIGroupVersion(
+    groupVersion: String,
+    version: String
+  )
+
   // type for classes that can be items of some Kubernetes list type 
   // e.g. a Pod can be an item in a PodList, Node can be in a NodeList etc.
   // Just a type alias to ObjectResource 
