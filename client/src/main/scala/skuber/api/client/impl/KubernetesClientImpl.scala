@@ -650,13 +650,16 @@ class KubernetesClientImpl private[client] (val requestMaker: (Uri, HttpMethod) 
           if (log.isInfoEnabled)
             log.info(s"[Response: non-ok status returned - $status")
           Some(status)
-        } recover { case ex =>
-          if (log.isErrorEnabled)
-            log.error(s"[Response: could not read Status for non-ok response, exception : ${ex.getMessage}]")
-          val status: Status = Status(code = Some(response.status.intValue),
-            message = Some("Non-ok response and unable to parse Status from response body to get further details"),
-            details = Some(JsString(ex.getMessage)))
-          Some(status)
+        } recoverWith { case ex =>
+          val responseText: Future[String] = Unmarshal(response.entity).to[String]
+          responseText.map { text =>
+            if (log.isErrorEnabled)
+              log.error(s"[Response: could not read Status for non-ok response, exception : ${ex.getMessage}, response: $text]")
+            val status: Status = Status(code = Some(response.status.intValue),
+              message = Some(s"Non-ok response and unable to parse Status from response body to get further details, response: $text"),
+              details = Some(JsString(ex.getMessage)))
+            Some(status)
+          }
         }
     }
   }
