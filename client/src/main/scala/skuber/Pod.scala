@@ -76,6 +76,10 @@ object Pod {
       this.copy(imagePullSecrets = loref :: this.imagePullSecrets)
     }
 
+    def addToleration(tol: Toleration): Spec = {
+      this.copy(tolerations = tol :: tolerations)
+    }
+
     def withTerminationGracePeriodSeconds(gp: Int): Spec = this.copy(terminationGracePeriodSeconds = Some(gp))
 
     def withActiveDeadlineSeconds(ad: Int): Spec = this.copy(activeDeadlineSeconds = Some(ad))
