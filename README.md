@@ -78,7 +78,7 @@ You can use the latest release by adding to your build:
 - Scala 3.2, 2.13, 2.12 support
 
 ```sbt
-libraryDependencies += "io.github.hagay3" %% "skuber" % "4.0.0"
+libraryDependencies += "io.github.hagay3" %% "skuber" % "4.0.1"
 ```
 
 ## Building
