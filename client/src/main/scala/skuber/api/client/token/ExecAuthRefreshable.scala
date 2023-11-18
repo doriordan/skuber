@@ -8,6 +8,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.Json
 import skuber.api.client.AuthProviderRefreshableAuth
 import scala.collection.JavaConverters._
+
 // https://kubernetes.io/docs/reference/config-api/kubeconfig.v1/#ExecConfig
 final case class ExecAuthRefreshable(config: ExecAuthConfig) extends AuthProviderRefreshableAuth {
   override val name = "exec"
