@@ -44,7 +44,7 @@ final case class ExecAuthRefreshable(config: ExecAuthConfig) extends AuthProvide
     val utc = ZoneId.of("UTC")
     val now = ZonedDateTime.now(utc)
     val expiration = execCredential.status.expirationTimestamp.getOrElse(now.plusYears(1))
-    val expirationDateTime =  new DateTime(expiration.toInstant.toEpochMilli, DateTimeZone.forTimeZone(TimeZone.getTimeZone(utc)))
+    val expirationDateTime = new DateTime(expiration.toInstant.toEpochMilli, DateTimeZone.forTimeZone(TimeZone.getTimeZone(utc)))
 
     RefreshableToken(execCredential.status.token, expirationDateTime)
   }
@@ -57,10 +57,18 @@ final case class ExecAuthConfig(cmd: String,
   import scala.sys.process._
 
   def execute(): String = {
-    Process(
-      command = Seq(cmd) ++ args,
-      extraEnv = envVariables.toSeq: _*,
-      cwd = None
-    ).!!
+    val process = {
+      envVariables.toSeq match {
+        case head :: tail =>
+          Process(
+            command = Seq(cmd) ++ args,
+            extraEnv = Seq(head) ++ tail: _*,
+            cwd = None
+          )
+        case Seq() => Process(command = Seq(cmd) ++ args)
+      }
+    }
+
+    process.!!
   }
 }
