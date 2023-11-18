@@ -35,7 +35,7 @@ final case class ExecAuthRefreshable(config: ExecAuthConfig) extends AuthProvide
     """ExecAuthRefreshable(accessToken=<redacted>)""".stripMargin
 
   override def isTokenExpired(refreshableToken: RefreshableToken): Boolean = {
-    DateTime.now.isAfter(refreshableToken.expiry.minusSeconds(20))
+    DateTime.now(DateTimeZone.UTC).isAfter(refreshableToken.expiry)
   }
 
   override def generateToken: String = config.execute()
