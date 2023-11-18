@@ -1,11 +1,13 @@
 package skuber.api.client.token
 
+import java.nio.charset.StandardCharsets
 import java.time.{ZoneId, ZonedDateTime}
 import java.util.TimeZone
+import org.apache.commons.io.IOUtils
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json.Json
 import skuber.api.client.AuthProviderRefreshableAuth
-
+import scala.collection.JavaConverters._
 // https://kubernetes.io/docs/reference/config-api/kubeconfig.v1/#ExecConfig
 final case class ExecAuthRefreshable(config: ExecAuthConfig) extends AuthProviderRefreshableAuth {
   override val name = "exec"
@@ -44,7 +46,7 @@ final case class ExecAuthRefreshable(config: ExecAuthConfig) extends AuthProvide
     val utc = ZoneId.of("UTC")
     val now = ZonedDateTime.now(utc)
     val expiration = execCredential.status.expirationTimestamp.getOrElse(now.plusYears(1))
-    val expirationDateTime = new DateTime(expiration.toInstant.toEpochMilli, DateTimeZone.forTimeZone(TimeZone.getTimeZone(utc)))
+    val expirationDateTime =  new DateTime(expiration.toInstant.toEpochMilli, DateTimeZone.forTimeZone(TimeZone.getTimeZone(utc)))
 
     RefreshableToken(execCredential.status.token, expirationDateTime)
   }
@@ -53,22 +55,10 @@ final case class ExecAuthRefreshable(config: ExecAuthConfig) extends AuthProvide
 final case class ExecAuthConfig(cmd: String,
                                 args: List[String],
                                 envVariables: Map[String, String]) {
-
-  import scala.sys.process._
-
   def execute(): String = {
-    val process = {
-      envVariables.toSeq match {
-        case head :: tail =>
-          Process(
-            command = Seq(cmd) ++ args,
-            extraEnv = Seq(head) ++ tail: _*,
-            cwd = None
-          )
-        case Seq() => Process(command = Seq(cmd) ++ args)
-      }
-    }
-
-    process.!!
+    val process = new java.lang.ProcessBuilder((Seq(cmd) ++ args).toList.asJava)
+    envVariables.map { case (name, value) => process.environment().put(name, value)}
+    val output = IOUtils.toString(process.start.getInputStream, StandardCharsets.UTF_8)
+    output
   }
 }

@@ -48,7 +48,7 @@ val awsJavaSdkSts = "com.amazonaws" % "aws-java-sdk-sts" % "1.12.233"
 val apacheCommonsLogging = "commons-logging" % "commons-logging" % "1.2"
 
 
-Test / scalacOptions ++= Seq("-Yrangepos")
+Test / scalacOptions ++= Seq("-Yrangepos", "-language:postfixOps")
 
 sonatypeProfileName := "io.github.hagay3"
 
