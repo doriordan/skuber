@@ -482,6 +482,7 @@ import Pod._
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
+      
       val affinityJsonStr = affinityJsonSource.mkString
 
       val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
