@@ -3,12 +3,12 @@ package skuber.api
 import org.yaml.snakeyaml.Yaml
 import skuber.Namespace
 import skuber.api.client._
-import skuber.api.client.token.{FileTokenAuthRefreshable, FileTokenConfiguration}
+import skuber.api.client.token.{ExecAuthConfig, ExecAuthRefreshable, FileTokenAuthRefreshable, FileTokenConfiguration}
 import skuber.config.SkuberConfig
-
 import java.net.URL
 import java.time.Instant
 import java.time.format.DateTimeFormatter
+import java.util
 import java.util.{Base64, Date}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -178,6 +178,32 @@ object Configuration {
             }
           }
 
+          def parseExecConfig(userConfig: YamlMap): Option[ExecAuthRefreshable] = {
+            optionalValueAt[YamlMap](userConfig, "exec").flatMap { yamlExec =>
+              val args = optionalValueAt[util.ArrayList[String]](yamlExec, "args").map(_.asScala.toList).getOrElse(List.empty)
+              val env = optionalValueAt[util.ArrayList[util.Map[String, String]]](yamlExec, "env").map(_.asScala.toList.map(_.asScala.toMap)).getOrElse(List.empty)
+              val envVariables = env.flatMap { envSingle =>
+                val nameOpt = envSingle.get("name")
+                val valueOpt = envSingle.get("value")
+                (nameOpt, valueOpt) match {
+                  case (Some(name), Some(value)) => Some(name -> value)
+                  case _ => None
+                }
+              }.toMap
+
+              val commandOpt: Option[String] = optionalValueAt[String](yamlExec, "command")
+
+              commandOpt.map { command =>
+                val config = ExecAuthConfig(
+                  cmd = command,
+                  args = args,
+                  envVariables = envVariables
+                )
+                ExecAuthRefreshable(config)
+              }
+            }
+          }
+
           val maybeAuth = optionalValueAt[YamlMap](userConfig, "auth-provider") match {
             case Some(authProvider) => authProviderRead(authProvider)
             case None =>
@@ -197,7 +223,11 @@ object Configuration {
               }
           }
 
-          maybeAuth.getOrElse(NoAuth)
+          val maybeExecAuth = maybeAuth orElse  {
+            parseExecConfig(userConfig)
+          }
+
+          maybeExecAuth.getOrElse(NoAuth)
         }
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
@@ -226,7 +256,6 @@ object Configuration {
     * <p>Follows official golang client logic
     *
     * @return Try[Configuration]
-    *
     * @see https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/
     *      https://github.com/kubernetes/client-go/blob/master/rest/config.go#L313
     *      https://github.com/kubernetes-client/java/blob/master/util/src/main/java/io/kubernetes/client/util/ClientBuilder.java#L134
