@@ -13,7 +13,7 @@ ThisBuild / scalaVersion := currentScalaVersion
 
 val supportedScalaVersion = Seq(scala12Version, scala13Version, scala3Version)
 
-val pekkoVersion = "1.0.1"
+val pekkoVersion = "1.0.2"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.17.0"
 
