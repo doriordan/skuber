@@ -31,7 +31,7 @@ val bouncyCastle = "org.bouncycastle" % "bcpkix-jdk18on" % "1.76"
 
 
 // the client API request/response handing uses Pekko Http
-val pekkoHttp = ("org.apache.pekko" %% "pekko-http" % "1.0.0").cross(CrossVersion.for3Use2_13)
+val pekkoHttp = ("org.apache.pekko" %% "pekko-http" % "1.0.1").cross(CrossVersion.for3Use2_13)
 val pekkoStream = ("org.apache.pekko" %% "pekko-stream" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 val pekko = ("org.apache.pekko" %% "pekko-actor" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 
