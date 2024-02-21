@@ -2,6 +2,7 @@ package skuber.autoscaling.v2
 
 import play.api.libs.json._
 import skuber.ResourceSpecification.{Names, Scope}
+import skuber.autoscaling.v2.HorizontalPodAutoscaler.MetricsSourceType.MetricsSourceType
 import skuber.{LabelSelector, LimitRange, NonCoreResourceSpecification, ObjectMeta, ObjectResource, Resource, ResourceDefinition, Timestamp}
 
 case class HorizontalPodAutoscaler(override val kind: String = "HorizontalPodAutoscaler",
@@ -45,7 +46,7 @@ object HorizontalPodAutoscaler {
 
   object MetricsSourceType extends Enumeration {
     type MetricsSourceType = Value
-    val Object, Pods, Resource, External, ContainerResource = Value
+    val Object, Pods, Resource, External, ContainerResource, Unknown = Value
   }
 
   sealed trait Metric {
@@ -113,6 +114,10 @@ object HorizontalPodAutoscaler {
 
   case class ContainerResourceMetricStatusHolder(external: ContainerResourceMetricStatus) extends MetricStatus {
     val `type`: MetricsSourceType.MetricsSourceType = MetricsSourceType.ContainerResource
+  }
+
+  case object UnknownMetricStatus extends MetricStatus {
+    val `type`: MetricsSourceType.MetricsSourceType =  MetricsSourceType.Unknown
   }
 
   case class MetricValueStatus(averageUtilization: Option[Int],
@@ -247,6 +252,7 @@ object HorizontalPodAutoscaler {
     case s: ResourceMetricStatusHolder => JsPath.write[ResourceMetricStatusHolder](resourceMetricStatusHolderFmt).writes(s) + ("type" -> JsString("Resource"))
     case s: ExternalMetricStatusHolder => JsPath.write[ExternalMetricStatusHolder](externalMetricStatusHolderFmt).writes(s) + ("type" -> JsString("External"))
     case s: ContainerResourceMetricStatusHolder => JsPath.write[ContainerResourceMetricStatusHolder](containerResourceMetricStatusHolderFmt).writes(s) + ("type" -> JsString("ContainerResource"))
+    case UnknownMetricStatus => JsObject(Map("type" -> JsString("")))
   }
 
   implicit val metricStatusReads: Reads[MetricStatus] = new Reads[MetricStatus] {
@@ -257,6 +263,7 @@ object HorizontalPodAutoscaler {
         case "RESOURCE" => JsSuccess(json.as[ResourceMetricStatusHolder])
         case "EXTERNAL" => JsSuccess(json.as[ExternalMetricStatusHolder])
         case "CONTAINERRESOURCE" => JsSuccess(json.as[ContainerResourceMetricStatusHolder])
+        case _ => JsSuccess(UnknownMetricStatus)
       }
     }
   }
