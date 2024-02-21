@@ -59,7 +59,7 @@ class HorizontalPodAutoscalerSpec extends Specification {
           MetricValueStatus(Some(3), Some(Resource.Quantity("8")), Some(Resource.Quantity("1"))))),
         ContainerResourceMetricStatusHolder(ContainerResourceMetricStatus("containerName", "containerStatusMetricName",
           MetricValueStatus(Some(7), Some(Resource.Quantity("3")), Some(Resource.Quantity("2"))))),
-        EmptyMetricStatus
+        UnknownMetricStatus
       ),
       List(Condition("someType",
           "someStatus",
