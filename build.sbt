@@ -17,7 +17,7 @@ val pekkoVersion = "1.0.2"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.17.0"
 
-val specs2 = "org.specs2" %% "specs2-core" % "4.19.2"
+val specs2 = "org.specs2" %% "specs2-core" % "4.20.5"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.17"
 
 val pekkoStreamTestKit = ("org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion).cross(CrossVersion.for3Use2_13)
