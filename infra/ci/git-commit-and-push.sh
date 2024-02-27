@@ -1,3 +1,4 @@
+git checkout master
 git status
 git branch
 git config --global user.email "hagay3@gmail.com"
