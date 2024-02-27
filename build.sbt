@@ -89,7 +89,7 @@ lazy val commonSettings = Seq(
     ver => Version(ver).map(_.bump(releaseVersionBump.value).string).getOrElse(versionFormatError(ver))
   },
   versionScheme := Some("early-semver"),
-  releaseProcess := nextVersionStep,
+  releaseProcess := nextVersionSteps,
   asciiGraphWidth := 10000,
 )
 
@@ -157,7 +157,7 @@ inThisBuild(List(
         "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
     WorkflowStep.Run(List("bash infra/ci/git-commit-and-push.sh")))))
 
-lazy val nextVersionStep = Seq[ReleaseStep](setNextVersion)
+lazy val nextVersionSteps = Seq[ReleaseStep](inquireVersions, setNextVersion)
 
 lazy val skuberSettings = Seq(
   name := "skuber",
