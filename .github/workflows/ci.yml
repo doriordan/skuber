@@ -29,9 +29,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Java (temurin@8)
         if: matrix.java == 'temurin@8'
@@ -75,9 +76,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Java (temurin@8)
         if: matrix.java == 'temurin@8'
@@ -125,12 +127,16 @@ jobs:
           tar xf targets.tar
           rm targets.tar
 
+      - run: sbt 'release with-defaults'
+
       - env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         run: sbt ci-release
+
+      - run: bash infra/ci/git-commit-and-push.sh
 
   integration-kubernetes-v1-19:
     name: integration-kubernetes-v1-19

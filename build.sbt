@@ -1,13 +1,18 @@
 import sbtassembly.AssemblyKeys.assembly
 import sbtassembly.{MergeStrategy, PathList}
-import xerial.sbt.Sonatype._
+import sbtghactions.WorkflowStep.Use
+import xerial.sbt.Sonatype.*
+import sbtrelease.ReleasePlugin.autoImport.*
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.*
+import sbtrelease.{Version, versionFormatError}
+
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 val scala12Version = "2.12.13"
 val scala13Version = "2.13.12"
 val scala3Version = "3.3.1"
 
-val currentScalaVersion = scala3Version
+val currentScalaVersion = scala13Version
 
 ThisBuild / scalaVersion := currentScalaVersion
 
@@ -23,7 +28,7 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.2.17"
 val pekkoStreamTestKit = ("org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "2.0"
+val snakeYaml = "org.yaml" % "snakeyaml" % "2.0"
 
 val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
@@ -71,7 +76,7 @@ ThisBuild / scmInfo := Some(
   )
 )
 
-ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", email="hagay3@gmail.com", url=url("https://github.com/hagay3")))
+ThisBuild / developers := List(Developer(id = "hagay3", name = "Hagai Hillel", email = "hagay3@gmail.com", url = url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
@@ -80,12 +85,18 @@ lazy val commonSettings = Seq(
   publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-  sonatypeCredentialHost := Sonatype.sonatype01
+  sonatypeCredentialHost := Sonatype.sonatype01+"err",
+  releaseNextVersion := {
+    ver => Version(ver).map(_.bump(releaseVersionBump.value).string).getOrElse(versionFormatError(ver))
+  },
+  versionScheme := Some("early-semver"),
+  releaseProcess := nextVersionSteps,
+  asciiGraphWidth := 10000,
 )
 
 /** run the following command in order to generate github actions files:
- * sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
- */
+  * sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
+  */
 def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTestsTags: List[String] = List.empty): WorkflowJob = {
 
   val finalSbtCommand: String = {
@@ -122,6 +133,12 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
 
 
 inThisBuild(List(
+  githubWorkflowJobSetup := List(Use(
+    UseRef.Public("actions", "checkout", "v4"),
+    name = Some("Checkout current branch (full)"),
+    params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.GITHUB_TOKEN }}"))) :::
+    WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) :::
+    githubWorkflowGeneratedCacheSteps.value.toList,
   githubWorkflowJavaVersions += JavaSpec.temurin("17"),
   githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
@@ -137,14 +154,18 @@ inThisBuild(List(
     workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1", List("CustomResourceTag"))
   ),
   githubWorkflowPublish := Seq(
+    WorkflowStep.Sbt(List("release with-defaults")),
     WorkflowStep.Sbt(
       List("ci-release"),
       env = Map(
         "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
         "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
         "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")))))
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
+    WorkflowStep.Run(
+      List("bash infra/ci/git-commit-and-push.sh")))))
 
+lazy val nextVersionSteps = Seq[ReleaseStep](inquireVersions, setNextVersion)
 
 lazy val skuberSettings = Seq(
   name := "skuber",
