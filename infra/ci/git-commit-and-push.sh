@@ -21,6 +21,9 @@ body="This pull request is automatically created from a script."
 # Generate API URL
 url_create="https://api.github.com/repos/hagay3/skuber/pulls"
 
+# Set personal access token (replace with your token)
+token=$GITHUB_TOKEN
+
 # Prepare request body for creation
 payload_create="{\"title\": \"$title\", \"body\": \"$body\", \"head\": \"$branch_name\", \"base\": \"$base_branch\"}"
 echo $payload_create
