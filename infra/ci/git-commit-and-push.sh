@@ -10,10 +10,10 @@ git config --global user.email "hagay3@gmail.com"
 git config --global user.name "Hagai Hillel"
 git add version.sbt
 git commit -m "new version"
-
+git push
 
 # Define base branch (replace with appropriate branch name)
-base_branch="main"
+base_branch="master"
 
 # Title and body for the pull request (modify as needed)
 title="Automated Pull Request - upgrading skuber version"
@@ -27,9 +27,8 @@ token=$GITHUB_TOKEN
 
 # Prepare request body for creation
 payload_create="{\"title\": \"$title\", \"body\": \"$body\", \"head\": \"$branch_name\", \"base\": \"$base_branch\"}"
-
 # Send API request to create pull request
-PULL_NUMBER=$(jq '.number' <<< $(curl -s -H "Authorization: Bearer $token" "$url_create"))
+PULL_NUMBER=$(jq '.number' <<< $(curl -s -X POST -H "Authorization: Bearer $token" -d $payload_create "$url_create"))
 
 # Check for successful creation response
 if [ $? -eq 0 ]; then
@@ -40,7 +39,7 @@ if [ $? -eq 0 ]; then
   payload_merge="{\"commit_title\": \"new version\", \"commit_message\": \"new version\", \"merge_method\": \"squash\"}"
 
   # Send API request to merge pull request
-  curl -X PUT -H "Authorization: Bearer $token" -d "$payload_merge" "$url_merge"
+  curl -X PUT -H "Authorization: Bearer $token" -d $payload_merge "$url_merge"
 
   if [ $? -eq 0 ]; then
     echo "Pull request merged successfully!"
