@@ -136,8 +136,7 @@ inThisBuild(List(
   githubWorkflowJobSetup := List(Use(
     UseRef.Public("actions", "checkout", "v4"),
     name = Some("Checkout current branch (full)"),
-    params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.GITHUB_TOKEN }}"),
-    env = Map("GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"))) :::
+    params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.PERSONAL_GITHUB_TOKEN }}"))) :::
     WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) :::
     githubWorkflowGeneratedCacheSteps.value.toList,
   githubWorkflowJavaVersions += JavaSpec.temurin("17"),
@@ -156,13 +155,13 @@ inThisBuild(List(
   ),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(List("release with-defaults")),
-//    WorkflowStep.Sbt(
-//      List("ci-release"),
-//      env = Map(
-//        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
-//        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
-//        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-//        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
+    WorkflowStep.Sbt(
+      List("ci-release"),
+      env = Map(
+        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
     WorkflowStep.Run(
       List("bash infra/ci/git-commit-and-push.sh")))))
 
