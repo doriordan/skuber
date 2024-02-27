@@ -155,13 +155,13 @@ inThisBuild(List(
   ),
   githubWorkflowPublish := Seq(
     WorkflowStep.Sbt(List("release with-defaults")),
-    WorkflowStep.Sbt(
-      List("ci-release"),
-      env = Map(
-        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
-        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
-        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
+//    WorkflowStep.Sbt(
+//      List("ci-release"),
+//      env = Map(
+//        "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
+//        "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
+//        "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+//        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
     WorkflowStep.Run(
       List("bash infra/ci/git-commit-and-push.sh")))))
 
