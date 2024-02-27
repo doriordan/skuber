@@ -52,4 +52,9 @@ jobs:
 
       - run: sbt 'release with-defaults'
 
-      - run: bash infra/ci/git-commit-and-push.sh
+      - name: Commit & Push changes
+        uses: actions-js/push@v1.4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+          force: true
