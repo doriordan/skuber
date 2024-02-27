@@ -32,7 +32,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
 
       - name: Setup Java (temurin@8)
         if: matrix.java == 'temurin@8'
