@@ -27,6 +27,7 @@ token=$GITHUB_TOKEN
 
 # Prepare request body for creation
 payload_create="{\"title\": \"$title\", \"body\": \"$body\", \"head\": \"$branch_name\", \"base\": \"$base_branch\"}"
+echo $payload_create
 # Send API request to create pull request
 PULL_NUMBER=$(jq '.number' <<< $(curl -s -X POST -H "Authorization: Bearer $token" -d $payload_create "$url_create"))
 
