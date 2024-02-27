@@ -85,7 +85,7 @@ lazy val commonSettings = Seq(
   publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-  sonatypeCredentialHost := Sonatype.sonatype01+"err",
+  sonatypeCredentialHost := Sonatype.sonatype01,
   releaseNextVersion := {
     ver => Version(ver).map(_.bump(releaseVersionBump.value).string).getOrElse(versionFormatError(ver))
   },
