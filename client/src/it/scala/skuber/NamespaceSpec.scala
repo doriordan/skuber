@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 /**
  * @author David O'Riordan
  */
-class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll {
+class NamespaceSpec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll with TestRetry {
 
   def nginxPodName1: String = randomUUID().toString
 

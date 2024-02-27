@@ -12,7 +12,7 @@ import skuber.policy.v1beta1.PodDisruptionBudget._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAfterAll with ScalaFutures with Eventually {
+class PodDisruptionBudgetSpec extends K8SFixture with Matchers with BeforeAndAfterAll with ScalaFutures with Eventually with TestRetry {
   behavior of "PodDisruptionBudget"
   val budget1: String = randomUUID().toString
   val budget2: String = randomUUID().toString

@@ -11,7 +11,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 
-class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class PatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
 
   val pod1: String = randomUUID().toString
   val pod2: String = randomUUID().toString

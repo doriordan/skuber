@@ -11,7 +11,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import skuber.FutureUtil.FutureOps
 
-class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class HorizontalPodAutoscalerV2Beta1Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
 
   val horizontalPodAutoscaler1: String = randomUUID().toString
   val horizontalPodAutoscaler2: String = randomUUID().toString

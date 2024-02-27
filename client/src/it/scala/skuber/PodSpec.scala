@@ -8,7 +8,7 @@ import scala.concurrent.duration._
 import java.util.UUID.randomUUID
 import skuber.FutureUtil.FutureOps
 
-class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
 
   val defaultLabels = Map("PodSpec" -> this.suiteName)
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)

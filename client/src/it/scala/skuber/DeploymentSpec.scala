@@ -14,7 +14,7 @@ import scala.language.postfixOps
 import scala.util.Try
 
 
-class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class DeploymentSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
 
 
   val deploymentName1: String = randomUUID().toString

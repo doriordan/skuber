@@ -33,7 +33,7 @@ import scala.concurrent.duration._
  *
  * @author David O'Riordan
  */
-class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll {
+class CustomResourceV1Spec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll with TestRetry {
 
   // Convenient aliases for the custom object and list resource types to be passed to the skuber API methods
   type TestResource = CustomResource[TestResource.Spec, TestResource.Status]

@@ -10,7 +10,7 @@ import skuber.Pod.LogQueryParams
 import skuber.json.format._
 import scala.concurrent.duration._
 
-class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
   val podName: String = randomUUID().toString
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)

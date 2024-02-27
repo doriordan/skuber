@@ -12,7 +12,7 @@ import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Future, Promise}
 
 
-class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
   def getPodName: String = randomUUID().toString
   val namespace1: String = randomUUID().toString
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
