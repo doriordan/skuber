@@ -1,5 +1,6 @@
 import sbtassembly.AssemblyKeys.assembly
 import sbtassembly.{MergeStrategy, PathList}
+import sbtghactions.WorkflowStep.Use
 import xerial.sbt.Sonatype.*
 import sbtrelease.ReleasePlugin.autoImport.*
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.*
@@ -11,7 +12,7 @@ val scala12Version = "2.12.13"
 val scala13Version = "2.13.12"
 val scala3Version = "3.3.1"
 
-val currentScalaVersion = scala3Version
+val currentScalaVersion = scala13Version
 
 ThisBuild / scalaVersion := currentScalaVersion
 
@@ -132,6 +133,12 @@ def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTests
 
 
 inThisBuild(List(
+  githubWorkflowJobSetup := List(Use(
+    UseRef.Public("actions", "checkout", "v4"),
+    name = Some("Checkout current branch (full)"),
+    params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.GITHUB_TOKEN }}"))) :::
+    WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) :::
+    githubWorkflowGeneratedCacheSteps.value.toList,
   githubWorkflowJavaVersions += JavaSpec.temurin("17"),
   githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
@@ -155,7 +162,8 @@ inThisBuild(List(
         "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
         "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
         "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
-    WorkflowStep.Run(List("bash infra/ci/git-commit-and-push.sh")))))
+    WorkflowStep.Run(
+      List("bash infra/ci/git-commit-and-push.sh")))))
 
 lazy val nextVersionSteps = Seq[ReleaseStep](inquireVersions, setNextVersion)
 
