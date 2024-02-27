@@ -84,7 +84,13 @@ lazy val commonSettings = Seq(
   publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
-  sonatypeCredentialHost := Sonatype.sonatype01
+  sonatypeCredentialHost := Sonatype.sonatype01,
+  releaseNextVersion := {
+    ver => Version(ver).map(_.bump(releaseVersionBump.value).string).getOrElse(versionFormatError(ver))
+  },
+  versionScheme := Some("early-semver"),
+  releaseProcess := nextVersionStep,
+  asciiGraphWidth := 10000,
 )
 
 /** run the following command in order to generate github actions files:
@@ -141,7 +147,7 @@ inThisBuild(List(
     workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1", List("CustomResourceTag"))
   ),
   githubWorkflowPublish := Seq(
-    WorkflowStep.Sbt(List("\"project skuber-project\" \"release with-defaults\"")),
+    WorkflowStep.Sbt(List("release with-defaults")),
     WorkflowStep.Sbt(
       List("ci-release"),
       env = Map(
@@ -155,12 +161,6 @@ lazy val nextVersionStep = Seq[ReleaseStep](setNextVersion)
 
 lazy val skuberSettings = Seq(
   name := "skuber",
-  releaseNextVersion := {
-    ver => Version(ver).map(_.bump(releaseVersionBump.value).string).getOrElse(versionFormatError(ver))
-  },
-  versionScheme := Some("early-semver"),
-  releaseProcess := nextVersionStep,
-  asciiGraphWidth := 10000,
   libraryDependencies ++= Seq(
     pekkoHttp, pekkoStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
     awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging, jacksonDatabind,
