@@ -76,7 +76,7 @@ ThisBuild / scmInfo := Some(
   )
 )
 
-ThisBuild / developers := List(Developer(id = "hagay3", name = "Hagai Hillel", email = "hagay3@gmail.com", url = url("https://github.com/hagay3")))
+ThisBuild / developers := List(Developer(id = "hagay3", name = "Hagai Ovadia", email = "hagay3@gmail.com", url = url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
@@ -139,7 +139,7 @@ inThisBuild(List(
     params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.PERSONAL_GITHUB_TOKEN }}"))) :::
     WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) :::
     githubWorkflowGeneratedCacheSteps.value.toList,
-  githubWorkflowJavaVersions += JavaSpec.temurin("17"),
+  githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17")),
   githubWorkflowBuildMatrixFailFast := Some(false),
   githubWorkflowScalaVersions := supportedScalaVersion,
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
