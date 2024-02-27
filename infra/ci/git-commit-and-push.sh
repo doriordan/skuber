@@ -39,7 +39,7 @@ if [ $? -eq 0 ]; then
   payload_merge="{\"commit_title\": \"new version\", \"commit_message\": \"new version\", \"merge_method\": \"squash\"}"
 
   # Send API request to merge pull request
-  curl -X PUT -H "Authorization: Bearer $token" -d $payload_merge "$url_merge"
+  curl -X PUT -H "Authorization: Bearer $token" -d "$payload_merge" "$url_merge"
 
   if [ $? -eq 0 ]; then
     echo "Pull request merged successfully!"
