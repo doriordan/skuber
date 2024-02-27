@@ -52,4 +52,8 @@ jobs:
 
       - run: sbt 'release with-defaults'
 
-      - run: bash infra/ci/git-commit-and-push.sh
+      - shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash infra/ci/git-commit-and-push.sh

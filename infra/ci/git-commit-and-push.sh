@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# Create a new branch
+git config --global user.email "hagay3@gmail.com"
+git config --global user.name "Hagai Hillel"
 branch_name=$(openssl rand -base64 10 | tr -d '/+=')
 git checkout -b $branch_name
 git push --set-upstream origin $branch_name
 git status
 git branch
-git config --global user.email "hagay3@gmail.com"
-git config --global user.name "Hagai Hillel"
 git add version.sbt
 git commit -m "new version"
 git push
@@ -21,9 +20,6 @@ body="This pull request is automatically created from a script."
 
 # Generate API URL
 url_create="https://api.github.com/repos/hagay3/skuber/pulls"
-
-# Set personal access token (replace with your token)
-token=$GITHUB_TOKEN
 
 # Prepare request body for creation
 payload_create="{\"title\": \"$title\", \"body\": \"$body\", \"head\": \"$branch_name\", \"base\": \"$base_branch\"}"
