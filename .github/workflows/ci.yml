@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Java (temurin@8)
         if: matrix.java == 'temurin@8'
@@ -52,9 +52,4 @@ jobs:
 
       - run: sbt 'release with-defaults'
 
-      - name: Commit & Push changes
-        uses: actions-js/push@v1.4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
-          force: true
+      - run: bash infra/ci/git-commit-and-push.sh

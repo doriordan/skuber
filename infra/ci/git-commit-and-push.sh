@@ -30,20 +30,18 @@ token=$GITHUB_TOKEN
 payload_create="{\"title\": \"$title\", \"body\": \"$body\", \"head\": \"$branch_name\", \"base\": \"$base_branch\"}"
 
 # Send API request to create pull request
-curl -X POST -H "Authorization: token $token" -d "$payload_create" "$url_create"
+PULL_NUMBER=$(jq '.number' <<< $(curl -s -H "Authorization: Bearer $token" "$url_create"))
 
 # Check for successful creation response
 if [ $? -eq 0 ]; then
   echo "Pull request created successfully!"
 
-  # Extract the pull request number from the response (modify this step)
-  PULL_NUMBER=$(jq '.number' <<< $(curl -s -H "Authorization: token $token" "$url_create"))
   url_merge="https://api.github.com/repos/hagay3/skuber/pulls/$PULL_NUMBER/merge"
   # Prepare request body for merging
-  payload_merge="{\"merge_method\": \"squash\"}"
+  payload_merge="{\"commit_title\": \"new version\", \"commit_message\": \"new version\", \"merge_method\": \"squash\"}"
 
   # Send API request to merge pull request
-  curl -X PUT -H "Authorization: token $token" -d "$payload_merge" "$url_merge"
+  curl -X PUT -H "Authorization: Bearer $token" -d "$payload_merge" "$url_merge"
 
   if [ $? -eq 0 ]; then
     echo "Pull request merged successfully!"
