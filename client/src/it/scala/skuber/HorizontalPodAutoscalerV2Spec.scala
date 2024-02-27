@@ -12,7 +12,7 @@ import java.util.UUID.randomUUID
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class HorizontalPodAutoscalerV2Spec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
   // Tagging the tests in order to exclude them in earlier CI k8s versions (before 1.23)
   object HorizontalPodAutoscalerV2Tag extends Tag("HorizontalPodAutoscalerV2Tag")
 

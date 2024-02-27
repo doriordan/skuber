@@ -13,7 +13,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll {
+class WatchContinuouslySpec extends K8SFixture with Eventually with Matchers with ScalaFutures with BeforeAndAfterAll with TestRetry {
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(200, Seconds), interval = Span(5, Seconds))
 
   behavior of "WatchContinuously"

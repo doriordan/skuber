@@ -11,7 +11,7 @@ import skuber.apps.v1.Deployment
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures {
+class DynamicKubernetesClientImplTest extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll with ScalaFutures with TestRetry {
 
   val deploymentName1: String = randomUUID().toString
   val deploymentName2: String = randomUUID().toString

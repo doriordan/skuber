@@ -12,7 +12,7 @@ import scala.util.Random
 import LabelSelector.dsl._
 import skuber.LabelSelector.IsEqualRequirement
 
-class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers {
+class ServiceSpec extends K8SFixture with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with TestRetry {
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(10.second)
 

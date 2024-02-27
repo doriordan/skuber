@@ -41,7 +41,7 @@ import org.scalatest.matchers.should.Matchers
  * CustomResourceSpec tests are supported for k8s versions: 1.19,1.20,1.21
  */
 
-class CustomResourceSpec extends K8SFixture with Eventually with Matchers with Futures with BeforeAndAfterAll with ScalaFutures {
+class CustomResourceSpec extends K8SFixture with Eventually with Matchers with Futures with BeforeAndAfterAll with ScalaFutures with TestRetry {
   // Tagging the tests in order to exclude them in later CI k8s versions (1.22, 1.23, etc)
   object CustomResourceTag extends Tag("CustomResourceTag")
 
