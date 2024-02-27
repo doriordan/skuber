@@ -76,7 +76,7 @@ ThisBuild / scmInfo := Some(
   )
 )
 
-ThisBuild / developers := List(Developer(id = "hagay3", name = "Hagai Ovadia", email = "hagay3@gmail.com", url = url("https://github.com/hagay3")))
+ThisBuild / developers := List(Developer(id = "hagay3", name = "Hagai Hillel", email = "hagay3@gmail.com", url = url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
