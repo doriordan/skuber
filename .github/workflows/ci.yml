@@ -7,12 +7,12 @@
 
 name: Continuous Integration
 
-on:
-  pull_request:
-    
-  push:
-    branches: ['**']
-    tags: [v*]
+on: workflow_dispatch
+#  pull_request:
+#
+#  push:
+#    branches: ['**']
+#    tags: [v*]
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
