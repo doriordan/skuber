@@ -3,6 +3,7 @@
 # Create a new branch
 branch_name=$(openssl rand -base64 10 | tr -d '/+=')
 git checkout -b branch_name
+git push --set-upstream origin branch_name
 git status
 git branch
 git config --global user.email "hagay3@gmail.com"
