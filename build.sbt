@@ -1,6 +1,10 @@
 import sbtassembly.AssemblyKeys.assembly
 import sbtassembly.{MergeStrategy, PathList}
-import xerial.sbt.Sonatype._
+import xerial.sbt.Sonatype.*
+import sbtrelease.ReleasePlugin.autoImport.*
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.*
+import sbtrelease.{Version, versionFormatError}
+
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 val scala12Version = "2.12.13"
@@ -23,7 +27,7 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.2.17"
 val pekkoStreamTestKit = ("org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion).cross(CrossVersion.for3Use2_13)
 
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "2.0"
+val snakeYaml = "org.yaml" % "snakeyaml" % "2.0"
 
 val commonsIO = "commons-io" % "commons-io" % "2.11.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
@@ -71,7 +75,7 @@ ThisBuild / scmInfo := Some(
   )
 )
 
-ThisBuild / developers  := List(Developer(id="hagay3", name="Hagai Ovadia", email="hagay3@gmail.com", url=url("https://github.com/hagay3")))
+ThisBuild / developers := List(Developer(id = "hagay3", name = "Hagai Ovadia", email = "hagay3@gmail.com", url = url("https://github.com/hagay3")))
 
 lazy val commonSettings = Seq(
   organization := "io.github.hagay3",
@@ -84,8 +88,8 @@ lazy val commonSettings = Seq(
 )
 
 /** run the following command in order to generate github actions files:
- * sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
- */
+  * sbt githubWorkflowGenerate && bash infra/ci/fix-workflows.sh
+  */
 def workflowJobMinikube(jobName: String, k8sServerVersion: String, excludedTestsTags: List[String] = List.empty): WorkflowJob = {
 
   val finalSbtCommand: String = {
@@ -137,17 +141,26 @@ inThisBuild(List(
     workflowJobMinikube(jobName = "integration-kubernetes-v1-24", k8sServerVersion = "v1.24.1", List("CustomResourceTag"))
   ),
   githubWorkflowPublish := Seq(
+    WorkflowStep.Sbt(List("\"project skuber-project\" \"release with-defaults\"")),
     WorkflowStep.Sbt(
       List("ci-release"),
       env = Map(
         "PGP_PASSPHRASE" -> "${{ secrets.PGP_PASSPHRASE }}",
         "PGP_SECRET" -> "${{ secrets.PGP_SECRET }}",
         "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
-        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")))))
+        "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}")),
+    WorkflowStep.Run(List("bash infra/ci/git-commit-and-push.sh")))))
 
+lazy val nextVersionStep = Seq[ReleaseStep](setNextVersion)
 
 lazy val skuberSettings = Seq(
   name := "skuber",
+  releaseNextVersion := {
+    ver => Version(ver).map(_.bump(releaseVersionBump.value).string).getOrElse(versionFormatError(ver))
+  },
+  versionScheme := Some("early-semver"),
+  releaseProcess := nextVersionStep,
+  asciiGraphWidth := 10000,
   libraryDependencies ++= Seq(
     pekkoHttp, pekkoStream, playJson, snakeYaml, commonsIO, commonsCodec, bouncyCastle,
     awsJavaSdkCore, awsJavaSdkSts, apacheCommonsLogging, jacksonDatabind,
