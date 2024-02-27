@@ -105,6 +105,40 @@ package object format {
     }
   }
 
+  implicit val seccompProfileFmt: Format[Security.SeccompProfile] = new Format[Security.SeccompProfile] {
+
+    override def reads(json: JsValue): JsResult[Security.SeccompProfile] = json match {
+      case JsObject(fields) =>
+        fields.get("type") match {
+          case Some(JsString("Unconfined")) =>
+            JsSuccess(Security.UnconfinedProfile())
+          case Some(JsString("RuntimeDefault")) =>
+            JsSuccess(Security.RuntimeDefaultProfile())
+          case Some(JsString("Localhost")) =>
+            val profileConfigPath: String = fields("localhostProfile").as[String]
+            JsSuccess(Security.LocalhostProfile(profileConfigPath))
+          case operator => JsError(s"Unknown Seccomp profile '$operator'")
+        }
+
+      case _ => JsError(s"Unknown Seccomp")
+    }
+
+    override def writes(seccomp: Security.SeccompProfile): JsValue = seccomp match {
+
+      case p @ Security.UnconfinedProfile() =>
+        val fields: List[(String, JsValue)] = List("type" -> JsString(p._type))
+        JsObject(fields)
+      case p @ Security.RuntimeDefaultProfile() =>
+        val fields: List[(String, JsValue)] = List("type" -> JsString(p._type))
+        JsObject(fields)
+      case p @ Security.LocalhostProfile(localhostProfile) =>
+        val fields: List[(String, JsValue)] = List(
+          "type" -> JsString(p._type),
+          "localhostProfile" -> JsString(localhostProfile))
+        JsObject(fields)
+    }
+  }
+
   private def otwSelectorToLabelSelector(otws: OnTheWireSelector): LabelSelector = {
     val equalityBasedReqsOpt: Option[List[IsEqualRequirement]] = otws.matchLabels.map { labelKVMap =>
       labelKVMap.map(kv => IsEqualRequirement(kv._1, kv._2)).toList
@@ -233,8 +267,9 @@ package object format {
     (JsPath \ "runAsUser").formatNullable[Int] and
     (JsPath \ "seLinuxOptions").formatNullable[Security.SELinuxOptions] and
     (JsPath \ "supplementalGroups").formatMaybeEmptyList[Int] and
-    (JsPath \ "sysctls").formatMaybeEmptyList[Security.Sysctl]) (PodSecurityContext.apply,
-    p => (p.fsGroup, p.runAsGroup, p.runAsNonRoot, p.runAsUser, p.seLinuxOptions, p.supplementalGroups, p.sysctls))
+    (JsPath \ "sysctls").formatMaybeEmptyList[Security.Sysctl] and
+    (JsPath \ "seccompProfile").formatNullable[Security.SeccompProfile]) (PodSecurityContext.apply,
+    p => (p.fsGroup, p.runAsGroup, p.runAsNonRoot, p.runAsUser, p.seLinuxOptions, p.supplementalGroups, p.sysctls, p.seccompProfile))
 
   implicit val tolerationEffectFmt: Format[Pod.TolerationEffect] = new Format[Pod.TolerationEffect] {
 
@@ -984,7 +1019,7 @@ package object format {
 
     import skuber.api.client._
 
-    // this handler reads a generic Status response from the server                                    
+    // this handler reads a generic Status response from the server
     implicit val statusReads: Reads[Status] = Json.reads[Status]
 
     def watchEventWrapperReads[T <: ObjectResource](implicit objreads: Reads[T]): Reads[WatchEventWrapper[T]] = ((JsPath \ "type").formatEnum(EventType).flatMap { eventType =>
