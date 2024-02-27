@@ -136,7 +136,8 @@ inThisBuild(List(
   githubWorkflowJobSetup := List(Use(
     UseRef.Public("actions", "checkout", "v4"),
     name = Some("Checkout current branch (full)"),
-    params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.GITHUB_TOKEN }}"))) :::
+    params = Map("fetch-depth" -> "0", "token" -> "${{ secrets.GITHUB_TOKEN }}"),
+    env = Map("GITHUB_TOKEN" -> "${{ secrets.GITHUB_TOKEN }}"))) :::
     WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) :::
     githubWorkflowGeneratedCacheSteps.value.toList,
   githubWorkflowJavaVersions += JavaSpec.temurin("17"),
