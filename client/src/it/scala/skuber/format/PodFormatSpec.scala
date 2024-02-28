@@ -40,7 +40,7 @@ class PodFormatSpec extends K8SFixture with Eventually with Matchers with Before
         "namespace": "default",
         "selfLink": "/api/v1/namespaces/default/pods/$podName",
         "labels": {
-          ${defaultLabels.toList.map(v => s"\"${v._1}\": \"${v._2}\"").mkString(",")}
+          ${defaultLabels.toList.map(v => s""""${v._1}": "${v._2}"""").mkString(",")}
         }
       },
       "spec": {
