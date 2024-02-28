@@ -50,5 +50,8 @@ object Security {
   case class LocalhostProfile(localhostProfile: String) extends SeccompProfile {
     override val _type: SeccompProfileType = "Localhost"
   }
+  case class UnknownProfile() extends SeccompProfile {
+    override val _type: SeccompProfileType = "Unknown"
+  }
 
 }

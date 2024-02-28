@@ -547,6 +547,17 @@ import Pod._
       myPodSecurityContext mustEqual readPodSecurityContext
     }
 
+    "Pod SecurityContext with Unknown seccomp profile can be properly read and written as json" >> {
+      import Security.UnknownProfile
+
+      val podSecurityContextJsonSource = s"""{ "seccompProfile": { "type": "Any"} }"""
+
+      val myPodSecurityContext = Json.parse(podSecurityContextJsonSource).as[PodSecurityContext]
+      myPodSecurityContext must_== PodSecurityContext(seccompProfile = Some(UnknownProfile()))
+      val readPodSecurityContext = Json.fromJson[PodSecurityContext](Json.toJson(myPodSecurityContext)).get
+      myPodSecurityContext mustEqual readPodSecurityContext
+    }
+
     "a statefulset with pod affinity/anti-affinity can be read and written as json successfully" >> {
       val ssJsonSource=s"""{ "apiVersion": "apps/v1beta1", "kind": "StatefulSet", "metadata": { "name": "nginx-with-pod-affinity", "labels": { "app": "nginx", "security": "S1" } }, "spec": { "serviceName": "nginx", "replicas": 10, "selector": { "matchLabels": { "app": "nginx" } }, "template": { "metadata": { "labels": { "app": "nginx" } }, "spec": { "affinity": { "podAffinity": { "requiredDuringSchedulingIgnoredDuringExecution": [ { "labelSelector": { "matchExpressions": [{ "key": "security", "operator": "In", "values": [ "S1" ] }] }, "topologyKey": "failure-domain.beta.kubernetes.io/zone" } ] }, "podAntiAffinity": { "preferredDuringSchedulingIgnoredDuringExecution": [ { "weight": 100, "podAffinityTerm": { "labelSelector": { "matchExpressions": [{ "key": "security", "operator": "In", "values": [ "S2" ] }] }, "topologyKey": "kubernetes.io/hostname" } } ] } }, "containers": [ { "name": "nginx", "image": "nginx" } ] } } } }"""
 

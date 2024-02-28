@@ -117,10 +117,10 @@ package object format {
           case Some(JsString("Localhost")) =>
             val profileConfigPath: String = fields("localhostProfile").as[String]
             JsSuccess(Security.LocalhostProfile(profileConfigPath))
-          case operator => JsError(s"Unknown Seccomp profile '$operator'")
+          case _ => JsSuccess(Security.UnknownProfile())
         }
 
-      case _ => JsError(s"Unknown Seccomp")
+      case _ => JsSuccess(Security.UnknownProfile())
     }
 
     override def writes(seccomp: Security.SeccompProfile): JsValue = seccomp match {
@@ -136,6 +136,7 @@ package object format {
           "type" -> JsString(p._type),
           "localhostProfile" -> JsString(localhostProfile))
         JsObject(fields)
+      case _ => JsObject.empty
     }
   }
 
