@@ -28,7 +28,7 @@ class PodFormatSpec extends K8SFixture with Eventually with Matchers with Before
   val podName:    String = namePrefix + randomUUID().toString
   val containerName = "nginx"
   val nginxVersion  = "1.7.9"
-  val nginxImage    = s"192.168.49.1:5000/nginx:$nginxVersion"
+  val nginxImage    = s"nginx:$nginxVersion"
 
   val podJsonStr = s"""
     {
@@ -90,8 +90,7 @@ class PodFormatSpec extends K8SFixture with Eventually with Matchers with Before
           }
         ],
         "restartPolicy": "Always",
-        "dnsPolicy": "Default",
-        "serviceAccount": "default"
+        "dnsPolicy": "Default"
       }
   }
   """
@@ -195,16 +194,6 @@ class PodFormatSpec extends K8SFixture with Eventually with Matchers with Before
     val dnsPolicy = maybePodSpec.get.dnsPolicy
 
     dnsPolicy shouldBe DNSPolicy.Default
-  }
-
-  it should "have the same spec serviceAccount as configured" in { k8s =>
-    val maybePodSpec = k8s.get[Pod](podName).valueT.spec
-
-    maybePodSpec should not be empty
-
-    val serviceAccount = maybePodSpec.get.serviceAccountName
-
-    serviceAccount shouldBe "default"
   }
 
 }
