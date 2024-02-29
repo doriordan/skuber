@@ -17,21 +17,21 @@ import scala.io.Source
  */
 class PodFormatSpec extends Specification {
   "This is a unit specification for the skuber Pod related json formatter.\n ".txt
-  
+
 import Pod._
-  
+
   // Pod reader and writer
   "A Pod can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for a simple Pod with just a name" >> {
       val myPod = Pod.named("myPod")
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
-      myPod mustEqual readPod    
+      myPod mustEqual readPod
     }
     "this can be done for a simple Pod with just a name and namespace set" >> {
       val myPod = Namespace("myNamespace").pod("myPod")
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
-      myPod mustEqual readPod    
-    } 
+      myPod mustEqual readPod
+    }
     "this can be done for a Pod with a simple, single container spec" >> {
       val myPod = Namespace("myNamespace").
                     pod("myPod",Spec(Container("myContainer", "myImage")::Nil))
@@ -49,14 +49,14 @@ import Pod._
         periodSeconds = Some(10),
         failureThreshold = Some(30))
       val cntrs=List(Container("myContainer", "myImage"),
-                     Container(name="myContainer2", 
-                               image = "myImage2", 
+                     Container(name="myContainer2",
+                               image = "myImage2",
                                command=List("bash","ls"),
                                workingDir=Some("/home/skuber"),
                                ports=List(Container.Port(3234), Container.Port(3256,name="svc", hostIP="10.101.35.56")),
                                env=List(EnvVar("HOME", "/home/skuber")),
-                               resources=Some(Resource.Requirements(limits=Map("cpu" -> "0.1"))),  
-                               volumeMounts=List(Volume.Mount("mnt1","/mt1"), 
+                               resources=Some(Resource.Requirements(limits=Map("cpu" -> "0.1"))),
+                               volumeMounts=List(Volume.Mount("mnt1","/mt1"),
                                                  Volume.Mount("mnt2","/mt2", readOnly = true)),
                                readinessProbe=Some(readyProbe),
                                startupProbe=Some(startupProbe),
@@ -71,18 +71,18 @@ import Pod._
                       dnsPolicy=DNSPolicy.ClusterFirst,
                       nodeSelector=Map("diskType" -> "ssd", "machineSize" -> "large"),
                       imagePullSecrets=List(LocalObjectReference("abc"),LocalObjectReference("def")),
-                      securityContext=Some(PodSecurityContext(supplementalGroups=List(1, 2, 3))))
+                      securityContext=Some(PodSecurityContext(supplementalGroups=List(1, 2, 3), seccompProfile = Some(Security.RuntimeDefaultProfile()))))
       val myPod = Namespace("myNamespace").pod("myPod",pdSpec)
-                            
+
       val writtenPod = Json.toJson(myPod)
       val strs=Json.stringify(writtenPod)
       val readPodJsResult = Json.fromJson[Pod](writtenPod)
-     
+
       val ret: Result = readPodJsResult match {
-        case JsError(e) => Failure(e.toString)    
-        case JsSuccess(readPod,_) => 
+        case JsError(e) => Failure(e.toString)
+        case JsSuccess(readPod,_) =>
           readPod mustEqual myPod
-      }   
+      }
       ret
     }
     "a quite complex pod can be read from json" >> {
@@ -108,6 +108,11 @@ import Pod._
             }
           },
           "spec": {
+            "securityContext": {
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
             "volumes": [
               {
                 "name": "dns-token",
@@ -312,7 +317,7 @@ import Pod._
       myPod.kind mustEqual "Pod"
       myPod.name mustEqual "kube-dns-v3-i5fzg"
       myPod.metadata.labels("k8s-app") mustEqual "kube-dns"
-      
+
       myPod.spec.get.dnsPolicy mustEqual DNSPolicy.Default
       myPod.spec.get.restartPolicy mustEqual RestartPolicy.Always
       myPod.spec.get.tolerations mustEqual List(ExistsToleration(Some("localhost.domain/url")),
@@ -322,7 +327,7 @@ import Pod._
       val vols = myPod.spec.get.volumes
       vols.length mustEqual 2
       vols(0) mustEqual Volume("dns-token",Volume.Secret("token-system-dns"))
-      
+
       val cntrs = myPod.spec.get.containers
       cntrs.length mustEqual 3
       cntrs(0).name mustEqual "etcd"
@@ -331,34 +336,34 @@ import Pod._
       cntrs(0).terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.File)
       cntrs(0).resources.get.limits("cpu") mustEqual Resource.Quantity("100m")
       cntrs(0).command.length  mustEqual 7
-      
+
       val etcdVolMounts=cntrs(0).volumeMounts
       etcdVolMounts.length mustEqual 1
       etcdVolMounts(0).name mustEqual "default-token-zmwgp"
-     
-      val probe = cntrs(2).livenessProbe.get 
+
+      val probe = cntrs(2).livenessProbe.get
       probe.action match {
         case ExecAction(command) => command.length mustEqual 3
         case _ => failure("liveness probe action must be an ExecAction")
       }
       probe.initialDelaySeconds mustEqual 30
       probe.timeoutSeconds mustEqual 5
-      
+
       val ports = cntrs(2).ports // skyDNS ports
       ports.length mustEqual 2
       val udpDnsPort = ports(0)
       udpDnsPort.containerPort mustEqual 53
       udpDnsPort.protocol mustEqual Protocol.UDP
       udpDnsPort.name mustEqual "dns"
-      
+
       val tcpDnsPort = ports(1)
       tcpDnsPort.containerPort mustEqual 53
       tcpDnsPort.protocol mustEqual Protocol.TCP
       tcpDnsPort.name mustEqual "dns-tcp"
-      
+
       cntrs(2).image equals "gcr.io/google_containers/skydns:2015-03-11-001"
       cntrs(2).imagePullPolicy equals None
-      
+
       val status = myPod.status.get
       status.conditions(0) mustEqual Pod.Condition("Ready","False")
       status.phase.get mustEqual Pod.Phase.Running
@@ -366,17 +371,17 @@ import Pod._
       cntrStatuses.length mustEqual 3
       cntrStatuses(0).restartCount mustEqual 3
       cntrStatuses(0).lastState.get match {
-        case c: Container.Terminated => 
-          c.exitCode mustEqual 2 
+        case c: Container.Terminated =>
+          c.exitCode mustEqual 2
           c.containerID.get mustEqual "docker://ec96c0a87e374d1b2f309c102b13e88a2605a6df0017472a6d7f808b559324aa"
         case _ => failure("container must be terminated")
       }
       cntrStatuses(2).state.get match {
-        case Container.Running(startTime) if (startTime.nonEmpty) => 
+        case Container.Running(startTime) if (startTime.nonEmpty) =>
           startTime.get.getHour mustEqual 16 // just a spot check
       }
       // write and read back in again, compare
-      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
+      val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
       myPod mustEqual readPod
     }
 
@@ -482,7 +487,7 @@ import Pod._
       import NodeAffinity.{PreferredSchedulingTerm, PreferredSchedulingTerms}
 
       val affinityJsonSource = Source.fromURL(getClass.getResource("/exampleAffinityNoRequirements.json"))
-      
+
       val affinityJsonStr = affinityJsonSource.mkString
 
       val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
@@ -496,7 +501,7 @@ import Pod._
       import Affinity.{NodeAffinity, NodeSelectorOperator}
 
       val affinityJsonSource = s"""{ "nodeAffinity": { "preferredDuringSchedulingIgnoredDuringExecution": [ { "weight": 1, "preference": { "matchExpressions": [ { "key": "another-node-label-key", "operator": "In", "values": [ "another-node-label-value" ] } ] } } ] } }"""
-      
+
 
       val myAffinity = Json.parse(affinityJsonSource).as[Affinity]
       myAffinity must_== Affinity(nodeAffinity = Some(NodeAffinity(requiredDuringSchedulingIgnoredDuringExecution = None,
@@ -508,7 +513,7 @@ import Pod._
     "a complex podlist can be read and written as json" >> {
       val podListJsonSource = Source.fromURL(getClass.getResource("/examplePodList.json"))
       val podListJsonStr = podListJsonSource.mkString
- 
+
       val myPods = Json.parse(podListJsonStr).as[PodList]
       myPods.kind mustEqual "PodList"
       myPods.metadata.get.resourceVersion mustEqual "977"
@@ -516,8 +521,41 @@ import Pod._
       myPods.items(21).status.get.containerStatuses.exists( cs => cs.name.equals("grafana")) mustEqual true
 
        // write and read back in again, compare
-      val readPods = Json.fromJson[PodList](Json.toJson(myPods)).get 
+      val readPods = Json.fromJson[PodList](Json.toJson(myPods)).get
       myPods mustEqual readPods
+    }
+
+    "Pod SecurityContext with RuntimeDefault seccomp profile can be properly read and written as json" >> {
+      import Security.RuntimeDefaultProfile
+
+      val podSecurityContextJsonSource = s"""{ "seccompProfile": { "type": "RuntimeDefault" } }"""
+
+      val myPodSecurityContext = Json.parse(podSecurityContextJsonSource).as[PodSecurityContext]
+      myPodSecurityContext must_== PodSecurityContext(seccompProfile = Some(RuntimeDefaultProfile()))
+      val readPodSecurityContext = Json.fromJson[PodSecurityContext](Json.toJson(myPodSecurityContext)).get
+      myPodSecurityContext mustEqual readPodSecurityContext
+    }
+
+    "Pod SecurityContext with Localhost seccomp profile can be properly read and written as json" >> {
+      import Security.LocalhostProfile
+
+      val podSecurityContextJsonSource = s"""{ "seccompProfile": { "type": "Localhost", "localhostProfile": "custom.json" } }"""
+
+      val myPodSecurityContext = Json.parse(podSecurityContextJsonSource).as[PodSecurityContext]
+      myPodSecurityContext must_== PodSecurityContext(seccompProfile = Some(LocalhostProfile(localhostProfile = "custom.json")))
+      val readPodSecurityContext = Json.fromJson[PodSecurityContext](Json.toJson(myPodSecurityContext)).get
+      myPodSecurityContext mustEqual readPodSecurityContext
+    }
+
+    "Pod SecurityContext with Unknown seccomp profile can be properly read and written as json" >> {
+      import Security.UnknownProfile
+
+      val podSecurityContextJsonSource = s"""{ "seccompProfile": { "type": "Any"} }"""
+
+      val myPodSecurityContext = Json.parse(podSecurityContextJsonSource).as[PodSecurityContext]
+      myPodSecurityContext must_== PodSecurityContext(seccompProfile = Some(UnknownProfile()))
+      val readPodSecurityContext = Json.fromJson[PodSecurityContext](Json.toJson(myPodSecurityContext)).get
+      myPodSecurityContext mustEqual readPodSecurityContext
     }
 
     "a statefulset with pod affinity/anti-affinity can be read and written as json successfully" >> {
