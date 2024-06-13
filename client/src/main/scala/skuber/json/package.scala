@@ -1079,6 +1079,7 @@ package object format {
   implicit val secretFmt: Format[skuber.Secret] = (
     objFormat and
     (JsPath \ "data").formatMaybeEmptyByteArrayMap and
+    (JsPath \ "immutable").formatMaybeEmptyBoolean() and
     (JsPath \ "type").formatMaybeEmptyString()
   )(skuber.Secret.apply _, unlift(skuber.Secret.unapply))
 
