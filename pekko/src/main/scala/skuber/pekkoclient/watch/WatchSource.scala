@@ -18,16 +18,16 @@ private[pekkoclient] object WatchSource {
 
   import skuber.api.client.WatchStream._
 
-  def apply[O <: ObjectResource](client: PekkoKubernetesClientImpl,
-                                 pool: Pool[Start[O]],
-                                 name: Option[String],
-                                 options: ListOptions,
-                                 bufSize: Int,
-                                 errorHandler: Option[String => _])
-                                     (implicit sys: ActorSystem,
-                                               format: Format[O],
-                                               rd: ResourceDefinition[O],
-                                               lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
+  def apply[O <: ObjectResource](
+    client: PekkoKubernetesClientImpl,
+    pool: Pool[Start[O]],
+    name: Option[String],
+    options: ListOptions,
+    bufSize: Int,
+    errorHandler: Option[String => _],
+    overrideNamespace: Option[String] = None,
+    overrideClusterScope: Option[Boolean] = None)
+  (implicit sys: ActorSystem, format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
     Source.fromGraph(GraphDSL.create() { implicit b =>
       import GraphDSL.Implicits._
 
@@ -42,7 +42,7 @@ private[pekkoclient] object WatchSource {
           fieldSelector = nameFieldSelector.orElse(options.fieldSelector)
         )
         client.buildRequest(
-          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap))
+          HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)), overrideNamespace, overrideClusterScope
         )
       }
 

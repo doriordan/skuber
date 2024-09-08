@@ -9,11 +9,9 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads, Writes}
-
-import skuber.model.{APIVersions, HasStatusSubresource, ObjectResource, LabelSelector, ListResource, NamespaceList, Pod, ResourceDefinition, ResourceSpecification, Scale, TypeMeta}
+import skuber.model.{APIVersions, HasStatusSubresource, LabelSelector, ListResource, NamespaceList, ObjectResource, Pod, ResourceDefinition, ResourceSpecification, Scale, TypeMeta}
 import skuber.akkaclient.AkkaKubernetesClient
 import skuber.akkaclient.watch.{LongPollingPool, Watch, WatchSource}
 import skuber.akkaclient.exec.PodExecImpl
@@ -22,6 +20,7 @@ import skuber.api.client._
 import skuber.api.patch._
 import skuber.api.security.TLS
 import PlayJsonSupportForAkkaHttp._
+import skuber.api.client
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
 
@@ -83,12 +82,15 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     rd: ResourceDefinition[_],
     nameComponent: Option[String],
     query: Option[Uri.Query] = None,
-    namespace: String = namespaceName): HttpRequest =
+    namespaceOverride: Option[String] = None,
+    clusterScopeOverride: Option[Boolean] = None): HttpRequest =
   {
-    val nsPathComponent = if (rd.spec.scope == ResourceSpecification.Scope.Namespaced) {
-      Some("namespaces/" + namespace)
-    } else {
-      None
+    def buildNamespaceComponent() = Some(s"namespaces/${namespaceOverride.getOrElse(namespaceName)}")
+
+    val nsPathComponent = clusterScopeOverride match {
+      case None if rd.spec.scope == ResourceSpecification.Scope.Cluster => None
+      case Some(true) => None
+      case _ => buildNamespaceComponent()
     }
 
     val k8sUrlOptionalParts = List(
@@ -227,7 +229,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     val marshal = Marshal(obj)
     for {
       requestEntity        <- marshal.to[RequestEntity]
-      httpRequest          = buildRequest(method, rd, nameComponent, namespace = targetNamespace)
+      httpRequest          = buildRequest(method, rd, nameComponent, namespaceOverride = Some(targetNamespace))
           .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
       newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
     } yield newOrUpdatedResource
@@ -311,7 +313,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(
     implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, None, namespace = theNamespace)
+    val req = buildRequest(HttpMethods.GET, rd, None, namespaceOverride = Some(theNamespace))
     makeRequestReturningListResource[L](req)
   }
 
@@ -339,7 +341,12 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     _list[L](rd, Some(options))
   }
 
-  private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeOptions: Option[ListOptions])(
+  override def listInCluster[L <: ListResource[_]](options: Option[ListOptions])(
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
+    _list[L](rd, options, clusterScope = Some(true))
+  }
+
+  private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeOptions: Option[ListOptions], clusterScope: Option[Boolean] = None)(
     implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
     val queryOpt = maybeOptions map { opts =>
@@ -349,7 +356,8 @@ class AkkaKubernetesClientImpl private[akkaclient] (
       val optsInfo = maybeOptions map { opts => s" with options '${opts.asMap.toString}'" } getOrElse ""
       logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${optsInfo}")
     }
-    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt)
+
+    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt, clusterScopeOverride = clusterScope)
     makeRequestReturningListResource[L](req)
   }
 
@@ -378,7 +386,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   private[akkaclient] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
+    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespaceOverride = Some(namespace))
     makeRequestReturningObjectResource[O](req)
   }
 
@@ -442,7 +450,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     }
     val nameComponent=s"${name}/log"
     val rd = implicitly[ResourceDefinition[Pod]]
-    val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, targetNamespace)
+    val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, Some(targetNamespace))
     invokeLog(request).flatMap { response =>
       val statusOptFut = checkResponseStatus(response)
       statusOptFut map {
@@ -508,6 +516,10 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler)
   }
 
+  override def watchCluster[O <: ObjectResource](options: ListOptions, bufsize: Int, errorHandler: Option[Function[String, _]])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[client.K8SWatchEvent[O], _] = {
+    WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler, overrideClusterScope = Some(true))
+  }
+
   private def buildLongPollingPool[O <: ObjectResource]() = {
     LongPollingPool[WatchStream.Start[O]](
       clusterServerUri.scheme,
@@ -545,7 +557,6 @@ class AkkaKubernetesClientImpl private[akkaclient] (
 
   override def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
       (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O] = {
-    val targetNamespace = namespace.getOrElse(namespaceName)
     val contentType = patchData.strategy match {
       case StrategicMergePatchStrategy =>
         CustomMediaTypes.`application/strategic-merge-patch+json`
@@ -559,7 +570,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     val marshal = Marshal(patchData)
     for {
       requestEntity <- marshal.to[RequestEntity]
-      httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespace = targetNamespace)
+      httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespaceOverride = namespace)
           .withEntity(requestEntity.withContentType(contentType))
       newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
     } yield newOrUpdatedResource

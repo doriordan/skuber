@@ -127,6 +127,11 @@ trait KubernetesClient {
   def listByNamespace[L <: ListResource[_]]()(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[Map[String, L]]
 
   /**
+    * Get list of resources of a given type in the whole cluster
+    */
+  def listInCluster[L <: ListResource[_]](options: Option[ListOptions])(implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L]
+
+  /**
     * Get list of resources of a given type in a specified namespace
     *
     * @param theNamespace the namespace to search

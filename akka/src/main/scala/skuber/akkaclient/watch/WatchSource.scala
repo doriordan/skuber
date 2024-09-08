@@ -23,7 +23,9 @@ private[akkaclient] object WatchSource {
                                  name: Option[String],
                                  options: ListOptions,
                                  bufSize: Int,
-                                 errorHandler: Option[String => _])
+                                 errorHandler: Option[String => _],
+                                 overrideNamespace: Option[String] = None,
+                                 overrideClusterScope: Option[Boolean] = None)
                                      (implicit sys: ActorSystem,
                                                format: Format[O],
                                                rd: ResourceDefinition[O],
@@ -35,15 +37,18 @@ private[akkaclient] object WatchSource {
 
       def createWatchRequest(since: Option[String]) =
       {
+        System.out.println(s"WATCH: override clusterScope=$overrideClusterScope, override namespace = $overrideNamespace")
         val nameFieldSelector=name.map(objName => s"metadata.name=$objName")
         val watchOptions=options.copy(
           resourceVersion = since,
           watch = Some(true),
           fieldSelector = nameFieldSelector.orElse(options.fieldSelector)
         )
-        client.buildRequest(
-          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap))
+        val req = client.buildRequest(
+          HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap)),  overrideNamespace, overrideClusterScope
         )
+        System.out.println(s"WATCHING $req")
+        req
       }
 
       val singleEnd = Source.single(End[O]())
