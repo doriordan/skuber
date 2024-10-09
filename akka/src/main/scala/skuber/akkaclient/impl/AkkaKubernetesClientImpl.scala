@@ -1,7 +1,7 @@
 package skuber.akkaclient.impl
 
 import akka.actor.ActorSystem
-import akka.event.Logging
+import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
@@ -12,15 +12,13 @@ import akka.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads, Writes}
 import skuber.model.{APIVersions, HasStatusSubresource, LabelSelector, ListResource, NamespaceList, ObjectResource, Pod, ResourceDefinition, ResourceSpecification, Scale, TypeMeta}
-import skuber.akkaclient.AkkaKubernetesClient
-import skuber.akkaclient.watch.{LongPollingPool, Watch, WatchSource}
+import skuber.akkaclient.{AkkaKubernetesClient, AkkaWatcher, CustomMediaTypes}
+import skuber.akkaclient.watch.{AkkaWatcherImpl, LongPollingPool}
 import skuber.akkaclient.exec.PodExecImpl
-import skuber.akkaclient.CustomMediaTypes
 import skuber.api.client._
 import skuber.api.patch._
 import skuber.api.security.TLS
 import PlayJsonSupportForAkkaHttp._
-import skuber.api.client
 import skuber.json.format.apiobj.statusReads
 import skuber.json.format.{apiVersionsFormat, deleteOptionsFmt, namespaceListFmt}
 
@@ -48,7 +46,9 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val executionContext: ExecutionContext)
     extends AkkaKubernetesClient
 {
-  val log = Logging.getLogger(actorSystem, "skuber.api")
+  private val clusterServerUri = Uri(clusterServer)
+
+  val log: LoggingAdapter = Logging.getLogger(actorSystem, "skuber.api")
 
   val connectionContext = sslContext
       .map { ssl =>
@@ -56,10 +56,18 @@ class AkkaKubernetesClientImpl private[akkaclient] (
       }
       .getOrElse(Http().defaultClientHttpsContext)
 
-
-  private val clusterServerUri = Uri(clusterServer)
-
   private var isClosed = false
+
+  private[akkaclient] def buildLongPollingPool[O <: ObjectResource]() = {
+    LongPollingPool[WatchStream.Start[O]](
+      clusterServerUri.scheme,
+      clusterServerUri.authority.host.address(),
+      clusterServerUri.effectivePort,
+      watchPoolIdleTimeout,
+      sslContext.map(ConnectionContext.httpsClient(_)),
+      ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
+    )
+  }
 
   private[skuber] def invokeWatch(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, watchSettings)
   private[skuber] def invokeLog(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, podLogSettings)
@@ -462,74 +470,8 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     }
   }
 
+  override def getWatcher[O <: ObjectResource] : AkkaWatcher[O] = new AkkaWatcherImpl[O](this)
 
-  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return Akka streams sources that will reactively emit a stream of updated
-  // values of the watched resources.
-
-  def watch[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
-    watch(obj.name)
-  }
-
-  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return Akka streams sources that will reactively emit a stream of updated
-  // values of the watched resources.
-
-  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
-    Watch.events(this, name, sinceResourceVersion, bufSize, None)
-  }
-
-  // watch events on all objects of specified kind in current namespace
-  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
-    Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, None)
-  }
-
-  def watchContinuously[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    watchContinuously(obj.name)
-  }
-
-  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
-    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, errorHandler)
-  }
-
-  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds))
-    WatchSource(this, buildLongPollingPool(), None, options, bufSize, errorHandler)
-  }
-
-  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler)
-  }
-
-  override def watchCluster[O <: ObjectResource](options: ListOptions, bufsize: Int, errorHandler: Option[Function[String, _]])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[client.K8SWatchEvent[O], _] = {
-    WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler, overrideClusterScope = Some(true))
-  }
-
-  private def buildLongPollingPool[O <: ObjectResource]() = {
-    LongPollingPool[WatchStream.Start[O]](
-      clusterServerUri.scheme,
-      clusterServerUri.authority.host.address(),
-      clusterServerUri.effectivePort,
-      watchPoolIdleTimeout,
-      sslContext.map(ConnectionContext.httpsClient(_)),
-      ClientConnectionSettings(actorSystem.settings.config).withIdleTimeout(watchContinuouslyIdleTimeout)
-    )
-  }
 
   // Operations on scale subresource
   // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types

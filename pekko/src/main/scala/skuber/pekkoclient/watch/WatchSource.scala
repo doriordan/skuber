@@ -12,7 +12,7 @@ import skuber.api.client._
 import skuber.model.{ObjectResource, ResourceDefinition}
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Random, Success}
 
 private[pekkoclient] object WatchSource {
 
@@ -21,25 +21,24 @@ private[pekkoclient] object WatchSource {
   def apply[O <: ObjectResource](
     client: PekkoKubernetesClientImpl,
     pool: Pool[Start[O]],
-    name: Option[String],
     options: ListOptions,
     bufSize: Int,
     errorHandler: Option[String => _],
     overrideNamespace: Option[String] = None,
     overrideClusterScope: Option[Boolean] = None)
-  (implicit sys: ActorSystem, format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
+  (implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], NotUsed] = {
     Source.fromGraph(GraphDSL.create() { implicit b =>
       import GraphDSL.Implicits._
 
+      implicit val sys = client.actorSystem
       implicit val dispatcher: ExecutionContext = sys.dispatcher
 
+      val watchLoggerId = Random.nextInt().abs
       def createWatchRequest(since: Option[String]) =
       {
-        val nameFieldSelector=name.map(objName => s"metadata.name=$objName")
         val watchOptions=options.copy(
           resourceVersion = since,
-          watch = Some(true),
-          fieldSelector = nameFieldSelector.orElse(options.fieldSelector)
+          watch = Some(true)
         )
         client.buildRequest(
           HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)), overrideNamespace, overrideClusterScope
@@ -56,22 +55,22 @@ private[pekkoclient] object WatchSource {
 
       val httpFlow: Flow[(HttpRequest, Start[O]), StreamElement[O], NotUsed] =
         Flow[(HttpRequest, Start[O])].map { request => // log request
-          client.logInfo(client.logConfig.logRequestBasic, s"about to send HTTP request: ${request._1.method.value} ${request._1.uri.toString}")
+          client.logInfo(client.logConfig.logRequestBasic, s"Sending watch request (watchId=$watchLoggerId,method=${request._1.method.value},uri=${request._1.uri.toString})")
           request
         }.via(pool).flatMapConcat {
           case (Success(HttpResponse(StatusCodes.OK, _, entity, _)), se) =>
-            client.logInfo(client.logConfig.logResponseBasic, s"received response with HTTP status 200")
+            client.logInfo(client.logConfig.logResponseBasic, s"Received response with HTTP status 200 (watchId=$watchLoggerId)")
             singleStart(se).concat(
               BytesToWatchEventSource[O](client, entity.dataBytes, bufSize, errorHandler).map { event =>
                 Result[O](event._object.resourceVersion, event)
               }
             ).concat(singleEnd)
           case (Success(HttpResponse(sc, _, entity, _)), _) =>
-            client.logWarn(s"Error watching resource. Received a status of ${sc.intValue()}")
+            client.logWarn(s"Error watching resource (watchId=$watchLoggerId, http status =${sc.intValue()})")
             entity.discardBytes()
             throw new K8SException(Status(message = Some("Non-OK status code received while watching resource"), code = Some(sc.intValue())))
           case (Failure(f), _) =>
-            client.logError("Error watching resource.", f)
+            client.logError(s"Error watching resource (watchId=$watchLoggerId)", f)
             throw new K8SException(Status(message = Some("Error watching resource"), details = Some(f.getMessage)))
         }
 

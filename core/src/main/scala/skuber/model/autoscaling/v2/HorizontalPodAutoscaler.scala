@@ -413,7 +413,6 @@ object HorizontalPodAutoscaler {
 
   implicit val metricReads: Reads[Metric] = new Reads[Metric] {
     override def reads(json: JsValue): JsResult[Metric] = {
-      System.err.println(s"Read metric json = ${json.toString()}")
       (json \ "type").as[String].toUpperCase match {
         case "OBJECT" => JsSuccess(json.as[ObjectMetric])
         case "PODS" => JsSuccess(json.as[PodsMetric])

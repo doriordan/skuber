@@ -234,18 +234,17 @@ class CustomResourceSpec extends K8SFixture with Eventually with Matchers {
       }
       def watchAndTrackEvents(sinceVersion: String) =
       {
-        k8s.watchAll[TestResource](sinceResourceVersion = Some(sinceVersion)).map { crEventSource =>
-          crEventSource
+        val crEventSource = k8s.getWatcher[TestResource].watchSinceVersion(sinceVersion)
+        crEventSource
             .viaMat(KillSwitches.single)(Keep.right)
             .toMat(trackEvents)(Keep.both).run()
-        }
       }
       def createTestResource= k8s.create(testResource)
       def deleteTestResource= k8s.delete[TestResource](testResourceName)
 
       val killSwitchFut = for {
         currentTestResourceVersion <- getCurrentResourceVersion
-        (kill, _) <- watchAndTrackEvents(currentTestResourceVersion)
+        (kill, _) = watchAndTrackEvents(currentTestResourceVersion)
         testResource <- createTestResource
         deleted <- deleteTestResource
       } yield kill

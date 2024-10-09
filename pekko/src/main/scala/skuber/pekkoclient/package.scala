@@ -1,18 +1,21 @@
 package skuber
 
 import scala.util.Try
-
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.NotUsed
 import org.apache.pekko.http.scaladsl.model.{HttpCharsets, MediaType}
 import org.apache.pekko.http.scaladsl.model.{HttpRequest, HttpResponse}
-import org.apache.pekko.stream.scaladsl.Flow
+import org.apache.pekko.stream.scaladsl.{Flow, Source, Sink}
+import org.apache.pekko.util.ByteString
 import com.typesafe.config.Config
-
 import skuber.pekkoclient.impl.PekkoKubernetesClientImpl
 import skuber.api.client.{Context, LoggingConfig, defaultAppConfig, defaultK8sConfig}
 
 package object pekkoclient {
+
+  type PekkoSB = Source[ByteString, _]
+  type PekkoSI = Source[String, _]
+  type PekkoSO = Sink[String, _]
 
   object CustomMediaTypes {
     val `application/merge-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("merge-patch+json", HttpCharsets.`UTF-8`)

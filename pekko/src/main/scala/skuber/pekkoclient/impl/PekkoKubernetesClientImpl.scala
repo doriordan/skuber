@@ -12,10 +12,9 @@ import org.apache.pekko.util.ByteString
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, Reads, Writes}
 import skuber.model.{APIVersions, HasStatusSubresource, LabelSelector, ListResource, NamespaceList, ObjectResource, Pod, ResourceDefinition, ResourceSpecification, Scale, TypeMeta}
-import skuber.pekkoclient.PekkoKubernetesClient
-import skuber.pekkoclient.watch.{LongPollingPool, Watch, WatchSource}
+import skuber.pekkoclient.{CustomMediaTypes, PekkoKubernetesClient, PekkoWatcher}
+import skuber.pekkoclient.watch.{LongPollingPool, PekkoWatcherImpl, Watch, WatchSource}
 import skuber.pekkoclient.exec.PodExecImpl
-import skuber.pekkoclient.CustomMediaTypes
 import skuber.api.client._
 import skuber.api.patch._
 import skuber.api.security.TLS
@@ -55,7 +54,6 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
         ConnectionContext.httpsClient(ssl)
       }
       .getOrElse(Http().defaultClientHttpsContext)
-
 
   private val clusterServerUri = Uri(clusterServer)
 
@@ -468,64 +466,9 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
   }
 
 
-  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return pekko streams sources that will reactively emit a stream of updated
-  // values of the watched resources.
+  override def getWatcher[O<: ObjectResource]: PekkoWatcher[O] = new PekkoWatcherImpl[O](this)
 
-  def watch[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
-    watch(obj.name)
-  }
-
-  // The Watch methods place a Watch on the specified resource on the Kubernetes cluster.
-  // The methods return pekko streams sources that will reactively emit a stream of updated
-  // values of the watched resources.
-
-  def watch[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
-    Watch.events(this, name, sinceResourceVersion, bufSize, None)
-  }
-
-  // watch events on all objects of specified kind in current namespace
-  def watchAll[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
-    Watch.eventsOnKind[O](this, sinceResourceVersion, bufSize, None)
-  }
-
-  def watchContinuously[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    watchContinuously(obj.name)
-  }
-
-  def watchContinuously[O <: ObjectResource](name: String, sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds) )
-    WatchSource(this, buildLongPollingPool(), Some(name), options, bufSize, errorHandler)
-  }
-
-  def watchAllContinuously[O <: ObjectResource](sinceResourceVersion: Option[String] = None, bufSize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    val options=ListOptions(resourceVersion = sinceResourceVersion, timeoutSeconds = Some(watchContinuouslyRequestTimeout.toSeconds))
-    WatchSource(this, buildLongPollingPool(), None, options, bufSize, errorHandler)
-  }
-
-  def watchWithOptions[O <: ObjectResource](options: ListOptions, bufsize: Int = 10000, errorHandler: Option[String => _] = None)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[WatchEvent[O], _] =
-  {
-    WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler)
-  }
-
-  override def watchCluster[O <: ObjectResource](options: ListOptions, bufsize: Int, errorHandler: Option[Function[String, _]])(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Source[client.K8SWatchEvent[O], _] = {
-    WatchSource(this, buildLongPollingPool(), None, options, bufsize, errorHandler, overrideClusterScope = Some(true))
-  }
-
-  private def buildLongPollingPool[O <: ObjectResource]() = {
+  private[pekkoclient] def buildLongPollingPool[O <: ObjectResource]() = {
     LongPollingPool[WatchStream.Start[O]](
       clusterServerUri.scheme,
       clusterServerUri.authority.host.address(),

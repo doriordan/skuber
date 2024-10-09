@@ -37,6 +37,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -50,7 +51,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -81,6 +82,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), Some(false))
       ).thenReturn(firstRequest)
@@ -94,7 +96,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion = Some("12802"), timeoutSeconds = Some(1)), 10000, None, Some("default"), Some(false))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion = Some("12802"), timeoutSeconds = Some(1)), 10000, None, Some("default"), Some(false))
             .viaMat(KillSwitches.single)(Keep.right)
             .toMat(TestSink.probe)(Keep.both)
             .run()
@@ -125,6 +127,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), Some(true))
       ).thenReturn(firstRequest)
@@ -138,7 +141,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion = Some("12802"), timeoutSeconds = Some(1)), 10000, None, Some("default"), Some(true))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion = Some("12802"), timeoutSeconds = Some(1)), 10000, None, Some("default"), Some(true))
             .viaMat(KillSwitches.single)(Keep.right)
             .toMat(TestSink.probe)(Keep.both)
             .run()
@@ -169,6 +172,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val secondRequest = HttpRequest(uri = Uri("http://watch/2"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -182,7 +186,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -217,7 +221,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val query2=Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true", "fieldSelector" -> nameFieldSelector)
 
       when(client.logConfig).thenReturn(LoggingConfig())
-
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(query1), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -230,8 +234,9 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         secondRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
 
+      val options = ListOptions(resourceVersion= Some("12802"),timeoutSeconds = Some(1), fieldSelector = Some(nameFieldSelector))
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(resourceVersion= Some("12802"),timeoutSeconds = Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), options, 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -265,7 +270,9 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val nameFieldSelector=s"metadata.name=$name"
       val query1=Uri.Query("timeoutSeconds" -> "1", "watch" -> "true", "fieldSelector" -> nameFieldSelector)
       val query2=Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true","fieldSelector" -> nameFieldSelector)
+
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(query1), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -277,12 +284,13 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
         secondRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerSecondRequest.json")))
       )
-
+      val options =  ListOptions(timeoutSeconds = Some(1), fieldSelector = Some(nameFieldSelector))
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), Some(name), ListOptions(timeoutSeconds = Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), options, 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
+
 
       downstream.request(4)
         .expectNext(buildWatchEvent("12803", 3))
@@ -312,6 +320,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val thirdRequest = HttpRequest(uri = Uri("http://watch/3"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -326,7 +335,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -356,6 +365,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -365,7 +375,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -389,6 +399,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -398,7 +409,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -422,6 +433,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -431,7 +443,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -456,6 +468,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -465,7 +478,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(responses), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(responses), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -491,6 +504,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -500,7 +514,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(new TcpIdleTimeoutException("timeout", 10.seconds)), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(new TcpIdleTimeoutException("timeout", 10.seconds)), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()
@@ -525,6 +539,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       val firstRequest = HttpRequest(uri = Uri("http://watch/1"))
 
       when(client.logConfig).thenReturn(LoggingConfig())
+      when(client.actorSystem).thenReturn(system)
       when(client.buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None)
       ).thenReturn(firstRequest)
@@ -534,7 +549,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       )
 
       val (switch, downstream) =
-        WatchSource[ReplicationController](client, mockPool(new ConnectException(s"Connect timeout of 10s expired")), None, ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
+        WatchSource[ReplicationController](client, mockPool(new ConnectException(s"Connect timeout of 10s expired")), ListOptions(resourceVersion=Some("12802"), timeoutSeconds=Some(1)), 10000, None, Some("default"))
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(TestSink.probe)(Keep.both)
           .run()

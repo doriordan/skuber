@@ -1,21 +1,20 @@
 package skuber.api.client
 
-import play.api.libs.json.{Writes,Format}
-import skuber.model.{HasStatusSubresource, LabelSelector, ListResource, ObjectResource}
+import play.api.libs.json.{Format, Writes}
+import skuber.model.{HasStatusSubresource, LabelSelector, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
 import skuber.api.patch.Patch
-import skuber.model.{ResourceDefinition, Scale}
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 /**
   * @author David O'Riordan
   *
-  * This trait defines the skuber Kubernetes client API
+  * These traits defines the common skuber Kubernetes client API
   * The client API supports making requests on Kubernetes resources that are represented using the Skuber case class based data model.
-  * Generally most methods target a specific namespace that has been configured for the client, but some methods can target other namespaces -
-  * the descriptions and signatures of those methods should make it clear in those cases,
+  * Generally most methods target a specific namespace that has been configured for the client, but some methods can target other namespaces
+  * or even the entire cluster (e.g. getInNamespace, listInCluster)
   * Most of the methods are typed to either a specific object resource type O or list resource type L, and require one or more of the
-  * following implicit parameters, which arenormally suppied when you make some standard imports as described in the programming guide:
+  * following implicit parameters, which are normally supplied when you make some standard imports as described in the programming guide:
   * - A ResourceDefinition that supplies skuber with key details needed to make the call on the applicable resource type. These are
   * defined on the companion object of the case class that implements the resource type so generally you do not have to explicitly
   * import them.
@@ -26,8 +25,14 @@ import scala.concurrent.Future
   * skuber.api.client.RequestLoggingContext instance, which just adds a unique request id to the request/response logs.
   *
   * See the Skuber programming guide and examples for more information on how to use the API.
+  *
   */
-trait KubernetesClient {
+
+/**
+  * The base Kubernetes client supports those API operations that can be invoked independently of the concrete (akka or pekko)
+  * implementation of the client.
+  */
+trait BaseKubernetesClient {
 
   /**
     * Retrieve the object resource with the specified name and type
@@ -48,7 +53,7 @@ trait KubernetesClient {
   def getOption[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Option[O]]
 
   /**
-    * Retrieve the object resource with the specified name and type from the specified namespace
+    * Retrieve the object resource with the specified name and type from the specified namespace.
     *
     * @tparam O the specific object resource type e.g. Pod, Deployment
     * @param name      the name of the object resource
@@ -191,16 +196,17 @@ trait KubernetesClient {
   def getStatus[O <: ObjectResource](name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], statusEv: HasStatusSubresource[O], lc: LoggingContext): Future[O]
 
   /**
-   * Get the scale subresource of the named object resource
-   * This can only be called on certain resource types that support scale subresources.
-   * Normally used in advanced use cases such as custom controllers
-   * @param objName the name of the resource
-   * @param sc this implicit parameter provides evidence that the resource type supports scale subresources. Normally defined in the companion
-   * object of the resource type if applicable so does not need to be imported.
-   * @tparam O the type of the resource e.g. Pod
-   * @return a future containing the scale subresource
-   */
-  def getScale[O <: ObjectResource](objName: String)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext) : Future[Scale]
+    * Get the scale subresource of the named object resource
+    * This can only be called on certain resource types that support scale subresources.
+    * Normally used in advanced use cases such as custom controllers
+    *
+    * @param objName the name of the resource
+    * @param sc      this implicit parameter provides evidence that the resource type supports scale subresources. Normally defined in the companion
+    *                object of the resource type if applicable so does not need to be imported.
+    * @tparam O the type of the resource e.g. Pod
+    * @return a future containing the scale subresource
+    */
+  def getScale[O <: ObjectResource](objName: String)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale]
 
   /**
     * Update the scale subresource of a specified resource
@@ -208,20 +214,21 @@ trait KubernetesClient {
     * Normally used in advanced use cases such as custom controllers
     *
     * @param objName the name of the resource
-    * @param scale the updated scale to set on the resource
+    * @param scale   the updated scale to set on the resource
     * @tparam O the type of the resource
     * @param sc this implicit parameter provides evidence that the resource type supports scale subresources. Normally defined in the companion
-    * object of the resource type if applicable so does not need to be imported
+    *           object of the resource type if applicable so does not need to be imported
     * @return a future containing the successfully updated scale subresource
     */
   def updateScale[O <: ObjectResource](objName: String, scale: Scale)(implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale]
 
   /**
     * Patch a resource
-    * @param name The name of the resource to patch
+    *
+    * @param name      The name of the resource to patch
     * @param patchData The patch data to apply to the resource
     * @param namespace the namespace (defaults to currently configured namespace)
-    * @param patchfmt an implicit parameter that knows how to serialise the patch data to Json
+    * @param patchfmt  an implicit parameter that knows how to serialise the patch data to Json
     * @tparam P the patch type (specifies the patch strategy details)
     * @tparam O the type of the resource to be patched
     * @return a future containing the patched resource
@@ -231,19 +238,11 @@ trait KubernetesClient {
 
   /**
     * Return list of API versions supported by the server
+    *
     * @param lc logging context
     * @return a future containing the list of API versions
     */
   def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]]
-
-  /**
-    * Create a new KubernetesClient instance that reuses this clients configuration and connection resources, but with a different
-    * target namespace.
-    * This is useful for applications that need a lightweight way to target multiple or dynamic namespaces.
-    * @param newNamespace target namespace
-    * @return the new client instance
-    */
-  def usingNamespace(newNamespace: String): KubernetesClient
 
   /**
     * Closes the client. Any requests to the client after this is called will be rejected.
@@ -254,4 +253,61 @@ trait KubernetesClient {
   val logConfig: LoggingConfig // the logging configuration for client requests
   val clusterServer: String // the URL of the target Kubernetes API server
   val namespaceName: String // the name of the configured namespace for this client
+
+}
+
+/*
+ * Skuber V3 supports both Akka and Pekko based clients. In order for both implementations to share as much code and API as possible, some type parameters
+ * have been introduced that map to either Akka or Pekko Streams types in the concrete implementations:
+ *  SB: source of bytes - returned by getPodLogSource operation
+ *  SI - source of strings to pass to stdin for exec operation
+ *  SO - sink for stdout/stderr output to pass to exec operation
+ * This full client trait extends the base client with support for these generically typed streaming methods, and serves as the interface for the
+ * implementation of the concrete clients
+ */
+trait KubernetesClient[SB, SI, SO] extends BaseKubernetesClient {
+
+  /**
+    * Get the logs from a pod (similar to `kubectl logs ...`). The logs are streamed using an Akka streams source
+    *
+    * @param name        the name of the pod
+    * @param queryParams optional parameters of the request (for example container name)
+    * @param namespace   if set this specifies the namespace of the pod (otherwise the configured namespace is used)
+    * @return A future containing a Source for the logs stream.
+    */
+  def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(implicit lc: LoggingContext): Future[SB]
+
+  /**
+    * Execute a command in a pod (similar to `kubectl exec ...`)
+    *
+    * @param podName            the name of the pod
+    * @param command            the command to execute
+    * @param maybeContainerName an optional container name
+    * @param maybeStdin         optional Source for sending input to stdin for the command
+    * @param maybeStdout        optional Sink to receive output from stdout for the command
+    * @param maybeStderr        optional Sink to receive output from stderr for the command
+    * @param tty                optionally set tty on
+    * @param maybeClose         if set, this can be used to close the connection to the pod by completing the promise
+    * @return A future indicating the exec command has been submitted
+    */
+  def exec(
+    podName: String,
+    command: Seq[String],
+    maybeContainerName: Option[String] = None,
+    maybeStdin: Option[SI] = None,
+    maybeStdout: Option[SO] = None,
+    maybeStderr: Option[SO] = None,
+    tty: Boolean = false,
+    maybeClose: Option[Promise[Unit]] = None)(implicit lc: LoggingContext): Future[Unit]
+
+  /**
+    * A lightweight operation that creates a new client with the same configuration as this one, except
+    * it switches current namespace to the provided new one.
+    * This means all operations ient (except those that are at cluster scope or explicitly override the namespace)
+    * will be scoped to the new namespace.
+    * This provides a convenient way of traversing namespaces for any workflow that operates on multiple namespaces.
+    * @param newNamespace
+    * @return a client whose namespace scope is set to newNamespace
+    */
+  def usingNamespace(newNamespace: String): KubernetesClient[SB, SI, SO]
 }

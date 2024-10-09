@@ -98,18 +98,16 @@ class KubernetesProxyActor extends Actor with ActorLogging {
           // create a new watch on Kubernetes, and initialize the set of watchers on it
           
           log.debug(s"creating a watch on Kubernetes for controller '${rc.name}', watcher is ${watcher.path}")
-          val watchFut = k8s.watch(rc)
+          val watch = k8s.getWatcher[ReplicationController].watchObjectSinceVersion(rc.name, rc.resourceVersion)
           val watching = Set(watcher)
-          rcWatching += rc.name -> Watching(watchFut, watching)
+          rcWatching += rc.name -> Watching(watch, watching)
           
           // this sink simply sends any updated RC objects received via the watch
           // on to all watchers
           val rcUpdateSink = Sink.foreach[K8SWatchEvent[ReplicationController]] { rcUpdateEvent =>
             rcWatching.get(rc.name).foreach { _.watchers.foreach { _ ! rcUpdateEvent._object } }
           }
-          val run = watchFut map { watch =>
-            watch.runWith(rcUpdateSink)
-          }
+          watch.runWith(rcUpdateSink)
         }
       }
     }
@@ -133,4 +131,4 @@ class KubernetesProxyActor extends Actor with ActorLogging {
   }  
 }
 
-case class Watching(watch: Future[Source[K8SWatchEvent[ReplicationController], _]], watchers: Set[ActorRef])
+case class Watching(watch: Source[K8SWatchEvent[ReplicationController], _], watchers: Set[ActorRef])

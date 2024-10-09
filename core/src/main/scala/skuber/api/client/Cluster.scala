@@ -11,3 +11,4 @@ case class Cluster(
   insecureSkipTLSVerify: Boolean = false,
   certificateAuthority: Option[PathOrData] = None
 )
+

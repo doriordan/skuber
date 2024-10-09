@@ -1,19 +1,21 @@
 package skuber
 
 import scala.util.Try
-
 import akka.actor.ActorSystem
 import akka.NotUsed
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.model.{HttpCharsets, MediaType}
-import akka.stream.scaladsl.Flow
-
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.util.ByteString
 import com.typesafe.config.Config
-
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client.{Context, LoggingConfig, defaultAppConfig, defaultK8sConfig}
 
 package object akkaclient {
+
+  type AkkaSB = Source[ByteString, _]
+  type AkkaSI = Source[String, _]
+  type AkkaSO = Sink[String, _]
 
   object CustomMediaTypes {
     val `application/merge-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("merge-patch+json", HttpCharsets.`UTF-8`)
@@ -56,4 +58,5 @@ package object akkaclient {
       (implicit actorSystem: ActorSystem): AkkaKubernetesClient = {
     AkkaKubernetesClientImpl(k8sContext, logConfig, closeHook, appConfig)
   }
+
 }

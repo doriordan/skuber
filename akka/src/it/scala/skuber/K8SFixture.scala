@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import org.scalatest.FutureOutcome
 import com.typesafe.config.ConfigFactory
 import org.scalatest.flatspec.FixtureAsyncFlatSpec
-import skuber.akkaclient._
+import akkaclient._
 
 import scala.concurrent.ExecutionContext
 

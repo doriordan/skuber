@@ -9,6 +9,7 @@ import skuber.model.apps.v1.ReplicaSet
 import skuber.model.networking.Ingress
 import skuber.json.format._
 import skuber.json.networking.format._
+import skuber.pekkoclient.PekkoKubernetesClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -129,7 +130,7 @@ object NginxIngress extends App {
     (List(echoheadersX, echoheadersY), rset)
   }
 
-  def testIngress(ingress: Ingress)(implicit k8s: KubernetesClient, ec: scala.concurrent.ExecutionContext) = {
+  def testIngress(ingress: Ingress)(implicit k8s: PekkoKubernetesClient, ec: scala.concurrent.ExecutionContext) = {
     // we test the ingress simply by sending a GET with an appropriate Host header
 
     // for this simple use case we leverage the built in Java URL / HTTP support, iwth code brutally
@@ -236,7 +237,7 @@ object NginxIngress extends App {
     implicit val system: ActorSystem = ActorSystem()
     implicit val dispatcher: ExecutionContext = system.dispatcher
 
-    implicit val k8s: KubernetesClient = skuber.pekkoclient.k8sInit
+    implicit val k8s: PekkoKubernetesClient = skuber.pekkoclient.k8sInit
 
     // build the resources
     val be = buildDefaultBackendService
