@@ -52,8 +52,8 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.12.17", "2.13.10"),
-  scalaVersion := "2.13.10",
+  crossScalaVersions := Seq("2.12.17", "2.13.16"),
+  scalaVersion := "2.13.16",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
