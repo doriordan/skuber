@@ -39,6 +39,7 @@ object Pod {
     imagePullSecrets: List[LocalObjectReference] = List(),
     affinity: Option[Affinity] = None,
     tolerations: List[Toleration] = List(),
+    topologySpreadConstraints: List[TopologySpreadConstraints] = List(),
     securityContext: Option[PodSecurityContext] = None,
     hostname: Option[String] = None,
     hostAliases: List[HostAlias] = Nil,
@@ -152,6 +153,12 @@ object Pod {
   case class HostAlias(ip: String, hostnames: List[String])
   case class DNSConfigOption(name: String, value: String)
   case class DNSConfig(nameservers: List[String] = Nil, options: List[DNSConfigOption] = Nil, searches: List[String] = Nil)
+
+  case class TopologySpreadConstraints(
+    maxSkew: Int,
+    topologyKey: String,
+    whenUnsatisfiable: String,
+    labelSelector: Option[LabelSelector] = None)
 
   case class Status(
     phase: Option[Phase.Phase] = None,

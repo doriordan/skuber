@@ -6,10 +6,13 @@ import java.time.format._
 import org.apache.commons.codec.binary.Base64
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
 import skuber.model._
 import Volume.{ConfigMapVolumeSource, KeyToPath}
 import play.api.libs.functional.FunctionalBuilder
 import skuber.api.client.{DeleteOptions, DeletePropagation, Preconditions}
+
+import skuber.model.Pod.TopologySpreadConstraints
 import skuber.api.patch.{JsonPatch, JsonPatchOperation, MetadataPatch}
 
 /**
@@ -260,6 +263,16 @@ package object format {
   implicit val secSysctlFormat: Format[Security.Sysctl] = Json.format[Security.Sysctl]
 
   implicit val secCtxtFormat: Format[SecurityContext] = Json.format[SecurityContext]
+
+  implicit val labelSelectorForrmat: Format[LabelSelector] = (
+    (JsPath \ "matchLabels").formatNullable[Map[String, String]] and
+    (JsPath \ "matchExpressions").formatNullable[List[SelMatchExpression]]
+    )(OnTheWireSelector.apply _, (o: OnTheWireSelector) => (o.matchLabels, o.matchExpressions)).inmap[LabelSelector](
+    otwSelectorToLabelSelector,
+    labelSelToOtwSelector
+  )
+
+  implicit val topologySpreadConstraintsFormat: Format[TopologySpreadConstraints] = Json.format[TopologySpreadConstraints]
 
   implicit val podSecCtxtFormat: Format[PodSecurityContext] = (
     (JsPath \ "fsGroup").formatNullable[Int] and
@@ -814,7 +827,7 @@ package object format {
   // which has finally necessitated a hack to get around Play Json limitations supporting case classes with > 22 members
   // (see e.g. https://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5)
 
-  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], RestartPolicy.Value, Option[Int], Option[Int], DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], Option[PodSecurityContext])] = (
+  val podSpecPartOneFormat: OFormat[(List[Container], List[Container], List[Volume], RestartPolicy.Value, Option[Int], Option[Int], DNSPolicy.Value, Map[String, String], String, String, Boolean, List[LocalObjectReference], Option[Pod.Affinity], List[Pod.Toleration], List[TopologySpreadConstraints], Option[PodSecurityContext])] = (
       (JsPath \ "containers").format[List[Container]] and
       (JsPath \ "initContainers").formatMaybeEmptyList[Container] and
       (JsPath \ "volumes").formatMaybeEmptyList[Volume] and
@@ -829,6 +842,7 @@ package object format {
       (JsPath \ "imagePullSecrets").formatMaybeEmptyList[LocalObjectReference] and
       (JsPath \ "affinity").formatNullable[Pod.Affinity] and
       (JsPath \ "tolerations").formatMaybeEmptyList[Pod.Toleration] and
+      (JsPath \ "topologySpreadConstraints").formatMaybeEmptyList[TopologySpreadConstraints] and
       (JsPath \ "securityContext").formatNullable[PodSecurityContext]
      ).tupled
 
@@ -847,13 +861,13 @@ package object format {
   ).tupled
 
   def fromTuples(
-    partOne: (scala.List[Container], scala.List[Container], scala.List[Volume], RestartPolicy.Value, Option[Int], Option[Int], DNSPolicy.Value, Map[String, String], String, String, Boolean, scala.List[LocalObjectReference], Option[Pod.Affinity], scala.List[Pod.Toleration], Option[PodSecurityContext]),
+    partOne: (scala.List[Container], scala.List[Container], scala.List[Volume], RestartPolicy.Value, Option[Int], Option[Int], DNSPolicy.Value, Map[String, String], String, String, Boolean, scala.List[LocalObjectReference], Option[Pod.Affinity], scala.List[Pod.Toleration], List[TopologySpreadConstraints], Option[PodSecurityContext]),
     partTwo: (Option[String], scala.List[Pod.HostAlias], Option[Boolean], Option[Boolean], Option[Boolean], Option[Int], Option[String], Option[String], Option[String], Option[Pod.DNSConfig], Option[Boolean])
   ): Pod.Spec = {
-    val (conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc) = partOne
+    val (conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, tsc, psc) = partOne
     val (host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc, spn) = partTwo
 
-    Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, psc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc, spn)
+    Pod.Spec(conts, initConts, vols, rpol, tgps, adls, dnspol, nodesel, svcac, node, hnet, ips, aff, tol, tsc, psc, host, aliases, pid, ipc, asat, prio, prioc, sched, subd, dnsc, spn)
   }
 
   implicit val podSpecFmt: Format[Pod.Spec] = (
@@ -875,6 +889,7 @@ package object format {
         s.imagePullSecrets,
         s.affinity,
         s.tolerations,
+        s.topologySpreadConstraints,
         s.securityContext
       ),
       ( s.hostname,

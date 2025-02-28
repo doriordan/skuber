@@ -41,7 +41,6 @@ private[akkaclient] object WatchSource {
         val req = client.buildRequest(
           HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap)),  overrideNamespace, overrideClusterScope
         )
-        System.out.println(s"WATCHING $req")
         req
       }
 
