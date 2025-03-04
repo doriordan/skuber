@@ -24,7 +24,7 @@ class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAf
     super.beforeAll()
 
     val k8s = k8sInit
-    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
+    Await.result(k8s.create(getNginxPod(nginxPodName, "1.27.2")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
     k8s.close()

@@ -22,8 +22,8 @@ class WatchSpec extends K8SFixture with Eventually with Matchers with ScalaFutur
 
     val deploymentOneName = java.util.UUID.randomUUID().toString
     val deploymentTwoName = java.util.UUID.randomUUID().toString
-    val deploymentOne = getNginxDeployment(deploymentOneName, "1.7.9")
-    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.7.9")
+    val deploymentOne = getNginxDeployment(deploymentOneName, "1.27.2")
+    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.27.2")
 
     val stream = k8s.list[DeploymentList]().map { l =>
       val eventSource = k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
@@ -82,8 +82,8 @@ class WatchSpec extends K8SFixture with Eventually with Matchers with ScalaFutur
 
     val deploymentOneName = java.util.UUID.randomUUID().toString
     val deploymentTwoName = java.util.UUID.randomUUID().toString
-    val deploymentOne = getNginxDeployment(deploymentOneName, "1.7.9")
-    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.7.9")
+    val deploymentOne = getNginxDeployment(deploymentOneName, "1.27.2")
+    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.27.2")
 
     val stream = k8s.list[DeploymentList]().map { l =>
       val eventSource = k8s.getWatcher[Deployment].watchClusterSinceVersion(l.resourceVersion)
@@ -141,7 +141,7 @@ class WatchSpec extends K8SFixture with Eventually with Matchers with ScalaFutur
     import skuber.api.client.EventType
 
     val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+    val deployment = getNginxDeployment(deploymentName, "1.27.2")
 
     k8s.create(deployment).futureValue.name shouldBe deploymentName
     eventually {
@@ -184,7 +184,7 @@ class WatchSpec extends K8SFixture with Eventually with Matchers with ScalaFutur
     import skuber.api.client.EventType
 
     val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+    val deployment = getNginxDeployment(deploymentName, "1.27.2")
 
     k8s.create(deployment).futureValue.name shouldBe deploymentName
     eventually {

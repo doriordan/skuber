@@ -19,7 +19,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
   behavior of "Deployment"
 
   it should "create a deployment" in { k8s =>
-    k8s.create(getNginxDeployment(nginxDeploymentName, "1.7.9")) map { d =>
+    k8s.create(getNginxDeployment(nginxDeploymentName, "1.27.1")) map { d =>
       assert(d.name == nginxDeploymentName)
     }
   }
@@ -32,7 +32,7 @@ class DeploymentSpec extends K8SFixture with Eventually with Matchers {
 
   it should "upgrade the newly created deployment" in { k8s =>
     k8s.get[Deployment](nginxDeploymentName).flatMap { d =>
-      val updatedDeployment = d.updateContainer(getNginxContainer("1.9.1"))
+      val updatedDeployment = d.updateContainer(getNginxContainer("1.27.2"))
       k8s.update(updatedDeployment).flatMap { _ =>
         eventually(timeout(200.seconds), interval(5.seconds)) {
           val retrieveDeployment=k8s.get[Deployment](nginxDeploymentName)

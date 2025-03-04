@@ -25,7 +25,7 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
   behavior of "Pod"
 
   it should "create a pod" in { k8s =>
-    k8s.create(getNginxPod(nginxPodName, "1.7.9")) map { p =>
+    k8s.create(getNginxPod(nginxPodName, "1.27.2")) map { p =>
       assert(p.name == nginxPodName)
     }
   }
@@ -81,8 +81,8 @@ class PodSpec extends K8SFixture with Eventually with Matchers with BeforeAndAft
 
   it should "delete selected pods" in { k8s =>
     for {
-      _ <- k8s.create(getNginxPod(nginxPodName + "-foo", "1.7.9", labels = Map("foo" -> "1")))
-      _ <- k8s.create(getNginxPod(nginxPodName + "-bar", "1.7.9", labels = Map("bar" -> "2")))
+      _ <- k8s.create(getNginxPod(nginxPodName + "-foo", "1.27.2", labels = Map("foo" -> "1")))
+      _ <- k8s.create(getNginxPod(nginxPodName + "-bar", "1.27.2", labels = Map("bar" -> "2")))
       _ <- k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo")))
     } yield eventually(timeout(100.seconds), interval(3.seconds)) {
       val retrievePods = k8s.list[PodList]()

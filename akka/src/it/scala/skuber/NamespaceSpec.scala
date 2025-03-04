@@ -102,7 +102,7 @@ class NamespaceSpec extends K8SFixture with Eventually with Matchers {
     Container(name = "nginx", image = "nginx:" + version)
       .exposePort(port = 80)
 
-  def getNginxPod(namespace: String, name: String, version: String = "1.7.8"): Pod = {
+  def getNginxPod(namespace: String, name: String, version: String = "1.27.2"): Pod = {
     val nginxContainer = getNginxContainer(version)
     val nginxPodSpec   = Pod.Spec(containers=List(nginxContainer))
     val podMeta        = ObjectMeta(namespace=namespace, name = name)

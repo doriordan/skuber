@@ -24,7 +24,7 @@ class HorizontalPodAutoscalerSpec extends K8SFixture with Eventually with Matche
         .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80)))
         .withPodTypeScaleUpPolicy(2, 20, selectPolicy = Some("Min"), stabilizationWindowSeconds = Some(400))
         .withPercentTypeScaleDownPolicy(10, 30, selectPolicy = Some("Max"), stabilizationWindowSeconds = Some(0))
-    k8s.create(getNginxDeployment(name, "1.7.9")).flatMap { d =>
+    k8s.create(getNginxDeployment(name, "1.27.2")).flatMap { d =>
       k8s.create(HorizontalPodAutoscaler(name).withSpec(spec))
     }.map { result =>
         assert(result.name == name)
@@ -34,7 +34,7 @@ class HorizontalPodAutoscalerSpec extends K8SFixture with Eventually with Matche
 
   it should "update a HorizontalPodAutoscaler" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
+    k8s.create(getNginxDeployment(name, "1.27.2")) flatMap { d =>
       k8s.create(
         HorizontalPodAutoscaler(name).withSpec(
           HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", name)
@@ -67,7 +67,7 @@ class HorizontalPodAutoscalerSpec extends K8SFixture with Eventually with Matche
 
   it should "delete a HorizontalPodAutoscaler" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
+    k8s.create(getNginxDeployment(name, "1.27.2")) flatMap { d =>
       k8s.create(
         HorizontalPodAutoscaler(name).withSpec(
           HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", "nginx")
