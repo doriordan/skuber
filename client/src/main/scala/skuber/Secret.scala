@@ -11,6 +11,7 @@ case class Secret(
     apiVersion: String = v1,
     metadata: ObjectMeta,
     data: Map[String, Array[Byte]] = Map(),
+    immutable: Boolean = false,
     `type`: String = "")
   extends ObjectResource
 {
