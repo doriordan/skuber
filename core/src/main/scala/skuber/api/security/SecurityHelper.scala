@@ -49,7 +49,8 @@ object SecurityHelper {
    * Create a new trust store that trusts the specified Kubernetes API server certificates
    */
   def createTrustStore(apiServerCerts: List[X509Certificate]) : KeyStore = {
-    val trustStore = KeyStore.getInstance("JKS")
+    // Try BCFKS first (FIPS-compliant), fallback to JKS
+    val trustStore = Try(KeyStore.getInstance("BCFKS")).getOrElse(KeyStore.getInstance("JKS"))
     trustStore.load(null) // create an empty trust store
     apiServerCerts.foldLeft(trustStore){ (trustStore, apiServerCert) =>
       val alias = apiServerCert.getSubjectX500Principal.getName
@@ -62,7 +63,7 @@ object SecurityHelper {
    * Create a new Java keystore from client certificates and associated private key, with an optional password
    */
   def createKeyStore(user: String, clientCertificates: List[X509Certificate], clientPrivateKey: PrivateKey, password: Option[String] = None) : KeyStore = {
-    val keyStore = KeyStore.getInstance("JKS")
+    val keyStore = Try(KeyStore.getInstance("BCFKS")).getOrElse(KeyStore.getInstance("JKS"))
     val keyStorePassword = password.orElse(Some("changeit")).get.toCharArray
     keyStore.load(null, keyStorePassword)
     keyStore.setKeyEntry(user, clientPrivateKey, keyStorePassword, clientCertificates.toArray)
