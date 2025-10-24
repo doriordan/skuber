@@ -37,6 +37,10 @@ ThisBuild / scmInfo := Some(
 
 ThisBuild / developers := List(Developer(id="doriordan", name="David ORiordan", email="doriordan@gmail.com", url=url("https://github.com/doriordan")))
 
+Global / concurrentRestrictions := Seq(
+  Tags.limit(Tags.Test, 1) // required for integration tests as they can interfere with each other
+)
+
 lazy val commonSettings = Seq(
   organization := "io.skuber",
   crossScalaVersions := Seq("2.13.12", "3.3.1"),
@@ -56,12 +60,11 @@ lazy val skuberSettings = Seq(
 )
 
 lazy val core = (project in file("core"))
-  .configs(IntegrationTest)
   .settings(
     name := "skuber-core",
     commonSettings,
     skuberSettings,
-    libraryDependencies ++= Seq(typesafeConfig, scalaTest % "it")
+    libraryDependencies ++= Seq(typesafeConfig, scalaTest % Test)
   )
 
 // Skuber Pekko client - concrete Kubernetes Scala client implementation based on Pekko HTTP and Pekko Streams
@@ -79,14 +82,12 @@ val pekkoStreamTestkit = pekkoGroup %% "pekko-stream-testkit" % pekkoVersion
 val pekkoActors = pekkoGroup %% "pekko-actor" % pekkoVersion
 
 lazy val pekkoClientDependencies = Seq(pekkoActors, pekkoHttp, pekkoStream, pekkoSlf4j, logback, pekkoStreamTestkit,
-                                       scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % "it, test")
+                                       scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test)
 
 lazy val pekko = (project in file("pekko"))
-    .configs(IntegrationTest)
     .settings(name := "skuber-pekko")
     .settings(
       commonSettings,
-      Defaults.itSettings,
       libraryDependencies ++= pekkoClientDependencies
     )
     .dependsOn(core)
@@ -106,17 +107,26 @@ val akkaBSLStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaBS
 val akkaBSLActors = "com.typesafe.akka" %% "akka-actor" % akkaBSLVersion
 
 lazy val akkaBSLClientDependencies = Seq(akkaBSLActors, akkaBSLHttp, akkaBSLStream, akkaBSLSlf4j, logback, akkaBSLStreamTestKit,
-  scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % "it, test")
+  scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test)
 
 lazy val akka = (project in file("akka"))
-    .configs(IntegrationTest)
     .settings(
       name := "skuber-akka-bsl",
       commonSettings,
-      Defaults.itSettings,
       libraryDependencies ++= akkaBSLClientDependencies
     )
     .dependsOn(core)
+
+lazy val integration = (project in file("integration"))
+  .settings(
+    publish / skip := true,
+    commonSettings,
+    libraryDependencies ++= Seq(scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test, scalaTest % Test),
+    Test / fork := false
+  )
+  .dependsOn(core)
+  .dependsOn(pekko)  // Always include both clients - there are separate instances of each integration test for each client
+  .dependsOn(akka)
 
 // Examples project
 lazy val examplesSettings = Seq(
@@ -141,7 +151,7 @@ lazy val root = (project in file("."))
       publish / skip := true,
       commonSettings
     )
-    .aggregate(core, akka, pekko, examples)
+    .aggregate(core, akka, pekko, integration, examples)
 
 root / publishArtifact := false
 

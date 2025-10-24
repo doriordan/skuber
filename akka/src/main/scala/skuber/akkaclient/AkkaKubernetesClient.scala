@@ -5,7 +5,7 @@ import skuber.api.client.{KubernetesClient, WatchEvent, Watcher}
 import skuber.model.ObjectResource
 
 /**
-  * These traits extend the generic KubernetesClient trait with the Akka streams Akka streams specific support for streaming
+  * These traits extend the generic KubernetesClient trait with the Akka streams specific support for streaming
   * operations of the API (executing commands, streaming pod logs, and watching for events).
   */
 trait AkkaKubernetesClient extends KubernetesClient[AkkaSB, AkkaSI, AkkaSO] {
