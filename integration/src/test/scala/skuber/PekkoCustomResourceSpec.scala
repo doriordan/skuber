@@ -3,9 +3,10 @@ package skuber
 import org.apache.pekko
 import org.apache.pekko.stream._
 import org.apache.pekko.stream.scaladsl._
+import skuber.model.apiextensions.v1.CustomResourceDefinition
 import skuber.pekkoclient.PekkoKubernetesClient
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 
@@ -16,6 +17,7 @@ import scala.concurrent.duration._
 class PekkoCustomResourceSpec extends CustomResourceSpec with PekkoK8SFixture {
 
     it should "watch the custom resources" in { k8s =>
+
       import TestResource.testResourceDefinition
       import skuber.api.client.{EventType, WatchEvent}
 
@@ -42,14 +44,18 @@ class PekkoCustomResourceSpec extends CustomResourceSpec with PekkoK8SFixture {
             .toMat(trackEvents)(Keep.both).run()
       }
 
+      def createCRD() = k8s.create(TestResource.crd)
       def createTestResource()= k8s.create(testResource)
       def deleteTestResource()= k8s.delete[TestResource](testResourceName)
+      def deleteCRD()= k8s.delete[CustomResourceDefinition](TestResource.crd.name)
 
       val killSwitchFut: Future[UniqueKillSwitch] = for {
+        _ <- createCRD()
         currentTestResourceVersion <- getCurrentResourceVersion
         (kill, _) = watchAndTrackEvents(currentTestResourceVersion)
         _  <- createTestResource()
         _ <- deleteTestResource()
+        _ <- deleteCRD()
       } yield kill
 
       eventually(timeout(200.seconds), interval(3.seconds)) {

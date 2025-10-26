@@ -19,8 +19,8 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
 
     val deploymentOneName = java.util.UUID.randomUUID().toString
     val deploymentTwoName = java.util.UUID.randomUUID().toString
-    val deploymentOne = getNginxDeployment(deploymentOneName, "1.27.2")
-    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.27.2")
+    val deploymentOne = getNginxDeploymentForWatch(deploymentOneName)
+    val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
     val stream = k8s.list[DeploymentList]().map { l =>
       val akkaK8s = k8s.asInstanceOf[AkkaKubernetesClient]
@@ -80,8 +80,8 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
 
     val deploymentOneName = java.util.UUID.randomUUID().toString
     val deploymentTwoName = java.util.UUID.randomUUID().toString
-    val deploymentOne = getNginxDeployment(deploymentOneName, "1.27.2")
-    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.27.2")
+    val deploymentOne = getNginxDeploymentForWatch(deploymentOneName)
+    val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
     val stream = k8s.list[DeploymentList]().map { l =>
       val akkaK8s = k8s.asInstanceOf[AkkaKubernetesClient]
@@ -140,7 +140,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
     import skuber.api.client.EventType
 
     val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.27.2")
+    val deployment = getNginxDeploymentForWatch(deploymentName)
 
     k8s.create(deployment).futureValue.name shouldBe deploymentName
     eventually {
@@ -183,7 +183,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
     import skuber.api.client.EventType
 
     val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.27.2")
+    val deployment = getNginxDeploymentForWatch(deploymentName)
 
     k8s.create(deployment).futureValue.name shouldBe deploymentName
     eventually {

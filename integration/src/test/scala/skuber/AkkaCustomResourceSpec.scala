@@ -3,6 +3,7 @@ package skuber
 import akka.stream._
 import akka.stream.scaladsl._
 import skuber.akkaclient.AkkaKubernetesClient
+import skuber.model.apiextensions.v1.CustomResourceDefinition
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -25,6 +26,7 @@ class AkkaCustomResourceSpec extends CustomResourceSpec with AkkaK8SFixture  {
       def getCurrentResourceVersion: Future[String] = k8s.list[TestResourceList]().map { l =>
         l.resourceVersion
       }
+
       def watchAndTrackEvents(sinceVersion: String) =
       {
         val akkaK8s = k8s.asInstanceOf[AkkaKubernetesClient]
@@ -33,14 +35,20 @@ class AkkaCustomResourceSpec extends CustomResourceSpec with AkkaK8SFixture  {
             .viaMat(KillSwitches.single)(Keep.right)
             .toMat(trackEvents)(Keep.both).run()
       }
+
+
+      def createCRD() = k8s.create(TestResource.crd)
       def createTestResource()= k8s.create(testResource)
       def deleteTestResource()= k8s.delete[TestResource](testResourceName)
+      def deleteCRD()= k8s.delete[CustomResourceDefinition](TestResource.crd.name)
 
       val killSwitchFut = for {
+        _ <- createCRD()
         currentTestResourceVersion <- getCurrentResourceVersion
         (kill, _) = watchAndTrackEvents(currentTestResourceVersion)
         _ <- createTestResource()
         _ <- deleteTestResource()
+        _ <- deleteCRD()
       } yield kill
 
       eventually(timeout(200.seconds), interval(3.seconds)) {

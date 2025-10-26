@@ -18,6 +18,11 @@ import scala.util.{Failure, Success}
  */
 abstract class NamespaceSpec extends K8SFixture[_, _, _] with Eventually with Matchers {
 
+  object NotYetDeleted extends RuntimeException
+
+  val t = timeout(2400.seconds)
+  val i = interval(2.seconds)
+
   val nginxPodName1: String = randomUUID().toString
   val nginxPodName2: String = randomUUID().toString
 
@@ -25,8 +30,8 @@ abstract class NamespaceSpec extends K8SFixture[_, _, _] with Eventually with Ma
   val namespace2Name: String = "namespace2"
   val testNamespaces = List(namespace1Name, namespace2Name)
 
-  val pod1: Pod = getNginxPod(namespace1Name, nginxPodName1)
-  val pod2: Pod = getNginxPod(namespace2Name, nginxPodName2)
+  val pod1: Pod = getNginxPodWithNamespace(namespace1Name, nginxPodName1)
+  val pod2: Pod = getNginxPodWithNamespace(namespace2Name, nginxPodName2)
 
   behavior of "Namespace"
 
@@ -46,7 +51,7 @@ abstract class NamespaceSpec extends K8SFixture[_, _, _] with Eventually with Ma
         }
   }
 
-  it should "honor namespace precedence hierarchy: object > client" in { k8s =>
+  it should "honor namespace precedence hierarchy: object > client when creating pod2 in namespace2" in { k8s =>
     k8s.usingNamespace(namespace1Name).create(pod2).map { p =>
       assert(p.name == nginxPodName2)
       assert(p.metadata.namespace == namespace2Name)
@@ -63,10 +68,10 @@ abstract class NamespaceSpec extends K8SFixture[_, _, _] with Eventually with Ma
     val retrievePod = k8s.get[Pod](nginxPodName1)
     val podRetrieved = Await.ready(retrievePod, 2.seconds).value.get
     podRetrieved match {
-      case s: Success[_] => assert(false)
+      case s: Success[_] => assert(condition=false)
       case Failure(ex) => ex match {
-        case ex: K8SException if ex.status.code.contains(404) => assert(true)
-        case _ => assert(false)
+        case ex: K8SException if ex.status.code.contains(404) => assert(condition=true)
+        case _ => assert(condition=false)
       }
     }
   }
@@ -77,43 +82,64 @@ abstract class NamespaceSpec extends K8SFixture[_, _, _] with Eventually with Ma
     }
   }
 
-  it should "delete all test namespaces" in { k8s =>
-    object NotYetDeleted extends RuntimeException
 
-    System.out.println("STARTING...")
-    val t = timeout(100.seconds)
-    val i = interval(2.seconds)
-    // Delete namespaces
+  it should "delete pod1 in namespace1" in { k8s =>
+    Await.result(k8s.usingNamespace(namespace1Name).delete[Pod](pod1.name), 2.seconds)
+    // validate pod goes away eventually
+    eventually(t, i) {
+      val gone = k8s.usingNamespace(namespace1Name).get[Pod](pod1.name)
+      val goneResult = Await.ready(gone, 2.seconds).value.get
+      goneResult match {
+        case Failure(ex) => ex match {
+          case k: K8SException if k.status.code.contains(404) =>
+          case _ =>
+            throw NotYetDeleted
+        }
+        case _ =>
+          throw NotYetDeleted
+      }
+    }
+    assert(condition = true)
+  }
+
+
+  it should "delete pod2 in namespace2" in { k8s =>
+    Await.result(k8s.usingNamespace(namespace2Name).delete[Pod](pod2.name), 2.seconds)
+    // validate pod goes away eventually
+    eventually(t, i) {
+      val gone = k8s.usingNamespace(namespace2Name).get[Pod](pod2.name)
+      val goneResult = Await.ready(gone, 2.seconds).value.get
+      goneResult match {
+        case Failure(ex) => ex match {
+          case k: K8SException if k.status.code.contains(404) =>
+          case _ =>
+            throw NotYetDeleted
+        }
+        case _ =>
+          throw NotYetDeleted
+      }
+    }
+    assert(condition = true)
+  }
+
+  it should "delete all test namespaces" in { k8s =>
     testNamespaces.foreach { ns =>
       Await.result(k8s.delete[Namespace](ns), 2.seconds)
+      // validate namespace goes away eventually
       eventually(t, i) {
         val gone = k8s.get[Namespace](ns)
         val goneResult = Await.ready(gone, 2.seconds).value.get
         goneResult match {
           case Failure(ex) => ex match {
             case k: K8SException if k.status.code.contains(404) =>
-              System.err.println("Got 404 for " + ns)
             case _ =>
-              System.err.println("Got unexpected exception for" + ns + ": " + ex.toString)
               throw NotYetDeleted
           }
           case _ =>
-            System.err.println("Got success (still exists) for" + ns)
             throw NotYetDeleted
         }
       }
     }
     assert(condition = true)
-  }
-
-  def getNginxContainer(version: String): Container =
-    Container(name = "nginx", image = "nginx:" + version)
-      .exposePort(port = 80)
-
-  def getNginxPod(namespace: String, name: String, version: String = "1.7.8"): Pod = {
-    val nginxContainer = getNginxContainer(version)
-    val nginxPodSpec   = Pod.Spec(containers=List(nginxContainer))
-    val podMeta        = ObjectMeta(namespace=namespace, name = name)
-    model.Pod(metadata=podMeta, spec=Some(nginxPodSpec))
   }
 }

@@ -21,8 +21,8 @@ abstract class PodLogSpec extends K8SFixture[_, _, _] with Eventually with Match
   override def beforeAll(): Unit = {
     super.beforeAll()
 
-    val k8s = k8sInit(config)
-    Await.result(k8s.create(getNginxPod(podName, "1.27.2")), 3.second)
+    val k8s = createK8sClient(config)
+    Await.result(k8s.create(getNginxPodWithLogs(podName, "1.29.2")), 3.second)
     // Let the pod running
     Thread.sleep(3000)
     k8s.close()
@@ -37,14 +37,14 @@ abstract class PodLogSpec extends K8SFixture[_, _, _] with Eventually with Match
     super.afterAll()
   }
 
-  def getNginxContainer(version: String): Container = Container(
-    name = "ubuntu", image = "nginx:" + version,
+  def getNginxContainerWithLogs(version: String): Container = Container(
+    name = "nginx", image = "nginx:" + version,
     command = List("sh"),
     args = List("-c", s"""echo "foo"; trap exit TERM; sleep infinity & wait""")
   )
 
-  def getNginxPod(name: String, version: String): Pod = {
-    val container = getNginxContainer(version)
+  def getNginxPodWithLogs(name: String, version: String): Pod = {
+    val container = getNginxContainerWithLogs(version)
     val podSpec = Pod.Spec(containers = List((container)))
     Pod.named(podName).copy(spec = Some(podSpec))
   }

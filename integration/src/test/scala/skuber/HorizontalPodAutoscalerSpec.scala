@@ -9,7 +9,10 @@ import skuber.model.autoscaling.v2.HorizontalPodAutoscaler
 import skuber.model.autoscaling.v2.HorizontalPodAutoscaler.{ResourceMetricSource, UtilizationTarget}
 import skuber.model.{Container, LabelSelector, Pod, Resource}
 
+import scala.concurrent.Await
+import scala.concurrent.duration.DurationInt
 import scala.language.{postfixOps, reflectiveCalls}
+import scala.util.Success
 
 /**
  * Shared integration tests for HorizontalPodAutoscaler operations that work with both Akka and Pekko clients.
@@ -18,60 +21,68 @@ import scala.language.{postfixOps, reflectiveCalls}
 abstract class HorizontalPodAutoscalerSpec extends K8SFixture[_, _, _] with Eventually with Matchers {
   behavior of "HorizontalPodAutoscalerV2"
 
+  val hpaName = java.util.UUID.randomUUID().toString
   it should "create a HorizontalPodAutoscaler" in { k8s =>
-    val name: String = java.util.UUID.randomUUID().toString
-    val spec = HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", name)
+    val spec = HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", hpaName)
         .withMinReplicas(1)
         .withMaxReplicas(2)
         .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80)))
         .withPodTypeScaleUpPolicy(2, 20, selectPolicy = Some("Min"), stabilizationWindowSeconds = Some(400))
         .withPercentTypeScaleDownPolicy(10, 30, selectPolicy = Some("Max"), stabilizationWindowSeconds = Some(0))
-    k8s.create(getNginxDeployment(name, "1.27.2")).flatMap { d =>
-      k8s.create(HorizontalPodAutoscaler(name).withSpec(spec))
-    }.map { result =>
-        assert(result.name == name)
-        assert(result.spec.contains(spec))
-      }
-    }
+    val hpas = for {
+      _ <- k8s.create(getNginxDeployment(name = hpaName, version = "1.27.2"))
+      hpa <- k8s.create(HorizontalPodAutoscaler(name = hpaName).withSpec(spec))
+      _ = assert(hpa.name == hpaName)
+      _ = assert(hpa.spec.contains(spec))
+    } yield hpa
+    Await.ready(hpas, 2.seconds)
+    val cleanup = for {
+      _ <- k8s.delete[Deployment](hpaName)
+      deleted <- k8s.delete[HorizontalPodAutoscaler](hpaName)
+    } yield deleted
+    Await.ready(cleanup, 2.seconds)
+    assert(condition = true)
+  }
 
   it should "update a HorizontalPodAutoscaler" in { k8s =>
-    val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.27.2")) flatMap { d =>
-      k8s.create(
-        HorizontalPodAutoscaler(name).withSpec(
-          HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", name)
-            .withMinReplicas(1)
-            .withMaxReplicas(2)
-            .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80)))
-        )
-      ).flatMap(created =>
-        eventually(
-          k8s.get[HorizontalPodAutoscaler](created.name).flatMap { existing =>
-            val updated = existing.withSpec(HorizontalPodAutoscaler.Spec("v1", "Deployment", "nginx")
+    val hpaName: String = java.util.UUID.randomUUID().toString
+    val hpaSpec = HorizontalPodAutoscaler(hpaName).withSpec(
+      HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", hpaName)
+          .withMinReplicas(1)
+          .withMaxReplicas(2)
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80))))
+    val creating = for {
+      _ <- k8s.create(getNginxDeployment(name = hpaName, version = "1.27.2"))
+      hpa <- k8s.create[HorizontalPodAutoscaler](hpaSpec)
+    } yield hpa
+    val created = Await.result(creating, 2.seconds)
+    k8s.get[HorizontalPodAutoscaler](created.name).flatMap { existing =>
+      val updated = existing.withSpec(HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", hpaName)
+          .withMinReplicas(1)
+          .withMaxReplicas(3)
+          .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80))))
+
+      k8s.update(updated).map { result =>
+        // first cleanup
+        k8s.delete[HorizontalPodAutoscaler](hpaName)
+        k8s.delete[Deployment](hpaName)
+        // now validate update
+        assert(result.name == hpaName)
+        assert(result.spec.contains(
+          HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", hpaName)
               .withMinReplicas(1)
               .withMaxReplicas(3)
-              .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80))))
-
-            k8s.update(updated).map { result =>
-              assert(result.name == name)
-              assert(result.spec.contains(
-                HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", name)
-                  .withMinReplicas(1)
-                  .withMaxReplicas(3)
-                  .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80)))
-              ))
-            }
-          }
-        )
-      )
+              .addResourceMetric(ResourceMetricSource(Resource.cpu, UtilizationTarget(80)))
+        ))
+      }
     }
   }
 
   it should "delete a HorizontalPodAutoscaler" in { k8s =>
-    val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.27.2")) flatMap { d =>
+    val hpaName: String = java.util.UUID.randomUUID().toString
+    k8s.create(getNginxDeployment(hpaName, "1.27.2")) flatMap { _ =>
       k8s.create(
-        HorizontalPodAutoscaler(name).withSpec(
+        HorizontalPodAutoscaler(hpaName).withSpec(
           HorizontalPodAutoscaler.Spec("apps/v1", "Deployment", "nginx")
             .withMinReplicas(1)
             .withMaxReplicas(2)
@@ -82,11 +93,15 @@ abstract class HorizontalPodAutoscalerSpec extends K8SFixture[_, _, _] with Even
           k8s.get[HorizontalPodAutoscaler](created.name).map { x =>
             assert(false)
           } recoverWith {
-            case ex: K8SException if ex.status.code.contains(404) => assert(true)
+            case ex: K8SException if ex.status.code.contains(404) =>
+              assert(true)
             case _ => assert(false)
           }
         }
       }
+    } map { _ =>
+      k8s.delete[Deployment](hpaName)
+      assert (condition = true)
     }
   }
 

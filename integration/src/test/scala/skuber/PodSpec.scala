@@ -38,7 +38,7 @@ abstract class PodSpec extends K8SFixture[_, _, _] with Eventually with Matchers
   behavior of "Pod"
 
   it should "create a pod" in { k8s =>
-    k8s.create(getNginxPod(nginxPodName, "1.7.9")) map { p =>
+    k8s.create(getNginxPod(name = nginxPodName)) map { p =>
       assert(p.name == nginxPodName)
     }
   }
@@ -56,7 +56,7 @@ abstract class PodSpec extends K8SFixture[_, _, _] with Eventually with Matchers
       val podStatus = podRetrieved.get.status.get
       val nginxContainerStatus = podStatus.containerStatuses(0)
       podStatus.phase should contain(Pod.Phase.Running)
-      nginxContainerStatus.name should be(nginxPodName)
+      nginxContainerStatus.name should be(defaultNginxContainerName)
       nginxContainerStatus.state.get shouldBe a[Container.Running]
       val isUnschedulable = podStatus.conditions.exists { c =>
         c._type == "PodScheduled" && c.status == "False" && c.reason == Some("Unschedulable")
@@ -70,6 +70,7 @@ abstract class PodSpec extends K8SFixture[_, _, _] with Eventually with Matchers
       val isReady = podStatus.conditions.exists { c =>
         c._type == "Ready" && c.status == "True"
       }
+      assert(!isUnschedulable)
       assert(isScheduled)
       assert(isInitialised)
       assert(isReady)
@@ -94,8 +95,8 @@ abstract class PodSpec extends K8SFixture[_, _, _] with Eventually with Matchers
 
   it should "delete selected pods" in { k8s =>
     for {
-      _ <- k8s.create(getNginxPod(nginxPodName + "-foo", "1.7.9", labels = Map("foo" -> "1")))
-      _ <- k8s.create(getNginxPod(nginxPodName + "-bar", "1.7.9", labels = Map("bar" -> "2")))
+      _ <- k8s.create(getNginxPodWithLabels(name = nginxPodName + "-foo", labels = Map("foo" -> "1") ++ defaultLabels))
+      _ <- k8s.create(getNginxPodWithLabels(name = nginxPodName + "-bar", labels = Map("bar" -> "2") ++ defaultLabels))
       _ <- k8s.deleteAllSelected[PodList](LabelSelector(LabelSelector.ExistsRequirement("foo")))
     } yield eventually(timeout(100.seconds), interval(3.seconds)) {
       val retrievePods = k8s.list[PodList]()
@@ -103,14 +104,5 @@ abstract class PodSpec extends K8SFixture[_, _, _] with Eventually with Matchers
       val podNamesRetrieved = podsRetrieved.items.map(_.name)
       assert(!podNamesRetrieved.contains(nginxPodName + "-foo") && podNamesRetrieved.contains(nginxPodName + "-bar"))
     }
-  }
-
-  def getNginxContainer(name: String, version: String): Container = Container(name = name, image = "nginx:" + version).exposePort(80)
-
-  def getNginxPod(name: String, version: String, labels: Map[String, String] = Map()): Pod = {
-    val nginxContainer = getNginxContainer(name, version)
-    val nginxPodSpec = Pod.Spec(containers = List((nginxContainer)))
-    val podMeta = ObjectMeta(name = name, labels = labels ++ defaultLabels)
-    model.Pod(metadata = podMeta, spec = Some(nginxPodSpec))
   }
 }

@@ -17,8 +17,8 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
 
     val deploymentOneName = java.util.UUID.randomUUID().toString
     val deploymentTwoName = java.util.UUID.randomUUID().toString
-    val deploymentOne = getNginxDeployment(deploymentOneName, "1.7.9")
-    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.7.9")
+    val deploymentOne = getNginxDeploymentForWatch(deploymentOneName)
+    val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
     val pekkoK8s = k8s.asInstanceOf[PekkoKubernetesClient]
     val stream = k8s.list[DeploymentList]().map { l =>
@@ -78,8 +78,8 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
 
     val deploymentOneName = java.util.UUID.randomUUID().toString
     val deploymentTwoName = java.util.UUID.randomUUID().toString
-    val deploymentOne = getNginxDeployment(deploymentOneName, "1.7.9")
-    val deploymentTwo = getNginxDeployment(deploymentTwoName, "1.7.9")
+    val deploymentOne = getNginxDeploymentForWatch(deploymentOneName)
+    val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
     val pekkoK8s = k8s.asInstanceOf[PekkoKubernetesClient]
     val stream = k8s.list[DeploymentList]().map { l =>
@@ -138,7 +138,7 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
     import skuber.api.client.EventType
 
     val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+    val deployment = getNginxDeploymentForWatch(deploymentName)
 
     k8s.create(deployment).futureValue.name shouldBe deploymentName
     eventually {
@@ -182,7 +182,7 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
     import skuber.api.client.EventType
 
     val deploymentName = java.util.UUID.randomUUID().toString
-    val deployment = getNginxDeployment(deploymentName, "1.7.9")
+    val deployment = getNginxDeploymentForWatch(deploymentName)
 
     k8s.create(deployment).futureValue.name shouldBe deploymentName
     eventually {

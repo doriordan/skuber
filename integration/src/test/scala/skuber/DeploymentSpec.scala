@@ -21,7 +21,7 @@ abstract class DeploymentSpec extends K8SFixture[_, _, _] with Eventually with M
   behavior of "Deployment"
 
   it should "create a deployment" in { k8s =>
-    k8s.create(getNginxDeployment(nginxDeploymentName, "1.7.9")) map { d =>
+    k8s.create(getNginxDeployment(nginxDeploymentName)) map { d =>
       assert(d.name == nginxDeploymentName)
     }
   }
@@ -60,14 +60,5 @@ abstract class DeploymentSpec extends K8SFixture[_, _, _] with Eventually with M
         }
       }
     }
-  }
-
-  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
-
-  def getNginxDeployment(name: String, version: String): Deployment = {
-    import LabelSelector.dsl._
-    val nginxContainer = getNginxContainer(version)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
   }
 }

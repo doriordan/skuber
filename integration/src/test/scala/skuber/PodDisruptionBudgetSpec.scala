@@ -19,11 +19,14 @@ abstract class PodDisruptionBudgetSpec extends K8SFixture[_, _, _] with Eventual
 
   it should "create a PodDisruptionBudget" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { _ =>
+    k8s.create(getNginxDeployment(deploymentName = name)) flatMap { _ =>
       k8s.create(PodDisruptionBudget(name)
         .withMinAvailable(Left(1))
         .withLabelSelector("app" is "nginx")
       ).map { result =>
+        // cleanup first
+        k8s.delete[PodDisruptionBudget](name)
+        k8s.delete[Deployment](name)
         assert(result.spec.contains(PodDisruptionBudget.Spec(None, Some(Left(1)), Some("app" is "nginx"))))
         assert(result.name == name)
       }
@@ -32,7 +35,7 @@ abstract class PodDisruptionBudgetSpec extends K8SFixture[_, _, _] with Eventual
 
   it should "update a PodDisruptionBudget" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { _ =>
+    k8s.create(getNginxDeployment(deploymentName = name)) flatMap { _ =>
       k8s.create(PodDisruptionBudget(name)
         .withMinAvailable(Left(1))
         .withLabelSelector("app" is "nginx")
@@ -40,6 +43,8 @@ abstract class PodDisruptionBudgetSpec extends K8SFixture[_, _, _] with Eventual
         eventually(
           k8s.get[PodDisruptionBudget](pdb.name).flatMap { updatedPdb =>
             k8s.update(updatedPdb).map { result => //PodDisruptionBudget are immutable at the moment.
+              k8s.delete[PodDisruptionBudget](name)
+              k8s.delete[Deployment](name)
               assert(result.spec.contains(PodDisruptionBudget.Spec(None, Some(Left(1)), Some("app" is "nginx"))))
               assert(result.name == name)
             }
@@ -51,7 +56,7 @@ abstract class PodDisruptionBudgetSpec extends K8SFixture[_, _, _] with Eventual
 
   it should "delete a PodDisruptionBudget" in { k8s =>
     val name: String = java.util.UUID.randomUUID().toString
-    k8s.create(getNginxDeployment(name, "1.7.9")) flatMap { d =>
+    k8s.create(getNginxDeployment(deploymentName = name)) flatMap { d =>
       import LabelSelector.dsl._
       k8s.create(PodDisruptionBudget(name)
         .withMinAvailable(Left(1))
@@ -59,23 +64,15 @@ abstract class PodDisruptionBudgetSpec extends K8SFixture[_, _, _] with Eventual
       ).flatMap { pdb =>
         k8s.delete[PodDisruptionBudget](pdb.name).flatMap { deleteResult =>
           k8s.get[PodDisruptionBudget](pdb.name).map { x =>
-            assert(false)
+            assert(condition = false)
           } recoverWith {
-            case ex: K8SException if ex.status.code.contains(404) => assert(true)
-            case _ => assert(false)
+            case ex: K8SException if ex.status.code.contains(404) =>
+              k8s.delete[Deployment](name) // cleanup
+              assert(condition = true)
+            case _ => assert(condition = false)
           }
         }
       }
     }
-  }
-
-  def getNginxDeployment(name: String, version: String): Deployment = {
-    val nginxContainer = getNginxContainer(version)
-    val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-    Deployment(name).withTemplate(nginxTemplate).withLabelSelector("app" is "nginx")
-  }
-
-  def getNginxContainer(version: String): Container = {
-    Container(name = "nginx", image = "nginx:" + version).exposePort(80)
   }
 }

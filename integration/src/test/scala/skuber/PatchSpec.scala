@@ -21,7 +21,7 @@ abstract class PatchSpec extends K8SFixture[_, _, _] with Eventually with Matche
     super.beforeAll()
 
     val k8s = createK8sClient(config)
-    Await.result(k8s.create(getNginxPod(nginxPodName, "1.7.9")), 3.second)
+    Await.result(k8s.create(getNginxPodToPatch()), 3.second)
     // Let the pod run
     Thread.sleep(3000)
     k8s.close()
@@ -49,7 +49,7 @@ abstract class PatchSpec extends K8SFixture[_, _, _] with Eventually with Matche
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
             assert(pod.metadata.annotations == Map())
-          case _ => assert(false)
+          case _ => assert(condition=false)
         }
       }
     }
@@ -66,7 +66,7 @@ abstract class PatchSpec extends K8SFixture[_, _, _] with Eventually with Matche
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
             assert(pod.metadata.annotations == Map())
-          case _ => assert(false)
+          case _ => assert(condition=false)
         }
       }
     }
@@ -83,7 +83,7 @@ abstract class PatchSpec extends K8SFixture[_, _, _] with Eventually with Matche
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
             assert(pod.metadata.annotations == Map())
-          case _ => assert(false)
+          case _ => assert(condition=false)
         }
       }
     }
@@ -105,18 +105,16 @@ abstract class PatchSpec extends K8SFixture[_, _, _] with Eventually with Matche
           case Success(pod: Pod) =>
             assert(pod.metadata.labels == Map("label" -> "1", "foo" -> randomString))
             assert(pod.metadata.annotations == Map())
-          case _ => assert(condition = false)
+          case _ => assert(condition=false)
         }
       }
     }
   }
 
-  def getNginxContainer(version: String): Container = Container(name = "nginx", image = "nginx:" + version).exposePort(80)
-
-  def getNginxPod(name: String, version: String): Pod = {
-    val nginxContainer = getNginxContainer(version)
+  def getNginxPodToPatch(version: String = defaultNginxVersion): Pod = {
+    val nginxContainer = getNginxContainer(version = version)
     val nginxPodSpec = Pod.Spec(containers = List((nginxContainer)))
-    Pod(metadata = ObjectMeta(nginxPodName, labels = Map("label" -> "1"), annotations = Map("annotation" -> "1"))
+    Pod(metadata = ObjectMeta(name = nginxPodName, labels = Map("label" -> "1"), annotations = Map("annotation" -> "1"))
       , spec = Some(nginxPodSpec))
   }
 }
