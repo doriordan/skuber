@@ -2,12 +2,11 @@ package skuber.api
 
 import java.time.Instant
 import java.util.UUID
-
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Flow
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ Config, ConfigFactory }
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -16,6 +15,8 @@ import scala.sys.SystemProperties
 import scala.util.Try
 import skuber.ObjectResource
 import skuber.api.client.impl.KubernetesClientImpl
+
+import scala.concurrent.Future
 
 /**
   * @author David O'Riordan
@@ -40,6 +41,10 @@ package object client {
 
   sealed trait AccessTokenAuth extends AuthInfo {
     def accessToken: String
+  }
+
+  trait AsyncAccessTokenAuth extends AuthInfo {
+    def accessToken(): Future[String]
   }
 
   object NoAuth extends AuthInfo {
