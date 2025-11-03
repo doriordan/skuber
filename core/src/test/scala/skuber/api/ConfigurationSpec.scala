@@ -7,6 +7,8 @@ import org.specs2.mutable.Specification
 import skuber.api.client._
 import skuber.model.Namespace
 
+import java.io.ByteArrayInputStream
+
 /**
  * @author David O'Riordan
  */
@@ -233,5 +235,26 @@ users:
     val parsedFromStringConfig = k8sConfig.get
     val clientCertificate = parsedFromStringConfig.users("green-user").asInstanceOf[CertAuth].clientCertificate
     clientCertificate must beLeft("/top/level/path/path/to/my/client/cert")
+  }
+
+  "ignore missing cluster and user references" >> {
+    val config = """
+apiVersion: v1
+kind: Config
+current-context: bad-context
+preferences: {}
+clusters: []
+contexts:
+- context:
+    cluster: not-existent
+    namespace: default
+    user: also-not-existent
+  name: bad-context
+users: []
+"""
+    val stream = new ByteArrayInputStream(config.getBytes("utf-8"))
+    val parsed = K8SConfiguration.parseKubeconfigStream(stream).get
+    parsed.contexts.size should beEqualTo(1)
+    parsed.currentContext.authInfo should beEqualTo(NoAuth)
   }
 }
