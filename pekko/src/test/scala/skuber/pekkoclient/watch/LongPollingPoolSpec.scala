@@ -43,9 +43,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
         .map(_._1).runWith(Sink.head)
         .futureValue
 
-      result.map(_.status) mustEqual Success(StatusCodes.OK)
+      result.map(_.status) must beEqualTo(Success(StatusCodes.OK))
 
-      bindingFuture.flatMap(_.unbind()).futureValue mustEqual Done
+      bindingFuture.flatMap(_.unbind()).futureValue must beEqualTo(Done)
     }
 
     "create a https pool" >> {
@@ -85,9 +85,9 @@ class LongPollingPoolSpec extends Specification with ScalaFutures {
         .map(_._1).runWith(Sink.head)
         .futureValue
 
-      result.map(_.status) mustEqual Success(StatusCodes.OK)
+      result.map(_.status) must beEqualTo(Success(StatusCodes.OK))
 
-      bindingFuture.flatMap(_.unbind()).futureValue mustEqual Done
+      bindingFuture.flatMap(_.unbind()).futureValue must beEqualTo(Done)
     }
 
     "handle unsupported scheme" >> {

@@ -19,11 +19,11 @@ class HorizontalPodAutoscalerSpec extends Specification {
 
   "A HorizontalPodAutoscaler can" >> {
     "decoded from json" >> {
-      Json.parse(createJson("/exampleHorizontalPodAutoscaler.json")).validate[HorizontalPodAutoscaler] mustEqual JsSuccess(hpa)
+      Json.parse(createJson("/exampleHorizontalPodAutoscaler.json")).validate[HorizontalPodAutoscaler] must beEqualTo(JsSuccess(hpa))
     }
 
     "encode to json" >> {
-      Json.toJson(hpa) mustEqual Json.parse(createJson("/exampleHorizontalPodAutoscaler.json"))
+      Json.toJson(hpa) must beEqualTo(Json.parse(createJson("/exampleHorizontalPodAutoscaler.json")))
     }
   }
 

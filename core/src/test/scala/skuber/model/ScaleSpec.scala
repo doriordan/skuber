@@ -11,9 +11,9 @@ class ScaleSpec extends Specification {
   
   "A Scale object can be constructed from a name and replica count" >> {
     val scale=Scale.named("example").withSpecReplicas(10)
-    scale.spec.replicas mustEqual Some(10)
-    scale.name mustEqual "example"
-    scale.status mustEqual None
+    scale.spec.replicas must beEqualTo(Some(10))
+    scale.name must beEqualTo("example")
+    scale.status must beEqualTo(None)
   }
   
   "A scale object can be written to Json and then read back again successfully" >> {
@@ -25,7 +25,7 @@ class ScaleSpec extends Specification {
       )
       
       val readScale = Json.fromJson[Scale](Json.toJson(scale)).get
-      readScale mustEqual scale
+      readScale must beEqualTo(scale)
   }
   
   "A scale object can be read directly from a JSON string" >> {
@@ -49,10 +49,10 @@ class ScaleSpec extends Specification {
 }
 """
     val scale = Json.parse(scaleJsonStr).as[Scale]
-    scale.kind mustEqual "Scale"
-    scale.name mustEqual "redis-master"
-    scale.spec.replicas mustEqual Some(1)
-    scale.status mustEqual Some(Scale.Status(replicas=1, selector=None, targetSelector=Some("redis-master")))
+    scale.kind must beEqualTo("Scale")
+    scale.name must beEqualTo("redis-master")
+    scale.spec.replicas must beEqualTo(Some(1))
+    scale.status must beEqualTo(Some(Scale.Status(replicas=1, selector=None, targetSelector=Some("redis-master"))))
   }
 
   "A scale object can contain NO replicas" >> {
@@ -76,8 +76,8 @@ class ScaleSpec extends Specification {
         |}
       """.stripMargin
     val scale = Json.parse(scaleJsonObj).as[Scale]
-    scale.kind mustEqual "Scale"
-    scale.name mustEqual "redis-master"
-    scale.spec.replicas mustEqual None
+    scale.kind must beEqualTo("Scale")
+    scale.name must beEqualTo("redis-master")
+    scale.spec.replicas must beEqualTo(None)
   }
 }

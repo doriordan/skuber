@@ -20,11 +20,11 @@ class HPASSpec extends Specification {
                     withMinReplicas(1).
                     withMaxReplicas(10).
                     withCPUTargetUtilization(80)
-      hpas.name mustEqual "example"
-      hpas.spec.scaleTargetRef.kind mustEqual "ReplicationController"
-      hpas.spec.maxReplicas must_== 10
+      hpas.name must beEqualTo("example")
+      hpas.spec.scaleTargetRef.kind must beEqualTo("ReplicationController")
+      hpas.spec.maxReplicas must beEqualTo(10)
       hpas.spec.minReplicas must beSome(1)
-      hpas.spec.cpuUtilization mustEqual Some(CPUTargetUtilization(80))
+      hpas.spec.cpuUtilization must beEqualTo(Some(CPUTargetUtilization(80)))
     }
   }
 

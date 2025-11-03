@@ -21,25 +21,25 @@ class NodeFormatSpec extends Specification {
     "this can be done for a simple Service with just a name" >> {
       val myNode = Node.named("myNode")
       val readNode = Json.fromJson[Node](Json.toJson(myNode)).get 
-      myNode mustEqual readNode   
+      myNode must beEqualTo(readNode)   
     }
     "this can be done for a simple Node with just a name and namespace set" >> {
       val myNode = Namespace("myNamespace").node("myNode")
       val readNode = Json.fromJson[Node](Json.toJson(myNode)).get 
-      myNode mustEqual readNode
+      myNode must beEqualTo(readNode)
     }
     "this can be done for a Node with a simple Spec" >> {
       val myNS = Namespace("myNamespace")
       val myNode = myNS.node("myNode",
                              Spec(podCIDR="10.216.21.14/24"))
       val readNode = Json.fromJson[Node](Json.toJson(myNode)).get 
-      myNode mustEqual readNode
+      myNode must beEqualTo(readNode)
     }
     "this can be done for a Node with a more complex spec" >> {
       
       val myNode=Namespace.default.node("myNode", Spec("10.124.23.56/24","myProvider", true, externalID="idext"))
       val readNode = Json.fromJson[Node](Json.toJson(myNode)).get 
-      myNode mustEqual readNode
+      myNode must beEqualTo(readNode)
     }
     "an example json formatted node can be read" >> {
       val nodeJsonStr = """
@@ -95,18 +95,18 @@ class NodeFormatSpec extends Specification {
               }
       """
       val myNode = Json.parse(nodeJsonStr).as[Node]
-      myNode.kind mustEqual "Node"
-      myNode.spec mustNotEqual None
+      myNode.kind must beEqualTo("Node")
+      myNode.spec must not(beEqualTo(None))
       val spec=myNode.spec.get
-      spec.externalID mustEqual "10.245.1.3"
-      spec.providerID mustEqual "vagrant://10.245.1.3"
-      myNode.status mustNotEqual None
+      spec.externalID must beEqualTo("10.245.1.3")
+      spec.providerID must beEqualTo("vagrant://10.245.1.3")
+      myNode.status must not(beEqualTo(None))
       val status = myNode.status.get
-      status.addresses mustEqual List(Address("LegacyHostIP","10.245.1.3"))
-      status.capacity.get("memory") mustEqual Some(Resource.Quantity("1017552Ki"))
+      status.addresses must beEqualTo(List(Address("LegacyHostIP","10.245.1.3")))
+      status.capacity.get("memory") must beEqualTo(Some(Resource.Quantity("1017552Ki")))
       // write and read back in again, compare
       val readNode = Json.fromJson[Node](Json.toJson(myNode)).get
-      myNode mustEqual readNode
+      myNode must beEqualTo(readNode)
     }
     "an example json formatted nodelist can be read" >> {
       val nodesJsonStr = """
@@ -266,17 +266,17 @@ class NodeFormatSpec extends Specification {
           }
       """
       val myNodes= Json.parse(nodesJsonStr).as[NodeList]
-      myNodes.kind mustEqual "NodeList"
-      myNodes.items.length mustEqual 3 // 3 minion nodes
+      myNodes.kind must beEqualTo("NodeList")
+      myNodes.items.length must beEqualTo(3) // 3 minion nodes
 
-      myNodes(0).name mustEqual "10.245.1.3"
-      myNodes(0).status.get.capacity("memory") mustEqual Resource.Quantity("1017552Ki")
+      myNodes(0).name must beEqualTo("10.245.1.3")
+      myNodes(0).status.get.capacity("memory") must beEqualTo(Resource.Quantity("1017552Ki"))
 
-      myNodes(1).name mustEqual "10.245.1.4"
-      myNodes(1).status.get.capacity("cpu") mustEqual Resource.Quantity("2")
+      myNodes(1).name must beEqualTo("10.245.1.4")
+      myNodes(1).status.get.capacity("cpu") must beEqualTo(Resource.Quantity("2"))
 
       val readNodes = Json.fromJson[NodeList](Json.toJson(myNodes)).get
-      myNodes mustEqual readNodes
+      myNodes must beEqualTo(readNodes)
     }
   }
 
@@ -286,15 +286,15 @@ class NodeFormatSpec extends Specification {
     val nodeJsonStr = nodeJsonSource.mkString
     val node = Json.parse(nodeJsonStr).as[Node]
 
-    node.status.get.allocatable("cpu") mustEqual Resource.Quantity("2")
-    node.status.get.allocatable("pods") mustEqual Resource.Quantity("110")
+    node.status.get.allocatable("cpu") must beEqualTo(Resource.Quantity("2"))
+    node.status.get.allocatable("pods") must beEqualTo(Resource.Quantity("110"))
 
-    node.spec.get.taints.size mustEqual 1
-    node.spec.get.taints.head.effect mustEqual "NoSchedule"
+    node.spec.get.taints.size must beEqualTo(1)
+    node.spec.get.taints.head.effect must beEqualTo("NoSchedule")
 
     // write and read it back in again and compare
     val json = Json.toJson(node)
     val readNode = Json.fromJson[Node](json).get
-    readNode mustEqual node
+    readNode must beEqualTo(node)
   }
 }

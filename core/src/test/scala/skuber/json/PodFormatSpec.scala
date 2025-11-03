@@ -23,18 +23,18 @@ class PodFormatSpec extends Specification {
     "this can be done for a simple Pod with just a name" >> {
       val myPod = Pod.named("myPod")
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
-      myPod mustEqual readPod    
+      myPod must beEqualTo(readPod)    
     }
     "this can be done for a simple Pod with just a name and namespace set" >> {
       val myPod = Namespace("myNamespace").pod("myPod")
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
-      myPod mustEqual readPod    
+      myPod must beEqualTo(readPod)    
     } 
     "this can be done for a Pod with a simple, single container spec" >> {
       val myPod = Namespace("myNamespace").
                     pod("myPod",Pod.Spec(Container("myContainer", "myImage")::Nil))
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
-      myPod mustEqual readPod
+      myPod must beEqualTo(readPod)
     }
     "this can be done for a Pod with a more complex spec" >> {
       val readyProbe=Probe(
@@ -86,7 +86,7 @@ class PodFormatSpec extends Specification {
       val ret: Result = readPodJsResult match {
         case JsError(e) => Failure(e.toString)    
         case JsSuccess(readPod,_) => 
-          readPod mustEqual myPod
+          readPod must beEqualTo(myPod)
       }   
       ret
     }
@@ -315,76 +315,76 @@ class PodFormatSpec extends Specification {
       }
       """
       val myPod = Json.parse(podJsonStr).as[Pod]
-      myPod.kind mustEqual "Pod"
-      myPod.name mustEqual "kube-dns-v3-i5fzg"
-      myPod.metadata.labels("k8s-app") mustEqual "kube-dns"
+      myPod.kind must beEqualTo("Pod")
+      myPod.name must beEqualTo("kube-dns-v3-i5fzg")
+      myPod.metadata.labels("k8s-app") must beEqualTo("kube-dns")
       
-      myPod.spec.get.dnsPolicy mustEqual DNSPolicy.Default
-      myPod.spec.get.restartPolicy mustEqual RestartPolicy.Always
-      myPod.spec.get.tolerations mustEqual List(
+      myPod.spec.get.dnsPolicy must beEqualTo(DNSPolicy.Default)
+      myPod.spec.get.restartPolicy must beEqualTo(RestartPolicy.Always)
+      myPod.spec.get.tolerations must beEqualTo(List(
         Pod.ExistsToleration(Some("localhost.domain/url")),
         Pod.EqualToleration("key",Some("value"),Some(Pod.TolerationEffect.NoExecute)),
-        Pod.ExistsToleration(None, Some(Pod.TolerationEffect.NoSchedule), None))
+        Pod.ExistsToleration(None, Some(Pod.TolerationEffect.NoSchedule), None)))
 
       val vols = myPod.spec.get.volumes
-      vols.length mustEqual 2
-      vols(0) mustEqual Volume("dns-token",Volume.Secret("token-system-dns"))
+      vols.length must beEqualTo(2)
+      vols(0) must beEqualTo(Volume("dns-token",Volume.Secret("token-system-dns")))
       
       val cntrs = myPod.spec.get.containers
-      cntrs.length mustEqual 3
-      cntrs(0).name mustEqual "etcd"
-      cntrs(0).imagePullPolicy mustEqual Container.PullPolicy.IfNotPresent
-      cntrs(0).terminationMessagePath mustEqual Some("/dev/termination-log")
-      cntrs(0).terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.File)
-      cntrs(0).resources.get.limits("cpu") mustEqual Resource.Quantity("100m")
-      cntrs(0).command.length  mustEqual 7
+      cntrs.length must beEqualTo(3)
+      cntrs(0).name must beEqualTo("etcd")
+      cntrs(0).imagePullPolicy must beEqualTo(Container.PullPolicy.IfNotPresent)
+      cntrs(0).terminationMessagePath must beEqualTo(Some("/dev/termination-log"))
+      cntrs(0).terminationMessagePolicy must beEqualTo(Some(Container.TerminationMessagePolicy.File))
+      cntrs(0).resources.get.limits("cpu") must beEqualTo(Resource.Quantity("100m"))
+      cntrs(0).command.length  must beEqualTo(7)
       
       val etcdVolMounts=cntrs(0).volumeMounts
-      etcdVolMounts.length mustEqual 1
-      etcdVolMounts(0).name mustEqual "default-token-zmwgp"
+      etcdVolMounts.length must beEqualTo(1)
+      etcdVolMounts(0).name must beEqualTo("default-token-zmwgp")
      
       val probe = cntrs(2).livenessProbe.get 
       probe.action match {
-        case ExecAction(command) => command.length mustEqual 3
+        case ExecAction(command) => command.length must beEqualTo(3)
         case _ => failure("liveness probe action must be an ExecAction")
       }
-      probe.initialDelaySeconds mustEqual 30
-      probe.timeoutSeconds mustEqual 5
+      probe.initialDelaySeconds must beEqualTo(30)
+      probe.timeoutSeconds must beEqualTo(5)
       
       val ports = cntrs(2).ports // skyDNS ports
-      ports.length mustEqual 2
+      ports.length must beEqualTo(2)
       val udpDnsPort = ports(0)
-      udpDnsPort.containerPort mustEqual 53
-      udpDnsPort.protocol mustEqual Protocol.UDP
-      udpDnsPort.name mustEqual "dns"
+      udpDnsPort.containerPort must beEqualTo(53)
+      udpDnsPort.protocol must beEqualTo(Protocol.UDP)
+      udpDnsPort.name must beEqualTo("dns")
       
       val tcpDnsPort = ports(1)
-      tcpDnsPort.containerPort mustEqual 53
-      tcpDnsPort.protocol mustEqual Protocol.TCP
-      tcpDnsPort.name mustEqual "dns-tcp"
+      tcpDnsPort.containerPort must beEqualTo(53)
+      tcpDnsPort.protocol must beEqualTo(Protocol.TCP)
+      tcpDnsPort.name must beEqualTo("dns-tcp")
       
       cntrs(2).image equals "gcr.io/google_containers/skydns:2015-03-11-001"
       
       val status = myPod.status.get
-      status.conditions(0) mustEqual Pod.Condition("Ready","False")
-      status.phase.get mustEqual Pod.Phase.Running
+      status.conditions(0) must beEqualTo(Pod.Condition("Ready","False"))
+      status.phase.get must beEqualTo(Pod.Phase.Running)
       val cntrStatuses = status.containerStatuses
-      cntrStatuses.length mustEqual 3
-      cntrStatuses(0).restartCount mustEqual 3
+      cntrStatuses.length must beEqualTo(3)
+      cntrStatuses(0).restartCount must beEqualTo(3)
       cntrStatuses(0).lastState.get match {
-        case c: Container.Terminated => 
-          c.exitCode mustEqual 2 
-          c.containerID.get mustEqual "docker://ec96c0a87e374d1b2f309c102b13e88a2605a6df0017472a6d7f808b559324aa"
+        case c: Container.Terminated =>
+          c.exitCode must beEqualTo(2)
+          c.containerID.get must beEqualTo("docker://ec96c0a87e374d1b2f309c102b13e88a2605a6df0017472a6d7f808b559324aa")
         case _ => failure("container must be terminated")
       }
       cntrStatuses(2).state.get match {
         case Container.Running(startTime) if (startTime.nonEmpty) => 
-          startTime.get.getHour mustEqual 16 // just a spot check
+          startTime.get.getHour must beEqualTo(16) // just a spot check
         case _ => failure("container unexpected status")
       }
       // write and read back in again, compare
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get 
-      myPod mustEqual readPod
+      myPod must beEqualTo(readPod)
     }
 
     "a pod with nodeAffinity can be read and written as json" >> {
@@ -407,7 +407,7 @@ class PodFormatSpec extends Specification {
         ))
       ))
       val readPod = Json.fromJson[Pod](Json.toJson(myPod)).get
-      myPod mustEqual readPod
+      myPod must beEqualTo(readPod)
     }
 
     "a pod with unsupported volume type can be read as json using GenericVolumeSource" >> {
@@ -428,16 +428,16 @@ class PodFormatSpec extends Specification {
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTerm.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
       val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
-      myTerm must_== NodeSelectorTerm(
+      myTerm must beEqualTo(NodeSelectorTerm(
         matchExpressions = NodeSelectorRequirements(
           NodeSelectorRequirement("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
         ),
         matchFields = NodeSelectorRequirements(
           NodeSelectorRequirement("metadata.name", NodeSelectorOperator.In, List("some-node-name"))
         )
-      )
+      ))
       val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
-      myTerm mustEqual readTerm
+      myTerm must beEqualTo(readTerm)
     }
 
     "NodeSelectorTerm with no matchExpressions be properly read and written as json" >> {
@@ -447,13 +447,13 @@ class PodFormatSpec extends Specification {
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchExpressions.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
       val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
-      myTerm must_== NodeSelectorTerm(
+      myTerm must beEqualTo(NodeSelectorTerm(
         matchFields = NodeSelectorRequirements(
           NodeSelectorRequirement("metadata.name", NodeSelectorOperator.In, List("some-node-name"))
         )
-      )
+      ))
       val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
-      myTerm mustEqual readTerm
+      myTerm must beEqualTo(readTerm)
     }
 
     "NodeSelectorTerm with no matchFields be properly read and written as json" >> {
@@ -463,13 +463,13 @@ class PodFormatSpec extends Specification {
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermNoMatchFields.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
       val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
-      myTerm must_== NodeSelectorTerm(
+      myTerm must beEqualTo(NodeSelectorTerm(
         matchExpressions = NodeSelectorRequirements(
           NodeSelectorRequirement("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
         )
-      )
+      ))
       val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
-      myTerm mustEqual readTerm
+      myTerm must beEqualTo(readTerm)
     }
 
     "NodeSelectorTerm with empty be properly read and written as json" >> {
@@ -479,9 +479,9 @@ class PodFormatSpec extends Specification {
       val nodeSelectorTermJsonSource = Source.fromURL(getClass.getResource("/exampleNodeSelectorTermEmpty.json"))
       val nodeSelectorTermJson = nodeSelectorTermJsonSource.mkString
       val myTerm = Json.parse(nodeSelectorTermJson).as[NodeSelectorTerm]
-      myTerm must_== NodeSelectorTerm()
+      myTerm must beEqualTo(NodeSelectorTerm())
       val readTerm = Json.fromJson[NodeSelectorTerm](Json.toJson(myTerm)).get
-      myTerm mustEqual readTerm
+      myTerm must beEqualTo(readTerm)
     }
 
     "NodeAffinity be properly read and written as json" >> {
@@ -493,7 +493,7 @@ class PodFormatSpec extends Specification {
       val affinityJsonStr = affinityJsonSource.mkString
 
       val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
-      myAffinity must_== Affinity(
+      myAffinity must beEqualTo(Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = Some(
             RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
@@ -502,9 +502,9 @@ class PodFormatSpec extends Specification {
             PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
           )
         ))
-      )
+      ))
       val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
-      myAffinity mustEqual readAffinity
+      myAffinity must beEqualTo(readAffinity)
     }
 
     "NodeAffinity without preferences be properly read and written as json" >> {
@@ -516,16 +516,16 @@ class PodFormatSpec extends Specification {
       val affinityJsonStr = affinityJsonSource.mkString
 
       val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
-      myAffinity must_== Affinity(
+      myAffinity must beEqualTo(Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = Some(
             RequiredDuringSchedulingIgnoredDuringExecution.requiredQuery("kubernetes.io/e2e-az-name", NodeSelectorOperator.In, List("e2e-az1", "e2e-az2"))
           ),
           preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms()
         ))
-      )
+      ))
       val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
-      myAffinity mustEqual readAffinity
+      myAffinity must beEqualTo(readAffinity)
     }
 
     "NodeAffinity without requirements be properly read and written as json" >> {
@@ -537,16 +537,16 @@ class PodFormatSpec extends Specification {
       val affinityJsonStr = affinityJsonSource.mkString
 
       val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
-      myAffinity must_== Affinity(
+      myAffinity must beEqualTo(Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = None,
           preferredDuringSchedulingIgnoredDuringExecution = PreferredSchedulingTerms(
             PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
           )
         ))
-      )
+      ))
       val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
-      myAffinity mustEqual readAffinity
+      myAffinity must beEqualTo(readAffinity)
     }
 
     "PodAffinity can be properly read and written as json" >> {
@@ -557,16 +557,16 @@ class PodFormatSpec extends Specification {
       val affinityJsonStr = affinityJsonSource.mkString
 
       val myAffinity = Json.parse(affinityJsonStr).as[Affinity]
-      myAffinity must_== Affinity(
+      myAffinity must beEqualTo(Affinity(
         nodeAffinity = Some(NodeAffinity(
           requiredDuringSchedulingIgnoredDuringExecution = None,
           preferredDuringSchedulingIgnoredDuringExecution = NodeAffinity.PreferredSchedulingTerms(
             NodeAffinity.PreferredSchedulingTerm.preferredQuery(1, "another-node-label-key", NodeSelectorOperator.In, List("another-node-label-value"))
           )
-        ))
+)))
       )
       val readAffinity = Json.fromJson[Affinity](Json.toJson(myAffinity)).get
-      myAffinity mustEqual readAffinity
+      myAffinity must beEqualTo(readAffinity)
     }
 
     "a complex podlist can be read and written as json" >> {
@@ -574,14 +574,14 @@ class PodFormatSpec extends Specification {
       val podListJsonStr = podListJsonSource.mkString
  
       val myPods = Json.parse(podListJsonStr).as[PodList]
-      myPods.kind mustEqual "PodList"
-      myPods.metadata.get.resourceVersion mustEqual "977"
-      myPods.items.length mustEqual 22
-      myPods.items(21).status.get.containerStatuses.exists( cs => cs.name.equals("grafana")) mustEqual true
+      myPods.kind must beEqualTo("PodList")
+      myPods.metadata.get.resourceVersion must beEqualTo("977")
+      myPods.items.length must beEqualTo(22)
+      myPods.items(21).status.get.containerStatuses.exists( cs => cs.name.equals("grafana")) must beEqualTo(true)
 
        // write and read back in again, compare
       val readPods = Json.fromJson[PodList](Json.toJson(myPods)).get 
-      myPods mustEqual readPods
+      myPods must beEqualTo(readPods)
     }
 
     "a statefulset with pod affinity/anti-affinity can be read and written as json successfully" >> {
@@ -590,31 +590,31 @@ class PodFormatSpec extends Specification {
       val ss = Json.parse(ssJsonStr).as[apps.StatefulSet]
 
       val podAffinity = ss.spec.get.template.spec.get.affinity.get.podAffinity.get
-      podAffinity.preferredDuringSchedulingIgnoredDuringExecution.size mustEqual (0)
-      podAffinity.requiredDuringSchedulingIgnoredDuringExecution.size mustEqual (1)
+      podAffinity.preferredDuringSchedulingIgnoredDuringExecution.size must beEqualTo((0))
+      podAffinity.requiredDuringSchedulingIgnoredDuringExecution.size must beEqualTo((1))
       val affinityTerm=podAffinity.requiredDuringSchedulingIgnoredDuringExecution(0)
       val affinityTermRequirement=affinityTerm.labelSelector.get.requirements.head
       affinityTermRequirement match {
-        case LabelSelector.InRequirement(_, values) => values mustEqual(List("S1"))
+        case LabelSelector.InRequirement(_, values) => values must beEqualTo(List("S1"))
         case _ => failure("Parsed pod affinity term selector requirement should be of 'In' type")
       }
-      affinityTermRequirement.key mustEqual "security"
+      affinityTermRequirement.key must beEqualTo("security")
 
       val podAntiAffinity = ss.spec.get.template.spec.get.affinity.get.podAntiAffinity.get
-      podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution.size mustEqual (1)
-      podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.size mustEqual (0)
+      podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution.size must beEqualTo((1))
+      podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution.size must beEqualTo((0))
       val antiAffinityTerm=podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution(0).podAffinityTerm
       val antiAffinityTermRequirement=antiAffinityTerm.labelSelector.get.requirements.head
       antiAffinityTermRequirement match {
-        case LabelSelector.InRequirement(_, values) => values mustEqual(List("S2"))
+        case LabelSelector.InRequirement(_, values) => values must beEqualTo(List("S2"))
         case _ => failure("Parsed pod affinity term selector requirement should be of 'In' type")
       }
-      antiAffinityTermRequirement.key mustEqual "security"
+      antiAffinityTermRequirement.key must beEqualTo("security")
 
       // write and read it back in again and compare
       val json = Json.toJson(ss)
       val readSS = Json.fromJson[apps.StatefulSet](json).get
-      readSS mustEqual ss
+      readSS must beEqualTo(ss)
     }
   }
 
@@ -624,35 +624,35 @@ class PodFormatSpec extends Specification {
     val pod = Json.parse(podJsonStr).as[Pod]
 
     val container=pod.spec.get.containers(0)
-    container.securityContext.get.runAsUser mustEqual Some(1000)
-    container.terminationMessagePolicy mustEqual Some(Container.TerminationMessagePolicy.FallbackToLogsOnError)
-    container.terminationMessagePath mustEqual Some("/tmp/my-log")
+    container.securityContext.get.runAsUser must beEqualTo(Some(1000))
+    container.terminationMessagePolicy must beEqualTo(Some(Container.TerminationMessagePolicy.FallbackToLogsOnError))
+    container.terminationMessagePath must beEqualTo(Some("/tmp/my-log"))
     val mount=container.volumeMounts(0)
-    mount.mountPropagation mustEqual Some(Volume.MountPropagationMode.HostToContainer)
-    mount.readOnly mustEqual true
-    mount.subPath mustEqual "subpath"
+    mount.mountPropagation must beEqualTo(Some(Volume.MountPropagationMode.HostToContainer))
+    mount.readOnly must beEqualTo(true)
+    mount.subPath must beEqualTo("subpath")
 
-    pod.spec.get.securityContext.get.fsGroup mustEqual Some(2000)
-    pod.spec.get.priority mustEqual Some(2)
-    pod.spec.get.hostname mustEqual Some("abc")
-    pod.spec.get.subdomain mustEqual Some("def")
-    pod.spec.get.dnsPolicy mustEqual DNSPolicy.None
-    pod.spec.get.hostNetwork mustEqual true
-    pod.spec.get.shareProcessNamespace mustEqual Some(true)
+    pod.spec.get.securityContext.get.fsGroup must beEqualTo(Some(2000))
+    pod.spec.get.priority must beEqualTo(Some(2))
+    pod.spec.get.hostname must beEqualTo(Some("abc"))
+    pod.spec.get.subdomain must beEqualTo(Some("def"))
+    pod.spec.get.dnsPolicy must beEqualTo(DNSPolicy.None)
+    pod.spec.get.hostNetwork must beEqualTo(true)
+    pod.spec.get.shareProcessNamespace must beEqualTo(Some(true))
 
     // write and read it back in again and compare
     val json = Json.toJson(pod)
     val readPod = Json.fromJson[Pod](json).get
-    readPod mustEqual pod
+    readPod must beEqualTo(pod)
 
     val configVolume = pod.spec.get.volumes.find(_.name == "config-volume").get
     configVolume.source must beAnInstanceOf[Volume.ProjectedVolumeSource]
-    configVolume.source.asInstanceOf[Volume.ProjectedVolumeSource].defaultMode mustEqual Some(128)
-    configVolume.source.asInstanceOf[Volume.ProjectedVolumeSource].sources mustEqual
+    configVolume.source.asInstanceOf[Volume.ProjectedVolumeSource].defaultMode must beEqualTo(Some(128))
+    configVolume.source.asInstanceOf[Volume.ProjectedVolumeSource].sources must beEqualTo(
       List(SecretProjection("verysecret",Some(List(KeyToPath("host-key-pub", "host_key.pub"), KeyToPath("other-key","worker_key"))),Some(false)),
       ConfigMapProjection("justConfig",Some(List(KeyToPath("host-key-pub", "host_key.pub"), KeyToPath("other-key", "worker_key"))),Some(false)),
       ServiceAccountTokenProjection(Some("vault"),Some(7200),"vault-token")
-    )
+    ))
 
 
   }

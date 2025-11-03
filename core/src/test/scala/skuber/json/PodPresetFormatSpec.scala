@@ -20,7 +20,7 @@ class PodPresetFormatSpec extends Specification {
     // write and read it back in again and compare
     val json = Json.toJson(podPreset)
     val readPodPreset = Json.fromJson[PodPreset](json).get
-    readPodPreset mustEqual podPreset
+    readPodPreset must beEqualTo(podPreset)
   }
 
 }

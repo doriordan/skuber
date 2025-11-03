@@ -34,8 +34,8 @@ class BytesToWatchEventSourceSpec extends Specification {
     val run: Future[WatchEvent[ReplicationController]] = watchEventSource.runWith(eventSink)
 
     val result = Await.result(run, Duration.Inf)
-    result._object.name mustEqual "frontend"
-  }  
+    result._object.name must beEqualTo("frontend")
+  }
   
   "A single chunk containing two Watch events can be enumerated correctly" >> {
     val eventsAsStr =  """{"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12803","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":3,"observedGeneration":2}}}
@@ -48,10 +48,10 @@ class BytesToWatchEventSourceSpec extends Specification {
     val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
 
     val rcSeq = Await.result(run, Duration.Inf)
-    
-    rcSeq.length mustEqual 2
-    rcSeq(0)._object.status.get.replicas mustEqual 3
-    rcSeq(1)._object.status.get.replicas mustEqual 0      
+
+    rcSeq.length must beEqualTo(2)
+    rcSeq(0)._object.status.get.replicas must beEqualTo(3)
+    rcSeq(1)._object.status.get.replicas must beEqualTo(0)
   }  
   
    "Two chunks containing two Watch events with one split across the chunks can be enumerated correctly" >> {
@@ -66,10 +66,10 @@ class BytesToWatchEventSourceSpec extends Specification {
       val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
 
       val rcSeq = Await.result(run, Duration.Inf)
-    
-      rcSeq.length mustEqual 2
-      rcSeq(0)._object.status.get.replicas mustEqual 3
-      rcSeq(1)._object.status.get.replicas mustEqual 0
+
+      rcSeq.length must beEqualTo(2)
+      rcSeq(0)._object.status.get.replicas must beEqualTo(3)
+      rcSeq(1)._object.status.get.replicas must beEqualTo(0)
    } 
    
   "Two chunks containing four Watch events, with a middle event split across the chunks, can be enumerated correctly" >> {
@@ -87,12 +87,12 @@ class BytesToWatchEventSourceSpec extends Specification {
       val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
 
       val rcSeq = Await.result(run, Duration.Inf)
-    
-      rcSeq.length mustEqual 4
-      rcSeq(0)._object.status.get.replicas mustEqual 3
-      rcSeq(1)._object.status.get.replicas mustEqual 2
-      rcSeq(2)._object.status.get.replicas mustEqual 1
-      rcSeq(3)._object.status.get.replicas mustEqual 0
+
+      rcSeq.length must beEqualTo(4)
+      rcSeq(0)._object.status.get.replicas must beEqualTo(3)
+      rcSeq(1)._object.status.get.replicas must beEqualTo(2)
+      rcSeq(2)._object.status.get.replicas must beEqualTo(1)
+      rcSeq(3)._object.status.get.replicas must beEqualTo(0)
   } 
   
   "Four chunks, each containing a Watch event terminated by a line feed, can be enumerated" >> {
@@ -111,12 +111,12 @@ class BytesToWatchEventSourceSpec extends Specification {
     val run: Future[Seq[WatchEvent[ReplicationController]]] = watchEventSource.runWith(eventSink)
 
     val rcSeq = Await.result(run, Duration.Inf)
-    
-    rcSeq.length mustEqual 4
-    rcSeq(0)._object.status.get.replicas mustEqual 3
-    rcSeq(1)._object.status.get.replicas mustEqual 2
-    rcSeq(2)._object.status.get.replicas mustEqual 1
-    rcSeq(3)._object.status.get.replicas mustEqual 0
+
+    rcSeq.length must beEqualTo(4)
+    rcSeq(0)._object.status.get.replicas must beEqualTo(3)
+    rcSeq(1)._object.status.get.replicas must beEqualTo(2)
+    rcSeq(2)._object.status.get.replicas must beEqualTo(1)
+    rcSeq(3)._object.status.get.replicas must beEqualTo(0)
   }
 
   "Four chunks, containing two ERROR events in the middle, can be correctly enumerated" >> {
@@ -144,12 +144,12 @@ class BytesToWatchEventSourceSpec extends Specification {
 
     val rcSeq = Await.result(run, Duration.Inf)
 
-    rcSeq.length mustEqual 2
-    rcSeq(0)._object.status.get.replicas mustEqual 3
-    rcSeq(1)._object.status.get.replicas mustEqual 0
+    rcSeq.length must beEqualTo(2)
+    rcSeq(0)._object.status.get.replicas must beEqualTo(3)
+    rcSeq(1)._object.status.get.replicas must beEqualTo(0)
 
-    errors.length mustEqual 2
-    errors(0) mustEqual errorObject1Str
-    errors(1) mustEqual errorObject2Str
+    errors.length must beEqualTo(2)
+    errors(0) must beEqualTo(errorObject1Str)
+    errors(1) must beEqualTo(errorObject2Str)
   }
 }

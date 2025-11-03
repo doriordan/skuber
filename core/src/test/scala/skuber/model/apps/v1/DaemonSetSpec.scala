@@ -20,6 +20,6 @@ class DaemonSetSpec extends Specification {
       .withLabelSelector(LabelSelector("live" doesNotExist, "microservice", "tier" is "cache", "env" isNotIn List("dev", "test")))
 
     val readDaemon = Json.fromJson[DaemonSet](Json.toJson(daemonset)).get
-    readDaemon mustEqual daemonset
+    readDaemon must beEqualTo(daemonset)
   }
 }

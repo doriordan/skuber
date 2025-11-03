@@ -19,7 +19,7 @@ class IngressSpec extends Specification {
           ))
 
       val readIng = Json.fromJson[Ingress](Json.toJson(ingress)).get
-      readIng mustEqual ingress
+      readIng must beEqualTo(ingress)
   }
 
   "An Ingress object with empty Path can be read directly from a JSON string" >> {
@@ -80,18 +80,18 @@ class IngressSpec extends Specification {
         |}""".stripMargin
 
     val ing = Json.parse(ingJsonStr).as[Ingress]
-    ing.kind mustEqual "Ingress"
-    ing.name mustEqual "example-ingress"
+    ing.kind must beEqualTo("Ingress")
+    ing.name must beEqualTo("example-ingress")
 
     ing.spec.get.rules.head.host must beSome("example.com")
-    ing.spec.get.rules.head.http.paths must_== List(
+    ing.spec.get.rules.head.http.paths must beEqualTo(List(
       Ingress.Path(path = "", pathType = None, backend = Ingress.Backend("service", "http")),
       Ingress.Path(path = "", pathType = None, backend = Ingress.Backend("ssh", 22))
-    )
-    ing.spec.get.tls must_== List(Ingress.TLS(
+    ))
+    ing.spec.get.tls must beEqualTo(List(Ingress.TLS(
       hosts = List("abc","def"),
       secretName = None
-    ))
+    )))
 
   }
 }

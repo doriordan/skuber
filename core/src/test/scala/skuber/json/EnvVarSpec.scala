@@ -27,7 +27,7 @@ class EnvVarSpec extends Specification {
 
       val env2 = EnvVar("PODNAME", EnvVar.FieldRef("metadata.name"))
 
-      env1 mustEqual env2
+      env1 must beEqualTo(env2)
     }
   }
 }

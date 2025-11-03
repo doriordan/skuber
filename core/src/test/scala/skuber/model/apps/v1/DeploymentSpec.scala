@@ -20,10 +20,10 @@ class DeploymentSpec extends Specification {
     val deployment=Deployment("example")
       .withReplicas(200)
       .withTemplate(template)
-    deployment.spec.get.template mustEqual template
-    deployment.spec.get.replicas mustEqual Some(200)
-    deployment.name mustEqual "example"
-    deployment.status mustEqual None
+    deployment.spec.get.template must beEqualTo(template)
+    deployment.spec.get.replicas must beEqualTo(Some(200))
+    deployment.name must beEqualTo("example")
+    deployment.status must beEqualTo(None)
   }
   
   
@@ -36,7 +36,7 @@ class DeploymentSpec extends Specification {
 
 
       val readDepl = Json.fromJson[Deployment](Json.toJson(deployment)).get
-      readDepl mustEqual deployment
+      readDepl must beEqualTo(deployment)
   }
 
   "A Deployment object properly writes with zero replicas" >> {
@@ -95,13 +95,13 @@ class DeploymentSpec extends Specification {
 }            
 """
     val depl = Json.parse(deplJsonStr).as[Deployment]
-    depl.kind mustEqual "Deployment"
-    depl.name mustEqual "nginx-deployment"
-    depl.spec.get.replicas mustEqual Some(3)
-    depl.spec.get.template.metadata.labels mustEqual Map("app" -> "nginx")
-    depl.spec.get.template.spec.get.containers.length mustEqual 1
-    depl.spec.get.selector.requirements.size mustEqual 4
-    depl.spec.get.selector.requirements.find(r => (r.key == "env")) mustEqual Some("env" isNotIn List("dev"))
-    depl.spec.get.selector.requirements.find(r => (r.key == "domain")) mustEqual Some("domain" is "www.example.com")
+    depl.kind must beEqualTo("Deployment")
+    depl.name must beEqualTo("nginx-deployment")
+    depl.spec.get.replicas must beEqualTo(Some(3))
+    depl.spec.get.template.metadata.labels must beEqualTo(Map("app" -> "nginx"))
+    depl.spec.get.template.spec.get.containers.length must beEqualTo(1)
+    depl.spec.get.selector.requirements.size must beEqualTo(4)
+    depl.spec.get.selector.requirements.find(r => (r.key == "env")) must beEqualTo(Some("env" isNotIn List("dev")))
+    depl.spec.get.selector.requirements.find(r => (r.key == "domain")) must beEqualTo(Some("domain" is "www.example.com"))
   }
 }

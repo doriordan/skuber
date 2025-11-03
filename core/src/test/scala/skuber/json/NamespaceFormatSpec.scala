@@ -17,13 +17,13 @@ class NamespaceFormatSpec extends Specification {
   "A Namespace can be symmetrically written to json and the same value read back in\n" >> {
     "this can be done for the default namespace" >> {
       val ns = Json.fromJson[Namespace](Json.toJson(Namespace.default)).get
-      ns.metadata.name mustEqual "default"
-      ns mustEqual Namespace.default
+      ns.metadata.name must beEqualTo("default")
+      ns must beEqualTo(Namespace.default)
     }
     "this can be done for a simple non-default namespace" >> {
       val myNs = Namespace.forName("myNamespace")
       val readNs = Json.fromJson[Namespace](Json.toJson(myNs)).get 
-      myNs mustEqual readNs     
+      myNs must beEqualTo(readNs)     
     }
     "this can be done for a more complex non-default namespace with a Spec and Status" >> {
       val f=List("myFinalizer", "Kubernetes")
@@ -31,15 +31,15 @@ class NamespaceFormatSpec extends Specification {
       
       val myOtherNs = Namespace.forName("myOtherNamespace").withFinalizers(f).withStatusOfPhase(phase)
       val readNs = Json.fromJson[Namespace](Json.toJson(myOtherNs)).get
-      readNs mustEqual myOtherNs
+      readNs must beEqualTo(myOtherNs)
     }
 
     "namespace spec allows finalizers to be optional" >> {
       val readSpec = Json.fromJson[Namespace.Spec](Json.parse("{}")).get
-      readSpec.finalizers.isEmpty mustEqual true
+      readSpec.finalizers.isEmpty must beEqualTo(true)
 
       val readSpec2 = Json.fromJson[Namespace.Spec](Json.parse("""{ "finalizers": ["kubernetes"]}""")).get
-      readSpec2.finalizers.get.head mustEqual "kubernetes"
+      readSpec2.finalizers.get.head must beEqualTo("kubernetes")
     }
 
     "we can read a namespace from a direct JSON string" >> {
@@ -76,28 +76,28 @@ class NamespaceFormatSpec extends Specification {
 
       val parsedNs = Json.fromJson[Namespace](nsJson)
       val ns: Namespace = parsedNs.get
-      ns.name mustEqual "mynamespace"
-      ns.apiVersion mustEqual "v1"
-      ns.kind mustEqual "Namespace"
-      ns.metadata.uid mustEqual "2a08e586-2d2d-11e5-99f8-0800279dd272"
-      ns.status mustEqual Some(Namespace.Status("Active"))
+      ns.name must beEqualTo("mynamespace")
+      ns.apiVersion must beEqualTo("v1")
+      ns.kind must beEqualTo("Namespace")
+      ns.metadata.uid must beEqualTo("2a08e586-2d2d-11e5-99f8-0800279dd272")
+      ns.status must beEqualTo(Some(Namespace.Status("Active")))
       val date = ns.metadata.creationTimestamp.get
-      date.getYear mustEqual 2015
-      date.getMonth mustEqual java.time.Month.JULY
-      date.getDayOfMonth mustEqual 18
-      date.getHour mustEqual 9
-      date.getMinute mustEqual 12
-      date.getSecond mustEqual 50
-      date.getOffset mustEqual java.time.ZoneOffset.UTC
+      date.getYear must beEqualTo(2015)
+      date.getMonth must beEqualTo(java.time.Month.JULY)
+      date.getDayOfMonth must beEqualTo(18)
+      date.getHour must beEqualTo(9)
+      date.getMinute must beEqualTo(12)
+      date.getSecond must beEqualTo(50)
+      date.getOffset must beEqualTo(java.time.ZoneOffset.UTC)
       val date2 = ns.metadata.deletionTimestamp.get
-      date2.getOffset mustEqual java.time.ZoneOffset.ofHours(1)
+      date2.getOffset must beEqualTo(java.time.ZoneOffset.ofHours(1))
       val labels=ns.metadata.labels
-      labels("three") mustEqual "four"
+      labels("three") must beEqualTo("four")
       val annots=ns.metadata.annotations
-      annots("abc") mustEqual "def"
+      annots("abc") must beEqualTo("def")
       val ns2Json = Json.toJson(ns)
       val res2 = Json.fromJson[Namespace](ns2Json)
-      res2.get.metadata.deletionTimestamp.get mustEqual ns.metadata.deletionTimestamp.get
+      res2.get.metadata.deletionTimestamp.get must beEqualTo(ns.metadata.deletionTimestamp.get)
     }
   }
 }

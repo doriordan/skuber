@@ -125,12 +125,12 @@ users:
     val contexts=Map("federal-context"->federalContext,"queen-anne-context"->queenAnneContext)
     
     val directlyConstructedConfig=Configuration(clusters,contexts,federalContext,users)
-    directlyConstructedConfig.clusters mustEqual parsedFromStringConfig.clusters
-    directlyConstructedConfig.contexts mustEqual parsedFromStringConfig.contexts
-    directlyConstructedConfig.users mustEqual parsedFromStringConfig.users
-    directlyConstructedConfig.currentContext mustEqual parsedFromStringConfig.currentContext
+    directlyConstructedConfig.clusters must beEqualTo(parsedFromStringConfig.clusters)
+    directlyConstructedConfig.contexts must beEqualTo(parsedFromStringConfig.contexts)
+    directlyConstructedConfig.users must beEqualTo(parsedFromStringConfig.users)
+    directlyConstructedConfig.currentContext must beEqualTo(parsedFromStringConfig.currentContext)
     
-    directlyConstructedConfig mustEqual parsedFromStringConfig
+    directlyConstructedConfig must beEqualTo(parsedFromStringConfig)
   }
 
   "Parse EC private keys from kubeconfig file" >> {
@@ -224,7 +224,7 @@ users:
       import java.nio.file.Paths
       val path=Paths.get("file:///doesNotExist")
       val parsed = Configuration.parseKubeconfigFile(path)
-      parsed.isFailure mustEqual true
+      parsed.isFailure must beTrue
   }
 
   "if a relative path and directory are specified, then the parsed config must contain the fully expanded paths" >> {
@@ -232,6 +232,6 @@ users:
     val k8sConfig = K8SConfiguration.parseKubeconfigStream(is, Some(Paths.get("/top/level/path")))
     val parsedFromStringConfig = k8sConfig.get
     val clientCertificate = parsedFromStringConfig.users("green-user").asInstanceOf[CertAuth].clientCertificate
-    clientCertificate mustEqual Left("/top/level/path/path/to/my/client/cert")
+    clientCertificate must beLeft("/top/level/path/path/to/my/client/cert")
   }
 }

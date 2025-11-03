@@ -104,6 +104,6 @@ class NetworkPolicySpec extends Specification {
   "A NetworkPolicy object can be written to Json and read back again" >> {
     val json=Json.toJson(networkPolicyExample)
     val examplePolicy=Json.fromJson[NetworkPolicy](json).get
-    examplePolicy mustEqual networkPolicyExample
+    examplePolicy must beEqualTo(networkPolicyExample)
   }
 }

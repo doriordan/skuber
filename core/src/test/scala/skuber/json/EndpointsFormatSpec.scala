@@ -7,8 +7,6 @@ import format._
 import play.api.libs.json._
 import skuber.model.Service
 
-
-
 /**
  * @author David O'Riordan
  */
@@ -23,7 +21,7 @@ class EndpointsFormatSpec extends Specification {
       val mySvc = Service("myApp")
       val myEndpoints = mySvc.mapsToEndpoint("10.247.0.10", 6777)
       val readEndpts = Json.fromJson[Endpoints](Json.toJson(myEndpoints)).get 
-      myEndpoints mustEqual readEndpts    
+      myEndpoints must beEqualTo(readEndpts)    
     }
     "this can be done for an Endpoints with a single subset containing two addresses" >> {
       val mySvc = Namespace("myNamespace").service("mySvc")
@@ -31,7 +29,7 @@ class EndpointsFormatSpec extends Specification {
       val mySvcEndpoints = mySvc.mapsToEndpoints(endptsSubset)
       
       val readSvcEndpoints = Json.fromJson[Endpoints](Json.toJson(mySvcEndpoints)).get 
-      mySvcEndpoints mustEqual readSvcEndpoints 
+      mySvcEndpoints must beEqualTo(readSvcEndpoints) 
     } 
     "this can be done for a more complex endppoints mapping" >> {
       val mySvc = Namespace("myNamespace").service("mySvc")
@@ -41,7 +39,7 @@ class EndpointsFormatSpec extends Specification {
       val mySvcEndpoints = mySvc.mapsToEndpoints(endptsSubsets)
       
       val readSvcEndpoints = Json.fromJson[Endpoints](Json.toJson(mySvcEndpoints)).get 
-      mySvcEndpoints mustEqual readSvcEndpoints 
+      mySvcEndpoints must beEqualTo(readSvcEndpoints) 
     }
     "an endpoints can be read from Json" >> {
       val epsJsonStr="""
@@ -93,24 +91,24 @@ class EndpointsFormatSpec extends Specification {
           } 
       """
       val endps = Json.parse(epsJsonStr).as[Endpoints]
-      endps.kind mustEqual "Endpoints"
-      endps.name mustEqual "kube-dns"
-      endps.metadata.labels.size mustEqual 3
-      endps.metadata.labels("kubernetes.io/name") mustEqual "KubeDNS"
-      endps.subsets.size mustEqual 1
-      endps.subsets.head.addresses.size mustEqual 1
-      endps.subsets.head.addresses.head.ip mustEqual "10.246.1.3"
+      endps.kind must beEqualTo("Endpoints")
+      endps.name must beEqualTo("kube-dns")
+      endps.metadata.labels.size must beEqualTo(3)
+      endps.metadata.labels("kubernetes.io/name") must beEqualTo("KubeDNS")
+      endps.subsets.size must beEqualTo(1)
+      endps.subsets.head.addresses.size must beEqualTo(1)
+      endps.subsets.head.addresses.head.ip must beEqualTo("10.246.1.3")
       val tgtRef = endps.subsets.head.addresses.head.targetRef.get
-      tgtRef.kind mustEqual "Pod"
-      tgtRef.name mustEqual "kube-dns-v3-fkelw"
+      tgtRef.kind must beEqualTo("Pod")
+      tgtRef.name must beEqualTo("kube-dns-v3-fkelw")
       val ports = endps.subsets.head.ports
-      ports.length mustEqual 2
-      ports.head.name mustEqual Some("dns-tcp")
-      ports.head.protocol mustEqual Protocol.TCP
-      ports.head.port mustEqual 53
-      ports(1).name mustEqual Some("dns")
-      ports(1).protocol mustEqual Protocol.UDP
-      ports(1).port mustEqual 53
+      ports.length must beEqualTo(2)
+      ports.head.name must beEqualTo(Some("dns-tcp"))
+      ports.head.protocol must beEqualTo(Protocol.TCP)
+      ports.head.port must beEqualTo(53)
+      ports(1).name must beEqualTo(Some("dns"))
+      ports(1).protocol must beEqualTo(Protocol.UDP)
+      ports(1).port must beEqualTo(53)
     }
   }    
 }

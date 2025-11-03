@@ -35,8 +35,8 @@ class VolumeReadWriteSpec extends Specification {
       )
       val pvcJson = Json.toJson(pvc)
       val readPvc = Json.fromJson[PersistentVolumeClaim](pvcJson).get
-      readPvc.name mustEqual pvc.name
-      readPvc.spec mustEqual pvc.spec
+      readPvc.name must beEqualTo(pvc.name)
+      readPvc.spec must beEqualTo(pvc.spec)
       readPvc.spec.get.storageClassName must beSome("a-storage-class-name")
     }
 
@@ -65,38 +65,38 @@ class VolumeReadWriteSpec extends Specification {
         sizeLimit = Some(Resource.Quantity("100M"))))
       val myVolJson = Json.toJson(edVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
-      readVol.source mustEqual Volume.EmptyDir(Volume.HugePagesStorageMedium, Some(Resource.Quantity("100M")))
+      readVol.name must beEqualTo("myVol")
+      readVol.source must beEqualTo(Volume.EmptyDir(Volume.HugePagesStorageMedium, Some(Resource.Quantity("100M"))))
 
       // Ensure empty EmptyDir is still deserizeable
       val emptyEmptyDirJson = JsObject.empty
       val readEmptyDir = Json.fromJson[Volume.EmptyDir](emptyEmptyDirJson).get
-      readEmptyDir.medium mustEqual Volume.DefaultStorageMedium
-      readEmptyDir.sizeLimit mustEqual None
+      readEmptyDir.medium must beEqualTo(Volume.DefaultStorageMedium)
+      readEmptyDir.sizeLimit must beEqualTo(None)
     }
 
     "this can be done for the a hostpath type source" >> {
       val hpVol = Volume("myVol", Volume.HostPath("myHostPath"))
       val myVolJson = Json.toJson(hpVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       readVol.source match { 
-        case Volume.HostPath(path,_) => path mustEqual "myHostPath"
+        case Volume.HostPath(path,_) => path must beEqualTo("myHostPath")
         case _ => Failure("not a hostpath!")
       }
-      readVol.source mustEqual Volume.HostPath("myHostPath")
+      readVol.source must beEqualTo(Volume.HostPath("myHostPath"))
     }
 
     "this can be done for the a secret type source spec" >> {
       val scVol = Volume("myVol", Volume.Secret("mySecretName"))
       val myVolJson = Json.toJson(scVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       readVol.source match { 
-        case Volume.Secret(secretName, _,_, _) => secretName mustEqual "mySecretName"
+        case Volume.Secret(secretName, _,_, _) => secretName must beEqualTo("mySecretName")
         case _ => Failure("not a secret!")
       }
-      readVol.source mustEqual Volume.Secret("mySecretName")
+      readVol.source must beEqualTo(Volume.Secret("mySecretName"))
     }
 
     "this can be done in a generic way for unsupported source specs" >> {
@@ -118,36 +118,36 @@ class VolumeReadWriteSpec extends Specification {
       val myVolJson = Json.parse(myVolStr)
       val genVol = Volume("unsupported-volume", Volume.GenericVolumeSource(myVolStr))
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "unsupported-volume"
+      readVol.name must beEqualTo("unsupported-volume")
       readVol.source match {
-        case Volume.GenericVolumeSource(json) => Json.parse(json) must_== myVolJson
+        case Volume.GenericVolumeSource(json) => Json.parse(json) must beEqualTo(myVolJson)
         case _ => Failure("not a generic volume!")
       }
-      Json.toJson(genVol) must_== myVolJson
+      Json.toJson(genVol) must beEqualTo(myVolJson)
     }
 
     "this can be done for the a git repo source spec" >> {
       val gitVol = Volume("myVol", Volume.GitRepo("git://host/mygitrepo"))
       val myVolJson = Json.toJson(gitVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
-      readVol.source match { 
-        case Volume.GitRepo(repoURL, revision, _) => repoURL mustEqual "git://host/mygitrepo"
+      readVol.name must beEqualTo("myVol")
+      readVol.source match {
+        case Volume.GitRepo(repoURL, revision, _) => repoURL must beEqualTo("git://host/mygitrepo")
         case _ => Failure("not a git repo!")
       }
-      readVol.source mustEqual Volume.GitRepo("git://host/mygitrepo", None)
+      readVol.source must beEqualTo(Volume.GitRepo("git://host/mygitrepo", None))
       
       val gitVol2 = Volume("myVol2", Volume.GitRepo("git://host/mygitrepo2", Some("abdcef457677")))
       val myVolJson2 = Json.toJson(gitVol2)
       val readVol2 = Json.fromJson[Volume](myVolJson2).get
-      readVol2.name mustEqual "myVol2"
-      readVol2.source match { 
+      readVol2.name must beEqualTo("myVol2")
+      readVol2.source match {
         case Volume.GitRepo(repoURL, revision, _) =>
-          repoURL mustEqual "git://host/mygitrepo2"
-          revision mustEqual Some("abdcef457677")   
-        case _ => Failure("not a git repo!") 
+          repoURL must beEqualTo("git://host/mygitrepo2")
+          revision must beSome("abdcef457677")
+        case _ => Failure("not a git repo!")
       }
-      readVol2.source mustEqual Volume.GitRepo("git://host/mygitrepo2",Some("abdcef457677"))
+      readVol2.source must beEqualTo(Volume.GitRepo("git://host/mygitrepo2",Some("abdcef457677")))
     }
 
     "this can be done for the DownwardAPIVolumeSource spec" >> {
@@ -159,7 +159,7 @@ class VolumeReadWriteSpec extends Specification {
       val volumeJson = Json.toJson(volume)
       val readVolume = Json.fromJson[Volume](volumeJson).get
 
-      readVolume mustEqual volume
+      readVolume must beEqualTo(volume)
     }
 
     "this can be done for the DownwardAPIVolumeSource spec with field selector apiVersion left at default" >> {
@@ -171,59 +171,59 @@ class VolumeReadWriteSpec extends Specification {
       val volumeJson = Json.toJson(volume)
       val readVolume = Json.fromJson[Volume](volumeJson).get
 
-      readVolume mustEqual volume
+      readVolume must beEqualTo(volume)
     }
 
     "this can be done for the a GCE Persistent Disk source spec" >> {
       val gceVol = Volume("myVol", Volume.GCEPersistentDisk("pd1","ext4",3))
       val myVolJson = Json.toJson(gceVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
-      readVol.source mustEqual Volume.GCEPersistentDisk("pd1","ext4", 3)
+      readVol.name must beEqualTo("myVol")
+      readVol.source must beEqualTo(Volume.GCEPersistentDisk("pd1","ext4", 3))
       
       val gceVol2 = Volume("myVol", Volume.GCEPersistentDisk("pd2","ext4",readOnly = true))
       val myVolJson2 = Json.toJson(gceVol2)
       val readVol2 = Json.fromJson[Volume](myVolJson2).get
-      readVol2.name mustEqual "myVol"
+      readVol2.name must beEqualTo("myVol")
       readVol2.source match { 
         case Volume.GCEPersistentDisk(pdName,fsType,partition,readonly) => 
-          pdName mustEqual "pd2"
-          fsType mustEqual "ext4"
-          partition mustEqual 0
-          readonly mustEqual true
+          pdName must beEqualTo("pd2")
+          fsType must beEqualTo("ext4")
+          partition must beEqualTo(0)
+          readonly must beEqualTo(true)
         case _ => Failure("not a GCE disk!")
       }   
-      readVol2.source mustEqual Volume.GCEPersistentDisk("pd2","ext4",0, true)
+      readVol2.source must beEqualTo(Volume.GCEPersistentDisk("pd2","ext4",0, true))
     }
 
     "this can be done for the a AWS EBS source spec" >> {
       val awsVol = Volume("myVol", Volume.AWSElasticBlockStore("vol1","ext4",3))
       val myVolJson = Json.toJson(awsVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       readVol.source match { 
         case Volume.AWSElasticBlockStore(volName,fsType,partition,readonly) => 
-          volName mustEqual "vol1"
-          fsType mustEqual "ext4"
-          partition mustEqual 3
-          readonly mustEqual false
+          volName must beEqualTo("vol1")
+          fsType must beEqualTo("ext4")
+          partition must beEqualTo(3)
+          readonly must beEqualTo(false)
         case _ => Failure("not an AWS EBS volume!")
       }   
-      readVol.source mustEqual Volume.AWSElasticBlockStore("vol1","ext4", 3)
+      readVol.source must beEqualTo(Volume.AWSElasticBlockStore("vol1","ext4", 3))
       
       val awsVol2 = Volume("myVol", Volume.AWSElasticBlockStore("vol2","ext4",readOnly = true))
       val myVolJson2 = Json.toJson(awsVol2)
       val readVol2 = Json.fromJson[Volume](myVolJson2).get
-      readVol2.name mustEqual "myVol"
+      readVol2.name must beEqualTo("myVol")
       readVol2.source match { 
         case Volume.AWSElasticBlockStore(volName,fsType,partition,readonly) => 
-          volName mustEqual "vol2"
-          fsType mustEqual "ext4"
-          partition mustEqual 0
-          readonly mustEqual true
+          volName must beEqualTo("vol2")
+          fsType must beEqualTo("ext4")
+          partition must beEqualTo(0)
+          readonly must beEqualTo(true)
         case _ => Failure("not an AWS EBS disk!")
       }   
-      readVol2.source mustEqual Volume.AWSElasticBlockStore("vol2","ext4",0, true)
+      readVol2.source must beEqualTo(Volume.AWSElasticBlockStore("vol2","ext4",0, true))
     }
 
     "this can be done for the a serialised RDB source spec" >> {
@@ -237,16 +237,16 @@ class VolumeReadWriteSpec extends Specification {
       val readVol = Json.fromJson[Volume](myVolJson).get
       readVol.source match { 
         case rbd: Volume.RBD => 
-          rbd.monitors.length mustEqual 3
-          rbd.fsType mustEqual "ext4"
-          rbd.pool mustEqual "kube"
-          rbd.image mustEqual "foo"
-          rbd.user mustEqual "admin"
-          rbd.keyring mustEqual "/etc/cepth/keyring"
-          rbd.readOnly mustEqual true
+          rbd.monitors.length must beEqualTo(3)
+          rbd.fsType must beEqualTo("ext4")
+          rbd.pool must beEqualTo("kube")
+          rbd.image must beEqualTo("foo")
+          rbd.user must beEqualTo("admin")
+          rbd.keyring must beEqualTo("/etc/cepth/keyring")
+          rbd.readOnly must beEqualTo(true)
         case _ => Failure("not an RBD volume!")
       }
-      readVol.name mustEqual "rbdpd"
+      readVol.name must beEqualTo("rbdpd")
     }
 
     "a RDB volume spec can be deserialised straight from a JSON string" >> {
@@ -272,14 +272,14 @@ class VolumeReadWriteSpec extends Specification {
       val res = Json.fromJson[Volume](jsVal)
       val ret: Result = res match {
           case JsSuccess(vol,path) =>
-             vol.name mustEqual "rbdpd"
+             vol.name must beEqualTo("rbdpd")
              vol.source match { 
               case rbd: Volume.RBD => 
-                rbd.monitors.length mustEqual 3
-                rbd.monitors.count { _.startsWith("10.16.154.") } mustEqual 3
-                rbd.fsType mustEqual "ext4"
-                rbd.readOnly mustEqual false
-                rbd.secretRef mustEqual Some(LocalObjectReference("ceph-secret"))
+                rbd.monitors.length must beEqualTo(3)
+                rbd.monitors.count { _.startsWith("10.16.154.") } must beEqualTo(3)
+                rbd.fsType must beEqualTo("ext4")
+                rbd.readOnly must beEqualTo(false)
+                rbd.secretRef must beEqualTo(Some(LocalObjectReference("ceph-secret")))
               case _ => Failure("Unexpected source type for volume source: " + vol.source) 
              }
           case JsError(e) => Failure(e.toString)
@@ -291,12 +291,12 @@ class VolumeReadWriteSpec extends Specification {
       val nfsVol = Volume("myVol", Volume.NFS("myServer", "/usr/mypath"))
       val myVolJson = Json.toJson(nfsVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       val ret: Result =readVol.source match { 
         case Volume.NFS(server,path,readOnly) => 
-          server mustEqual "myServer"
-          path mustEqual "/usr/mypath"
-          readOnly mustEqual false
+          server must beEqualTo("myServer")
+          path must beEqualTo("/usr/mypath")
+          readOnly must beEqualTo(false)
         case _ => Failure("not a nfs volume!")
       }
       ret
@@ -306,12 +306,12 @@ class VolumeReadWriteSpec extends Specification {
       val gfsVol = Volume("myVol", Volume.Glusterfs("myEndpointsName", "/usr/mypath"))
       val myVolJson = Json.toJson(gfsVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       val ret: Result =readVol.source match { 
         case Volume.Glusterfs(endpoints,path,readOnly) => 
-          endpoints mustEqual "myEndpointsName"
-          path mustEqual "/usr/mypath"
-          readOnly mustEqual false
+          endpoints must beEqualTo("myEndpointsName")
+          path must beEqualTo("/usr/mypath")
+          readOnly must beEqualTo(false)
         case _ => Failure("not a gfs volume")
       }
       ret
@@ -320,12 +320,12 @@ class VolumeReadWriteSpec extends Specification {
       val iVol = Volume("myVol", Volume.ISCSI("127.0.0.1:3260", "iqn.2014-12.world.server:www.server.world"))
       val myVolJson = Json.toJson(iVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       val ret: Result =readVol.source match { 
         case is: Volume.ISCSI => 
-          is.readOnly mustEqual false
-          is.iqn mustEqual "iqn.2014-12.world.server:www.server.world"
-          is.targetPortal mustEqual "127.0.0.1:3260"
+          is.readOnly must beEqualTo(false)
+          is.iqn must beEqualTo("iqn.2014-12.world.server:www.server.world")
+          is.targetPortal must beEqualTo("127.0.0.1:3260")
         case _ => Failure("not a gfs volume")
       }
       ret
@@ -334,11 +334,11 @@ class VolumeReadWriteSpec extends Specification {
       val pcVol = Volume("myVol", Volume.PersistentVolumeClaimRef("claim"))
       val myVolJson = Json.toJson(pcVol)
       val readVol = Json.fromJson[Volume](myVolJson).get
-      readVol.name mustEqual "myVol"
+      readVol.name must beEqualTo("myVol")
       val ret: Result =readVol.source match { 
         case Volume.PersistentVolumeClaimRef(claimName,readOnly) => 
-          claimName mustEqual "claim"
-          readOnly mustEqual false
+          claimName must beEqualTo("claim")
+          readOnly must beEqualTo(false)
         case _ => Failure("not a gfs volume")
       }
       ret

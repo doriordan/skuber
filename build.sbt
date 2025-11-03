@@ -2,13 +2,13 @@
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 // Core/common dependencies
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.17.0"
-val specs2 = "org.specs2" %% "specs2-core" % "4.20.2"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.16"
-val mockito = "org.mockito" % "mockito-core" % "4.11.0"
-val scalaTestMockito = "org.scalatestplus" %% "mockito-4-11" % "3.2.16.0"
-val snakeYaml =  "org.yaml" % "snakeyaml" % "2.2"
-val commonsIO = "commons-io" % "commons-io" % "2.14.0"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.19.0"
+val specs2 = "org.specs2" %% "specs2-core" % "5.7.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
+val mockito = "org.mockito" % "mockito-core" % "5.18.0"
+val scalaTestMockito = "org.scalatestplus" %% "mockito-5-18" % "3.2.19.0"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "2.5"
+val commonsIO = "commons-io" % "commons-io" % "2.20.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.16.0"
 val logback = "ch.qos.logback" % "logback-classic" % "1.4.11" % Runtime
 val playJson = "com.typesafe.play" %% "play-json" % "2.10.1"
@@ -18,7 +18,7 @@ scalacOptions += "-target:jvm-1.8"
 
 Test / scalacOptions ++= Seq("-Yrangepos")
 
-ThisBuild / version := "3.0.0-beta7"
+ThisBuild / version := "3.0.0"
 
 sonatypeProfileName := "io.skuber"
 
@@ -43,8 +43,8 @@ Global / concurrentRestrictions := Seq(
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.13.12", "3.3.1"),
-  scalaVersion := "3.3.1",
+  crossScalaVersions := Seq("2.13.12", "3.3.7"),
+  scalaVersion := "3.3.7",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
@@ -72,8 +72,8 @@ lazy val core = (project in file("core"))
 
 val pekkoGroup = "org.apache.pekko"
 
-val pekkoVersion = "1.0.1"
-val pekkoHttpVersion = "1.0.0"
+val pekkoVersion = "1.2.1"
+val pekkoHttpVersion = "1.3.0"
 
 val pekkoSlf4j = pekkoGroup %% "pekko-slf4j" % pekkoVersion
 val pekkoHttp = pekkoGroup %% "pekko-http" % pekkoHttpVersion
@@ -97,8 +97,8 @@ lazy val pekko = (project in file("pekko"))
 // (see https://www.lightbend.com/akka/license-faq) - please use the Skuber Pekko client unless you are certain you
 // understand and accept the implications of the Akka BSL license.
 
-val akkaBSLVersion = "2.8.5"
-val akkaBSLHttpVersion = "10.5.2"
+val akkaBSLVersion = "2.8.8"
+val akkaBSLHttpVersion = "10.5.3"
 
 val akkaBSLSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaBSLVersion
 val akkaBSLHttp = "com.typesafe.akka" %% "akka-http" % akkaBSLHttpVersion

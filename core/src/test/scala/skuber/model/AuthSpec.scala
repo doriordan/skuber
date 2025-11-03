@@ -15,7 +15,7 @@ class AuthSpec extends Specification {
   
   // Auth
   "Auth toString works when empty" >> {
-    NoAuth.toString mustEqual "NoAuth"
+    NoAuth.toString must beEqualTo("NoAuth")
   }
 
   "CertAuth toString masks cert, key but not user" >> {
@@ -24,7 +24,7 @@ class AuthSpec extends Specification {
       clientKey = Right("secretKey".getBytes),
       user = Some("someUser")
     )
-    auth.toString mustEqual "CertAuth(clientCertificate=<PEM masked> clientKey=<PEM masked> userName=someUser )"
+    auth.toString must beEqualTo("CertAuth(clientCertificate=<PEM masked> clientKey=<PEM masked> userName=someUser )")
   }
 
   "CertAuth toString doesn't mask username, certPath, keyPath" >> {
@@ -33,20 +33,20 @@ class AuthSpec extends Specification {
       clientKey = Left("keyPath"),
       user = Option("aUser")
     )
-    auth.toString mustEqual "CertAuth(clientCertificate=certPath clientKey=keyPath userName=aUser )"
+    auth.toString must beEqualTo("CertAuth(clientCertificate=certPath clientKey=keyPath userName=aUser )")
   }
 
   "TokenAuth toString masks token" >> {
-    TokenAuth("myToken").toString mustEqual "TokenAuth(token=<redacted>)"
+    TokenAuth("myToken").toString must beEqualTo("TokenAuth(token=<redacted>)")
   }
 
   "GcpAuth toString masks accessToken" >> {
-    GcpAuth(accessToken = Some("MyAccessToken"), expiry = Some(Instant.now), cmdPath = "gcp", cmdArgs = "").toString mustEqual
-      "GcpAuth(accessToken=<redacted>)"
+    GcpAuth(accessToken = Some("MyAccessToken"), expiry = Some(Instant.now), cmdPath = "gcp", cmdArgs = "").toString must beEqualTo(
+      "GcpAuth(accessToken=<redacted>)")
   }
 
   "OidcAuth toString masks idToken" >> {
-    OidcAuth(idToken = "MyToken").toString mustEqual "OidcAuth(idToken=<redacted>)"
+    OidcAuth(idToken = "MyToken").toString must beEqualTo("OidcAuth(idToken=<redacted>)")
   }
 
 }

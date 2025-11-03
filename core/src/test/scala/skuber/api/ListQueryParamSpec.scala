@@ -14,9 +14,9 @@ import scala.language.{postfixOps, reflectiveCalls}
 class ListQueryParamSpec extends Specification {
 
   "LabelSelector string representations equate to the associated labelSelector query param values" >> {
-    LabelSelector("tier" is "database").toString mustEqual "tier=database"
-    LabelSelector("tier" isNot "database").toString mustEqual "tier!=database"
-    LabelSelector("tier" isIn List("web","database")).toString mustEqual "tier in (web,database)"
-    LabelSelector("tier" isIn List("database","app"), "version" is "1").toString mustEqual "tier in (database,app),version=1"
+    LabelSelector("tier" is "database").toString must beEqualTo("tier=database")
+    LabelSelector("tier" isNot "database").toString must beEqualTo("tier!=database")
+    LabelSelector("tier" isIn List("web","database")).toString must beEqualTo("tier in (web,database)")
+    LabelSelector("tier" isIn List("database","app"), "version" is "1").toString must beEqualTo("tier in (database,app),version=1")
   }
 }

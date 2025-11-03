@@ -7,7 +7,8 @@ import akka.stream.scaladsl.Framing.FramingException
 import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
 import akka.stream.testkit.scaladsl.TestSink
 import com.fasterxml.jackson.core.JsonParseException
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.{times => calledTimes}
+import org.mockito.Mockito.{verify, when}
 import org.scalatestplus.mockito.MockitoSugar
 import org.specs2.mutable.Specification
 
@@ -66,7 +67,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(4)).logConfig
+      verify(client, calledTimes(4)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802",  "watch" -> "true")), Some("default"), None
       )
@@ -111,7 +112,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(4)).logConfig
+      verify(client, calledTimes(4)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), Some(false)
       )
@@ -156,7 +157,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(4)).logConfig
+      verify(client, calledTimes(4)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), Some(true)
       )
@@ -201,7 +202,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(4)).logConfig
+      verify(client, calledTimes(4)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), Some("default"), None
       )
@@ -251,7 +252,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(4)).logConfig
+      verify(client, calledTimes(4)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(query1), Some("default"), None
       )
@@ -302,7 +303,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(4)).logConfig
+      verify(client, calledTimes(4)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(query1), Some("default"), None
       )
@@ -350,11 +351,11 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       downstream.expectComplete()
 
-      verify(client, times(6)).logConfig
+      verify(client, calledTimes(6)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None
       )
-      verify(client, times(2)).buildRequest(
+      verify(client, calledTimes(2)).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), Some("default"), None
       )
       ok
@@ -386,7 +387,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       error must haveClass[FramingException]
 
-      verify(client, times(2)).logConfig
+      verify(client, calledTimes(2)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None
       )
@@ -420,7 +421,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       error must haveClass[JsonParseException]
 
-      verify(client, times(2)).logConfig
+      verify(client, calledTimes(2)).logConfig
       verify(client).buildRequest(
         HttpMethods.GET, ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), Some("default"), None
       )
@@ -453,7 +454,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[K8SException]
-      error.asInstanceOf[K8SException].status.code mustEqual Some(500)
+      error.asInstanceOf[K8SException].status.code must beEqualTo(Some(500))
 
       verify(client).logConfig
       verify(client).buildRequest(
@@ -488,7 +489,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[K8SException]
-      error.asInstanceOf[K8SException].status.code mustEqual Some(401)
+      error.asInstanceOf[K8SException].status.code must beEqualTo(Some(401))
 
       verify(client).logConfig
 

@@ -24,20 +24,20 @@ class ServiceReadsWritesSpec extends Specification {
     "this can be done for a simple Service with just a name" >> {
       val mySvc = Service("mySvc")
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
-      mySvc mustEqual readSvc    
+      mySvc must beEqualTo(readSvc)    
     }
     "this can be done for a simple Service with just a name and namespace set" >> {
       val mySvc = Namespace("myNamespace").service("mySvc")
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
-      mySvc mustEqual readSvc  
+      mySvc must beEqualTo(readSvc)  
     } 
     "this can be done for a Service with a simple, single port spec" >> {
       val mySvc = Namespace("myNamespace").
                     service("mySvc",Spec(ports=List(Port(name="myPort",port=5654))))
       val readSvc = Json.fromJson[Service](Json.toJson(mySvc)).get 
-      mySvc mustEqual readSvc
+      mySvc must beEqualTo(readSvc)
       val spec = readSvc.spec.get
-      spec.publishNotReadyAddresses mustEqual false
+      spec.publishNotReadyAddresses must beEqualTo(false)
     }
     "this can be done for a Service with a more complex spec" >> {
       val ports=List(Port(port=9081,targetPort=Some(8080)),
@@ -52,7 +52,7 @@ class ServiceReadsWritesSpec extends Specification {
       val ret: Result = readSvcJsResult match {
         case JsError(e) => Failure(e.toString)    
         case JsSuccess(readSvc,_) => 
-          readSvc mustEqual mySvc
+          readSvc must beEqualTo(mySvc)
       }   
       ret
     }
@@ -105,26 +105,26 @@ class ServiceReadsWritesSpec extends Specification {
             }                   
       """
       val mySvc = Json.parse(svcJsonStr).as[Service]
-      mySvc.kind mustEqual "Service"
-      mySvc.name mustEqual "kube-dns"
+      mySvc.kind must beEqualTo("Service")
+      mySvc.name must beEqualTo("kube-dns")
       val spec = mySvc.spec.get
-      spec.externalTrafficPolicy mustEqual None
-      spec.publishNotReadyAddresses mustEqual true
+      spec.externalTrafficPolicy must beEqualTo(None)
+      spec.publishNotReadyAddresses must beEqualTo(true)
       val ports = spec.ports
-      ports.length mustEqual 2
+      ports.length must beEqualTo(2)
       val udpDnsPort = ports.head
-      udpDnsPort.port mustEqual 53
-      udpDnsPort.targetPort.get mustEqual Left(53)
-      udpDnsPort.nodePort mustEqual 0
-      udpDnsPort.protocol mustEqual Protocol.UDP
-      udpDnsPort.name mustEqual "dns"
+      udpDnsPort.port must beEqualTo(53)
+      udpDnsPort.targetPort.get must beEqualTo(Left(53))
+      udpDnsPort.nodePort must beEqualTo(0)
+      udpDnsPort.protocol must beEqualTo(Protocol.UDP)
+      udpDnsPort.name must beEqualTo("dns")
       
       val tcpDnsPort = ports(1)
-      tcpDnsPort.port mustEqual 53
-      tcpDnsPort.targetPort.get mustEqual Left(53)
-      tcpDnsPort.nodePort mustEqual 0
-      tcpDnsPort.protocol mustEqual Protocol.TCP
-      tcpDnsPort.name mustEqual "dns-tcp"     
+      tcpDnsPort.port must beEqualTo(53)
+      tcpDnsPort.targetPort.get must beEqualTo(Left(53))
+      tcpDnsPort.nodePort must beEqualTo(0)
+      tcpDnsPort.protocol must beEqualTo(Protocol.TCP)
+      tcpDnsPort.name must beEqualTo("dns-tcp")     
     }
   }    
 }

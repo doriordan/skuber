@@ -16,7 +16,7 @@ class PodDisruptionBudgetSpec extends Specification {
         .withMinAvailable(Left(1))
         .withLabelSelector("application" is "someApplicationName")
 
-      Json.parse(createJson("/examplePodDisruptionBudget.json")).validate[PodDisruptionBudget] mustEqual JsSuccess(pdb)
+      Json.parse(createJson("/examplePodDisruptionBudget.json")).validate[PodDisruptionBudget] must beEqualTo(JsSuccess(pdb))
     }
     "encode to json" >> {
       Json.toJson(
@@ -24,7 +24,7 @@ class PodDisruptionBudgetSpec extends Specification {
           .withMaxUnavailable(Left(2))
           .withMinAvailable(Left(1))
           .withLabelSelector("application" is "someApplicationName")
-      ) mustEqual Json.parse(createJson("/examplePodDisruptionBudget.json"))
+      ) must beEqualTo(Json.parse(createJson("/examplePodDisruptionBudget.json")))
     }
   }
 

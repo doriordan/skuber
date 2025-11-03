@@ -22,13 +22,13 @@ class ReplicationControllerFormatSpec extends Specification {
     "this can be done for a simple controller with just a name" >> {
       val myRC = ReplicationController("myRC")
       val readRC = Json.fromJson[ReplicationController](Json.toJson(myRC)).get 
-      myRC mustEqual readRC   
+      myRC must beEqualTo(readRC)   
     }
     
     "this can be done for a simple controller with just a name and namespace set" >> {
       val myRC = Namespace("myNamespace").replicationController("myRC")
       val readRC = Json.fromJson[ReplicationController](Json.toJson(myRC)).get 
-      myRC mustEqual readRC  
+      myRC must beEqualTo(readRC)  
     } 
     
     "this can be done for a controller with a spec for replicating a pod with a single container" >> {
@@ -43,7 +43,7 @@ class ReplicationControllerFormatSpec extends Specification {
                     
                    
       val readRC = Json.fromJson[ReplicationController](Json.toJson(myRC)).get 
-      myRC mustEqual readRC
+      myRC must beEqualTo(readRC)
     }
     
     "a replication controller can be read from Json" >> {
@@ -87,10 +87,10 @@ class ReplicationControllerFormatSpec extends Specification {
       }        
       """
       val myRC = Json.parse(svcJsonStr).as[ReplicationController]
-      myRC.kind mustEqual "ReplicationController"
-      myRC.name mustEqual "guestbook"
+      myRC.kind must beEqualTo("ReplicationController")
+      myRC.name must beEqualTo("guestbook")
       val spec = myRC.spec.get
-      spec.replicas mustEqual 3 
+      spec.replicas must beEqualTo(3) 
     }
   }    
 }

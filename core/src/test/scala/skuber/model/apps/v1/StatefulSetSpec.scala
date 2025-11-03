@@ -19,12 +19,12 @@ class StatefulSetSpec extends Specification {
       .withServiceName("nginx-service")
       .withTemplate(template)
       .withVolumeClaimTemplate(PersistentVolumeClaim("hello"))
-    stateSet.spec.get.template mustEqual template
-    stateSet.spec.get.serviceName mustEqual Some("nginx-service")
+    stateSet.spec.get.template must beEqualTo(template)
+    stateSet.spec.get.serviceName must beEqualTo(Some("nginx-service"))
     stateSet.spec.get.replicas must beSome(200)
-    stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
-    stateSet.name mustEqual "example"
-    stateSet.status mustEqual None
+    stateSet.spec.get.volumeClaimTemplates.size must beEqualTo(1)
+    stateSet.name must beEqualTo("example")
+    stateSet.status must beEqualTo(None)
   }
 
   "A StatefulSet object can be written to Json and then read back again successfully" >> {
@@ -36,7 +36,7 @@ class StatefulSetSpec extends Specification {
 
 
     val readSSet = Json.fromJson[StatefulSet](Json.toJson(stateSet)).get
-    readSSet mustEqual stateSet
+    readSSet must beEqualTo(stateSet)
   }
 
   "A StatefulSet object properly writes with zero replicas" >> {
@@ -52,29 +52,29 @@ class StatefulSetSpec extends Specification {
     val ssetJsonStr = ssJsonSource.mkString
     val stateSet = Json.parse(ssetJsonStr).as[StatefulSet]
 
-    stateSet.kind mustEqual "StatefulSet"
-    stateSet.name mustEqual "nginx-stateset"
+    stateSet.kind must beEqualTo("StatefulSet")
+    stateSet.name must beEqualTo("nginx-stateset")
     stateSet.spec.get.replicas must beSome(7)
-    stateSet.spec.get.updateStrategy.get.`type` mustEqual StatefulSet.UpdateStrategyType.RollingUpdate
-    stateSet.spec.get.updateStrategy.get.rollingUpdate.get.partition mustEqual(5)
-    stateSet.spec.get.volumeClaimTemplates.size mustEqual 1
-    stateSet.spec.get.serviceName.get mustEqual "nginx-service"
-    stateSet.spec.get.template.metadata.labels mustEqual Map("domain" -> "www.example.com","proxies" -> "microservices")
+    stateSet.spec.get.updateStrategy.get.`type` must beEqualTo(StatefulSet.UpdateStrategyType.RollingUpdate)
+    stateSet.spec.get.updateStrategy.get.rollingUpdate.get.partition must beEqualTo(5)
+    stateSet.spec.get.volumeClaimTemplates.size must beEqualTo(1)
+    stateSet.spec.get.serviceName.get must beEqualTo("nginx-service")
+    stateSet.spec.get.template.metadata.labels must beEqualTo(Map("domain" -> "www.example.com","proxies" -> "microservices"))
     val podSpec=stateSet.spec.get.template.spec.get
-    podSpec.containers.length mustEqual 1
+    podSpec.containers.length must beEqualTo(1)
     val container=podSpec.containers(0)
-    container.resources.get.requests.get("cpu").get mustEqual Resource.Quantity("500m")
-    container.lifecycle.get.preStop.get mustEqual ExecAction(List("/bin/sh", "-c", "PID=$(pidof java) && kill $PID && while ps -p $PID > /dev/null; do sleep 1; done"))
-    container.readinessProbe.get.action mustEqual ExecAction(List("/bin/sh", "-c", "./ready.sh"))
-    container.readinessProbe.get.initialDelaySeconds mustEqual 15
-    container.readinessProbe.get.timeoutSeconds mustEqual 5
-    stateSet.spec.get.selector.get.requirements.size mustEqual 4
-    stateSet.spec.get.selector.get.requirements.find(r => (r.key == "env")) mustEqual Some("env" isNotIn List("dev"))
-    stateSet.spec.get.selector.get.requirements.find(r => (r.key == "domain")) mustEqual Some("domain" is "www.example.com")
+    container.resources.get.requests.get("cpu").get must beEqualTo(Resource.Quantity("500m"))
+    container.lifecycle.get.preStop.get must beEqualTo(ExecAction(List("/bin/sh", "-c", "PID=$(pidof java) && kill $PID && while ps -p $PID > /dev/null; do sleep 1; done")))
+    container.readinessProbe.get.action must beEqualTo(ExecAction(List("/bin/sh", "-c", "./ready.sh")))
+    container.readinessProbe.get.initialDelaySeconds must beEqualTo(15)
+    container.readinessProbe.get.timeoutSeconds must beEqualTo(5)
+    stateSet.spec.get.selector.get.requirements.size must beEqualTo(4)
+    stateSet.spec.get.selector.get.requirements.find(r => (r.key == "env")) must beEqualTo(Some("env" isNotIn List("dev")))
+    stateSet.spec.get.selector.get.requirements.find(r => (r.key == "domain")) must beEqualTo(Some("domain" is "www.example.com"))
 
     // write and read back in again, should be unchanged
     val json = Json.toJson(stateSet)
     val readSS = Json.fromJson[StatefulSet](json).get
-    readSS mustEqual stateSet
+    readSS must beEqualTo(stateSet)
   }
 }

@@ -14,7 +14,7 @@ class ModelSpec extends Specification {
     "where an empty list of pods can be used" >> {
       val podList = List[Pod]()
       val pods=PodList(items = podList)
-      pods.items.size mustEqual 0
+      pods.items.size must beEqualTo(0)
     }
     
     "where a list with a single pod can be used" >> {
@@ -24,8 +24,8 @@ class ModelSpec extends Specification {
       val pod=Pod("MyPod", podspec)
       val podList = List[Pod](pod)
       val pods=PodList(items = podList)
-      pods.items.size mustEqual 1
-      pods.items.head.metadata.name mustEqual "MyPod"
+      pods.items.size must beEqualTo(1)
+      pods.items.head.metadata.name must beEqualTo("MyPod")
     }    
   }   
    // ReplicationController(s)
@@ -33,7 +33,7 @@ class ModelSpec extends Specification {
     "where an empty list of RCs can be used" >> {
       val rcList = List[ReplicationController]()
       val rcs=ReplicationControllerList(items = rcList)
-      rcs.items.size mustEqual 0
+      rcs.items.size must beEqualTo(0)
     }
     
     "where a list with a single RC can be used" >> {
@@ -43,16 +43,16 @@ class ModelSpec extends Specification {
       val rc = ReplicationController("MyRepCon").withReplicas(2).withPodSpec(podspec)
       val rcList = List[ReplicationController](rc)
       val rcs=ReplicationControllerList(items = rcList)
-      rcs.items.size mustEqual 1
-      rcs.items.head.metadata.name mustEqual "MyRepCon"
-      rcs(0).name mustEqual "MyRepCon"
-      rcs(0).spec.get.replicas mustEqual 2
+      rcs.items.size must beEqualTo(1)
+      rcs.items.head.metadata.name must beEqualTo("MyRepCon")
+      rcs(0).name must beEqualTo("MyRepCon")
+      rcs(0).spec.get.replicas must beEqualTo(2)
       val pspec = for (
           rcspec <- rcs(0).spec;
           tmpl <- rcspec.template;
           podspec <- tmpl.spec
       ) yield(podspec)
-      pspec.get.containers.size mustEqual 2
+      pspec.get.containers.size must beEqualTo(2)
     }    
   }   
 }

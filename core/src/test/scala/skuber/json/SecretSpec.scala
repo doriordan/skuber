@@ -14,16 +14,16 @@ class SecretSpec extends Specification {
     val dataBytes = "hello".getBytes
     val secret = Secret(metadata = ObjectMeta("mySecret"), data = Map("key" -> dataBytes))
     val resultBytes = Json.fromJson[Secret](Json.toJson(secret)).get.data("key")
-    dataBytes mustEqual resultBytes
+    dataBytes must beEqualTo(resultBytes)
   }
   "this can be done with an empty data map" >> {
     val mySecret = Secret(metadata = ObjectMeta("mySecret"))
     val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
-    mySecret mustEqual readSecret
+    mySecret must beEqualTo(readSecret)
   }
   "this can be done with the type member defined" >> {
     val mySecret = Secret(metadata = ObjectMeta("mySecret"), `type` = "myType")
     val readSecret = Json.fromJson[Secret](Json.toJson(mySecret)).get
-    mySecret mustEqual readSecret
+    mySecret must beEqualTo(readSecret)
   }
 }
