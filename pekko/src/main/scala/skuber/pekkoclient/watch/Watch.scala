@@ -40,9 +40,13 @@ object Watch {
       watch = Some(true),
       fieldSelector = nameFieldSelector
     )
-    val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
-    val responseFut = context.invokeWatch(request)
-    toFutureWatchEventSource(context, responseFut, bufSize, errorHandler)
+
+    implicit val ec: ExecutionContext = context.actorSystem.dispatcher
+
+    for {
+      request <- context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
+      response <- context.invokeWatch(request)
+    } yield BytesToWatchEventSource(context, response.entity.dataBytes, bufSize, errorHandler)
   }
 
   /**
@@ -56,13 +60,16 @@ object Watch {
     * @return a Future which will eventually return a Source of events
     */
   def eventsOnKind[O <: ObjectResource](context: PekkoKubernetesClientImpl, sinceResourceVersion: Option[String] = None, bufSize: Int, errorHandler: Option[String => _])(
-    implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] =
-  {
+    implicit format: Format[O], rd: ResourceDefinition[O], lc: LoggingContext) : Future[Source[WatchEvent[O], _]] = {
     context.logInfo(context.logConfig.logRequestBasic, s"creating skuber watch on kind ${rd.spec.names.kind}")
 
-    val watchOptions=ListOptions(resourceVersion = sinceResourceVersion, watch = Some(true))
-    val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
-    val responseFut = context.invokeWatch(request)
+    val watchOptions = ListOptions(resourceVersion = sinceResourceVersion, watch = Some(true))
+
+    implicit val ec: ExecutionContext = context.actorSystem.dispatcher
+    val responseFut = for {
+      request <- context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
+      response <- context.invokeWatch(request)
+    } yield response
     toFutureWatchEventSource(context, responseFut, bufSize, errorHandler)
   }
 
@@ -78,6 +85,7 @@ object Watch {
   private def toFutureWatchEventSource[O <: ObjectResource](context: PekkoKubernetesClientImpl, eventStreamResponseFut: Future[HttpResponse], bufSize: Int, errorHandler: Option[String => _])(
     implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
   {
+
     implicit val ec: ExecutionContext = context.actorSystem.dispatcher
 
     eventStreamResponseFut.map { eventStreamResponse =>

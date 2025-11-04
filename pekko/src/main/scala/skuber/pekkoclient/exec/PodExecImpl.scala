@@ -97,31 +97,41 @@ object PodExecImpl {
     // Make a flow from the source to the sink
     val flow: Flow[ws.Message, ws.Message, Promise[Option[ws.Message]]] = Flow.fromSinkAndSourceMat(sink, source)(Keep.right)
 
-    // upgradeResponse completes or fails when the connection succeeds or fails
-    // and promise controls the connection close timing
-    val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
-
-    val connected = upgradeResponse.map { upgrade =>
+    for {
+      authHeaders <- HTTPRequestAuth.getAuthHeaderAsync(requestContext.requestAuth)
+      headers = List(RawHeader("Accept", "*/*")) ++ authHeaders.toList
+      // upgradeResponse completes or fails when the connection succeeds or fails
+      // and promise controls the connection close timing
+      (upgradeResponseFuture, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
+      upgrade <- upgradeResponseFuture
       // just like a regular http request we can access response status which is available via upgrade.response.status
       // status code 101 (Switching Protocols) indicates that server support WebSockets
-      if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
-        Done
+      _ <- if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
+        Future.successful(Done)
       } else {
-        val message = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
-        throw new K8SException(Status(message =
-            Some(s"Connection failed with status ${upgrade.response.status}"),
-          details = Some(message), code = Some(upgrade.response.status.intValue())))
+        for {
+          entity <- upgrade.response.entity.toStrict(1000.millis)
+          _ <- Future.failed(
+            new K8SException(
+              Status(
+                message = Some(s"Connection failed with status ${upgrade.response.status}"),
+                details = Some(entity.data.utf8String),
+                code = Some(upgrade.response.status.intValue())
+              )
+            )
+          )
+        } yield ()
       }
-    }
-
-    val close = maybeClose.getOrElse(Promise.successful(()))
-    connected.foreach { _ =>
-      requestContext.log.info(s"Connected to container $containerPrintName of pod $podName")
-      close.future.foreach { _ =>
-        requestContext.log.info(s"Close the connection of container $containerPrintName of pod $podName")
-        promise.success(None)
+      close = maybeClose.getOrElse(Promise.successful(()))
+      _ = {
+         requestContext.log.info(s"Connected to container ${containerPrintName} of pod ${podName}")
+         close.future.foreach { _ =>
+           requestContext.log.info(s"Close the connection of container ${containerPrintName} of pod ${podName}")
+           promise.trySuccess(None)
+        }
       }
-    }
-    Future.sequence(Seq(connected, close.future, promise.future)).map { _ => () }
+      _ <- close.future
+      _ <- promise.future
+    } yield ()
   }
 }

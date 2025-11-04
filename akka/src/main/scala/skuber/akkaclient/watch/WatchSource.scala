@@ -10,7 +10,7 @@ import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client._
 import skuber.model.{ObjectResource, ResourceDefinition}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 private[akkaclient] object WatchSource {
@@ -32,7 +32,7 @@ private[akkaclient] object WatchSource {
       implicit val sys = client.actorSystem
       implicit val dispatcher: ExecutionContext = sys.dispatcher
 
-      def createWatchRequest(since: Option[String]) =
+      def createWatchRequest(since: Option[String]): Future[HttpRequest] =
       {
         val watchOptions=options.copy(
           resourceVersion = since,
@@ -41,6 +41,7 @@ private[akkaclient] object WatchSource {
         val req = client.buildRequest(
           HttpMethods.GET, rd, None, query =  Some(Uri.Query(watchOptions.asMap)),  overrideNamespace, overrideClusterScope
         )
+        System.err.println(s"create watch request returned $req")
         req
       }
 
@@ -48,9 +49,8 @@ private[akkaclient] object WatchSource {
 
       def singleStart(s:StreamElement[O]) = Source.single(s)
 
-      val initSource = Source.single(
-        (createWatchRequest(options.resourceVersion), Start[O](options.resourceVersion))
-      )
+      val initSource = Source.futureSource(createWatchRequest(options.resourceVersion)
+        .map(r => Source.single((r, Start[O](options.resourceVersion)))))
 
       val httpFlow: Flow[(HttpRequest, Start[O]), StreamElement[O], NotUsed] =
         Flow[(HttpRequest, Start[O])].map { request => // log request
@@ -86,8 +86,8 @@ private[akkaclient] object WatchSource {
             case Result(rv, _) => StreamContext(Some(rv), Processing)
             case End() => cxt.copy(state = Finished)
           }
-        }.filter(_.state == Finished).map { acc =>
-          (createWatchRequest(acc.currentResourceVersion), Start[O](acc.currentResourceVersion))
+        }.filter(_.state == Finished).mapAsync(1) { acc =>
+          createWatchRequest(acc.currentResourceVersion).map(r => (r, Start[O](acc.currentResourceVersion)))
         }
 
       val init = b.add(initSource)

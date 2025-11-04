@@ -44,8 +44,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   val sslContext: Option[SSLContext], // provides the Akka client with the SSL details needed for https connections to the API server
   override val logConfig: LoggingConfig,
   val closeHook: Option[() => Unit])(implicit val actorSystem: ActorSystem, val executionContext: ExecutionContext)
-    extends AkkaKubernetesClient
-{
+    extends AkkaKubernetesClient {
   private val clusterServerUri = Uri(clusterServer)
 
   val log: LoggingAdapter = Logging.getLogger(actorSystem, "skuber.api")
@@ -70,7 +69,9 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   }
 
   private[skuber] def invokeWatch(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, watchSettings)
+
   private[skuber] def invokeLog(request: HttpRequest)(implicit lc: LoggingContext): Future[HttpResponse] = invoke(request, podLogSettings)
+
   private[skuber] def invoke(request: HttpRequest, settings: ConnectionPoolSettings = ConnectionPoolSettings(actorSystem))(implicit lc: LoggingContext): Future[HttpResponse] = {
     if (isClosed) {
       logError("Attempt was made to invoke request on closed API request context")
@@ -79,8 +80,8 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     logInfo(logConfig.logRequestBasic, s"about to send HTTP request: ${request.method.value} ${request.uri.toString}")
     val responseFut = Http().singleRequest(request, settings = settings, connectionContext = connectionContext)
     responseFut onComplete {
-      case Success(response) => logInfo(logConfig.logResponseBasic,s"received response with HTTP status ${response.status.intValue()}")
-      case Failure(ex) => logError("HTTP request resulted in an unexpected exception",ex)
+      case Success(response) => logInfo(logConfig.logResponseBasic, s"received response with HTTP status ${response.status.intValue()}")
+      case Failure(ex) => logError("HTTP request resulted in an unexpected exception", ex)
     }
     responseFut
   }
@@ -91,8 +92,8 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     nameComponent: Option[String],
     query: Option[Uri.Query] = None,
     namespaceOverride: Option[String] = None,
-    clusterScopeOverride: Option[Boolean] = None): HttpRequest =
-  {
+    clusterScopeOverride: Option[Boolean] = None): Future[HttpRequest] = {
+
     def buildNamespaceComponent() = Some(s"namespaces/${namespaceOverride.getOrElse(namespaceName)}")
 
     val nsPathComponent = clusterScopeOverride match {
@@ -124,18 +125,16 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     }
 
     val req = requestMaker(uri, method)
-    HTTPRequestAuth.addAuth(req, requestAuth)
+    HTTPRequestAuth.addAuthAsync(req, requestAuth)
   }
 
-  private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) =
-  {
+  private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) = {
     if (log.isInfoEnabled && enabledLogEvent) {
       log.info(s"[ ${lc.output} - $msg]")
     }
   }
 
-  private[skuber] def logInfoOpt(enabledLogEvent: Boolean, msgOpt: => Option[String])(implicit lc: LoggingContext) =
-  {
+  private[skuber] def logInfoOpt(enabledLogEvent: Boolean, msgOpt: => Option[String])(implicit lc: LoggingContext) = {
     if (log.isInfoEnabled && enabledLogEvent) {
       msgOpt foreach { msg =>
         log.info(s"[ ${lc.output} - $msg]")
@@ -143,27 +142,24 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     }
   }
 
-  private[skuber] def logWarn(msg: String)(implicit lc: LoggingContext) =
-  {
+  private[skuber] def logWarn(msg: String)(implicit lc: LoggingContext) = {
     log.error(s"[ ${lc.output} - $msg ]")
   }
 
-  private[skuber] def logError(msg: String)(implicit lc: LoggingContext) =
-  {
+  private[skuber] def logError(msg: String)(implicit lc: LoggingContext) = {
     log.error(s"[ ${lc.output} - $msg ]")
   }
 
-  private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) =
-  {
+  private[skuber] def logError(msg: String, ex: Throwable)(implicit lc: LoggingContext) = {
     log.error(ex, s"[ ${lc.output} - $msg ]")
   }
 
-  private[skuber] def logDebug(msg : => String)(implicit lc: LoggingContext) = {
+  private[skuber] def logDebug(msg: => String)(implicit lc: LoggingContext) = {
     if (log.isDebugEnabled)
       log.debug(s"[ ${lc.output} - $msg ]")
   }
 
-  private[skuber] def logRequestObjectDetails[O <: ObjectResource](method: HttpMethod,resource: O)(implicit lc: LoggingContext) = {
+  private[skuber] def logRequestObjectDetails[O <: ObjectResource](method: HttpMethod, resource: O)(implicit lc: LoggingContext) = {
     logInfoOpt(logConfig.logRequestBasicMetadata, {
       val name = resource.name
       val version = resource.metadata.resourceVersion
@@ -177,23 +173,20 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${resource.toString}")
   }
 
-  private[skuber] def logReceivedObjectDetails[O <: ObjectResource](resource: O)(implicit lc: LoggingContext) =
-  {
+  private[skuber] def logReceivedObjectDetails[O <: ObjectResource](resource: O)(implicit lc: LoggingContext) = {
     logInfo(logConfig.logResponseBasicMetadata, s" resource: { kind:${resource.kind} name:${resource.name} version:${resource.metadata.resourceVersion} ... }")
     logInfo(logConfig.logResponseFullObjectResource, s" received and parsed: ${resource.toString}")
   }
 
-  private[skuber] def logReceivedListDetails[L <: ListResource[_]](result: L)(implicit lc: LoggingContext) =
-  {
-    logInfo(logConfig.logResponseBasicMetadata,s"received list resource of kind ${result.kind}")
-    logInfo(logConfig.logResponseListSize,s"number of items in received list resource: ${result.items.size}")
+  private[skuber] def logReceivedListDetails[L <: ListResource[_]](result: L)(implicit lc: LoggingContext) = {
+    logInfo(logConfig.logResponseBasicMetadata, s"received list resource of kind ${result.kind}")
+    logInfo(logConfig.logResponseListSize, s"number of items in received list resource: ${result.items.size}")
     logInfo(logConfig.logResponseListNames, s"received ${result.kind} contains item(s): ${result.itemNames}]")
     logInfo(logConfig.logResponseFullListResource, s" Unmarshalled list resource: ${result.toString}")
   }
 
   private[skuber] def makeRequestReturningObjectResource[O <: ObjectResource](httpRequest: HttpRequest)(
-    implicit fmt: Format[O], lc: LoggingContext): Future[O] =
-  {
+    implicit fmt: Format[O], lc: LoggingContext): Future[O] = {
     for {
       httpResponse <- invoke(httpRequest)
       result <- toKubernetesResponse[O](httpResponse)
@@ -202,8 +195,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   }
 
   private[skuber] def makeRequestReturningListResource[L <: ListResource[_]](httpRequest: HttpRequest)(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], lc: LoggingContext): Future[L] = {
     for {
       httpResponse <- invoke(httpRequest)
       result <- toKubernetesResponse[L](httpResponse)
@@ -216,19 +208,17 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     * The create, update and partiallyUpdate methods all call this, just passing different HTTP methods
     */
   private[skuber] def modify[O <: ObjectResource](method: HttpMethod)(obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
     // if this is a POST we don't include the resource name in the URL
     val nameComponent: Option[String] = method match {
       case HttpMethods.POST => None
-      case _                => Some(obj.name)
+      case _ => Some(obj.name)
     }
     modify(method, obj, nameComponent)
   }
 
-  private[skuber] def  modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
+  private[skuber] def modify[O <: ObjectResource](method: HttpMethod, obj: O, nameComponent: Option[String])(
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
     // Namespace set in the object metadata (if set) has higher priority than that of the
     // request context (see Issue #204)
     val targetNamespace = if (obj.metadata.namespace.isEmpty) namespaceName else obj.metadata.namespace
@@ -236,22 +226,20 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     logRequestObjectDetails(method, obj)
     val marshal = Marshal(obj)
     for {
-      requestEntity        <- marshal.to[RequestEntity]
-      httpRequest          = buildRequest(method, rd, nameComponent, namespaceOverride = Some(targetNamespace))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+      requestEntity <- marshal.to[RequestEntity]
+      httpRequest <- buildRequest(method, rd, nameComponent, namespaceOverride = Some(targetNamespace))
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
     } yield newOrUpdatedResource
   }
 
   override def create[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
     modify(HttpMethods.POST)(obj)
   }
 
   override def update[O <: ObjectResource](obj: O)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
     modify(HttpMethods.PUT)(obj)
   }
 
@@ -259,23 +247,20 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     fmt: Format[O],
     rd: ResourceDefinition[O],
     statusEv: HasStatusSubresource[O],
-    lc: LoggingContext): Future[O] =
-  {
-    val statusSubresourcePath=s"${obj.name}/status"
-    modify(HttpMethods.PUT,obj,Some(statusSubresourcePath))
+    lc: LoggingContext): Future[O] = {
+    val statusSubresourcePath = s"${obj.name}/status"
+    modify(HttpMethods.PUT, obj, Some(statusSubresourcePath))
   }
 
   override def getStatus[O <: ObjectResource](name: String)(implicit
     fmt: Format[O],
     rd: ResourceDefinition[O],
     statusEv: HasStatusSubresource[O],
-    lc: LoggingContext): Future[O] =
-  {
+    lc: LoggingContext): Future[O] = {
     _get[O](s"${name}/status")
   }
 
-  override def getNamespaceNames(implicit lc: LoggingContext): Future[List[String]] =
-  {
+  override def getNamespaceNames(implicit lc: LoggingContext): Future[List[String]] = {
     list[NamespaceList]().map { namespaceList =>
       val namespaces = namespaceList.items
       namespaces.map(_.name)
@@ -290,14 +275,12 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   * which supports the feature requested in issue #20
    */
   override def listByNamespace[L <: ListResource[_]]()(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[Map[String, L]] =
-  {
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[Map[String, L]] = {
     listByNamespace[L](rd)
   }
 
   private def listByNamespace[L <: ListResource[_]](rd: ResourceDefinition[_])
-      (implicit fmt: Format[L], lc: LoggingContext): Future[Map[String, L]] =
-  {
+      (implicit fmt: Format[L], lc: LoggingContext): Future[Map[String, L]] = {
     val nsNamesFut: Future[List[String]] = getNamespaceNames
     val tuplesFut: Future[List[(String, L)]] = nsNamesFut flatMap { (nsNames: List[String]) =>
       Future.sequence(nsNames map { (nsName: String) =>
@@ -313,24 +296,21 @@ class AkkaKubernetesClientImpl private[akkaclient] (
    * List all objects of given kind in the specified namespace on the cluster
    */
   override def listInNamespace[L <: ListResource[_]](theNamespace: String)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
     listInNamespace[L](theNamespace, rd)
   }
 
   private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
-  {
-    val req = buildRequest(HttpMethods.GET, rd, None, namespaceOverride = Some(theNamespace))
-    makeRequestReturningListResource[L](req)
+    implicit fmt: Format[L], lc: LoggingContext): Future[L] = {
+    buildRequest(HttpMethods.GET, rd, None, namespaceOverride = Some(theNamespace))
+        .flatMap(makeRequestReturningListResource[L])
   }
 
   /*
    * List objects of specific resource kind in current namespace
    */
   override def list[L <: ListResource[_]]()(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
     _list[L](rd, None)
   }
 
@@ -338,14 +318,12 @@ class AkkaKubernetesClientImpl private[akkaclient] (
    * Retrieve the list of objects of given type in the current namespace that match the supplied label selector
    */
   override def listSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
-  {
-    _list[L](rd, Some(ListOptions(labelSelector=Some(labelSelector))))
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
+    _list[L](rd, Some(ListOptions(labelSelector = Some(labelSelector))))
   }
 
   override def listWithOptions[L <: ListResource[_]](options: ListOptions)(
-   implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
     _list[L](rd, Some(options))
   }
 
@@ -355,8 +333,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   }
 
   private def _list[L <: ListResource[_]](rd: ResourceDefinition[_], maybeOptions: Option[ListOptions], clusterScope: Option[Boolean] = None)(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], lc: LoggingContext): Future[L] = {
     val queryOpt = maybeOptions map { opts =>
       Uri.Query(opts.asMap)
     }
@@ -364,14 +341,12 @@ class AkkaKubernetesClientImpl private[akkaclient] (
       val optsInfo = maybeOptions map { opts => s" with options '${opts.asMap.toString}'" } getOrElse ""
       logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${optsInfo}")
     }
-
-    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt, clusterScopeOverride = clusterScope)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.GET, rd, None, query = queryOpt)
+        .flatMap(makeRequestReturningListResource[L])
   }
 
   override def getOption[O <: ObjectResource](name: String)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Option[O]] =
-  {
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[Option[O]] = {
     _get[O](name) map { result =>
       Some(result)
     } recover {
@@ -380,61 +355,53 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   }
 
   override def get[O <: ObjectResource](name: String)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
     _get[O](name)
   }
 
   override def getInNamespace[O <: ObjectResource](name: String, namespace: String)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
     _get[O](name, namespace)
   }
 
   private[akkaclient] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
-  {
-    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespaceOverride = Some(namespace))
-    makeRequestReturningObjectResource[O](req)
+    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
+    buildRequest(HttpMethods.GET, rd, Some(name), namespaceOverride = Some(namespace))
+        .flatMap(makeRequestReturningObjectResource[O])
   }
 
   override def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1)(
-    implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] =
-  {
-    val grace=if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
+    implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] = {
+    val grace = if (gracePeriodSeconds >= 0) Some(gracePeriodSeconds) else None
     val options = DeleteOptions(gracePeriodSeconds = grace)
     deleteWithOptions[O](name, options)
   }
 
   override def deleteWithOptions[O <: ObjectResource](name: String, options: DeleteOptions)(
-    implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] =
-  {
+    implicit rd: ResourceDefinition[O], lc: LoggingContext): Future[Unit] = {
     val marshalledOptions = Marshal(options)
     for {
       requestEntity <- marshalledOptions.to[RequestEntity]
-      request       = buildRequest(HttpMethods.DELETE, rd, Some(name))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      response      <- invoke(request)
-      _             <- checkResponseStatus(response)
-      _             <- ignoreResponseBody(response)
+      request <- buildRequest(HttpMethods.DELETE, rd, Some(name))
+      requestWithEntity = request.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      response <- invoke(requestWithEntity)
+      _ <- checkResponseStatus(response)
+      _ <- ignoreResponseBody(response)
     } yield ()
   }
 
   override def deleteAll[L <: ListResource[_]]()(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
     _deleteAll[L](rd, None)
   }
 
   override def deleteAllSelected[L <: ListResource[_]](labelSelector: LabelSelector)(
-    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], rd: ResourceDefinition[L], lc: LoggingContext): Future[L] = {
     _deleteAll[L](rd, Some(labelSelector))
   }
 
   private def _deleteAll[L <: ListResource[_]](rd: ResourceDefinition[_], maybeLabelSelector: Option[LabelSelector])(
-    implicit fmt: Format[L], lc: LoggingContext): Future[L] =
-  {
+    implicit fmt: Format[L], lc: LoggingContext): Future[L] = {
     val queryOpt = maybeLabelSelector map { ls =>
       Uri.Query("labelSelector" -> ls.toString)
     }
@@ -442,58 +409,56 @@ class AkkaKubernetesClientImpl private[akkaclient] (
       val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
       logDebug(s"[Delete request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
     }
-    val req = buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
+        .flatMap(makeRequestReturningListResource[L])
   }
 
   def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
-    implicit lc: LoggingContext): Future[Source[ByteString, _]] =
-  {
-    val targetNamespace=namespace.getOrElse(this.namespaceName)
-    val queryMap=queryParams.asMap
+    implicit lc: LoggingContext): Future[Source[ByteString, _]] = {
+    val targetNamespace = namespace.getOrElse(this.namespaceName)
+    val queryMap = queryParams.asMap
     val query: Option[Uri.Query] = if (queryMap.isEmpty) {
       None
     } else {
       Some(Uri.Query(queryMap))
     }
-    val nameComponent=s"${name}/log"
+    val nameComponent = s"${name}/log"
     val rd = implicitly[ResourceDefinition[Pod]]
-    val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, Some(targetNamespace))
-    invokeLog(request).flatMap { response =>
-      val statusOptFut = checkResponseStatus(response)
-      statusOptFut map {
+    for {
+      request <- buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, namespaceOverride = Some(targetNamespace))
+      response <- invokeLog(request)
+      statusOpt <- checkResponseStatus(response)
+      _ <- statusOpt match {
         case Some(status) =>
-          throw new K8SException(status)
-        case _ =>
-          response.entity.dataBytes
+          Future.failed(new K8SException(status))
+        case None =>
+          Future.successful(())
       }
-    }
+    } yield response.entity.dataBytes
   }
 
-  override def getWatcher[O <: ObjectResource] : AkkaWatcher[O] = new AkkaWatcherImpl[O](this)
+  override def getWatcher[O <: ObjectResource]: AkkaWatcher[O] = new AkkaWatcherImpl[O](this)
 
 
   // Operations on scale subresource
   // Scale subresource Only exists for certain resource types like RC, RS, Deployment, StatefulSet so only those types
   // define an implicit Scale.SubresourceSpec, which is required to be passed to these methods.
   override def getScale[O <: ObjectResource](objName: String)(
-    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext) : Future[Scale] =
-  {
-    val req = buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
-    makeRequestReturningObjectResource[Scale](req)
+    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] = {
+    buildRequest(HttpMethods.GET, rd, Some(objName + "/scale"))
+        .flatMap(makeRequestReturningObjectResource[Scale])
   }
 
 
   override def updateScale[O <: ObjectResource](objName: String, scale: Scale)(
-    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc:LoggingContext): Future[Scale] =
-  {
+    implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext): Future[Scale] = {
     implicit val dispatcher = actorSystem.dispatcher
     val marshal = Marshal(scale)
     for {
-      requestEntity  <- marshal.to[RequestEntity]
-      httpRequest    = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
+      requestEntity <- marshal.to[RequestEntity]
+      httpRequest <- buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      scaledResource <- makeRequestReturningObjectResource[Scale](requestWithEntity)
     } yield scaledResource
   }
 
@@ -512,9 +477,9 @@ class AkkaKubernetesClientImpl private[akkaclient] (
     val marshal = Marshal(patchData)
     for {
       requestEntity <- marshal.to[RequestEntity]
-      httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespaceOverride = namespace)
-          .withEntity(requestEntity.withContentType(contentType))
-      newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+      httpRequest <- buildRequest(HttpMethods.PATCH, rd, Some(name), namespaceOverride = namespace)
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(contentType))
+      newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
     } yield newOrUpdatedResource
   }
 
@@ -522,8 +487,8 @@ class AkkaKubernetesClientImpl private[akkaclient] (
   override def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]] = {
     val url = clusterServer + "/api"
     val noAuthReq = requestMaker(Uri(url), HttpMethods.GET)
-    val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
     for {
+      request <- HTTPRequestAuth.addAuthAsync(noAuthReq, requestAuth)
       response <- invoke(request)
       apiVersionResource <- toKubernetesResponse[APIVersions](response)
     } yield apiVersionResource.versions

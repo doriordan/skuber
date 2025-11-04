@@ -81,7 +81,7 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     nameComponent: Option[String],
     query: Option[Uri.Query] = None,
     namespaceOverride: Option[String] = None,
-    clusterScopeOverride: Option[Boolean] = None): HttpRequest =
+    clusterScopeOverride: Option[Boolean] = None): Future[HttpRequest] =
   {
     def buildNamespaceComponent() = Some(s"namespaces/${namespaceOverride.getOrElse(namespaceName)}")
 
@@ -114,7 +114,7 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     }
 
     val req = requestMaker(uri, method)
-    HTTPRequestAuth.addAuth(req, requestAuth)
+    HTTPRequestAuth.addAuthAsync(req, requestAuth)
   }
 
   private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) =
@@ -227,8 +227,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     val marshal = Marshal(obj)
     for {
       requestEntity        <- marshal.to[RequestEntity]
-      httpRequest          = buildRequest(method, rd, nameComponent, namespaceOverride = Some(targetNamespace))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      httpRequest          <- buildRequest(method, rd, nameComponent, namespaceOverride = Some(targetNamespace))
+                                .map(r => r.withEntity(requestEntity.withContentType(MediaTypes.`application/json`)))
       newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
     } yield newOrUpdatedResource
   }
@@ -311,8 +311,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
   private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(
     implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, None, namespaceOverride = Some(theNamespace))
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.GET, rd, None, namespaceOverride = Some(theNamespace))
+      .flatMap(makeRequestReturningListResource[L])
   }
 
   /*
@@ -360,8 +360,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     } else {
       Some(this.namespaceName)
     }
-    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt, targetNamespace)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.GET, rd, None, query = queryOpt, targetNamespace)
+      .flatMap(makeRequestReturningListResource[L])
   }
 
   override def getOption[O <: ObjectResource](name: String)(
@@ -389,8 +389,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
   private[pekkoclient] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespaceOverride = Some(namespace))
-    makeRequestReturningObjectResource[O](req)
+    buildRequest(HttpMethods.GET, rd, Some(name), namespaceOverride = Some(namespace))
+      .flatMap(makeRequestReturningObjectResource[O])
   }
 
   override def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1)(
@@ -407,9 +407,9 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     val marshalledOptions = Marshal(options)
     for {
       requestEntity <- marshalledOptions.to[RequestEntity]
-      request       = buildRequest(HttpMethods.DELETE, rd, Some(name))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      response      <- invoke(request)
+      request       <- buildRequest(HttpMethods.DELETE, rd, Some(name))
+      requestWithEntity = request.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      response      <- invoke(requestWithEntity)
       _             <- checkResponseStatus(response)
       _             <- ignoreResponseBody(response)
     } yield ()
@@ -437,8 +437,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
       val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
       logDebug(s"[Delete request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
     }
-    val req = buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
+      .flatMap(makeRequestReturningListResource[L])
   }
 
   def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
@@ -453,16 +453,17 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     }
     val nameComponent=s"${name}/log"
     val rd = implicitly[ResourceDefinition[Pod]]
-    val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, Some(targetNamespace))
-    invokeLog(request).flatMap { response =>
-      val statusOptFut = checkResponseStatus(response)
-      statusOptFut map {
+    for {
+      request <- buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, Some(targetNamespace))
+      response <- invokeLog(request)
+      statusOpt <- checkResponseStatus(response)
+      _ <- statusOpt match {
         case Some(status) =>
-          throw new K8SException(status)
+          Future.failed(new K8SException(status))
         case _ =>
-          response.entity.dataBytes
+          Future.successful(())
       }
-    }
+    } yield response.entity.dataBytes
   }
 
 
@@ -485,8 +486,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
   override def getScale[O <: ObjectResource](objName: String)(
     implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext) : Future[Scale] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
-    makeRequestReturningObjectResource[Scale](req)
+    buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
+      .flatMap(makeRequestReturningObjectResource[Scale])
   }
 
 
@@ -497,9 +498,9 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     val marshal = Marshal(scale)
     for {
       requestEntity  <- marshal.to[RequestEntity]
-      httpRequest    = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
+      httpRequest    <- buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
+      httpRequestWithEntity = httpRequest.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      scaledResource <- makeRequestReturningObjectResource[Scale](httpRequestWithEntity)
     } yield scaledResource
   }
 
@@ -519,9 +520,9 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     val marshal = Marshal(patchData)
     for {
       requestEntity <- marshal.to[RequestEntity]
-      httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespaceOverride = Some(targetNamespace))
-          .withEntity(requestEntity.withContentType(contentType))
-      newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+      httpRequest <- buildRequest(HttpMethods.PATCH, rd, Some(name), namespaceOverride = Some(targetNamespace))
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(contentType))
+      newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
     } yield newOrUpdatedResource
   }
 
@@ -529,8 +530,8 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
   override def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]] = {
     val url = clusterServer + "/api"
     val noAuthReq = requestMaker(Uri(url), HttpMethods.GET)
-    val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
     for {
+      request <- HTTPRequestAuth.addAuthAsync(noAuthReq, requestAuth)
       response <- invoke(request)
       apiVersionResource <- toKubernetesResponse[APIVersions](response)
     } yield apiVersionResource.versions

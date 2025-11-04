@@ -11,7 +11,7 @@ import skuber.pekkoclient.impl.PekkoKubernetesClientImpl
 import skuber.api.client._
 import skuber.model.{ObjectResource, ResourceDefinition}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
 private[pekkoclient] object WatchSource {
@@ -34,9 +34,9 @@ private[pekkoclient] object WatchSource {
       implicit val dispatcher: ExecutionContext = sys.dispatcher
 
       val watchLoggerId = Random.nextInt().abs
-      def createWatchRequest(since: Option[String]) =
-      {
-        val watchOptions=options.copy(
+
+      def createWatchRequest(since: Option[String]): Future[HttpRequest] = {
+        val watchOptions = options.copy(
           resourceVersion = since,
           watch = Some(true)
         )
@@ -49,9 +49,8 @@ private[pekkoclient] object WatchSource {
 
       def singleStart(s:StreamElement[O]) = Source.single(s)
 
-      val initSource = Source.single(
-        (createWatchRequest(options.resourceVersion), Start[O](options.resourceVersion))
-      )
+      val initSource = Source.futureSource(createWatchRequest(options.resourceVersion)
+          .map(r => Source.single(r, Start[O](options.resourceVersion))))
 
       val httpFlow: Flow[(HttpRequest, Start[O]), StreamElement[O], NotUsed] =
         Flow[(HttpRequest, Start[O])].map { request => // log request
@@ -87,8 +86,8 @@ private[pekkoclient] object WatchSource {
             case Result(rv, _) => StreamContext(Some(rv), Processing)
             case End() => cxt.copy(state = Finished)
           }
-        }.filter(_.state == Finished).map { acc =>
-          (createWatchRequest(acc.currentResourceVersion), Start[O](acc.currentResourceVersion))
+        }.filter(_.state == Finished).mapAsync(1) { acc =>
+          createWatchRequest(acc.currentResourceVersion).map(r => (r, Start[O](acc.currentResourceVersion)))
         }
 
       val init = b.add(initSource)

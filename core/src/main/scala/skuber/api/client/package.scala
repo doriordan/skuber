@@ -4,12 +4,15 @@ import java.time.Instant
 import java.util.UUID
 
 import com.typesafe.config.{Config, ConfigFactory}
+
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
 import scala.sys.SystemProperties
 import skuber.model.ObjectResource
+
+import scala.concurrent.Future
 
 /**
   * @author David O'Riordan
@@ -76,6 +79,10 @@ package object client {
 
   sealed trait AccessTokenAuth extends AuthInfo {
     def accessToken: String
+  }
+
+  trait AsyncAccessTokenAuth extends AuthInfo {
+    def accessToken(): Future[String]
   }
 
   object NoAuth extends AuthInfo {
