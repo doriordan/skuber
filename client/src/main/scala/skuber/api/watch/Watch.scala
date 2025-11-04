@@ -39,9 +39,13 @@ object Watch {
       watch = Some(true),
       fieldSelector = nameFieldSelector
     )
-    val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
-    val responseFut = context.invokeWatch(request)
-    toFutureWatchEventSource(context, responseFut, bufSize, errorHandler)
+
+    implicit val ec: ExecutionContext = context.actorSystem.dispatcher
+
+    for {
+      request <- context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
+      response <- context.invokeWatch(request)
+    } yield BytesToWatchEventSource(context, response.entity.dataBytes, bufSize, errorHandler)
   }
 
   /**
@@ -60,28 +64,13 @@ object Watch {
     context.logInfo(context.logConfig.logRequestBasic, s"creating skuber watch on kind ${rd.spec.names.kind}")
 
     val watchOptions=ListOptions(resourceVersion = sinceResourceVersion, watch = Some(true))
-    val request = context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
-    val responseFut = context.invokeWatch(request)
-    toFutureWatchEventSource(context, responseFut, bufSize, errorHandler)
-  }
 
-  /**
-    * Create a (future) Source of watch events from a (future) response to a watch request
-    * @param context the applicable request context
-    * @param eventStreamResponseFut the response which will contain the event stream for the source
-    * @param bufSize maximum size of each event in the stream (in bytes)
-    * @param format Play json formatter for the applicable Kubernetes type, used to read each event object
-    * @tparam O the Kubernetes kind of each events object
-    * @return a Future which will eventually return a Source of events
-    */
-  private def toFutureWatchEventSource[O <: ObjectResource](context: KubernetesClientImpl, eventStreamResponseFut: Future[HttpResponse], bufSize: Int, errorHandler: Option[String => _])(
-    implicit format: Format[O],lc: LoggingContext): Future[Source[WatchEvent[O], _]] =
-  {
     implicit val ec: ExecutionContext = context.actorSystem.dispatcher
 
-    eventStreamResponseFut.map { eventStreamResponse =>
-      BytesToWatchEventSource(context, eventStreamResponse.entity.dataBytes, bufSize, errorHandler)
-    }
+    for {
+      request <- context.buildRequest(HttpMethods.GET, rd, None, query = Some(Uri.Query(watchOptions.asMap)))
+      response <- context.invokeWatch(request)
+    } yield BytesToWatchEventSource(context, response.entity.dataBytes, bufSize, errorHandler)
   }
 }
 

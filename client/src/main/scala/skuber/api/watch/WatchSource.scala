@@ -11,7 +11,6 @@ import skuber.api.client.impl.KubernetesClientImpl
 import skuber.{ObjectResource, ResourceDefinition, ListOptions}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 private[api] object WatchSource {
@@ -59,9 +58,8 @@ private[api] object WatchSource {
 
       def singleStart(s:StreamElement[O]) = Source.single(s)
 
-      val initSource = Source.single(
-        (createWatchRequest(options.resourceVersion), Start[O](options.resourceVersion))
-      )
+      val initSource = Source.futureSource(createWatchRequest(options.resourceVersion)
+        .map(r => Source.single((r, Start[O](options.resourceVersion)))))
 
       val httpFlow: Flow[(HttpRequest, Start[O]), StreamElement[O], NotUsed] =
         Flow[(HttpRequest, Start[O])].map { request => // log request
@@ -97,8 +95,8 @@ private[api] object WatchSource {
             case Result(rv, _) => StreamContext(Some(rv), Processing)
             case End() => cxt.copy(state = Finished)
           }
-        }.filter(_.state == Finished).map { acc =>
-          (createWatchRequest(acc.currentResourceVersion), Start[O](acc.currentResourceVersion))
+        }.filter(_.state == Finished).mapAsync(1) { acc =>
+          createWatchRequest(acc.currentResourceVersion).map(r => (r, Start[O](acc.currentResourceVersion)))
         }
 
       val init = b.add(initSource)
