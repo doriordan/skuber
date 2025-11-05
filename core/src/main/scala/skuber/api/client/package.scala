@@ -12,7 +12,9 @@ import play.api.libs.json._
 import scala.sys.SystemProperties
 import skuber.model.ObjectResource
 
-import scala.concurrent.Future
+import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.duration.{ Deadline, FiniteDuration }
 
 /**
   * @author David O'Riordan
@@ -83,6 +85,37 @@ package object client {
 
   trait AsyncAccessTokenAuth extends AuthInfo {
     def accessToken(): Future[String]
+  }
+
+  /**
+    * This creates an access token auth info that will periodically reload the token.
+    *
+    * Note that reload may be invoked multiple times at once when the token expires.
+    */
+  def reloadableAccessTokenAuth(reload: () => Future[(FiniteDuration, String)]): AuthInfo =
+    new ReloadableAccessTokenAuth(reload)
+
+  private class ReloadableAccessTokenAuth(reload: () => Future[(FiniteDuration, String)]) extends AsyncAccessTokenAuth {
+    private val ref = new AtomicReference[Option[(Deadline, String)]](None)
+
+    override def accessToken(): Future[String] = {
+      ref.get() match {
+        case None =>
+          doReload()
+        case Some((expired, _)) if expired.isOverdue() =>
+          doReload()
+        case Some((_, valid)) =>
+          Future.successful(valid)
+      }
+    }
+
+    private def doReload(): Future[String] = {
+      reload().map {
+        case (validity, token) =>
+          ref.set(Some((validity.fromNow, token)))
+          token
+      }(ExecutionContext.parasitic)
+    }
   }
 
   object NoAuth extends AuthInfo {

@@ -3,7 +3,7 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 // Core/common dependencies
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.19.0"
-val specs2 = "org.specs2" %% "specs2-core" % "5.7.0"
+val specs2 = "org.specs2" %% "specs2-core" % "4.23.0"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
 val mockito = "org.mockito" % "mockito-core" % "5.18.0"
 val scalaTestMockito = "org.scalatestplus" %% "mockito-5-18" % "3.2.19.0"
