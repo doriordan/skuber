@@ -17,7 +17,7 @@ object Role {
   implicit val roleDef = new ResourceDefinition[Role] {
     def spec = NonCoreResourceSpecification (
       apiGroup="rbac.authorization.k8s.io",
-      version="v1beta1",
+      version="v1",
       scope = Scope.Namespaced,
       names=Names(
         plural = "roles",

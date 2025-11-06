@@ -18,7 +18,7 @@ object RoleBinding {
 
   def specification = NonCoreResourceSpecification (
     apiGroup="rbac.authorization.k8s.io",
-    version="v1beta1",
+    version="v1",
     scope = Scope.Namespaced,
     names=Names(
       plural = "rolebindings",

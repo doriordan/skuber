@@ -18,7 +18,7 @@ object ClusterRoleBinding {
   implicit val crDef = new ResourceDefinition[ClusterRoleBinding] {
     def spec = NonCoreResourceSpecification (
       apiGroup="rbac.authorization.k8s.io",
-      version="v1beta1",
+      version="v1",
       scope = Scope.Cluster,
       names=Names(
         plural = "clusterrolebindings",
