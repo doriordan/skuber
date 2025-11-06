@@ -1,4 +1,4 @@
-package skuber.model.rbac
+package skuber.model.authorization.rbac
 
 import skuber.model.ResourceSpecification.{Names, Scope}
 import skuber.model.{NonCoreResourceSpecification, ObjectMeta, ObjectResource, ResourceDefinition}
@@ -18,7 +18,7 @@ object RoleBinding {
 
   def specification = NonCoreResourceSpecification (
     apiGroup="rbac.authorization.k8s.io",
-    version="v1beta1",
+    version="v1",
     scope = Scope.Namespaced,
     names=Names(
       plural = "rolebindings",

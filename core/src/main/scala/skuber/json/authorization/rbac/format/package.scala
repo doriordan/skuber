@@ -1,10 +1,9 @@
-package skuber.json.rbac
+package skuber.json.authorization.rbac
 
-import skuber.model.rbac._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import skuber.json.format._
-import skuber.model.rbac.{ClusterRole, ClusterRoleBinding, PolicyRule, Role, RoleBinding, RoleRef, Subject} // reuse some core formatters
+import skuber.model.authorization.rbac._
 
 /**
   * Created by jordan on 1/13/17.

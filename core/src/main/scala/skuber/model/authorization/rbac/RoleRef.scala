@@ -1,4 +1,4 @@
-package skuber.model.rbac
+package skuber.model.authorization.rbac
 
 /**
   * Created by jordan on 1/13/17.

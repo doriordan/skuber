@@ -2,14 +2,16 @@ package skuber.model
 
 /**
   * The skuber.apps package contains classes and methods for supporting the Kubernetes Apps Group API.
-  * This currently (Kubernetes V1.7) includes StatefulSet and Deployment resource type.
+  * Subpackages contain Kubernetes group version specific definitions - except for legacy users v1
+  * should be used.
   *
   * @author Hollin Wilkins
   */
 package object apps {
-  val appsAPIVersion = "apps/v1beta1"
 
-  type StatefulSetList = ListResource[StatefulSet]
-  type DeploymentList = ListResource[Deployment]
+  type StatefulSet = v1.StatefulSet
+  type Deployment = v1.Deployment
 
+  type StatefulSetList = ListResource[v1.StatefulSet]
+  type DeploymentList = ListResource[v1.Deployment]
 }

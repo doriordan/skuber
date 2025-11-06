@@ -6,7 +6,6 @@ package skuber.model.apps.v1
 
 import skuber.model.ResourceSpecification.{Names, Scope}
 import skuber.model._
-import skuber.model.apps.Deployment.Strategy
 
 case class Deployment(
   kind: String ="Deployment",
@@ -154,17 +153,17 @@ object Deployment {
     (JsPath \ "observedGeneration").formatMaybeEmptyInt() and
     (JsPath \ "collisionCount").formatNullable[Int] and
     (JsPath \ "conditions").formatMaybeEmptyList[Condition]
-   )(Status.apply _, d => (d.replicas, d.updatedReplicas, d.readyReplicas, d.availableReplicas, d.unavailableReplicas, d.observedGeneration, d.collisionCount, d.conditions))
+   )(Status.apply, d => (d.replicas, d.updatedReplicas, d.readyReplicas, d.availableReplicas, d.unavailableReplicas, d.observedGeneration, d.collisionCount, d.conditions))
 
   implicit val rollingUpdFmt: Format[RollingUpdate] = (
     (JsPath \ "maxUnavailable").formatMaybeEmptyIntOrString(Left(1)) and
     (JsPath \ "maxSurge").formatMaybeEmptyIntOrString(Left(1))
-  )(RollingUpdate.apply _, r => (r.maxUnavailable, r.maxSurge))
+  )(RollingUpdate.apply, r => (r.maxUnavailable, r.maxSurge))
 
   implicit val depStrategyFmt: Format[Strategy] =  (
       (JsPath \ "type").formatEnum(StrategyType)(Some(StrategyType.RollingUpdate)) and
        (JsPath \ "rollingUpdate").formatNullable[RollingUpdate]
-   )(Strategy.apply _, d => (d._type, d.rollingUpdate))
+   )(Strategy.apply, d => (d._type, d.rollingUpdate))
 
   implicit val depSpecFmt: Format[Spec] = (
      (JsPath \ "replicas").formatNullable[Int] and
@@ -175,13 +174,13 @@ object Deployment {
      (JsPath \ "revisionHistoryLimit").formatNullable[Int] and
      (JsPath \ "paused").formatMaybeEmptyBoolean() and
      (JsPath \ "progressDeadlineSeconds").formatNullable[Int]
-  )(Spec.apply _, d => (d.replicas, d.selector, d.template, d.strategy, d.minReadySeconds, d.revisionHistoryLimit, d.paused, d.progressDeadlineSeconds))
+  )(Spec.apply, d => (d.replicas, d.selector, d.template, d.strategy, d.minReadySeconds, d.revisionHistoryLimit, d.paused, d.progressDeadlineSeconds))
 
   implicit lazy val depFormat: Format[Deployment] = (
     objFormat and
     (JsPath \ "spec").formatNullable[Spec] and
     (JsPath \ "status").formatNullable[Status]
-  )(Deployment.apply _, d => (d.kind, d.apiVersion, d.metadata, d.spec, d.status))
+  )(Deployment.apply, d => (d.kind, d.apiVersion, d.metadata, d.spec, d.status))
 
   implicit val deployListFormat: Format[DeploymentList] = ListResourceFormat[Deployment]
 }
