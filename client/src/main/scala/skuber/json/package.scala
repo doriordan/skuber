@@ -1080,7 +1080,7 @@ package object format {
   )(ServiceAccount.apply _, unlift(ServiceAccount.unapply))
 
   implicit val base64Format: Format[Array[Byte]] = (
-      JsPath.format[String].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes))
+    implicitly[Format[String]].inmap(s => Base64.decodeBase64(s), (bytes: Array[Byte]) => Base64.encodeBase64String(bytes))
   )
 
   implicit val mapStringByteArrayFormat: Format[Map[String,Array[Byte]]] =
