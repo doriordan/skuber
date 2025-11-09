@@ -2,7 +2,7 @@ package skuber.api.client.exec
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri, ws}
+import akka.http.scaladsl.model.{StatusCodes, Uri, ws}
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.stream.scaladsl.{Flow, GraphDSL, Keep, Partition, Sink, Source}
 import akka.stream.SinkShape
@@ -62,10 +62,6 @@ object PodExecImpl {
         .withPath(Uri.Path(s"/api/v1/namespaces/${requestContext.namespaceName}/pods/$podName/exec"))
         .withQuery(Uri.Query(queries: _*))
 
-    // Compose headers
-    var headers: List[HttpHeader] = List(RawHeader("Accept", "*/*"))
-    headers ++= HTTPRequestAuth.getAuthHeader(requestContext.requestAuth).map(a => List(a)).getOrElse(List())
-
     // Convert `String` to `ByteString`, then prepend channel bytes
     val source: Source[ws.Message, Promise[Option[ws.Message]]] = maybeStdin.getOrElse(Source.empty).viaMat(Flow[String].map { s =>
       ws.BinaryMessage(ByteString(0).concat(ByteString(s)))
@@ -97,31 +93,35 @@ object PodExecImpl {
     // Make a flow from the source to the sink
     val flow: Flow[ws.Message, ws.Message, Promise[Option[ws.Message]]] = Flow.fromSinkAndSourceMat(sink, source)(Keep.right)
 
-    // upgradeResponse completes or fails when the connection succeeds or fails
-    // and promise controls the connection close timing
-    val (upgradeResponse, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
-
-    val connected = upgradeResponse.map { upgrade =>
+    for {
+      authHeaders <- HTTPRequestAuth.getAuthHeaderAsync(requestContext.requestAuth)
+      headers = List(RawHeader("Accept", "*/*")) ++ authHeaders.toList
+      // upgradeResponse completes or fails when the connection succeeds or fails
+      // and promise controls the connection close timing
+      (upgradeResponseFuture, promise) = Http().singleWebSocketRequest(ws.WebSocketRequest(uri, headers, subprotocol = Option("channel.k8s.io")), flow, connectionContext)
+      upgrade <- upgradeResponseFuture
       // just like a regular http request we can access response status which is available via upgrade.response.status
       // status code 101 (Switching Protocols) indicates that server support WebSockets
-      if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
-        Done
+      _ <- if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
+        Future.successful(Done)
       } else {
-        val message = upgrade.response.entity.toStrict(1000.millis).map(_.data.utf8String)
-        throw new K8SException(Status(message =
+        for {
+          entity <- upgrade.response.entity.toStrict(1000.millis)
+          _ <- Future.failed(new K8SException(Status(message =
             Some(s"Connection failed with status ${upgrade.response.status}"),
-          details = Some(message), code = Some(upgrade.response.status.intValue())))
+            details = Some(entity.data.utf8String), code = Some(upgrade.response.status.intValue()))))
+        } yield ()
       }
-    }
-
-    val close = maybeClose.getOrElse(Promise.successful(()))
-    connected.foreach { _ =>
-      requestContext.log.info(s"Connected to container $containerPrintName of pod $podName")
-      close.future.foreach { _ =>
-        requestContext.log.info(s"Close the connection of container $containerPrintName of pod $podName")
-        promise.success(None)
+      close = maybeClose.getOrElse(Promise.successful(()))
+      _ = {
+        requestContext.log.info(s"Connected to container ${containerPrintName} of pod ${podName}")
+        close.future.foreach { _ =>
+          requestContext.log.info(s"Close the connection of container ${containerPrintName} of pod ${podName}")
+          promise.trySuccess(None)
+        }
       }
-    }
-    Future.sequence(Seq(connected, close.future, promise.future)).map { _ => () }
+      _ <- close.future
+      _ <- promise.future
+    } yield ()
   }
 }

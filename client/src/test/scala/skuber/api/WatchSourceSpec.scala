@@ -1,26 +1,25 @@
 package skuber.api
 
 import java.net.ConnectException
-import java.time.{ZoneId, ZonedDateTime}
-
+import java.time.{ ZoneId, ZonedDateTime }
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Framing.FramingException
-import akka.stream.scaladsl.{Flow, Keep, TcpIdleTimeoutException}
+import akka.stream.scaladsl.{ Flow, Keep, TcpIdleTimeoutException }
 import akka.stream.testkit.scaladsl.TestSink
 import akka.stream.KillSwitches
 import com.fasterxml.jackson.core.JsonParseException
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.{ times, verify, when }
 import org.scalatestplus.mockito.MockitoSugar
 import org.specs2.mutable.Specification
 import skuber.api.client.impl.KubernetesClientImpl
 import skuber.api.watch.WatchSource.Start
-import skuber.api.client.{LoggingContext, _}
+import skuber.api.client.{ LoggingContext, _ }
 import skuber.api.watch.WatchSource
-import skuber.{Container, DNSPolicy, ListOptions, ObjectMeta, ObjectResource, Pod, Protocol, ReplicationController, Resource, RestartPolicy}
+import skuber.{ Container, DNSPolicy, ListOptions, ObjectMeta, ObjectResource, Pod, Protocol, ReplicationController, Resource, RestartPolicy }
 import skuber.json.format._
 
-import scala.concurrent.Await
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
 import scala.util.Try
 
@@ -39,10 +38,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
-      ).thenReturn(secondRequest)
+      ).thenReturn(Future.successful(secondRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
@@ -83,10 +82,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
-      ).thenReturn(secondRequest)
+      ).thenReturn(Future.successful(secondRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
@@ -132,10 +131,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
 
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null)
-      ).thenReturn(secondRequest)
+      ).thenReturn(Future.successful(secondRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
@@ -180,10 +179,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query1), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(query2), null)
-      ).thenReturn(secondRequest)
+      ).thenReturn(Future.successful(secondRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
@@ -226,10 +225,10 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12804", "watch" -> "true")), null)
-      ).thenReturn(secondRequest).thenReturn(thirdRequest)
+      ).thenReturn(Future.successful(secondRequest)).thenReturn(Future.successful(thirdRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity(retrieveWatchJson("/watchReplicationControllerFirstRequest.json"))),
@@ -270,7 +269,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = "bad input")
@@ -304,7 +303,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.OK, entity = createHttpEntity("{asdf:asdfa}"))
@@ -337,7 +336,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.InternalServerError)
@@ -371,7 +370,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.Unauthorized)
@@ -406,7 +405,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.InternalServerError)
@@ -440,7 +439,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
       when(client.logConfig).thenReturn(LoggingConfig())
       when(client.buildRequest(
         HttpMethods.GET, skuber.ReplicationController.rcDef, None, Some(Uri.Query("timeoutSeconds" -> "1", "resourceVersion" -> "12802", "watch" -> "true")), null)
-      ).thenReturn(firstRequest)
+      ).thenReturn(Future.successful(firstRequest))
 
       val responses = Map(
         firstRequest -> HttpResponse(StatusCodes.InternalServerError)

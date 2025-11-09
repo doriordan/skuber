@@ -1,19 +1,22 @@
 package skuber.api
 
+import com.typesafe.config.{ Config, ConfigFactory }
+
 import java.net.URL
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-
 import scala.collection.JavaConverters._
 import scala.util.Try
 import scala.util.Failure
-import java.util.{Base64, Date}
-
+import java.util.{ Base64, Date }
 import org.yaml.snakeyaml.Yaml
-import skuber.Namespace
+import skuber.{ Namespace, api }
 import skuber.api.client._
 
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 import scala.io.Source
+import scala.util.control.NonFatal
 
 /**
  * @author David O'Riordan
@@ -209,11 +212,11 @@ object Configuration {
         val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
 
         def toK8SContext(contextConfig: YamlMap) = {
-          val cluster=contextConfig.asScala.get("cluster").filterNot(_.asInstanceOf[String] == "").map { clusterName =>
-            k8sClusterMap.get(clusterName.asInstanceOf[String]).get
+          val cluster=contextConfig.asScala.get("cluster").filterNot(_.asInstanceOf[String] == "").flatMap { clusterName =>
+            k8sClusterMap.get(clusterName.asInstanceOf[String])
           }.getOrElse(Cluster())
-          val authInfo =contextConfig.asScala.get("user").filterNot(_.asInstanceOf[String] == "").map { userKey =>
-            k8sAuthInfoMap.get(userKey.asInstanceOf[String]).get
+          val authInfo =contextConfig.asScala.get("user").filterNot(_.asInstanceOf[String] == "").flatMap { userKey =>
+            k8sAuthInfoMap.get(userKey.asInstanceOf[String])
           }.getOrElse(NoAuth)
           val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
           Context(cluster,authInfo,namespace)
@@ -227,6 +230,22 @@ object Configuration {
         Configuration(k8sClusterMap, k8sContextMap, currentContext, k8sAuthInfoMap)
       }
     }
+
+  private lazy val inClusterConfigReloadInterval: Option[FiniteDuration] = {
+    import scala.concurrent.duration._
+    // We default to 10 minutes because modern Kubernetes distributions issue service account tokens that are valid for
+    // one hour, rotating them when they reach 80% of their lifespan. This means, any given arbitrary read of the token
+    // from the filesystem can only be sure that that token will be valid for a maximum of 12 minutes (20% of 1 hour).
+    // This is configurable, hence we allow it to be overridden by an environment variable.
+    // Note that the equivalent Go code for this reloads every minute, erroneously stating in a comment that tokens are
+    // rotated every 10 minutes. See https://github.com/kubernetes/client-go/blob/4f9edc15a7e71c3f9c7874a872a2545c8737726c/transport/token_source.go#L75-L79
+    // If the value is less or equal to zero, then we don't reload.
+    sys.env.get("SKUBER_TOKEN_RELOAD_INTERVAL_SECONDS")
+      .map(_.toInt)
+      .orElse(Some(600))
+      .filter(_ > 0)
+      .map(_.seconds)
+  }
 
   /**
     * Tries to create in-cluster configuration using credentials mounted inside a running pod
@@ -253,8 +272,9 @@ object Configuration {
       .recoverWith { case e: NoSuchElementException =>
         Failure(new Exception("environment variable KUBERNETES_SERVICE_PORT must be defined", e))}
 
-    lazy val maybeToken     = Try(Source.fromFile(tokenPath,     "utf-8").getLines().mkString("\n"))
-    lazy val maybeNamespace = Try(Source.fromFile(namespacePath, "utf-8").getLines().mkString("\n"))
+    def tryLoadToken() = tryReadPath(tokenPath)
+
+    lazy val maybeNamespace = tryReadPath(namespacePath)
 
     // is not strictly required
     // but client-go tries to read ca.file and logs the following error if unable to and continues
@@ -264,16 +284,41 @@ object Configuration {
     for {
       host      <- maybeHost
       port      <- maybePort
-      token     <- maybeToken
+      token     <- tryLoadToken()
       namespace <- maybeNamespace
-      hostPort  = s"https://$host${if (port.nonEmpty) ":" + port else ""}"
-      cluster   = Cluster(server = hostPort, certificateAuthority = ca)
-      ctx       = Context(cluster, TokenAuth(token), Namespace.forName(namespace))
-    } yield Configuration(
-      clusters = Map("default" -> cluster),
-      contexts = Map("default" -> ctx),
-      currentContext = ctx
-    )
+    } yield {
+      val hostPort = s"https://$host${if (port.nonEmpty) ":" + port else ""}"
+      val cluster = Cluster(server = hostPort, certificateAuthority = ca)
+      val auth = inClusterConfigReloadInterval match {
+        case Some(reloadInterval) =>
+          reloadableAccessTokenAuth { () =>
+            Future.fromTry(tryLoadToken().map(t => (reloadInterval, t)))
+          }
+        case None =>
+          TokenAuth(token)
+      }
+      val ctx = Context(cluster, auth, Namespace.forName(namespace))
+
+      Configuration(
+        clusters = Map("default" -> cluster),
+        contexts = Map("default" -> ctx),
+        currentContext = ctx
+      )
+    }
+  }
+
+  private def tryReadPath(path: String): Try[String] = Try {
+    val source = Source.fromFile(path, "utf-8")
+    try {
+      source.getLines().mkString("\n")
+    } finally {
+      try {
+        source.close()
+      } catch {
+        case NonFatal(_) =>
+          // Ignore
+      }
+    }
   }
 
   /*

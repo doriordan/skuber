@@ -81,7 +81,7 @@ class KubernetesClientImpl private[client] (
     rd: ResourceDefinition[_],
     nameComponent: Option[String],
     query: Option[Uri.Query] = None,
-    namespace: String = namespaceName): HttpRequest =
+    namespace: String = namespaceName): Future[HttpRequest] =
   {
     val nsPathComponent = if (rd.spec.scope == ResourceSpecification.Scope.Namespaced) {
       Some("namespaces/" + namespace)
@@ -112,7 +112,7 @@ class KubernetesClientImpl private[client] (
     }
 
     val req = requestMaker(uri, method)
-    HTTPRequestAuth.addAuth(req, requestAuth)
+    HTTPRequestAuth.addAuthAsync(req, requestAuth)
   }
 
   private[skuber] def logInfo(enabledLogEvent: Boolean, msg: => String)(implicit lc: LoggingContext) =
@@ -225,9 +225,9 @@ class KubernetesClientImpl private[client] (
     val marshal = Marshal(obj)
     for {
       requestEntity        <- marshal.to[RequestEntity]
-      httpRequest          = buildRequest(method, rd, nameComponent, namespace = targetNamespace)
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+      httpRequest          <- buildRequest(method, rd, nameComponent, namespace = targetNamespace)
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
     } yield newOrUpdatedResource
   }
 
@@ -309,8 +309,8 @@ class KubernetesClientImpl private[client] (
   private def listInNamespace[L <: ListResource[_]](theNamespace: String, rd: ResourceDefinition[_])(
     implicit fmt: Format[L], lc: LoggingContext): Future[L] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, None, namespace = theNamespace)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.GET, rd, None, namespace = theNamespace)
+      .flatMap(makeRequestReturningListResource[L])
   }
 
   /*
@@ -347,8 +347,8 @@ class KubernetesClientImpl private[client] (
       val optsInfo = maybeOptions map { opts => s" with options '${opts.asMap.toString}'" } getOrElse ""
       logDebug(s"[List request: resources of kind '${rd.spec.names.kind}'${optsInfo}")
     }
-    val req = buildRequest(HttpMethods.GET, rd, None, query = queryOpt)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.GET, rd, None, query = queryOpt)
+      .flatMap(makeRequestReturningListResource[L])
   }
 
   override def getOption[O <: ObjectResource](name: String)(
@@ -376,8 +376,8 @@ class KubernetesClientImpl private[client] (
   private[api] def _get[O <: ObjectResource](name: String, namespace: String = namespaceName)(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
-    makeRequestReturningObjectResource[O](req)
+    buildRequest(HttpMethods.GET, rd, Some(name), namespace = namespace)
+      .flatMap(makeRequestReturningObjectResource[O])
   }
 
   override def delete[O <: ObjectResource](name: String, gracePeriodSeconds: Int = -1)(
@@ -394,11 +394,11 @@ class KubernetesClientImpl private[client] (
     val marshalledOptions = Marshal(options)
     for {
       requestEntity <- marshalledOptions.to[RequestEntity]
-      request       = buildRequest(HttpMethods.DELETE, rd, Some(name))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      response      <- invoke(request)
-      _             <- checkResponseStatus(response)
-      _             <- ignoreResponseBody(response)
+      request  <- buildRequest(HttpMethods.DELETE, rd, Some(name))
+      requestWithEntity = request.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      response <- invoke(requestWithEntity)
+      _ <- checkResponseStatus(response)
+      _ <- ignoreResponseBody(response)
     } yield ()
   }
 
@@ -424,8 +424,8 @@ class KubernetesClientImpl private[client] (
       val lsInfo = maybeLabelSelector map { ls => s" with label selector '${ls.toString}'" } getOrElse ""
       logDebug(s"[Delete request: resources of kind '${rd.spec.names.kind}'${lsInfo}")
     }
-    val req = buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
-    makeRequestReturningListResource[L](req)
+    buildRequest(HttpMethods.DELETE, rd, None, query = queryOpt)
+      .flatMap(makeRequestReturningListResource[L])
   }
 
   override def getPodLogSource(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String] = None)(
@@ -440,16 +440,17 @@ class KubernetesClientImpl private[client] (
     }
     val nameComponent=s"${name}/log"
     val rd = implicitly[ResourceDefinition[Pod]]
-    val request = buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, targetNamespace)
-    invokeLog(request).flatMap { response =>
-      val statusOptFut = checkResponseStatus(response)
-      statusOptFut map {
+    for {
+      request <- buildRequest(HttpMethods.GET, rd, Some(nameComponent), query, targetNamespace)
+      response <- invokeLog(request)
+      statusOpt <- checkResponseStatus(response)
+      _ <- statusOpt match {
         case Some(status) =>
-          throw new K8SException(status)
-        case _ =>
-          response.entity.dataBytes
+          Future.failed(new K8SException(status))
+        case None =>
+          Future.successful(())
       }
-    }
+    } yield response.entity.dataBytes
   }
 
 
@@ -523,8 +524,8 @@ class KubernetesClientImpl private[client] (
   override def getScale[O <: ObjectResource](objName: String)(
     implicit rd: ResourceDefinition[O], sc: Scale.SubresourceSpec[O], lc: LoggingContext) : Future[Scale] =
   {
-    val req = buildRequest(HttpMethods.GET, rd, Some(objName+ "/scale"))
-    makeRequestReturningObjectResource[Scale](req)
+    buildRequest(HttpMethods.GET, rd, Some(objName + "/scale"))
+      .flatMap(makeRequestReturningObjectResource[Scale])
   }
 
   @deprecated("use getScale followed by updateScale instead")
@@ -546,9 +547,9 @@ class KubernetesClientImpl private[client] (
     val marshal = Marshal(scale)
     for {
       requestEntity  <- marshal.to[RequestEntity]
-      httpRequest    = buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
-          .withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
-      scaledResource <- makeRequestReturningObjectResource[Scale](httpRequest)
+      httpRequest    <- buildRequest(HttpMethods.PUT, rd, Some(s"${objName}/scale"))
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(MediaTypes.`application/json`))
+      scaledResource <- makeRequestReturningObjectResource[Scale](requestWithEntity)
     } yield scaledResource
   }
 
@@ -568,9 +569,9 @@ class KubernetesClientImpl private[client] (
     val marshal = Marshal(patchData)
     for {
       requestEntity <- marshal.to[RequestEntity]
-      httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(name), namespace = targetNamespace)
-          .withEntity(requestEntity.withContentType(contentType))
-      newOrUpdatedResource <- makeRequestReturningObjectResource[O](httpRequest)
+      httpRequest <- buildRequest(HttpMethods.PATCH, rd, Some(name), namespace = targetNamespace)
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(contentType))
+      newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
     } yield newOrUpdatedResource
   }
 
@@ -590,16 +591,19 @@ class KubernetesClientImpl private[client] (
     implicit rd: ResourceDefinition[O], fmt: Format[O], lc:LoggingContext): Future[O] =
   {
     val patchRequestEntity = HttpEntity.Strict(`application/merge-patch+json`, ByteString(patch))
-    val httpRequest = buildRequest(HttpMethods.PATCH, rd, Some(obj.name)).withEntity(patchRequestEntity)
-    makeRequestReturningObjectResource[O](httpRequest)
+    for {
+      httpRequest <- buildRequest(HttpMethods.PATCH, rd, Some(obj.name))
+      requestWithEntity = httpRequest.withEntity(patchRequestEntity)
+      result <- makeRequestReturningObjectResource[O](requestWithEntity)
+    } yield result
   }
 
   // get API versions supported by the cluster
   override def getServerAPIVersions(implicit lc: LoggingContext): Future[List[String]] = {
     val url = clusterServer + "/api"
     val noAuthReq = requestMaker(Uri(url), HttpMethods.GET)
-    val request = HTTPRequestAuth.addAuth(noAuthReq, requestAuth)
     for {
+      request <- HTTPRequestAuth.addAuthAsync(noAuthReq, requestAuth)
       response <- invoke(request)
       apiVersionResource <- toKubernetesResponse[APIVersions](response)
     } yield apiVersionResource.versions

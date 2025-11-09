@@ -11,8 +11,8 @@ val scalaTestMockito = "org.scalatestplus" %% "mockito-4-6" % "3.2.14.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "2.5"
-val commonsIO = "commons-io" % "commons-io" % "2.11.0"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.20.0"
+val commonsIO = "commons-io" % "commons-io" % "2.21.0"
 
 // the client API request/response handing uses Akka Http
 val akkaHttp = "com.typesafe.akka" %% "akka-http" % "10.2.9"
@@ -52,8 +52,8 @@ developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan",
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.12.17", "2.13.10"),
-  scalaVersion := "2.13.10",
+  crossScalaVersions := Seq("2.12.20", "2.13.17"),
+  scalaVersion := "2.13.17",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
