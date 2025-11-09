@@ -76,7 +76,7 @@ package object client {
         case (validity, token) =>
           ref.set(Some((validity.fromNow, token)))
           token
-      }(ExecutionContext.parasitic)
+      }(ExecutionContext.global)
     }
   }
 

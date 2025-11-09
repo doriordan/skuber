@@ -136,7 +136,7 @@ class BytesToWatchEventSourceSpec extends Specification {
       """{"type":"MODIFIED","object":{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"frontend","namespace":"default","selfLink":"/api/v1/namespaces/default/replicationcontrollers/frontend","uid":"246f12b6-719b-11e5-89ae-0800279dd272","resourceVersion":"12803","generation":2,"creationTimestamp":"2015-10-13T11:11:24Z","labels":{"name":"frontend"}},"spec":{"replicas":0,"selector":{"name":"frontend"},"template":{"metadata":{"name":"frontend","namespace":"default","creationTimestamp":null,"labels":{"name":"frontend"}},"spec":{"containers":[{"name":"php-redis","image":"kubernetes/example-guestbook-php-redis:v2","ports":[{"containerPort":80,"protocol":"TCP"}],"resources":{},"terminationMessagePath":"/var/log/termination","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","dnsPolicy":"Default"}}},"status":{"replicas":0,"observedGeneration":2}}}
 """
     val errors = mutable.ListBuffer[String]()
-    val errorHandler = (error: String) => errors.addOne(error)
+    val errorHandler = (error: String) => errors.append(error)
     val bytesSource = Source(List(ByteString(event1AsStr), ByteString(event2AsStr), ByteString(event3AsStr), ByteString(event4AsStr)))
     val watchEventSource = BytesToWatchEventSource[ReplicationController](client, bytesSource, 1000, Some(errorHandler))
 

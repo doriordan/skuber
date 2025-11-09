@@ -17,7 +17,7 @@ object HTTPRequestAuth {
   }
 
   def addAuthAsync(request: HttpRequest, auth: AuthInfo): Future[HttpRequest] = {
-    getAuthHeaderAsync(auth).map(_.map(request.addHeader).getOrElse(request))(ExecutionContext.parasitic)
+    getAuthHeaderAsync(auth).map(_.map(request.addHeader).getOrElse(request))(ExecutionContext.global)
   }
 
   @deprecated("2.6.8", "Use addAuthAsync instead")
@@ -35,7 +35,7 @@ object HTTPRequestAuth {
       case NoAuth | _: CertAuth => Future.successful(None)
       case BasicAuth(user, password) => Future.successful(Some(Authorization(BasicHttpCredentials(user, password))))
       case auth: AccessTokenAuth => Future.successful(Some(Authorization(OAuth2BearerToken(auth.accessToken))))
-      case asyncAuth: AsyncAccessTokenAuth => asyncAuth.accessToken().map(token => Some(Authorization(OAuth2BearerToken(token))))(ExecutionContext.parasitic)
+      case asyncAuth: AsyncAccessTokenAuth => asyncAuth.accessToken().map(token => Some(Authorization(OAuth2BearerToken(token))))(ExecutionContext.global)
     }
   }
 }
