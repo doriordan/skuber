@@ -11,7 +11,7 @@ val scalaTestMockito = "org.scalatestplus" %% "mockito-4-6" % "3.2.14.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "2.0"
-val commonsIO = "commons-io" % "commons-io" % "2.11.0"
+val commonsIO = "commons-io" % "commons-io" % "2.21.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.15"
 
 // the client API request/response handing uses Akka Http
