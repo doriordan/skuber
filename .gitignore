@@ -4,6 +4,7 @@ target/
 .DS_Store
 .settings/
 .cache-main
+.claude/
 .worksheet/
 .idea/
 .bloop/
