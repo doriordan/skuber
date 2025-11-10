@@ -3,11 +3,11 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 val akkaVersion = "2.6.19"
 
-val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.15.4"
-val specs2 = "org.specs2" %% "specs2-core" % "4.17.0"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.14"
-val mockito = "org.mockito" % "mockito-core" % "4.6.1"
-val scalaTestMockito = "org.scalatestplus" %% "mockito-4-6" % "3.2.14.0"
+val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.19.0"
+val specs2 = "org.specs2" %% "specs2-core" % "4.23.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.18"
+val mockito = "org.mockito" % "mockito-core" % "4.11.0"
+val scalaTestMockito = "org.scalatestplus" %% "mockito-4-11" % "3.2.18.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
 val snakeYaml =  "org.yaml" % "snakeyaml" % "2.5"
@@ -21,7 +21,7 @@ val akka = "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
 // Skuber uses akka logging, so the examples config uses the akka slf4j logger with logback backend
 val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-val logback = "ch.qos.logback" % "logback-classic" % "1.4.4" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.5.20" % Runtime
 
 // the Json formatters are based on Play Json
 val playJson = "com.typesafe.play" %% "play-json" % "2.9.3"
