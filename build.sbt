@@ -43,7 +43,7 @@ Global / concurrentRestrictions := Seq(
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.13.12", "3.3.7"),
+  crossScalaVersions := Seq("2.13.17", "3.3.7"),
   scalaVersion := "3.3.7",
   publishTo :=  sonatypePublishToBundle.value,
   pomIncludeRepository := { _ => false },
