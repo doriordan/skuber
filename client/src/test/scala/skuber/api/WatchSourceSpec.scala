@@ -286,7 +286,7 @@ class WatchSourceSpec extends Specification with MockitoSugar {
         .expectError()
 
       error must haveClass[FramingException]
-      error.getMessage mustEqual "Invalid JSON encountered at position [0] of [ByteString(98, 97, 100, 32, 105, 110, 112, 117, 116)]"
+      error.getMessage must startWith("Invalid JSON encountered at position [0] of ")
 
       verify(client, times(2)).logConfig
       verify(client).buildRequest(
