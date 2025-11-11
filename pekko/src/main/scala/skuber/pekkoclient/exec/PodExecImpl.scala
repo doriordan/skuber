@@ -62,11 +62,7 @@ object PodExecImpl {
         .withPath(Uri.Path(s"/api/v1/namespaces/${requestContext.namespaceName}/pods/$podName/exec"))
         .withQuery(Uri.Query(queries: _*))
 
-    // Compose headers
-    var headers: List[HttpHeader] = List(RawHeader("Accept", "*/*"))
-    headers ++= HTTPRequestAuth.getAuthHeader(requestContext.requestAuth).map(a => List(a)).getOrElse(List())
-
-    // Convert `String` to `ByteString`, then prepend channel bytes
+     // Convert `String` to `ByteString`, then prepend channel bytes
     val source: Source[ws.Message, Promise[Option[ws.Message]]] = maybeStdin.getOrElse(Source.empty).viaMat(Flow[String].map { s =>
       ws.BinaryMessage(ByteString(0).concat(ByteString(s)))
     })(Keep.right).concatMat(Source.maybe[ws.Message])(Keep.right)

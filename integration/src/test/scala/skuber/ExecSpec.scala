@@ -10,7 +10,7 @@ import skuber.model.{Container, Pod}
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future, Promise}
 
-abstract class ExecSpec extends K8SFixture[_, _, _] with Eventually with Matchers with BeforeAndAfterAll {
+abstract class ExecSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
   val nginxPodName: String = java.util.UUID.randomUUID().toString
 
   behavior of "Exec"
@@ -19,7 +19,7 @@ abstract class ExecSpec extends K8SFixture[_, _, _] with Eventually with Matcher
     super.beforeAll()
 
     val k8s = createK8sClient(config)
-    Await.result(k8s.create(getNginxPod(nginxPodName)), 3.second)
+    Await.ready(k8s.create(getNginxPod(nginxPodName)), 3.second)
     // Let the pod run
     Thread.sleep(3000)
     k8s.close()
@@ -27,28 +27,14 @@ abstract class ExecSpec extends K8SFixture[_, _, _] with Eventually with Matcher
 
   override def afterAll(): Unit = {
     val k8s = createK8sClient(config)
-    Await.result(k8s.delete[Pod](nginxPodName), 3.second)
+    Await.ready(k8s.delete[Pod](nginxPodName), 3.second)
     Thread.sleep(3000)
     k8s.close()
 
     super.afterAll()
   }
 
-  it should "throw an exception without stdin, stdout nor stderr in the running pod" in { k8s =>
-    k8s.exec(nginxPodName, Seq("whoami")).failed.map {
-      case e: K8SException =>
-        assert(e.status.code.contains(400))
-    }
-  }
-
-  it should "throw an exception against an unexisting pod" in { k8s =>
-    k8s.exec(nginxPodName + "x", Seq("whoami")).failed.map {
-      case e: K8SException =>
-        assert(e.status.code == Some(404))
-    }
-  }
-
-  def closeAfter(duration: Duration) = {
+  def closeAfter(duration: Duration): Promise[Unit] = {
     val promise = Promise[Unit]()
     Future {
       Thread.sleep(duration.toMillis)

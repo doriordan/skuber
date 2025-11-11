@@ -10,7 +10,7 @@ import skuber.model.{Container, Pod}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class PodLogSpec extends K8SFixture[_, _, _] with Eventually with Matchers with BeforeAndAfterAll {
+abstract class PodLogSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
   val podName: String = java.util.UUID.randomUUID().toString
 
   behavior of "PodLog"

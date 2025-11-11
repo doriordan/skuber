@@ -12,7 +12,7 @@ import skuber.model.{Container, LabelSelector, Pod}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class WatchSpec extends K8SFixture[_, _, _] with Eventually with Matchers with BeforeAndAfterAll {
+abstract class WatchSpec extends K8SFixture with Eventually with Matchers with BeforeAndAfterAll {
 
   implicit val defaultPatience: PatienceConfig = PatienceConfig(timeout = Span(200, Seconds), interval = Span(5, Seconds))
 
