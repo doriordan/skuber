@@ -38,11 +38,11 @@ class PekkoCustomResourceSpec extends CustomResourceSpec with PekkoK8SFixture {
 
         def watchAndTrackEvents(sinceVersion: String) =
         {
-          k8s.asInstanceOf[PekkoKubernetesClient]
-              .getWatcher[TestResource]
-              .watchSinceVersion(sinceVersion)
-              .viaMat(KillSwitches.single)(Keep.right)
-              .toMat(trackEvents)(Keep.both).run()
+          k8s
+            .getWatcher[TestResource]
+            .watchStartingFromVersion(sinceVersion)
+            .viaMat(KillSwitches.single)(Keep.right)
+            .toMat(trackEvents)(Keep.both).run()
         }
 
         def createCRD() = k8s.create(TestResource.crd)

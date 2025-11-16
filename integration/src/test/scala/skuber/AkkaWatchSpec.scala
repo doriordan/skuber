@@ -24,7 +24,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
       val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
       val stream = k8s.list[DeploymentList]().map { l =>
-        val eventSource = k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
+        val eventSource = k8s.getWatcher[Deployment].watchStartingFromVersion(l.resourceVersion)
         eventSource
           .viaMat(KillSwitches.single)(Keep.right)
           .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
@@ -86,7 +86,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
       val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
       val stream = k8s.list[DeploymentList]().map { l =>
-        val eventSource = k8s.getWatcher[Deployment].watchClusterSinceVersion(l.resourceVersion)
+        val eventSource = k8s.getWatcher[Deployment].watchClusterStartingFromVersion(l.resourceVersion)
         eventSource
           .viaMat(KillSwitches.single)(Keep.right)
           .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
@@ -138,7 +138,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
     }, 300.seconds)
   }
 
-  it should "continuously watch changes on a named resource obj in current namespace from the beginning - deployment" in {
+  it should "continuously watch changes on a named resource obj in current namespace from most recent version - deployment" in {
     withAkkaK8sClient ({ k8s =>
       import skuber.api.client.EventType
 
@@ -149,7 +149,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
       eventually {
         k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
       }
-      val stream = k8s.getWatcher[Deployment].watchObjectSinceBeginning(deploymentName)
+      val stream = k8s.getWatcher[Deployment].watchObject(deploymentName)
         .viaMat(KillSwitches.single)(Keep.right)
         .filter(event => event._object.name == deploymentName)
         .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
@@ -195,7 +195,7 @@ class AkkaWatchSpec extends WatchSpec with AkkaK8SFixture {
       }
 
       val stream = k8s.get[Deployment](deploymentName).map { d =>
-        k8s.getWatcher[Deployment].watchObjectSinceVersion(deploymentName, d.resourceVersion)
+        k8s.getWatcher[Deployment].watchObjectStartingFromVersion(deploymentName, d.resourceVersion)
           .viaMat(KillSwitches.single)(Keep.right)
           .filter(event => event._object.name == deploymentName)
           .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)

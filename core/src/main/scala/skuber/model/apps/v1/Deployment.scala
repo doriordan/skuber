@@ -6,6 +6,7 @@ package skuber.model.apps.v1
 
 import skuber.model.ResourceSpecification.{Names, Scope}
 import skuber.model._
+import skuber.model.apps.Deployment.Strategy
 
 case class Deployment(
   kind: String ="Deployment",
@@ -20,6 +21,8 @@ case class Deployment(
   lazy val copySpec = this.spec.getOrElse(Deployment.Spec(selector=LabelSelector(), template=Pod.Template.Spec()))
 
   def withReplicas(count: Int) = this.copy(spec=Some(copySpec.copy(replicas=Some(count))))
+
+  def withStrategy(strategy: Deployment.Strategy): Deployment =  this.copy(spec=Some(copySpec.copy(strategy = Some(strategy))))
 
   def withTemplate(template: Pod.Template.Spec) = {
     val updatedSpec = copySpec.copy(template = template)

@@ -25,7 +25,7 @@ object WatchExamples extends App {
     }
     for {
       frontendRC <- k8s.get[ReplicationController]("frontend")
-      frontendRCWatch = k8s.getWatcher[ReplicationController].watchObjectSinceVersion(frontendRC.name, frontendRC.resourceVersion)
+      frontendRCWatch = k8s.getWatcher[ReplicationController].watchObjectStartingFromVersion(frontendRC.name, frontendRC.resourceVersion)
       done <- frontendRCWatch.runWith(frontendReplicaCountMonitor)
     } yield done
   }
@@ -38,12 +38,8 @@ object WatchExamples extends App {
       println(s"""${podEvent._type} => Pod '${pod.name}' .. phase = ${phase.getOrElse("<None>")}""")
     }
 
-    for {
-      currPodList <- k8s.list[PodList]()
-      latestPodVersion = currPodList.metadata.map { _.resourceVersion }
-      currPodsWatch = k8s.getWatcher[Pod].watchSinceVersion(latestPodVersion.getOrElse("")) // ignore historic events
-      done <- currPodsWatch.runWith(podPhaseMonitor)
-    } yield done
+    val currPodsWatch = k8s.getWatcher[Pod].watch() // ignore historic events
+    currPodsWatch.runWith(podPhaseMonitor)
   }
 
   // Note: run appropriate kubectl commands (like 'run') or an example like guestbook to see events being output

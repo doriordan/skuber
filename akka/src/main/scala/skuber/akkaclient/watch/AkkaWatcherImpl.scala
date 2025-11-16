@@ -1,13 +1,18 @@
 package skuber.akkaclient.watch
 
+import akka.stream.scaladsl.Source
 import play.api.libs.json.Format
 import skuber.akkaclient.AkkaWatcher
 import skuber.akkaclient.impl.AkkaKubernetesClientImpl
 import skuber.api.client.{ListOptions, LoggingContext, WatchEvent, Watcher}
-import skuber.model.{ObjectResource, ResourceDefinition}
+import skuber.model.{ListResource, ObjectResource, ResourceDefinition}
+
+import scala.concurrent.Future
 
 class AkkaWatcherImpl[O <: ObjectResource](client: AkkaKubernetesClientImpl) extends AkkaWatcher[O]
 {
+  type L = ListResource[O]
+
   override val defaultBufSize: Int = 100000
   override val defaultWatchRequestTimeoutSeconds: Long = 30
 

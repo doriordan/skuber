@@ -30,7 +30,7 @@ class AkkaCustomResourceSpec extends CustomResourceSpec with AkkaK8SFixture  {
         }
 
         def watchAndTrackEvents(sinceVersion: String) = {
-          val crEventSource = k8s.getWatcher[TestResource].watchSinceVersion(sinceVersion)
+          val crEventSource = k8s.getWatcher[TestResource].watchStartingFromVersion(sinceVersion)
           crEventSource
               .viaMat(KillSwitches.single)(Keep.right)
               .toMat(trackEvents)(Keep.both).run()

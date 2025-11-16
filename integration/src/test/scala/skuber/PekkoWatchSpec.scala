@@ -4,7 +4,6 @@ import org.apache.pekko.stream.KillSwitches
 import org.apache.pekko.stream.scaladsl.{Keep, Sink}
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import skuber.model.apps.v1.{Deployment, DeploymentList}
-import skuber.pekkoclient.PekkoKubernetesClient
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -21,8 +20,8 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
       val deploymentOne = getNginxDeploymentForWatch(deploymentOneName)
       val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
-      val stream = k8s.list[DeploymentList]().map { l =>
-        val eventSource = k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
+      val stream = k8s.list[DeploymentList]().map(_.resourceVersion).map { currentResourceVersion =>
+        val eventSource = k8s.getWatcher[Deployment].watchStartingFromVersion(currentResourceVersion)
         eventSource
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
@@ -84,7 +83,7 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
       val deploymentTwo = getNginxDeploymentForWatch(deploymentTwoName)
 
       val stream = k8s.list[DeploymentList]().map { l =>
-        val eventSource = k8s.getWatcher[Deployment].watchClusterSinceVersion(l.resourceVersion)
+        val eventSource = k8s.getWatcher[Deployment].watchClusterStartingFromVersion(l.resourceVersion)
         eventSource
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
@@ -136,7 +135,7 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
     }, 300.seconds)
   }
 
-  it should "continuously watch changes on a named resource obj in current namespace from the beginning - deployment" in {
+  it should "continuously watch changes on a named resource obj in current namespace from any resource version - deployment" in {
     withPekkoK8sClient ({ k8s =>
       import skuber.api.client.EventType
 
@@ -148,7 +147,7 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
         k8s.get[Deployment](deploymentName).futureValue.status.get.availableReplicas shouldBe 1
       }
 
-      val stream = k8s.getWatcher[Deployment].watchObjectSinceBeginning(deploymentName)
+      val stream = k8s.getWatcher[Deployment].watchObject(deploymentName)
           .viaMat(KillSwitches.single)(Keep.right)
           .filter(event => event._object.name == deploymentName)
           .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
@@ -194,7 +193,7 @@ class PekkoWatchSpec extends WatchSpec with PekkoK8SFixture {
       }
 
       val stream = k8s.get[Deployment](deploymentName).map { d =>
-        k8s.getWatcher[Deployment].watchObjectSinceVersion(deploymentName, d.resourceVersion)
+        k8s.getWatcher[Deployment].watchObjectStartingFromVersion(deploymentName, d.resourceVersion)
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)

@@ -18,7 +18,7 @@ trait AkkaK8SFixture extends K8SFixture {
 
   implicit def system: ActorSystem = ActorSystem()
 
-  override implicit def executionContext: ExecutionContext = system.dispatcher
+  override implicit def executionContext: ExecutionContext =  ExecutionContext.global
 
   override def createK8sClient(config: com.typesafe.config.Config): AkkaKubernetesClient = {
     k8sInit(config)

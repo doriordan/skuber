@@ -4,6 +4,7 @@ import org.apache.pekko.actor.ActorSystem
 import skuber.api.client._
 import skuber.model.{Container, Pod}
 import skuber.model.apps.v1.Deployment
+import skuber.model.apps.v1.Deployment.{RollingUpdate, Strategy}
 import skuber.pekkoclient.k8sInit
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -101,6 +102,7 @@ object DeploymentExamples extends App {
     val nginxDeployment = Deployment(nginxDeploymentName)
       .withReplicas(desiredCount)
       .withTemplate(nginxTemplate)
+      .withStrategy(Strategy(RollingUpdate(maxSurge = Left(2), maxUnavailable = Left(1))))
 
     println("Creating nginx deployment")
     val createdDeplFut = k8s.create(nginxDeployment)

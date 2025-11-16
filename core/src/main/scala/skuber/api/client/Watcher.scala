@@ -11,7 +11,8 @@ trait Watcher[O <: ObjectResource] {
   type EventSource // the type of the source of watch events returned by watch requests: override in concrete implementation
 
   /**
-    * The fundamental watch operation which underpins all other watch operations on this API.
+    * The fundamental watch operation which underpins all other watch operations on this API, so the concrete watcher implementations
+    * of this trait only need to implement this method.
     *
     * @param watchRequestOptions
     * @param clusterScope
@@ -52,7 +53,7 @@ trait Watcher[O <: ObjectResource] {
     * @tparam O the kind of object resource to watch
     * @return a source of events from the objects in scope for the watch request
     */
-  def watch(parameters: WatchParameters)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
+  def watchWithParameters(parameters: WatchParameters)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
   {
     val options = ListOptions(
       resourceVersion = parameters.resourceVersion,
@@ -64,42 +65,46 @@ trait Watcher[O <: ObjectResource] {
   }
 
   // Utility watch operations for common use cases
+  // See https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-watch for the resource version
+  // related semantics of watch:
+  // - Watching from most recent version (resource version unset)
+  // - Watching From Any version (resource version set to zero)
+  // - Watching From specific Resource Version (non-zero resource version set)
 
   /**
-    * Watch all objects of type O in current namespace, streaming all events from the beginning of their history in the cluster
+    * Watch all objects of type O in current namespace, starting from most recent version
     *
-    * @param parameters
     * @param fmt
     * @param rd
     * @param lc
     * @tparam O
     * @return
     */
-  def watchSinceBeginning()(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
-    watch(WatchParameters())
+  def watch()(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
+    watchWithParameters(WatchParameters())
   }
 
   /**
-    * Watch all events on all objects of type O in current namespace since the specified resource version, which is usually returned by a
-    * prior list operation
+    * Watch events on all resources of type O in current namespace, outputting all events that occur since the specified version of
+    * the resource collection (or any version if set to "0")
     *
-    * @param sinceResourceVersion
+    * @param resourceVersion he initial version of the resource collection from which events should be output
     * @param fmt
     * @param rd
     * @param lc
     * @tparam O
     * @return an Akka source of events
     */
-  def watchSinceVersion(sinceResourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
-    val watchParams = WatchParameters(resourceVersion = Some(sinceResourceVersion))
-    watch(watchParams)
+  def watchStartingFromVersion(resourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
+    val watchParams = WatchParameters(resourceVersion = Some(resourceVersion))
+    watchWithParameters(watchParams)
   }
 
   /**
-    * Watch all events on all objects of type O across whole cluster since a specific resource version
-    * (usually returned by a prior list operation)
+    * Watch all events on all objects of type O across whole cluster, outputting all events since
+    * the specified resource version (or any version if set to "0")
     *
-    * @param version the resource version after which events will be returned
+    * @param resourceVersion the initial version of the resource collection from which events should be output
     * @param bufSize
     * @param errorHandler
     * @param fmt
@@ -108,14 +113,14 @@ trait Watcher[O <: ObjectResource] {
     * @tparam O
     * @return an Akka source of events
     */
-  def watchClusterSinceVersion(sinceResourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
+  def watchClusterStartingFromVersion(resourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
   {
-    val watchParameters = WatchParameters(resourceVersion = Some(sinceResourceVersion), clusterScope = true)
-    watch(watchParameters)
+    val watchParameters = WatchParameters(resourceVersion = Some(resourceVersion), clusterScope = true)
+    watchWithParameters(watchParameters)
   }
 
   /**
-    * Watch all events on all objects of type O across whole cluster since the beginning (first stored event on the cluster)
+    * Watch events on all resources of type O across whole cluster, starting from most recent version
     *
     * @param bufSize
     * @param errorHandler
@@ -125,15 +130,15 @@ trait Watcher[O <: ObjectResource] {
     * @tparam O
     * @return an Akka source of events
     */
-  def watchClusterSinceBeginning()(
+  def watchCluster()(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
   {
     val watchParameters = WatchParameters(clusterScope = true)
-    watch(watchParameters)
+    watchWithParameters(watchParameters)
   }
 
   /**
-    * Watch a single object resource of the specified name in current namespace since its creation
+    * Watch a single object resource of the specified name in current namespace, starting from most recent version
     *
     * @param name the name of the object to watch
     * @param fmt
@@ -142,37 +147,26 @@ trait Watcher[O <: ObjectResource] {
     * @tparam O the kind of the object to watch
     * @return a source of events from the object
     */
-  def watchObjectSinceBeginning(name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
+  def watchObject(name: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource =
   {
     val watchParameters = WatchParameters(fieldSelector = Some(s"metadata.name=$name"))
-    watch(watchParameters)
+    watchWithParameters(watchParameters)
   }
 
   /**
-    * Watch a single object resource of the specified name in current namespace since its creation
+    * Watch the named object resource in the current namespace, outputting all events from the specified resource version
+    * (or any version if set to "0")
     *
     * @param name the name of the object to watch
+    * @param resourceVersion the initial version of the resource from which events should be output
     * @param fmt
     * @param rd
     * @param lc
     * @tparam O the kind of the object to watch
     * @return a source of events from the object
     */
-  def watchObjectSinceVersion(name: String, sinceResourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
-    val watchParameters = WatchParameters(resourceVersion = Some(sinceResourceVersion), fieldSelector = Some(s"metadata.name=$name"))
-    watch(watchParameters)
-  }
-
-  def listWatch(lister: ListOptions => Future[ListResource[O]])(watchParameters: WatchParameters)(
-    implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[EventSource] =
-  {
-    val listOptions = ListOptions(
-      fieldSelector = watchParameters.fieldSelector,
-      labelSelector = watchParameters.labelSelector,
-      resourceVersion = watchParameters.resourceVersion
-    )
-    lister(listOptions).map { list =>
-      watch(watchParameters.copy(resourceVersion = Some(list.resourceVersion)))
-    }
+  def watchObjectStartingFromVersion(name: String, resourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
+    val watchParameters = WatchParameters(resourceVersion = Some(resourceVersion), fieldSelector = Some(s"metadata.name=$name"))
+    watchWithParameters(watchParameters)
   }
 }
