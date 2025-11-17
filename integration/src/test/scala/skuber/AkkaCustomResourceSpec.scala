@@ -36,7 +36,6 @@ class AkkaCustomResourceSpec extends CustomResourceSpec with AkkaK8SFixture  {
               .toMat(trackEvents)(Keep.both).run()
         }
 
-
         def createCRD() = k8s.create(TestResource.crd)
 
         def createTestResource() = k8s.create(testResource)

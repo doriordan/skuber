@@ -388,8 +388,8 @@ The same as above but for pods in all namespaces (cluster scope):
     println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
   }
 
-  val podsWatch = k8s.getWatcher[Pod].watchCluster() // watch all pods in cluster, from most recent version
-  val currPodsWatch = k8s.getWatcher[Pod].watch() 
+  val podsWatch = k8s.getWatcher[Pod].watchCluster() // watch all pods in cluster from most recent version
+  val currPodsWatch = k8s.getWatcher[Pod].watch() // ignore historic events
   currPodsWatch.runWith(podPhaseMonitor)
 }
 ```
@@ -482,11 +482,93 @@ Currently supports one kind - the `CustomResourceDefinition` kind introduced in 
 
 Supports `NetworkPolicy` resources (for Kubernetes v1.7 and above) - see Kubernetes [Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) documentation.
 
-[Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) are a powerful feature which enable Kubernetes clients to define and use their own custom resources to be treated in the same way as built-in kinds. They are useful for building Kubernetes operators and other advanced use cases. See the `CustomResourceSpec.scala` integration test which demonstrates how to use them in skuber.
+## Custom Resources
+
+[Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) are a powerful feature which enables Kubernetes clients to define and use their own custom resources in the same way as built-in resource kinds. 
+
+They are useful for building Kubernetes operators and other advanced use cases. 
+
+Skuber offers a means for applications to define their own custom resources (_Custom Resource Definitions_, or CRDs) as Scala classes, and then use them with the API in just the same way as built-in resource object and list types.
+
+### Defining a custom resource
+
+To use custom resources in Skuber, you will need to define the model for the "payload" of the custom resource, which following standard Kubernetes conventions will contain a single `spec` section and a single (optional) `status` section.
+
+Lets work through a simple example, which represents some custom autoscaler kind on which you could build an operator that can set a desired number of replicas in the spec and access the current actual replica count in the status:
+
+```scala
+object CustomAutoscaler {
+  case class Spec(desiredReplicas: Int)
+  case class Status(actualReplicas: Int)
+}
+```
+The Skuber API will also need to be able to read and write the spec and status, for which implicit Play formatters must be defined
+
+```scala
+object CustomAutoscaler {
+  // ..
+  
+  import play.api.libs.json._
+  implicit val specFmt: Format[Spec] = Json.format[Spec]
+  implicit val statusFmt: Format[Status] = Json.format[Status]
+}
+```
+
+You can now define a CRD containing these spec and status fields by specifying a`CustomReosurce` type as follows:
+
+```scala
+object CustomAutoscaler {
+  // ..
+
+  import skuber.model.{CustomResource, ListResource, ResourceDefinition}
+
+  type CustomAutoscaler = CustomResource[Spec, Status] // this is the resource object type that will be passed to the Skuber API
+  type CustomAutoscalerList = ListResource[CustomAutoscaler] // this is the equivalent resource list type for use with the API
+
+  implicit val asResourceDefinition: ResourceDefinition[CustomAutoscaler] = ResourceDefinition[CustomAutoscaler](
+    group = "autoscaler.example.skuber.io",
+    version = "v1alpha1",
+    kind = "CustomAutoscaler"
+  )
+
+  // Convenience method for constructing custom resources of the required type from a name snd a spec
+  def apply(name: String, spec: Spec): CustomAutoscaler = CustomResource[Spec, Status](spec).withName(name)
+}
+````
+
+The above definitions provides the key type information needed by the Kubernetes API server, and should match the CRD on the cluster (which this example assumes is defined outside of Skuber)
+
+Now we are ready to manipulate custom resources of `CustomAutoscaler` type, for example:
+
+```scala
+import CustomAutoscaler._
+
+// create a new autoscaler resource on the cluster
+k8s.create(CustomAutoscaler("myCustomAutoscaler", Spec(desiredReplicas=4)))
+
+// retrieve the custom resource we just created
+val myAsFuture = k8s.get[CustomAutoscaler]("myCustomAutoscaler")
+
+// list all resources of this kind
+k8s.list[CustomAutoscalerList].map { l =>
+    l.items.foreach { as =>
+        System.out.println(s"Actual replicas = ${as.status.map(_.actualReplicas)}")
+    }
+}
+
+// watch all resources of this type in the current namespace
+val asEventsSource: Source[WatchEvent[CustomAutoscaler], _] = k8s.getWatcher[CustomAutoscaler].watch()
+```
+
+The ability to easily watch custom resources is crucial to implementing advanced use cases in Skuber, especially operators.
+
+The above demonstrates the most common use case of managing custom resources on the cluster, as opposed to managing the associated definitions (CRDs). In the less likely use case where you are using Skuber to manage the lifecycle of CRDs on the cluster, additional definitions will be needed. The integration tests include a well-documented and comprehensive [test](../integration/src/test/scala/skuber/CustomResourceSpec.scala) that shows how to implement this as well as other advanced custom resource operations such as Scale subresource usage.
 
 ## Label Selectors
 
-Skuber supports a mini-DSL to build label selectors, which can then be used to select resources based on the labels on them::
+Skuber supports a mini-DSL to build label selectors, which can be used by `list` and `watch` operations to select resources based on the labels applied to them:
+
+Label selectors are also used when building certain workload types like deployments:
 ```scala
 import skuber.model.LabelSelector
 import LabelSelector.dsl._
@@ -499,8 +581,21 @@ val sel = LabelSelector(
 )
 
 val depl = Deployment("exampleDeployment").withSelector(sel)
+
+// now use the selector with pod list/watch operations
+import skuber.api.client.WatchParameters
+import skuber.model.{Pod, PodList]
+import skuber.json.format._
+
+// List all pods matching the selector
+val frontendPodsFuture = k8s.listSelected[PodList](sel)
+  
+// Watch all pods matching the selector
+val frontEndWatchSelector = WatchParameters(labelSelector = Some(sel))
+val frontEndPodEventSource = k8s.getWatcher[Pod].watchWithParameters(frontEndWatchSelector)
+
 ```
- 
+
 ## Programmatic configuration
 
 Normally it is likely that configuration will be via a kubeconfig file. However a client can optionally pass a `K8SConfiguration` object directly as a parameter to the `k8sInit` call. This will override any other configuration. 

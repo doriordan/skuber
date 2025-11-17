@@ -98,7 +98,7 @@ class KubernetesProxyActor extends Actor with ActorLogging {
           // create a new watch on Kubernetes, and initialize the set of watchers on it
           
           log.debug(s"creating a watch on Kubernetes for controller '${rc.name}', watcher is ${watcher.path}")
-          val watch = k8s.getWatcher[ReplicationController].watchObjectSinceVersion(rc.name, rc.resourceVersion)
+          val watch = k8s.getWatcher[ReplicationController].watchObjectStartingFromVersion(rc.name, rc.resourceVersion)
           val watching = Set(watcher)
           rcWatching += rc.name -> Watching(watch, watching)
           

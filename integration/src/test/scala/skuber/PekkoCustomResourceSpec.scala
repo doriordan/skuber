@@ -38,6 +38,8 @@ class PekkoCustomResourceSpec extends CustomResourceSpec with PekkoK8SFixture {
 
         def watchAndTrackEvents(sinceVersion: String) =
         {
+          val s: Source[WatchEvent[TestResource], _] = k8s.getWatcher[TestResource].watch()
+
           k8s
             .getWatcher[TestResource]
             .watchStartingFromVersion(sinceVersion)

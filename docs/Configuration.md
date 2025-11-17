@@ -11,7 +11,7 @@ Initially Skuber tries out-of-cluster methods in sequence (stops on first succes
     * Otherwise treats contents of `SKUBER_CONFIG` as a file path to kubeconfig file (use it if your kube config file is in custom location). If not present then:
 - Read `KUBECONFIG` environment variable and use its contents as path to kubconfig file (similar to `SKUBER_CONFIG`)
 
-If all above fails Skuber tries the [in-cluster configuration method](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod). If attempting to run your client inside a pod, this will be the preferred configuration.
+If none of the above configuration items are set, then Skuber assumes it is running inside a pod in the cluster, in which case it can always load the required configuration and credentials from the same location in the local file system (in-cluster configuration). If attempting to run your client inside a pod, this will be the preferred configuration.
 
 ### Cluster URL
 
@@ -25,7 +25,7 @@ Alternatively, you can programmatically configure the proxy details by using one
 
 ### Kubeconfig file
 
-If not using a `kubectl proxy` then most clients will be configured using a [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
+If not using a `kubectl proxy` then most clients will be configured using a [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/). This is the standard configuration file format used by other Kubernetes clients such as `kubectl`. These files allow the following to be configured:
 
 - Authentication credentials - [see below](#security).
 - [Namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) - this allows the client to read/write Kubernetes resources in different cluster namespaces just by changing runtime configuration, which supports partitioning by team / organization.
@@ -37,7 +37,7 @@ Skuber generally follows the same conventions for configuring the client as othe
  
 The use of the kubeconfig format means that `kubectl` can be used to modify configuration settings for Skuber clients, without requiring direct editing of the configuration file - and this is the recommended approach.
 
-Kubeconfig files can contain multiple contexts, each encapsulating the full details required to configure a client - Skuber always configures itself (when initialised by a `k8sInit` call) from the [current context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) as set by the `kubectl config use-context`command
+Kubeconfig files can contain multiple contexts, each encapsulating the full details required to configure a client - Skuber always configures itself (when initialised by a `k8sInit` call) from the [current context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/#define-clusters-users-and-contexts) as set by the `kubectl config use-context`command
 
 Because all of the above configuration items in the configuration file are the same as used by other Kubernetes clients such as kubectl, you (or rather the organization deploying the Skuber application) can share configuration with such other clients or set up separate configuration files for applications depending on organizational security policies, deployment processes and other requirements. 
 
@@ -54,5 +54,3 @@ If the current context specifies a **TLS** connection (i.e. a `https://` URL) to
 For client authentication **client certificates** (cert and private key pairs) can be specified for the case where TLS is in use. In addition to client certificates Skuber will use any **bearer token** or **basic authentication** credentials specified. Token or basic auth can be configured as an alternative to or in conjunction with client certificates. 
 
 *(Skuber loads configured server and client certificates / keys directly from the kubeconfig file (or from another location in the file system in the case where the configuration specifies a path rather than embedded data). This means there is no need to store them in the Java trust or key stores.)*
-
-

@@ -26,22 +26,6 @@ trait Watcher[O <: ObjectResource] {
   protected def _watch(watchRequestOptions: ListOptions, clusterScope: Boolean, bufSize: Int, errorHandler: Option[String => _])(
     implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource
 
-  val defaultWatchRequestTimeoutSeconds: Long
-  val defaultBufSize: Int
-
-  final case class WatchParameters(
-    clusterScope: Boolean = false, // whether to watch objects across whose cluster or in current namespace only
-    resourceVersion: Option[String] = None, // the resource version after which events should be watched, normally this is returned by a prior list operation or set to None for all events
-    labelSelector: Option[LabelSelector] = None, // select objects to watch by labels - see Kubernetes docs for details
-    fieldSelector: Option[String] = None, // select objects to watch by field - see Kubernetes docs for details
-    bufSize: Int = defaultBufSize, // size of buffer into which each event is read, increase if not big enough
-    errorHandler: Option[String => _] = None, // if errors are encountered when streaming the events invoke this handler
-    // the timeout of the request sent to the API server to perform the watch
-    // after each watch request times out, skuber transparently resends the request and in this way continues watching for an unlimited period
-    // for this work it is important that the request timeout is less than the connection idle timeout (which has a default of 1 minute)
-    timeoutSeconds: Option[Long] = Some(defaultWatchRequestTimeoutSeconds)
-  )
-
   /**
     * Generic watch command on one or more objects of type O. The actual objects watched
     * and other key watch parameters will be determined by the parameters, see above for summary of each field.

@@ -6,7 +6,8 @@
  
 Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, ReplicaSets, Ingresses  etc.) via the Kubernetes REST API server.
 
-NOTE: This README describes Skuber 3. Applications using Skuber 2 can generally easily be migrated to Skuber 3 by changing a few imports. The 
+NOTE: This README describes Skuber 3. Applications using Skuber 2 can generally easily be migrated to Skuber 3 by changing a few imports - see the [migration guide](docs/MIGRATION2to3.md) for more details.
+
 ## Features
 
 - Comprehensive support for Kubernetes API model represented as Scala case classes
@@ -18,7 +19,7 @@ NOTE: This README describes Skuber 3. Applications using Skuber 2 can generally 
 - Fluent API for creating and updating specifications of Kubernetes resources
 - Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
 
-See the [programming guide](docs/GUIDE.md) for more details.
+See the [programming guide](docs/GUIDE.md) for more details. (The older guide for Skuber 2 is still available [here](docs/skuber2/GUIDE.md).)
 
 ## Prerequisites
 
@@ -47,7 +48,7 @@ This is implemented by splitting Skuber functionality into three modules/librari
 
 - `skuber-akka-bsl`: implements the Skuber API using Akka HTTP and Akka Streams. The versions of the Akka dependencies used by this client have a BSL license (because only BSL-licensed Akka versions support Scala 3)
 
-Migrating from Skuber 2 or between the two new clients is generally technically straightforward, requiring some minimal changes to your build (adding the new Skuber core dependency and one of Skuber Pekko or Akka dependencies) and a few changes to `ìmport` statements in your code.
+Migrating from Skuber 2 is normally straightforward as explained in the [migration guide](docs/MIGRATION2to3.md), and moving between the two clients in Skuber 3 is even simpler. 
 
 ### Using the Pekko-based client
 
@@ -103,8 +104,7 @@ This example lists pods in `kube-system` namespace. Note that the as part of the
  // start watching a couple of deployments
   val deploymentOneName = ...
   val deploymentTwoName = ...
-  val stream = k8s.list[DeploymentList].map { l =>
-    k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
+  val stream = k8s.getWatcher[Deployment].watch()
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
@@ -169,8 +169,7 @@ libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0-beta3"
   // start watching a couple of deployments
   val deploymentOneName = ...
   val deploymentTwoName = ...
-  val stream = k8s.list[DeploymentList].map { l =>
-    k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
+  val stream = k8s.getWatcher[Deployment].watch()
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)

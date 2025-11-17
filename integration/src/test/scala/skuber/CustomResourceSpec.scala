@@ -6,12 +6,11 @@ import play.api.libs.json._
 import skuber.api.client.{K8SException, KubernetesClient}
 import skuber.model.ResourceSpecification.{ScaleSubresource, Schema, Subresources}
 import skuber.model.apiextensions.v1.CustomResourceDefinition
-import skuber.model.{CustomResource, ListResource, Namespace, ObjectMeta, ResourceDefinition, ResourceSpecification, Scale}
+import skuber.model.{CustomResource, ListResource, ResourceDefinition, ResourceSpecification, Scale}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
-
 
 /**
   * This tests making requests on custom resources based on a very simple custom resource type (TestResource) defined
@@ -122,8 +121,6 @@ abstract class CustomResourceSpec extends K8SFixture with Eventually with Matche
         versions = getVersions // only needed for creating or updating the CRD, not needed if just manipulating custom resources
       )
 
-      val x =
-        Namespace.from(ObjectMeta(name = "name", labels = Map("creator" -> "zeus")))
       // the following implicit values enable the scale and status methods on the skuber API to be called for this type
       // (these calls will be rejected unless the subresources are enabled on the CRD)
       implicit val statusSubEnabled: model.HasStatusSubresource[TestResource] =CustomResource.statusMethodsEnabler[TestResource]

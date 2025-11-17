@@ -179,11 +179,11 @@ This example demonstrates watching deployment events on the cluster, consuming t
 
   val k8s = k8sInit // initializes Skuber Akka client, which includes added Akka Streams based ops like `ẁatchAllContinuously`
 
-  // start watching a couple of deployments
+  // start watching a couple of deployments starting from their current versions
   val deploymentOneName = ...
   val deploymentTwoName = ...
   val stream = k8s.list[DeploymentList].map { l =>
-    k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
+    k8s.watchAllConintusously[Deployment](Some(l.resourceVersion))
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
@@ -214,7 +214,7 @@ This example demonstrates watching deployment events on the cluster, consuming t
   val deploymentOneName = ...
   val deploymentTwoName = ...
   val stream = k8s.list[DeploymentList].map { l =>
-    k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
+    k8s.getWatcher[Deployment].watchStartingFromVersion(l.resourceVersion)
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)
@@ -246,7 +246,7 @@ This example demonstrates watching deployment events on the cluster, consuming t
   val deploymentOneName = ...
   val deploymentTwoName = ...
   val stream = k8s.list[DeploymentList].map { l =>
-    k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
+    k8s.getWatcher[Deployment].watchStartingFromVersion(l.resourceVersion)
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)

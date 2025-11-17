@@ -3,7 +3,10 @@ package skuber
 import org.apache.pekko.stream.KillSwitches
 import org.apache.pekko.stream.scaladsl.{Keep, Sink}
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
+import skuber.model.{LabelSelector, Pod, PodList}
+import skuber.json.format._
 import skuber.model.apps.v1.{Deployment, DeploymentList}
+import skuber.api.client.WatchParameters
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
