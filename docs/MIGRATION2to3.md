@@ -51,7 +51,7 @@ An example of watching all future events on all deployments in Skuber 2:
 In Skuber 3 this would look like (for both Pekko/Akka clients):
 ```scala
   k8s.list[DeploymentList]().map { l =>
-    val eventSource: Source[WatchEvent[Deployment], _] = k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
+    val eventSource: Source[WatchEvent[Deployment], _] = k8s.getWatcher[Deployment].watchStartingFromVersion(l.resourceVersion)
       ...
   }
 ```
@@ -208,7 +208,7 @@ This example demonstrates watching deployment events on the cluster, consuming t
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
 
-  val k8s = k8sInit // initializes Skuber Pekko client, which includes added Pekko Streams based ops like `ẁatchAllContinuously`
+  val k8s = k8sInit // initializes Skuber Pekko client, which includes added Pekko Streams based ops like those on the watcher
 
 // start watching deployments, filtering for events on specific named ones
   val deploymentOneName = ...
@@ -240,7 +240,7 @@ This example demonstrates watching deployment events on the cluster, consuming t
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
 
-  val k8s = k8sInit // initializes Skuber Akka client, which includes added Akka Streams based ops like `ẁatchAllContinuously`
+  val k8s = k8sInit // initializes Skuber Akka client, which includes added Akka Streams based ops like those on the watcher
 
   // start watching deployments, filtering for events on specific named ones
   val deploymentOneName = ...
