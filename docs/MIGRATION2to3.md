@@ -2,7 +2,7 @@
 
 ## Overview Of Changes in Skuber 3
 
-Skuber 3 is primarily a significant internal refactor of Skuber 2 with the following goals:
+Skuber 3 is largely backwards compatible with Skuber 2 but with some small changes needed to applications due to significant internal refactor of Skuber 2 which had the following goals:
 
 #### Enable users to choose whether Skuber uses Pekko or Akka
 
@@ -48,7 +48,7 @@ An example of watching all future events on all deployments in Skuber 2:
   }
 ```
 
-In Skuber 3 this would look like (for both Pekko/Akka cases):
+In Skuber 3 this would look like (for both Pekko/Akka clients):
 ```scala
   k8s.list[DeploymentList]().map { l =>
     val eventSource: Source[WatchEvent[Deployment], _] = k8s.getWatcher[Deployment].watchSinceVersion(l.resourceVersion)
@@ -99,8 +99,8 @@ listPodsRequest.onComplete {
 
 Build:
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
-libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-core" % "<skuber version>"
+libraryDependencies += "io.skuber" %% "skuber-pekko" % "<skuber version>"
 ```
 
 Code:
@@ -132,8 +132,8 @@ Note: as this configuration brings in BSL licensed versions of Akka as transitiv
 
 Build:
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
-libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-core" % "<skuber version>"
+libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "<skuber version>"
 ```
 
 Code:
@@ -183,7 +183,7 @@ This example demonstrates watching deployment events on the cluster, consuming t
   val deploymentOneName = ...
   val deploymentTwoName = ...
   val stream = k8s.list[DeploymentList].map { l =>
-    k8s.watchAllConintusously[Deployment](Some(l.resourceVersion))
+    k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
             .viaMat(KillSwitches.single)(Keep.right)
             .filter(event => event._object.name == deploymentOneName || event._object.name == deploymentTwoName)
             .filter(event => event._type == EventType.ADDED || event._type == EventType.DELETED)

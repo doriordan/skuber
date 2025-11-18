@@ -1,6 +1,6 @@
-# Skuber Programming Guide
+# Skuber 2 Programming Guide
 
-***NOTE this guide is currently for Skuber 2 - it will shortly be updated for Skuber 3 but in the meantime see the main README for Skuber 3 examples.***
+NOTE: this guide is for **Skuber 2** - new applications should use [Skuber 3](../GUIDE.md) instead.
 
 This guide assumes a working knowledge of Kubernetes concepts.
 

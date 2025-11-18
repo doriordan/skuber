@@ -303,7 +303,7 @@ trait KubernetesClient[SB, SI, SO] extends BaseKubernetesClient {
   /**
     * A lightweight operation that creates a new client with the same configuration as this one, except
     * it switches current namespace to the provided new one.
-    * This means all operations ient (except those that are at cluster scope or explicitly override the namespace)
+    * This means all operations (except those that are at cluster scope or explicitly override the namespace)
     * will be scoped to the new namespace.
     * This provides a convenient way of traversing namespaces for any workflow that operates on multiple namespaces.
     * @param newNamespace

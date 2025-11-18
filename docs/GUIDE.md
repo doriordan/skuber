@@ -8,7 +8,12 @@ This guide assumes a working knowledge of Kubernetes concepts.
 
 The Skuber data model is a representation of the Kubernetes types / kinds in Scala.
 
-The Skuber data model for the the original core Kubernetes API group (which manages many of the most fundamental Kubernetes kinds) is defined in the `skuber.model` package, so they can be easily imported into your application:
+This model is contained in the skuber core library which can be added to you project as follows (see main [README ](../README.md) for latest Skuber version details):
+```sbt
+libraryDependencies += "io.skuber" %% "skuber-core" % "<skuber version>"
+```
+
+The Skuber data model for the original core Kubernetes API group (which manages many of the most fundamental Kubernetes kinds) is defined in the `skuber.model` package, so they can be easily imported into your application:
 
 ```scala
 import skuber.model._
@@ -37,7 +42,7 @@ import skuber.apps.v1.Deployment
 
 The model can be divided into categories which correspond to those in the Kubernetes API:
 
-- [Object kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource typically define [spec and status](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
+- [Object kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#objects): These represent persistent entities in Kubernetes. All object kinds are mapped to case classes that extend the `ObjectResource` abstract class. The `ObjectResource` class defines the common fields, notably `metadata` (such as name, namespace, uid, labels etc.). The concrete classes extending ObjectResource by convention usually define [spec and status](https://kubernetes.io/docs/concepts/overview/working-with-objects/#object-spec-and-status) nested fields whose classes are defined in the companion object (e.g. `Pod.Spec`, `ReplicationController.Status`).
 
 - [List kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds): These represent lists of object resources, and in skuber are typically returned by one of the `list` API methods. All list kinds are mapped to a `ListResource[O]` case class supporting access to basic metadata and the object kind specific items in the list. 
 
@@ -45,39 +50,9 @@ There are thus list kinds for each object kind e.g. `ListResource[Pod]`,`ListRes
 
 - [Simple kinds](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds) 
 
-### Fluent API
-
-A combination of generic Scala case class features and Skuber-defined fluent API methods make building out even relatively complex specifications for creation or modification on Kubernetes straightforward. The following (which can be found under the examples project) illustrates just a small part of the API:
-
-```scala
-val prodLabel = "env" -> "production"
-
-val prodInternalSelector = Map(prodLabel, prodInternalZoneLabel)
-
-val prodCPU = 1 // 1 KCU 
-val prodMem = "0.5Gi" // 0.5GiB (gibibytes)    
-
-val prodContainer=Container(name="nginx-prod", image="nginx")
-  .limitCPU(prodCPU)
-  .limitMemory(prodMem)
-  .exposePort(80)
-    
-val internalProdTemplate = Pod.Template.Spec
-  .named("nginx-prod-internal")
-  .addContainer(prodContainer)
-  .addLabels(prodInternalSelector)
-
-val internalProdDeployment = Deployment("nginx-prod-int")
-  .withSelector(prodInternalSelector)
-  .withReplicas(8)
-  .withTemplate(internalProdTemplate)
-```
-             
-The integration tests in the `integration` subproject contains more examples, along with the examples subproject itself.
-
 ## JSON Mapping
 
-Kubernetes defines specific JSON representations of its types. Skuber implements Play JSON read/write [converters](https://www.playframework.com/documentation/2.4.x/ScalaJsonCombinators) for mapping between the model classes and their JSON representations. These implicit converters (formatters) can be made available to your application via import statements, for example, to import all formatters for the core API group:
+Kubernetes defines specific JSON representations of its resource kinds. Skuber implements Play JSON read/write [converters](https://www.playframework.com/documentation/2.4.x/ScalaJsonCombinators) for mapping between the model classes and their JSON representations. These implicit converters (formatters) can be made available to your application via import statements, for example, to import all formatters for the core API group:
 
 ```scala 
 import skuber.json.format._
@@ -87,7 +62,9 @@ Similarly, subpackages of `skuber.json` contain formatters for non-core API grou
 
 Some of the more recently added subpackages in skuber - for example `apps/v1` - include the Json formatters in the companion objects of the model case classes so there is no need for these types to explicitly import their formatters.
 
-There are many available examples of Yaml or Json representations of Kubernetes objects, for example [this file](https://github.com/kubernetes/examples/blob/master/web/guestbook/frontend-deployment.yaml) specifies a Deployment for the main Kubernetes project Guestbook example. To convert that Yaml representation into a Skuber `Deployment` object:
+The appropriate JSON formatters for the resource kinds used by the application will need to be imported in order to use them with the Kubernetes client, as Skuber uses them to read/write the data in the remote calls to Kubernetes.
+
+Here is an example of creating a Skuber model deployment object from its JSON representation.
 
 ```scala
 import skuber.model.apps.v1.Deployment
@@ -95,16 +72,7 @@ import skuber.model.apps.v1.Deployment
 import play.api.libs.json.Json   
 import scala.io.Source
 
-// NOTE: this is just a generic helper to convert from Yaml to a Json formatted string that can be parsed by skuber
-def yamlToJsonString(yamlStr: String): String = {
-  import com.fasterxml.jackson.databind.ObjectMapper
-  import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-
-  val yamlReader = new ObjectMapper(new YAMLFactory)
-  val obj = yamlReader.readValue(yamlStr, classOf[Object])
-  val jsonWriter = new ObjectMapper()
-  jsonWriter.writeValueAsString(obj)
-}
+def yamlToJsonString(str: String): String = ??? // convert YAML to JSON 
 
 // Read and parse the deployment in a Skuber model
 val deploymentURL = "https://raw.githubusercontent.com/kubernetes/examples/master/web/guestbook/frontend-deployment.yaml"
@@ -120,40 +88,76 @@ Equally it is straightforward to do the reverse and generate a Play Json value f
 ```scala
     val json = Json.toJson(deployment)
 ```
-## API
 
-### The API basics
+## Using the Kubernetes Client
 
-These are the basic steps to use the Skuber API:
+### Creating a client
 
-- Import the model definitions from the appropriate package(s)
-- Import the implicit JSON formatters from the appropriate package(s) as described above. The API uses these to read/write the request and response data.
-- Import the appropriate (Pekko or Akka) actor system and Kubernetes client classes
-- Create an implicit actor system, which will be passed to the Kubernetes client in the next step
-- Create a Kubernetes client by calling `k8sInit` - this establishes the connection and namespace details for requests to the API
-- If creating or modifying a resource build a local representation of that resource using the model - optionally you can use the Fluent API for this.
-- Invoke the appropriate API method
-- The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
+In order to actually use Skuber to interact with Kubernetes, a Kubernetes client will first need to be created.
 
-For example, the following creates an nginx deployment on our Kubernetes cluster:
+Skuber actually supports two concrete implementations of the same Kubernetes client Scala API - one that utilises Pekko under the hood and another that uses Akka under the hood. 
+
+If in doubt use the Pekko-based client, as is used below. This requires adding the following dependency to the application build:
+```sbt
+libraryDependencies += "io.skuber" %% "skuber-pekko" % "<skuber version>"
+```
+
+See the [migration guide](MIGRATION2to3.md) for details on how to use the Akka client instead.
+
 ```scala
-import skuber.model._
-import skuber.model.apps.v1.Deployment
-import skuber.json.format._
-    
 import org.apache.pekko.actor.ActorSystem
 import skuber.pekkoclient._
 
 implicit val system: ActorSystem = ActorSystem()
 implicit val dispatcher: ExecutionContext = system.dispatcher
-    
-val k8s = k8sInit
 
-val nginxDeployment: Deployment = buildNginxDeployment("nginx") // see example later for how to build a deployment
+val k8s = k8sInit
+```
+
+Here the `k8sInit` call returns a concrete client that supports the API methods described below. 
+
+The simple steps required to create a Kubernetes client:
+
+- import and create an implicit Pekko `ActorSystem` - this will be used by the client under the hood to manage Kubernetes connections, requests and streaming operations.
+- import the `k8sInit` factory methods for creating concrete Kubernetes clients from `skuber.pekkoclient`
+- call `k8sInit` to create the client, ensuring the implicit actor system is in scope
+
+Given the above uses the Pekko- based client, the following dependency needs to be added to the build:
+
+This model is contained in the skuber core library which can be added to you project as follows (see main [README ](../README.md) for latest version details):
+
+### Basic client API Usage
+
+These are the basic steps to use the Skuber client API:
+
+- Import the model definitions and associated JSON formatters for your required resource kinds from the appropriate package(s) as described above.
+- Create a Kubernetes client as described above
+- Invoke the appropriate API method after creating any required resource for the request first
+- The requests generally return their results (usually object or list kinds) asynchronously via `Future`s.
+
+For example, the following creates an nginx deployment on our Kubernetes cluster:
+```scala
+import skuber.model.apps.v1.Deployment // no need to explicitly import JSON formatter for Deployment type
+    
+import org.apache.pekko.actor.ActorSystem
+import skuber.pekkoclient._ // import the Pekko based Kubernetes client
+
+implicit val system: ActorSystem = ActorSystem()
+implicit val dispatcher: ExecutionContext = system.dispatcher
+    
+val k8s = k8sInit // create a client
+
+val nginxDeployment: Deployment = buildNginxDeployment("nginx") 
 val deplFuture = k8s.create(deployment) // create the deployment resource on the cluster
 
 deplFut.foreach { depl => println(s"Deployment created: ${depl.name}")}
 ```
+
+The `buildNginxDeployment` method in this example could be implemented as [shown here](#building-resources).
+
+Each Kubernetes client is associated with a specific default namespace - normally just `default`. This means unless otherwise indicated most operations on the client are scoped to that namespace. There is however an extremely lightweight way of creating a new client targeting a different namespace:
+
+`val myOtherK8s = k8s.usingNamespace("myOtherNamespace")`
 
 When finished making requests the application should call `close` on the Kubernetes client. The application should also explicitly perform any required actor system cleanup, e.g. `system.terminate()`
 
@@ -174,7 +178,7 @@ depFut.foreach { dep =>
 }
 ```
 
-Get a Kubernetes object kind resource by type and name: 
+Get a Kubernetes object kind resource by type and name:
 ```scala
 val depFut = k8s.get[Deployment]("guestbook")
 depFut.foreach { dep => println("Current replica count = " + dep.status.get.replicas) }
@@ -185,13 +189,13 @@ Get a list of all Kubernetes objects of a given list kind in the current namespa
 val depListFut = k8s.list[DeploymentList]()
 depListFut.foreach{ depList => depList.items.foreach { dep => println(dep.name) } }
 ```
-    
+
 As above, but for a specified namespace:
 ```scala
 val ksysPods: Future[PodList] = k8s.listInNamespace[PodList]("kube-system")
 ```
 
-Dynamically switch namespace for any operation
+Dynamically switch specified namespace for any operation
 ```scala
 val depListFut = k8s.usingNamespace("my-namespace").list[DeploymentList]()
 ```
@@ -201,7 +205,7 @@ Get lists of all Kubernetes objects of a given list kind for all namespaces in t
 val allPodsMapFut: Future[Map[String, PodList]] = k8s.listByNamespace[PodList]()
 ```
 (See the ListExamples example for examples of the above list operations)
-    
+
 Update a Kubernetes object kind resource:
 ```scala
 val upscaledDeployment = deployment.withReplicas(5)
@@ -233,7 +237,7 @@ Get the logs of a pod (as a Pekko or Akka Streams Source):
     val helloWorldLogsSource: Future[Source[ByteString, _]]  = k8s.getPodLogSource("hello-world-pod", Pod.LogQueryParams())
 ```
 
-Execute a command in a pod, streaming the output of the command to a Pekko or Akka Sink 
+Execute a command in a pod, streaming the output of the command to a Pekko or Akka Sink
 ```scala
       def closeAfter(duration: Duration): Promise[Unit] = {
           val promise = Promise[Unit]()
@@ -265,19 +269,7 @@ val scaledDeploymentFut = for {
 
 ### Error Handling
 
-Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field that encapsulates the data returned in the [Status](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#response-status-kind) object if Kubernetes has returned one, which it generally does when returning a non-OK status.
-
-This exception can be handled in the appropriate manner for your use case by using the standard Scala Future failure handling mechanisms. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
-```scala
-val deleteResult = (k8s delete[ReplicationController] c.name) recover { 
-  case ex: K8SException if (ex.status.code.contains(404)) => // ok - no action required 
-}
-deleteResult onFailure {
-  case ex: K8SException => 
-    log.error("Error when deleting " + c.name + ", reason: " + ex.status.reason.getOrElse("<unknown>"))
-} 	
-```
-The above code basically causes a 404 error to be silently ignored and the overall result will be a `Success`, other errors will still be propagated as `Failures` in `deleteResult`, which results in the error reason being logged.
+Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field of type `Status` that encapsulates details of the error if these details are returned by Kubernetes, which is usually the case for a non-OK status code.
 
 The `Status` class is defined as follows:
 ```scala
@@ -292,9 +284,22 @@ case class Status(
 ) 
 ```
 
+How these exceptions should be handled is of course highly context-dependent. For example, sometimes you may want to ignore a NOT_FOUND (404) error when attempting to delete an object, because it is normal and ok if it has already been deleted:
+```scala
+val deleteResult = k8s.delete[Deployment](c.name).recover { 
+  case ex: K8SException if (ex.status.code.contains(404)) => // ok - no action required 
+}
+deleteResult.onComplete {
+  case Success(result) => ...
+  case Failure(ex) => 
+    log.error("Error when deleting " + c.name + ", reason: " + ex.status.reason.getOrElse("<unknown>"))
+} 	
+```
+The above code basically causes a 404 error to be silently ignored and the overall result will be a `Success`, other errors will still be propagated as `Failures` in `deleteResult`, which results in the error reason being logged.
+
 ### Reactive Watch API
 
-Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client. 
+Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client.
 Skuber v3 now uses Pekko or Akka streams to consume the events.
 In SKuber V3, the first step to streaming events is to create a `Watcher` on the kind of resource you are interested in:
 
@@ -352,7 +357,7 @@ A simpler alternative is to not set a resource version on the watch request, in 
   val deployment: Deployment = buildNginxDeployment("nginx')
   k8s.create(deployment).map { d =>
       Thread.sleep(10000)
-    // Now watch the deployment without specifying a starting version - this should 
+    // this should start watching this deployment from most recent version
     k8s.getWatcher[Deployment].watchObject(deploymentName)
       .viaMat(KillSwitches.single)(Keep.right)
   
@@ -394,19 +399,21 @@ The same as above but for pods in all namespaces (cluster scope):
 }
 ```
 
-For each watch method such as the above that leaves the resource version unset, there is an alternative method that enables the resource version to be specified so that you can watch from a specific version (or just set it to "0" to watch from any version) 
+For each watch method such as the above that leaves the resource version unset, there is an alternative method that enables the resource version to be specified so that you can watch from a specific version (or just set it to "0" to watch from any version)
 See [the Watcher trait](../core/src/main/scala/skuber/api/client/Watcher.scala) for all supported methods.
 
 ### Building Resources
 
 Skuber supports a fluent API approach to building resources of all kinds using its model.
 
-This is best demonstrated by an example.
+This is best demonstrated by some examples.
 
 ***Deployment***
 
 This example builds an Nginx deployment using the Skuber fluent API, then creates the equivalent resource on the cluster.
 ```scala
+import skuber.model.{Container, Pod}
+import skuber.model.apps.v1.Deployment
 
 val defaultNginxVersion = "1.29.1"
 val defaultNginxPodName = "nginx"
@@ -422,7 +429,8 @@ def buildNginxDeployment(deploymentName: String, version: String = defaultNginxV
   Deployment(deploymentName).withTemplate(nginxTemplate).withReplicas(2).withLabelSelector("app" is "nginx")
 }
 
-val deplFuture = k8s.create(buildNginxDeployment("nginx)")) // create the resource on the cluster
+...
+val deplFuture = k8s.create(buildNginxDeployment("nginx)")) // create the deployment on the cluster
 ```
 
 Use `kubectl get deployments` to see the status of the newly created Deployment.
@@ -441,30 +449,26 @@ k8s.update(updatedDeployment)
 
 A skuber client can also manage `HorizontalPodAutoscaler` objects in order to autoscale a replication controller or deployment. A fluent API approach enables minimum replica count, maximum replica count and CPU utilisation target to be readily specified. For example:
 ```scala
+import skuber.model.autoscaling.v1._
+
 // following autoscales 'controller' with min replicas of 2, max replicas of 8 
 // and a target CPU utilisation of 80%
 val hpas = HorizontalPodAutoscaler.scale(controller)
   .withMinReplicas(2)
   .withMaxReplicas(8)
   .withCPUTargetUtilization(80)
-k8s create[HorizontalPodAutoscaler] hpas  
+k8s.create[HorizontalPodAutoscaler](hpas)
 ```
 
 ***Ingress***
  
 An ingress controller manages handling of HTTP requests from an ingress point on the Kubernetes cluster, proxying then to target services according to a user-specified set of routing rules. The rules are specified in a standard format, although different ingress controllers can utilize different underlying mechanisms to control ingress (e.g. an nginx proxy, or by configuring a hardware or cloud load balancer).
 
-The `NginxIngress` example illustrates creation and testing of an ingress, using an nginx-based ingress controller from the Kubenretes contrib project.
-
-***ReplicaSet***
-
-ReplicaSet is the strategic successor of ReplicationController in the Kubernetes project. It is currently different only in supporting both equality and set based label selectors (ReplicationController only support equality-based ones).
-
-ReplicaSet is most commonly used implicitly with Deployment types, but can be used explicitly as well - the `NginxIngress` example explicitly uses a ReplicaSet to manage the ingress controller.
+The `NginxIngress` example illustrates creation and testing of an ingress, using an nginx-based ingress controller from the Kubernetes contrib project.
 
 ### Other API groups
 
-Aside from the `core` and `apps` groups, there are multiple other groups. Currently skuber supports the following subpackages, each mapping to a different Kubernetes API group:
+Aside from the `core` and `apps` groups, there are multiple other groups. These are some of the other packages in the Skuber model, each mapping to a different Kubernetes API group:
 
 ***batch***
 
@@ -474,9 +478,9 @@ Contains the `Job` and `CronJob` kinds. One of the skuber examples demonstrates 
 
 Contains the `Role`,`RoleBinding`,`ClusterRole` and `ClusterRoleBinding` kinds - see the Kubernetes Role-Based Access Control documentation for details on how to use these kinds.
 
-***apiextensions***
+***apiextensions.v1***
 
-Currently supports one kind - the `CustomResourceDefinition` kind introduced in Kubernetes V1.7 (as successor to the now deprecated `Third Party Resources` kind, which is not supported in Skuber). 
+Currently supports one kind - the `CustomResourceDefinition` kind introduced in Kubernetes V1.7
 
 ***networking***
 
@@ -568,7 +572,7 @@ The above demonstrates the most common use case of managing custom resources on 
 
 Skuber supports a mini-DSL to build label selectors, which can be used by `list` and `watch` operations to select resources based on the labels applied to them:
 
-Label selectors are also used when building certain workload types like deployments:
+Label selectors are also embedded in certain workload types like deployments:
 ```scala
 import skuber.model.LabelSelector
 import LabelSelector.dsl._
