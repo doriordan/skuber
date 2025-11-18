@@ -110,7 +110,7 @@ libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0-beta7"
 
 ## Building
 
-Building the library from source is very straightforward. Simply run `sbt test` in the root directory of the project to build the libraries (and examples) and run the unit tests to verify the build. You can then run the integration tests as outlined [here](integration/.
+Building the library from source is very straightforward. Simply run `sbt test` in the root directory of the project to build the libraries (and examples) and run the unit tests to verify the build. You can then run the integration tests as outlined [here](integration/src/test/scala/skuber/README.md).
 
 ## License
 

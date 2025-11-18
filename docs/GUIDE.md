@@ -122,10 +122,6 @@ The simple steps required to create a Kubernetes client:
 - import the `k8sInit` factory methods for creating concrete Kubernetes clients from `skuber.pekkoclient`
 - call `k8sInit` to create the client, ensuring the implicit actor system is in scope
 
-Given the above uses the Pekko- based client, the following dependency needs to be added to the build:
-
-This model is contained in the skuber core library which can be added to you project as follows (see main [README ](../README.md) for latest version details):
-
 ### Basic client API Usage
 
 These are the basic steps to use the Skuber client API:
@@ -222,12 +218,25 @@ rmFut.foreach { _ => println("Deployment removed") }
 ```
 (There is also a `deleteWithOptions` call that enables options such as propagation policy to be passed with a Delete operation.)
 
-Patch a Kubernetes object
+Patch a Kubernetes object using different [patch strategies](https://kubernetes.io/docs/reference/using-api/api-concepts/#patch-and-apply) (Skuber supports JSON Patch, JSON Merge Patch and Strategic Merge Patch strategies):
 ```scala   
-val patchStr="""{ "spec": { "replicas" : 1 } }""" 
-val stsFut = k8s.jsonMergePatch(myStatefulSet, patchStr)
+val patchData = MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None)
+k8s.patch[MetadataPatch, Pod](nginxPodName, patchData)
+
+val patchDataStrategicMerge = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = StrategicMergePatchStrategy)
+k8s.patch[MetadataPatch, Pod](nginxPodName, patchDataStrategicMerge)
+
+val patchDataJsonMerge = new MetadataPatch(labels = Some(Map("foo" -> randomString)), annotations = None, strategy = JsonMergePatchStrategy)
+k8s.patch[MetadataPatch, Pod](nginxPodName, patchDataJsonMerge)
+
+val jsonPatchData = JsonPatch(List(
+  JsonPatchOperation.Add("/metadata/labels/foo", randomString),
+  JsonPatchOperation.Add("/metadata/annotations", randomString),
+  JsonPatchOperation.Remove("/metadata/annotations"),
+))
+k8s.patch[JsonPatch, Pod](nginxPodName, jsonPatchData)
 ```
-See also the `PatchExamples` example. Note: There is no patch support yet for the other two (`json patch` and `strategic merge patch`) [strategies](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#patch-operations)
+See also the `PatchExamples` example.
 
 Get the logs of a pod (as a Pekko or Akka Streams Source):
 ```scala
@@ -376,7 +385,7 @@ The above watches a single object - alternatively you can watch events on all re
     println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
   }
 
-  k8s.getWatcher[Pod].watch(latestPodVersion) // watch all pods in current namespace from most recent version
+  k8s.getWatcher[Pod].watch() // watch all pods in current namespace from most recent version
   
   // ...
 }
@@ -393,9 +402,8 @@ The same as above but for pods in all namespaces (cluster scope):
     println(podEvent._type + " => Pod '" + pod.name + "' .. phase = " + phase.getOrElse("<None>"))
   }
 
-  val podsWatch = k8s.getWatcher[Pod].watchCluster() // watch all pods in cluster from most recent version
-  val currPodsWatch = k8s.getWatcher[Pod].watch() // ignore historic events
-  currPodsWatch.runWith(podPhaseMonitor)
+  val allPodsWatch = k8s.getWatcher[Pod].watchCluster() // watch all pods in cluster from most recent version
+  allPodsWatch.runWith(podPhaseMonitor)
 }
 ```
 
@@ -608,4 +616,4 @@ The configuration object has the same information as a kubeconfig file - in fact
 
 The unit tests have an example of a K8SConfiguration object being parsed from an input stream that contains the data in kubeconfig file format.
 
-Additionally a Typesafe Config object can optionally be passed programmatically as a second parameter to the initialisation call - currently this only supports specifying your own Akka dispatcher (execution context for the Akka http client request processing by Skuber) 
+Additionally a Typesafe Config object can optionally be passed programmatically as a second parameter to the initialisation call - currently this only supports specifying your own Pekko/Akka (as appropriate) dispatcher (execution context for the http client request processing by Skuber) 
