@@ -1,4 +1,4 @@
-![Latest Release](https://img.shields.io/badge/Latest%20Release-3.0.0--beta7-red.svg)
+![Latest Release](https://img.shields.io/badge/Latest%20Release-3.0.0-red.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/doriordan/skuber/blob/master/LICENSE.txt)
 
 # Skuber
@@ -51,8 +51,8 @@ In this case the code is simply manipulating deployments, but there are a variet
 to create an application that uses Skuber, you should start by adding the required dependencies to the project build file - example using `sbt`:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0-beta7"
-libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.0.0-beta7"
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.0.0"
 ```
 
 The above dependencies enable your application to create and use a Skuber client that is implemented using Pekko, this is the default recommended configuration.
@@ -96,8 +96,8 @@ Only use the Akka client if you are certain the license implications for your us
 To use the Akka-based Skuber client instead of the Pekko one, you just need to make some small build dependency and import changes:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0-beta7"
-libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0-beta7"
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0"
 ```
 
  ```scala
