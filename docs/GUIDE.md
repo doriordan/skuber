@@ -27,14 +27,14 @@ Example of more specific core API kind imports:
 import skuber.model.{Service,ServiceList,Pod}   
 ```
 
-Newer (non-core) API group classes are contained in subpackages generally named after the API group. For example`skuber.model.batch` for the `batch` API group or `skuber.model.rbac` for the `rbac` API group. Example specific imports for these kinds:
+Newer (non-core) API group classes are contained in subpackages generally named after the API group. For example`skuber.model.batch` for the `batch` API group or `skuber.model.authorization.rbac` for the `rbac` API group. Example specific imports for these kinds:
 
 ```scala
-import skuber.model.rbac.Role
+import skuber.model.authorization.rbac.Role
 import skuber.model.batch.{Job,CronJob}
 ```
 
-In the specific case of the `apps` group, which includes Workload types such as `Deployment`, `StatefulSet` and `DaemonSet`, there are subpackages for each version of the group, with `v1` being the one that should be used unless your Kubernetes version is very old:
+In some cases different versions of the group (e.g. v1, v1beta1) have been supported for a period in parallel, the way this is accommodated is to include different versions in different subpackages named after the version. In the specific case of the `apps` group, which includes commonly used Workload types such as `Deployment`, `StatefulSet` and `DaemonSet`, older beta versions of this group have now being removed so version `v1` must be used:
 
 ```scala
 import skuber.apps.v1.Deployment
