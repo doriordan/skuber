@@ -45,7 +45,11 @@ lazy val commonSettings = Seq(
   organization := "io.skuber",
   crossScalaVersions := Seq("2.13.17", "3.3.7"),
   scalaVersion := "3.3.7",
-  publishTo :=  sonatypePublishToBundle.value,
+  publishTo :=  {
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+    else localStaging.value
+  },
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
