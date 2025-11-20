@@ -1,11 +1,10 @@
-
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.19.0"
 val specs2 = "org.specs2" %% "specs2-core" % "4.23.0"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.18"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
 val mockito = "org.mockito" % "mockito-core" % "4.11.0"
 val scalaTestMockito = "org.scalatestplus" %% "mockito-4-11" % "3.2.18.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
@@ -24,37 +23,41 @@ val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
 val logback = "ch.qos.logback" % "logback-classic" % "1.5.20" % Runtime
 
 // the Json formatters are based on Play Json
-val playJson = "com.typesafe.play" %% "play-json" % "2.9.3"
+val playJson = "com.typesafe.play" %% "play-json" % "2.10.1"
 
 // Need Java 8 or later as the java.time package is used to represent K8S timestamps
 scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.6.7"
+ThisBuild / version := "2.6.8"
 
 sonatypeProfileName := "io.skuber"
 
-publishMavenStyle in ThisBuild := true
+ThisBuild / publishMavenStyle := true
 
-licenses in ThisBuild := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / licenses:= Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 
-homepage in ThisBuild := Some(url("https://github.com/doriordan"))
+ThisBuild / homepage := Some(url("https://github.com/doriordan"))
 
-scmInfo in ThisBuild := Some(
+ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/doriordan/skuber"),
     "scm:git@github.com:doriordan/skuber.git"
   )
 )
 
-developers in ThisBuild := List(Developer(id="doriordan", name="David ORiordan", email="doriordan@gmail.com", url=url("https://github.com/doriordan")))
+ThisBuild / developers := List(Developer(id="doriordan", name="David ORiordan", email="doriordan@gmail.com", url=url("https://github.com/doriordan")))
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
   crossScalaVersions := Seq("2.12.20", "2.13.17"),
   scalaVersion := "2.13.17",
-  publishTo :=  sonatypePublishToBundle.value,
+  publishTo :=  {
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+    else localStaging.value
+  },
   pomIncludeRepository := { _ => false },
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 )
@@ -75,10 +78,10 @@ lazy val examplesSettings = Seq(
 
 // by default run the guestbook example when executing a fat examples JAR
 lazy val examplesAssemblySettings = Seq(
-  mainClass in assembly := Some("skuber.examples.guestbook.Guestbook")
+  assembly / mainClass := Some("skuber.examples.guestbook.Guestbook")
 )
 
-publishArtifact in root := false
+root / publishArtifact := false
 
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)

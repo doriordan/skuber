@@ -1,8 +1,5 @@
-[![Build Status](https://travis-ci.org/doriordan/skuber.svg?branch=master)](https://travis-ci.org/doriordan/skuber)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.skuber/skuber_2.12/badge.svg)](http://search.maven.org/#search|ga|1|g:%22io.skuber%22a:%22skuber_2.12%22)
+![Latest Release](https://img.shields.io/badge/Latest%20Release-3.0.0-red.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/doriordan/skuber/blob/master/LICENSE.txt)
-
-**NOTE A beta release of Skuber 3 is available now which supports (for Scala 2.13 only in this beta) separate Pekko and Akka clients - see https://github.com/doriordan/skuber/tree/30refactor#skuber-3---for-pekko-and-akka-users for details**
 
 # Skuber
  
@@ -15,25 +12,70 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 - Full support for converting resources between the case class and standard JSON representations
 - Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
-- Fluent API for creating and updating specifications of Kubernetes resources
+- Fluent API for building Kubernetes resources
 - Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
+- Allows users to select one of two concrete Kubernetes client implementations, one uses Pekko while the other uses Akka, with full feature parity and API compatibility.
 
-See the [programming guide](docs/GUIDE.md) for more details.
+See the [latest programming guide](docs/GUIDE.md) for more details.
 
-## Example
+## A note for Skuber 2 users
 
-This example lists pods in `kube-system` namespace:
+For users of Skuber 2, the key updates in this latest version (Skuber 3) are outlined in the [migration guide](docs/MIGRATION2to3.md).
+An important change worth highlighting here is that the required dependency on Akka in Skuber 2 has been replaced by a configurable dependency on either Pekko or Akka - see the migration guide for more details.
+
+## Prerequisites
+
+A Kubernetes cluster is needed at runtime. For local development purposes, `kind` is recommended.
+
+## Quickstart
+
+### Running a Skuber application
+
+The best first step to get started with Skuber is to run one or more of the integration tests against a cluster. There are equivalent integration tests for both the Pekko and Akka clients. To run some integration test locally:
+
+- Ensure you have `sbt` installed
+
+- Clone this repository.
+
+- Configure KUBECONFIG environment variable to point at your cluster configuration file per normal Kubernetes requirements - for example this could be a `kind` cluster running on your laptop.
+
+- Run one or more of the tests, for example:
+  ```bash
+  sbt:root> integration / testOnly *PekkoDeploymentSpec*
+  ```
+In this case the code is simply manipulating deployments, but there are a variety of [other tests](integration/src/test/scala/skuber) that demonstrate more of the Skuber API for both the Pekko and Akka based Skuber clients.
+
+### Creating a Skuber application
+
+#### Configuring the build
+to create an application that uses Skuber, you should start by adding the required dependencies to the project build file - example using `sbt`:
+
+```sbt
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.0.0"
+```
+
+The above dependencies enable your application to create and use a Skuber client that is implemented using Pekko, this is the default recommended configuration.
+
+#### Implementing An Example
+
+This example lists pods in `kube-system` namespace.
 
   ```scala
-  import skuber._
+  # Pekko client specific required imports
+  import org.apache.pekko.actor.ActorSystem
+  import skuber.pekkoclient._
+
+  # Core skuber imports
+  import skuber.model._
   import skuber.json.format._
-  import akka.actor.ActorSystem
+
   import scala.util.{Success, Failure}
 
   implicit val system = ActorSystem()
   implicit val dispatcher = system.dispatcher
 
-  val k8s = k8sInit
+  val k8s = k8sInit // initializes Skuber Pekko client
   val listPodsRequest = k8s.listInNamespace[PodList]("kube-system")
   listPodsRequest.onComplete {
     case Success(pods) => pods.items.foreach { p => println(p.name) }
@@ -41,108 +83,58 @@ This example lists pods in `kube-system` namespace:
   }
   ```
 
-  See more elaborate example [here](docs/Examples.md).
+The `k8sInit` call returns a concrete Skuber client which is then used to make the requests to the Kubernetes cluster API.
 
-## Quick Start
+#### Using the Akka client
 
-Make sure [prerequisites](#prerequisites) are met. There are couple of quick ways to get started with Skuber:
+The section above shows how to to use a Skuber client that is based on Pekko, which is likely to be the most common case.
+However you can instead use an Akka-based client here if desired by making a few simple changes.
 
-### With [Ammonite-REPL](http://ammonite.io/#Ammonite-REPL)
+***For most Skuber 3 users it is strongly recommended to use the Pekko client in order to avoid Akka BSL license implications.
+Only use the Akka client if you are certain the license implications for your use case are understood.***
 
-Provides you with a configured client on startup. It is handy to use this for quick experiments.
-
-- using bash
-
-  ```bash
-  $ amm -p ./Quickstart.sc
-  ```
-
-- from inside ammonite-repl:
-
-  ```scala
-  import $file.`Quickstart`, Quickstart._
-  ```
-
-  > Just handy shortcut to import skuber inside ammonite-repl:
-
-  ```scala
-  import $ivy.`io.skuber::skuber:2.6.7`, skuber._, skuber.json.format._
-  ```
-
-### Interactive with sbt
-
-- Clone this repository.
-
-- Tell Skuber to configure itself from the default Kubeconfig file (`$HOME/.kube/config`):
-
-    ```bash
-    export SKUBER_CONFIG=file
-    ```
-
-    Read more about Skuber configuration [here](docs/Configuration.md)
-
-- Run `sbt` and try  one or more of the [examples](./examples/src/main/scala/skuber/examples) and then:
-
-  ```bash
-  sbt:root> project examples
-  sbt:skuber-examples> run
-
-  Multiple main classes detected, select one to run:
-
-   [1] skuber.examples.customresources.CreateCRD
-   [2] skuber.examples.deployment.DeploymentExamples
-   [3] skuber.examples.fluent.FluentExamples
-   [4] skuber.examples.guestbook.Guestbook
-   [5] skuber.examples.ingress.NginxIngress
-   [6] skuber.examples.job.PrintPiJob
-   [7] skuber.examples.list.ListExamples
-   [8] skuber.examples.patch.PatchExamples
-   [9] skuber.examples.podlogs.PodLogExample
-   [10] skuber.examples.scale.ScaleExamples
-   [11] skuber.examples.watch.WatchExamples
-
-  Enter number:
-  ```
-
-For other Kubernetes setups, see the [configuration guide](docs/Configuration.md) for details on how to tailor the configuration for your clusters security, namespace and connectivity requirements.
-
-## Prerequisites
-
-- Java 8
-- Kubernetes cluster
-
-A Kubernetes cluster is needed at runtime. For local development purposes, minikube is recommended.
-To get minikube follow the instructions [here](https://github.com/kubernetes/minikube)
-
-## Release
-
-You can use the latest release (for 2.12 or 2.13) by adding to your build:
+To use the Akka-based Skuber client instead of the Pekko one, you just need to make some small build dependency and import changes:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.6.7"
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0"
 ```
 
-Meanwhile users of skuber v1 can continue to use the final v1.x release, which is available only on Scala 2.11:
+ ```scala
+  # Akka client specific required imports
+  import akka.actor.ActorSystem
+  import skuber.akkaclient._
 
-```sbt
-libraryDependencies += "io.skuber" % "skuber_2.11" % "1.7.1"
-```
-
-NOTE: Skuber 2 supports Scala 2.13 since v2.4.0 - support for Scala 2.11 has now been removed since v2.6.0.
-
-## Migrating to release v2
-
-If you have an application using the legacy version v1 of Skuber and want to move to v2, then check out the [migration guide](docs/MIGRATION_1-to-2.md).
+  // the rest of the code should look just the same as the Pekko example
+  ```
 
 ## Building
 
-Building the library from source is very straightforward. Simply run `sbt test`in the root directory of the project to build the library (and examples) and run the unit tests to verify the build.
+Building the library from source is very straightforward. Simply run `sbt test` in the root directory of the project to build the libraries (and examples) and run the unit tests to verify the build. You can then run the integration tests as outlined [here](integration/src/test/scala/skuber/README.md).
 
 ## License
 
 This code is licensed under the Apache V2.0 license, a copy of which is included [here](LICENSE.txt).
 
-## IMPORTANT: Akka License Model Changes
+##  Legacy Support
 
-Lightbend have moved Akka versions starting from 2.7.x from an Apache 2.0 to BSL license. Skuber currently uses Akka 2.6.x and it is not planned to move to a BSL licensed Akka version - instead it is planned to migrate Skuber to the Apache Pekko open-source fork once it has a full release.
+Users of Skuber 2 can still use it with the following dependency:
+
+```sbt
+libraryDependencies += "io.skuber" %% "skuber" % "2.6.8"
+```
+
+Skuber 2.x supports Scala 2.12 and 2.13 and has a required transitive dependency on an older, Apache 2.0 licensed version of Akka (2.6.x).
+
+And if you do still need Skuber 2, the [Skuber 2 programming guide](docs/skuber2/GUIDE.md) is still available.
+
+However Skuber is a small open-source project and as such we need to prioritise where effort is being spent. The main effort will be on improving Skuber 3 going forward, and therefore Skuber 2 is basically now in a lower priority maintenance mode, which means: 
+
+- pull requests for Skuber 2 with small but important fixes and key dependency updates are likely to still be accepted
+- pull requests for minor enhancements to Skuber 2 will be considered
+- major enhancements should be targeted in the first place at Skuber 3, and backported to Skuber 2 only by exception. 
+- future releases of Skuber 2 are likely to be less frequent than future releases of Skuber 3, although exceptions may be made for security and other urgent fixes.
+
+In general users are strongly encouraged to migrate to Skuber 3 at the earliest opportunity for the latest releases and best support going forward.
+
 
