@@ -121,7 +121,7 @@ This code is licensed under the Apache V2.0 license, a copy of which is included
 Users of Skuber 2 can still use it with the following dependency:
 
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber" % "2.6.7"
+libraryDependencies += "io.skuber" %% "skuber" % "2.6.8"
 ```
 
 Skuber 2.x supports Scala 2.12 and 2.13 and has a required transitive dependency on an older, Apache 2.0 licensed version of Akka (2.6.x).
@@ -131,9 +131,11 @@ And if you do still need Skuber 2, the [Skuber 2 programming guide](docs/skuber2
 However Skuber is a small open-source project and as such we need to prioritise where effort is being spent. The main effort will be on improving Skuber 3 going forward, and therefore Skuber 2 is basically now in a lower priority maintenance mode, which means: 
 
 - pull requests for Skuber 2 with small but important fixes and key dependency updates are likely to still be accepted
-- pull requests for minor enhancements to Skuber 2 will be considered
-- major enhancements should be targeted in the first place at Skuber 3, and backported to Skuber 2 only by exception. 
+- pull requests for minor enhancements or less urgent fixes to Skuber 2 will be considered if they are straightforward
+- major or complex enhancements should be targeted in the first place at Skuber 3, and backported to Skuber 2 only by exception. 
 - future releases of Skuber 2 are likely to be less frequent than future releases of Skuber 3, although exceptions may be made for security and other urgent fixes.
+
+The maintenance branch for Skuber 2 is `2.6.x`, so please raise any PRs targetted at Skuber 2 against that branch instead of the default `3.0.x` branch which is for Skuber 3.
 
 In general users are strongly encouraged to migrate to Skuber 3 at the earliest opportunity for the latest releases and best support going forward.
 
