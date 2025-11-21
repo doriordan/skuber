@@ -10,7 +10,7 @@ val scalaTestMockito = "org.scalatestplus" %% "mockito-5-18" % "3.2.19.0"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "2.5"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.16.1"
 val commonsIO = "commons-io" % "commons-io" % "2.21.0"
-val logback = "ch.qos.logback" % "logback-classic" % "1.4.11" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.4.14" % Runtime
 val playJson = "com.typesafe.play" %% "play-json" % "2.10.8"
 val typesafeConfig = "com.typesafe" % "config" % "1.4.2"
 
