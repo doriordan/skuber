@@ -5,11 +5,11 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.19.0"
 val specs2 = "org.specs2" %% "specs2-core" % "4.23.0"
 val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
-val mockito = "org.mockito" % "mockito-core" % "5.18.0"
+val mockito = "org.mockito" % "mockito-core" % "5.20.0"
 val scalaTestMockito = "org.scalatestplus" %% "mockito-5-18" % "3.2.19.0"
 val snakeYaml =  "org.yaml" % "snakeyaml" % "2.5"
-val commonsIO = "commons-io" % "commons-io" % "2.20.0"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.16.1"
+val commonsIO = "commons-io" % "commons-io" % "2.21.0"
 val logback = "ch.qos.logback" % "logback-classic" % "1.4.11" % Runtime
 val playJson = "com.typesafe.play" %% "play-json" % "2.10.1"
 val typesafeConfig = "com.typesafe" % "config" % "1.4.2"
@@ -76,7 +76,7 @@ lazy val core = (project in file("core"))
 
 val pekkoGroup = "org.apache.pekko"
 
-val pekkoVersion = "1.2.1"
+val pekkoVersion = "1.3.0"
 val pekkoHttpVersion = "1.3.0"
 
 val pekkoSlf4j = pekkoGroup %% "pekko-slf4j" % pekkoVersion
