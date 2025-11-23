@@ -12,7 +12,7 @@ val commonsCodec = "commons-codec" % "commons-codec" % "1.20.0"
 val commonsIO = "commons-io" % "commons-io" % "2.21.0"
 val typesafeConfig = "com.typesafe" % "config" % "1.4.5"
 val logback = "ch.qos.logback" % "logback-classic" % "1.4.14" % Runtime
-val playJson = "com.typesafe.play" %% "play-json" % "2.10.8"
+val playJson = "org.playframework" %% "play-json" % "3.0.6"
 
 scalacOptions += "-target:jvm-1.8"
 
