@@ -134,6 +134,6 @@ However Skuber is a small open-source project and as such we need to prioritise 
 
 Pull requests are generally welcome.
 
-Please note pull requests should normally be for Skuber 3 (on the default `3.0.x` branch) going forward. For a limited period of time pull requests for Skuber 2 (`2.6.x` branch) with small but important fixes and key dependency updates are likely to still be accepted, but more complex and/or less urgent changes are really encouraged to be targetted at Skuber 3, especially as migration from SKuber 2 to Skuber 3 should be straightforward for most users.
+Please note pull requests should normally be for Skuber 3 (on the default `3.0.x` branch) going forward. For a limited period of time pull requests for Skuber 2 (`2.6.x` branch) with small but important fixes and key dependency updates are likely to still be accepted, but more complex and/or less urgent changes are really encouraged to be targetted at Skuber 3, especially as migration from Skuber 2 to Skuber 3 should be straightforward for most users.
 
 
