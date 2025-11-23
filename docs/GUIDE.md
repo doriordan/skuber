@@ -412,13 +412,13 @@ See [the Watcher trait](../core/src/main/scala/skuber/api/client/Watcher.scala) 
 
 ### Building Resources
 
-Skuber supports a fluent API approach to building resources of all kinds using its model.
+The Skuber resource model is composed of case classes so you can always build out resources using just the constructors for those classes. However Skuber also supports a fluent API approach on the more common resource types in order to make these common cases as readable as possible.
 
 This is best demonstrated by some examples.
 
 ***Deployment***
 
-This example builds an Nginx deployment using the Skuber fluent API, then creates the equivalent resource on the cluster.
+This example builds an Nginx deployment then creates the equivalent resource on the cluster.
 ```scala
 import skuber.model.{Container, Pod}
 import skuber.model.apps.v1.Deployment
@@ -428,24 +428,37 @@ val defaultNginxPodName = "nginx"
 val defaultNginxContainerName = "nginx"
 
 // The following constructs an nginx container 
-def buildNginxContainer(version: String, containerName: String = defaultNginxContainerName): Container = Container(name =  containerName, image = "nginx:" + version).exposePort(80)
+def buildNginxContainer(version: String, containerName: String = defaultNginxContainerName): Container =
+  Container(name =  containerName, image = "nginx:" + version)
+    .exposePort(80)
 
-// The following constructs an nginx deployment ith two replicas
+// The following constructs an nginx deployment with two replicas
 def buildNginxDeployment(deploymentName: String, version: String = defaultNginxVersion): Deployment = {
-  val nginxContainer = getNginxContainer(version)
-  val nginxTemplate = Pod.Template.Spec.named("nginx").addContainer(nginxContainer).addLabel("app" -> "nginx")
-  Deployment(deploymentName).withTemplate(nginxTemplate).withReplicas(2).withLabelSelector("app" is "nginx")
+  val nginxContainer = buildNginxContainer(version)
+  val nginxTemplate = Pod.Template.Spec
+    .named("nginx")
+    .addContainer(nginxContainer)
+    .addLabel("app" -> "nginx")
+  Deployment(deploymentName)
+    .withTemplate(nginxTemplate)
+    .withReplicas(2)
+    .withLabelSelector("app" is "nginx")
 }
 
 ...
 val deplFuture = k8s.create(buildNginxDeployment("nginx)")) // create the deployment on the cluster
 ```
 
+The use of the fluent API above (for example `.exposePort(..)`,  `.addContainer(..).addLabel(...)`, `.withReplicas(..).withLabelSelector(..))` makes key parts of the specification easily readable.
+
+Of course it is a matter of style preference, and resources can also be built entirely using case class constructors, or parsed from JSON specifications read in from the file system or over the network.
+
 Use `kubectl get deployments` to see the status of the newly created Deployment.
 
 Later an update can be posted - in this example the nginx version will be updated to 1.29.2, and the deployment controller will ensure it is updated using the specified rolling update strategy.
 ```scala
-val newContainer = Container("nginx",image="nginx:1.29.2").exposePort(80)
+val newContainer = Container("nginx",image="nginx:1.29.2")
+    .exposePort(80)
 val existingDeployment = k8s.get[Deployment]("nginx")
 val updatedDeployment = existingDeployment
     .updateContainer(newContainer)
