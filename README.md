@@ -128,15 +128,12 @@ Skuber 2.x supports Scala 2.12 and 2.13 and has a required transitive dependency
 
 And if you do still need Skuber 2, the [Skuber 2 programming guide](docs/skuber2/GUIDE.md) is still available.
 
-However Skuber is a small open-source project and as such we need to prioritise where effort is being spent. The main effort will be on improving Skuber 3 going forward, and therefore Skuber 2 is basically now in a lower priority maintenance mode, which means: 
+However Skuber is a small open-source project and as such we need to prioritise where effort is being spent. The main effort will be on improving Skuber 3 going forward, and therefore Skuber 2 is basically now in a lower priority maintenance mode.
 
-- pull requests for Skuber 2 with small but important fixes and key dependency updates are likely to still be accepted
-- pull requests for minor enhancements or less urgent fixes to Skuber 2 will be considered if they are straightforward
-- major or complex enhancements should be targeted in the first place at Skuber 3, and backported to Skuber 2 only by exception. 
-- future releases of Skuber 2 are likely to be less frequent than future releases of Skuber 3, although exceptions may be made for security and other urgent fixes.
+## Contributing
 
-The maintenance branch for Skuber 2 is `2.6.x`, so please raise any PRs targetted at Skuber 2 against that branch instead of the default `3.0.x` branch which is for Skuber 3.
+Pull requests are generally welcome.
 
-In general users are strongly encouraged to migrate to Skuber 3 at the earliest opportunity for the latest releases and best support going forward.
+Please note pull requests should normally be for Skuber 3 (on the default `3.0.x` branch) going forward. For a limited period of time pull requests for Skuber 2 (`2.6.x` branch) with small but important fixes and key dependency updates are likely to still be accepted, but more complex and/or less urgent changes are really encouraged to be targetted at Skuber 3, especially as migration from SKuber 2 to Skuber 3 should be straightforward for most users.
 
 
