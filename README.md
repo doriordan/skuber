@@ -8,13 +8,12 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 ## Features
 
 - Comprehensive support for Kubernetes API model represented as Scala case classes
-- Support for core, extensions and other Kubernetes API groups
-- Full support for converting resources between the case class and standard JSON representations
+- Full support for JSON mappings for the model
 - Client API for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
 - The API is asynchronous and strongly typed e.g. `k8s get[Deployment]("nginx")` returns a value of type `Future[Deployment]`
-- Fluent API for building Kubernetes resources
-- Uses standard `kubeconfig` files for configuration - see the [configuration guide](docs/Configuration.md) for details
-- Allows users to select one of two concrete Kubernetes client implementations, one uses Pekko while the other uses Akka, with full feature parity and API compatibility.
+- Optional fluent API for building common Kubernetes resource types
+- Comprehensively supports confiugring the client using standard `kubeconfig` files
+- Seamlessly connects to the cluster API server when run inside a pod.
 
 See the [latest programming guide](docs/GUIDE.md) for more details.
 
