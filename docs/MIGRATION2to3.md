@@ -2,17 +2,70 @@
 
 ## Overview Of Changes in Skuber 3
 
-Skuber 3 is largely backwards compatible with Skuber 2 but with some small changes needed to applications due to significant internal refactor of Skuber 2 which had the following goals:
+Skuber 3 is largely backwards compatible with Skuber 2 but with some small changes needed to applications due to significant internal refactor of Skuber 2. Subsequent sections go into more detail on these changes but they can be summarised as follows:
 
-#### Enable users to choose whether Skuber uses Pekko or Akka
+### Users can now choose whether Skuber uses Pekko or Akka
+
+This change is due to the change in Akka licensing from Apache 2.0 to BSL. Akka was a a required dependency on Skuber 2 but now develeopers can choose to use either Pekko (Apache 2.0 licensed) or to still use Akka.
+
+Generally all you need to do to select the client are a couple of simple build and import changes as follows:
+
+#### Pekko Client
+
+Build:
+```sbt
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.0.0"
+```
+
+Code:
+```scala
+  # Pekko client specific imports
+  import org.apache.pekko.actor.ActorSystem
+  import skuber.pekkoclient._
+```
+
+#### Akka Client
+
+Build:
+```sbt
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0"
+```
+
+Code:
+```scala
+  # Akka specific imports
+  import akka.actor.ActorSystem
+  import skuber.akkaclient._
+```
+
+### Core model and api classes are now in different packages 
+
+Skuber 2 provides model as well as many API / configuration related classes in the main `skuber` package. For improved modularity, Skuber 3 segregates these into `skuber.model` and `skuber.api` packages in the core subproject. Generally a small number of import changes is all that is needed to migrate to this modified package structure as the classes themselves are generally unchanged.
+
+
+### The Watch API has evolved
+
+The previous `watch` operations of Skuber 2 have been replaced by a specific `Watcher` API which offers a set of operations designed to give the full flexibility of the Kubernetes Watch functionality, while still providing convenient access to common use cases.
+
+In Skuber 3 a `Watcher` for a specific resource type is now obtained as follows:
+`<client>.getWatcher[<type>]`
+For example `k8s.getWatcher[Deployment]` returns an object on which operations can be called to watch Deployment resources.
+
+### Scala Version Upgrade
+
+Skuber 2 supported Scala 2.12 and Scala 2.13. Skuber 3 supports Scala 2.13 and Scala 3 - the rationale is that Scala 2.12 now only has minimal maintenance upgrades, and the community is clearly moving forward to Scala 3 while maintaining good ongoing support for Scala 2.13 for the time being.
+
+Users who require Scala 2.12 for the moment will need to continue to use Skuber 2, which will receive minimal maintenance updates going forward.
+
+## Pekko / Akka Dependency Refactor
 
 Any Kubernetes client needs HTTP client functionality for interacting with the Kubernetes API, and in addition several features of Kubernetes (such as watching events, streaming pod logs and executing commands in pods) are a natural fit for a reactive, streaming API. 
 
 Rather than writing custom code for such common functionality, Skuber 2 uses Akka HTTP and Akka Streams to provide the underlying infrastructure. However, the adoption of BSL licensing by Akka and the related release of Apache Pekko as an Apache licensed Akka fork has given all open source projects that used Akka an important decision to make. 
 
 The decision for Skuber 3 is to give applications the choice to use either Pekko or Akka as the underlying infrastructure for the Kubernetes client - for most use cases Pekko is probably the right choice, but organisations that have commercial licences from Akka may decide to continue to use Akka with Skuber in order to be able to access Akka support and related tools. 
-
-Skuber 3 can be easily configured to use either Pekko or Akka - the application developer can configure their choice by a combination of simple build configuration (to pick up the preferred libraries) and appropriate package imports in the application - the bulk of the code (apart from imports) remains the same in both Skuber 2 and Skuber 3 (regardless of Akka/Pekko choice).
 
 In terms of the Skuber project structure itself, the main implication is that the previous main skuber project has been divided into four subprojects:
 
@@ -25,48 +78,9 @@ Each of the `core`, `pekko` and `akka` sub-projects now have their own build art
 
 Additionally, the `examples` subproject still exists but is likely to either removed or at least reduced going forward, as the examples are mostly quite old (some even outdated). Much of the original purpose of the examples is now met by the integration tests, which equally demonstrate key client functionality but are well maintained.
 
-#### Core Package Restructure
+## Example Migrations
 
-Skuber 2 provides model as well as many API / configuration related classes in the main `skuber` package. For improved modularity, Skuber 3 segregates these into `skuber.model` and `skuber.api` packages in the core subproject. Generally a small number of import changes is all that is needed to migrate to this modified package structure.
-
-#### Watch API changes
-
-The previous `watch` operations of Skuber 2 have been replaced by a specific `Watcher` API which offers a set of operations designed to give the full flexibility of the Kubernetes Watch functionality, while still providing convenient access to common use cases.
-
-In Skuber 3 a `Watcher` for a specific resource type is obtained as follows:
-`<client>.getWatcher[<type>]`
-For example `k8s.getWatcher[Deployment]` returns an object on which operations can be called to watch Deployment resources.
-
-An example of watching all future events on all deployments in Skuber 2:
-
-```scala
-  // k8s is a Kubernetes client object
-  k8s.list[DeploymentList].map { l =>
-    // eventSource is an Akka Streams Source which outputs Kubernetes events  
-    val eventSource = k8s.watchAllContinuously[Deployment](Some(l.resourceVersion))
-    ...
-  }
-```
-
-In Skuber 3 this would look like (for both Pekko/Akka clients):
-```scala
-  k8s.list[DeploymentList]().map { l =>
-    val eventSource: Source[WatchEvent[Deployment], _] = k8s.getWatcher[Deployment].watchStartingFromVersion(l.resourceVersion)
-      ...
-  }
-```
-
-See the programming guide for full details on using watchers.
-
-#### Scala Version Upgrade
-
-Skuber 2 supported Scala 2.12 and Scala 2.13. Skuber 3 supports Scala 2.13 and Scala 3 - the rationale is that Scala 2.12 now only has minimal maintenance upgrades, and the community is clearly moving forward to Scala 3 while maintaining good ongoing support for Scala 2.13 for the time being.
-
-Users who require Scala 2.12 for the moment will need to continue to use Skuber 2, which will receive minimal maintenance updates going forward.
-
-## Example Migration
-
-These examples demonstrate how Skuber 2 -> 3 migrations generally just involve some simple changes to build configuration and imports.
+See the integration tests for many more examples.
 
 ### Basic Example: Listing pods in `kube-system` namespace
 
@@ -99,8 +113,8 @@ listPodsRequest.onComplete {
 
 Build:
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber-core" % "<skuber version>"
-libraryDependencies += "io.skuber" %% "skuber-pekko" % "<skuber version>"
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.0.0"
 ```
 
 Code:
@@ -132,8 +146,8 @@ Note: as this configuration brings in BSL licensed versions of Akka as transitiv
 
 Build:
 ```sbt
-libraryDependencies += "io.skuber" %% "skuber-core" % "<skuber version>"
-libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "<skuber version>"
+libraryDependencies += "io.skuber" %% "skuber-core" % "3.0.0"
+libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.0.0"
 ```
 
 Code:
@@ -158,9 +172,11 @@ Code:
     case Failure(e) => throw(e)
   }
  ```
-### Streaming Example
+### Watch Example
 
 This example demonstrates watching deployment events on the cluster, consuming them using Pekko/Akka streams. The build configuration for each Skuber version is as in the previous example.
+
+The Skuber 3 Watcher API has much more to offer - see the [guide](GUIDE.md#reactive-watch-api).
 
 #### Skuber 2
 
@@ -254,6 +270,3 @@ This example demonstrates watching deployment events on the cluster, consuming t
             .run()
   }
  ```
-
-
-
