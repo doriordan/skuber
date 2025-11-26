@@ -310,7 +310,8 @@ The above code basically causes a 404 error to be silently ignored and the overa
 
 Kubernetes supports the ability for API clients to watch events on specified resources - as changes occur to the resource(s) on the cluster, Kubernetes sends details of the updates to the watching client.
 Skuber v3 now uses Pekko or Akka streams to consume the events.
-In SKuber V3, the first step to streaming events is to create a `Watcher` on the kind of resource you are interested in:
+
+The first step to streaming events is to create a `Watcher` on the kind of resource you are interested in:
 
 `k8s.getWatcher[<kind>]`
 
