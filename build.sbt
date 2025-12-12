@@ -76,8 +76,8 @@ lazy val core = (project in file("core"))
 
 val pekkoGroup = "org.apache.pekko"
 
-val pekkoVersion = "1.3.0"
-val pekkoHttpVersion = "1.3.0"
+val pekkoVersion = "1.4.0"
+val pekkoHttpVersion = "1.4.0"
 
 val pekkoSlf4j = pekkoGroup %% "pekko-slf4j" % pekkoVersion
 val pekkoHttp = pekkoGroup %% "pekko-http" % pekkoHttpVersion
