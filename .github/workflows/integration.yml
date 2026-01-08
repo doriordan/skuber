@@ -1,0 +1,115 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - '3.0.x'
+      - 'master'
+  pull_request:
+    branches:
+      - '3.0.x'
+      - 'master'
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:  # Manual trigger
+    inputs:
+      scala-version:
+        description: 'Scala version to test'
+        required: false
+        default: '3.3.7'
+        type: choice
+        options:
+          - '2.13.18'
+          - '3.3.7'
+
+jobs:
+  integration-tests:
+    name: Integration Tests (Scala ${{ matrix.scala }})
+    runs-on: ubuntu-latest
+
+    # Only run integration tests on:
+    # 1. Pushes to main branches
+    # 2. PRs labeled with 'run-integration-tests'
+    # 3. Manual workflow dispatch
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-integration-tests'))
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scala: ['3.3.7']  # Run only default Scala version for integration tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'sbt'
+
+      - name: Cache SBT
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+            ~/.coursier
+          key: ${{ runner.os }}-sbt-integration-${{ matrix.scala }}-${{ hashFiles('**/build.sbt', 'project/build.properties', 'project/plugins.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-integration-${{ matrix.scala }}-
+            ${{ runner.os }}-sbt-integration-
+            ${{ runner.os }}-sbt-
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: skuber-test
+          wait: 120s
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+            - role: worker
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+          kubectl get namespaces
+
+      - name: Set KUBECONFIG environment
+        run: |
+          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+          kubectl config view
+
+      - name: Compile modules
+        run: sbt ++${{ matrix.scala }} compile
+
+      - name: Run integration tests
+        run: sbt ++${{ matrix.scala }} integration/test
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
+        timeout-minutes: 30
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Kubernetes Cluster Status ==="
+          kubectl get all --all-namespaces
+          echo "=== Kubernetes Events ==="
+          kubectl get events --all-namespaces --sort-by='.lastTimestamp'
+          echo "=== Kind Cluster Logs ==="
+          kind export logs /tmp/kind-logs || true
+
+      - name: Upload kind logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kind-logs-scala-${{ matrix.scala }}
+          path: /tmp/kind-logs
+          retention-days: 5

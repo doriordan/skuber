@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '3.0.x'
+      - '2.6.x'
+      - 'master'
+      - 'githubactions'
+  pull_request:
+    branches:
+      - '3.0.x'
+      - '2.6.x'
+      - 'master'
+jobs:
+  build-and-test:
+    name: Build and Test (Scala ${{ matrix.scala }}, JDK ${{ matrix.java }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scala: ['2.13.18', '3.3.7']
+        java: ['17']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for any git-based versioning
+
+      - name: Setup JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: 'sbt'
+
+      - name: Cache SBT
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.sbt
+            ~/.coursier
+          key: ${{ runner.os }}-sbt-${{ matrix.scala }}-${{ hashFiles('**/build.sbt', 'project/build.properties', 'project/plugins.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-${{ matrix.scala }}-
+            ${{ runner.os }}-sbt-
+
+      - name: Compile all modules
+        run: sbt ++${{ matrix.scala }} compile
+
+      - name: Run unit tests
+        run: sbt ++${{ matrix.scala }} test
+        env:
+          SCALA_VERSION: ${{ matrix.scala }}
+
+      - name: Build examples
+        run: sbt ++${{ matrix.scala }} examples/compile
+        if: matrix.scala == '3.3.7'
+
+      - name: Check assembly
+        run: sbt ++${{ matrix.scala }} examples/assembly
+        if: matrix.scala == '3.3.7'
