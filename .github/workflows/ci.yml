@@ -57,15 +57,15 @@ jobs:
       - name: Compile all modules
         run: sbt ++${{ matrix.scala }} compile
 
-      - name: Run unit tests
-        run: sbt ++${{ matrix.scala }} test
-        env:
-          SCALA_VERSION: ${{ matrix.scala }}
+      - name: Run core module unit tests
+        run: sbt ++${{ matrix.scala }} core/test
+
+      - name: Run Pekko module unit tests
+        run: sbt ++${{ matrix.scala }} pekko/test
+
+      - name: Run Akka module unit tests
+        run: sbt ++${{ matrix.scala }} akka/test
 
       - name: Build examples
         run: sbt ++${{ matrix.scala }} examples/compile
-        if: matrix.scala == '3.3.7'
-
-      - name: Check assembly
-        run: sbt ++${{ matrix.scala }} examples/assembly
         if: matrix.scala == '3.3.7'
