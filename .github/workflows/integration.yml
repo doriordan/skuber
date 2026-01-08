@@ -75,13 +75,7 @@ jobs:
         with:
           cluster_name: skuber-test
           wait: 120s
-          config: |
-            kind: Cluster
-            apiVersion: kind.x-k8s.io/v1alpha4
-            nodes:
-            - role: control-plane
-            - role: worker
-
+          
       - name: Verify cluster
         run: |
           kubectl cluster-info
