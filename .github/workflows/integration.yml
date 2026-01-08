@@ -51,6 +51,12 @@ jobs:
           java-version: '17'
           cache: 'sbt'
 
+      - name: Setup Scala
+        uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:17
+          apps: sbt
+
       - name: Cache SBT
         uses: actions/cache@v4
         with:

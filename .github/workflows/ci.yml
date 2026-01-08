@@ -36,6 +36,12 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: 'sbt'
 
+      - name: Setup Scala
+        uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:${{ matrix.java }}
+          apps: sbt
+
       - name: Cache SBT
         uses: actions/cache@v4
         with:
