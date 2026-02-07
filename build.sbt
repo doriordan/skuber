@@ -150,12 +150,61 @@ lazy val examples = (project in file("examples"))
   .dependsOn(core)
   .dependsOn(pekko)
 
+// Experiement support for operators including custom resources targetted specifically at Scala 3
+lazy val operator = (project in file("operator"))
+  .settings(
+    name := "skuber-operator",
+    organization := "io.skuber",
+    // Scala 3 only - not cross-compiled
+    scalaVersion := "3.8.1",
+    crossScalaVersions := Seq("3.8.1"),
+    // Enable experimental for MacroAnnotation
+    scalacOptions ++= Seq("-Xcheck-macros", "-experimental"),
+    libraryDependencies ++= Seq(
+      playJson,
+      scalaTest % Test
+    ),
+    // Publishing settings
+    publishTo := {
+      val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+      if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+      else localStaging.value
+    },
+    pomIncludeRepository := { _ => false },
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  )
+  .dependsOn(core)
+
+// Operator integration tests - tests the operator module functionality against a real Kubernetes cluster
+lazy val `operator-it` = (project in file("operator-it"))
+  .settings(
+    name := "skuber-operator-it",
+    publish / skip := true,
+    // Scala 3 only to match operator module
+    scalaVersion := "3.8.1",
+    crossScalaVersions := Seq("3.8.1"),
+    // Enable experimental for MacroAnnotation
+    scalacOptions ++= Seq("-Xcheck-macros", "-experimental"),
+    libraryDependencies ++= Seq(
+      scalaTest % Test,
+      scalaTestMockito % Test,
+      typesafeConfig % Test,
+      "ch.qos.logback" % "logback-classic" % "1.5.24" % Test
+    ),
+    Test / fork := false,
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+  )
+  .dependsOn(core)
+  .dependsOn(operator)
+  .dependsOn(pekko % Test)
+  .dependsOn(akka % Test)
+
 lazy val root = (project in file("."))
     .settings(
       publish / skip := true,
       commonSettings
     )
-    .aggregate(core, akka, pekko, integration, examples)
+    .aggregate(core, akka, pekko, operator, `operator-it`, integration, examples)
 
 root / publishArtifact := false
 

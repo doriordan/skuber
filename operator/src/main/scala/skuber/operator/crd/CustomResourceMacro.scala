@@ -104,14 +104,14 @@ object CustomResourceMacro:
     val specTypeSym = objSym.typeMember("Spec")
     val specTypeRef = specTypeSym.typeRef
 
-    // 1. Generate given specFormat: OFormat[Spec] = FormatHelper.deriveFormat[Spec](fieldNames)
-    members += generateFormatVal(objSym, "specFormat", specTypeSym, specTypeRef)
+    // 1. Generate protected val deriveSpecFormat: OFormat[Spec] = FormatHelper.deriveFormat[Spec](fieldNames)
+    members += generateFormatVal(objSym, "deriveSpecFormat", specTypeSym, specTypeRef)
 
-    // 2. Generate given statusFormat: OFormat[Status] if has status class
+    // 2. Generate protected val deriveStatusFormat: OFormat[Status] if has status class
     if hasStatusClass then
       val statusTypeSym = objSym.typeMember("Status")
       val statusTypeRef = statusTypeSym.typeRef
-      members += generateFormatVal(objSym, "statusFormat", statusTypeSym, statusTypeRef)
+      members += generateFormatVal(objSym, "deriveStatusFormat", statusTypeSym, statusTypeRef)
 
     // 3. Generate metadata tuple
     val kindExpr = Expr(kind)
@@ -136,15 +136,14 @@ object CustomResourceMacro:
     members.result()
 
   /**
-   * Generate: given <memberName>: OFormat[T] = FormatHelper.deriveFormat[T](fieldNames)(using mirror)
+   * Generate: protected val <memberName>: OFormat[T] = FormatHelper.deriveFormat[T](fieldNames)(using mirror)
    *
    * Uses FormatHelper.deriveFormat which leverages Mirror.ProductOf for
    * type-safe construction, avoiding lambda generation in the macro output.
    *
-   * We build the AST manually using the reflection API and explicitly search
-   * for the Mirror.ProductOf instance to fully apply the method call.
-   * This avoids the "method must be eta-expanded" validation error from
-   * partially-applied using clauses.
+   * The generated val is protected and overrides the abstract val in the trait.
+   * The trait's concrete given delegates to this val, making the format available
+   * through TASTy for other compilation units.
    */
   private def generateFormatVal(using Quotes)(
     objSym: quotes.reflect.Symbol,
@@ -159,7 +158,7 @@ object CustomResourceMacro:
       objSym,
       memberName,
       oformatType,
-      Flags.Given | Flags.Implicit | Flags.Override,
+      Flags.Override | Flags.Protected,
       Symbol.noSymbol
     )
 

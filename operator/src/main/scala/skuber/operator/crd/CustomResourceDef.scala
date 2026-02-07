@@ -19,8 +19,11 @@ trait CustomResourceSpecDef[S]:
   /** The concrete CustomResource type for this definition */
   final type Resource = CustomResource[S, Nothing]
 
-  /** JSON format for the Spec type - implemented by @customResource macro */
-  given specFormat: OFormat[S]
+  /** Abstract val for Spec format - implemented by @customResource macro */
+  protected val deriveSpecFormat: OFormat[S]
+
+  /** JSON format for the Spec type - delegates to macro-generated val */
+  given specFormat: OFormat[S] = deriveSpecFormat
 
   /** Metadata tuple: (kind, group, version, plural, singular, shortNames, scope) - implemented by macro */
   def crMetadata: (String, String, String, String, String, List[String], String)
@@ -57,11 +60,17 @@ trait CustomResourceDef[S, St]:
   /** The concrete CustomResource type for this definition */
   final type Resource = CustomResource[S, St]
 
-  /** JSON format for the Spec type - implemented by @customResource macro */
-  given specFormat: OFormat[S]
+  /** Abstract val for Spec format - implemented by @customResource macro */
+  protected val deriveSpecFormat: OFormat[S]
 
-  /** JSON format for the Status type - implemented by @customResource macro */
-  given statusFormat: OFormat[St]
+  /** Abstract val for Status format - implemented by @customResource macro */
+  protected val deriveStatusFormat: OFormat[St]
+
+  /** JSON format for the Spec type - delegates to macro-generated val */
+  given specFormat: OFormat[S] = deriveSpecFormat
+
+  /** JSON format for the Status type - delegates to macro-generated val */
+  given statusFormat: OFormat[St] = deriveStatusFormat
 
   /** Metadata tuple: (kind, group, version, plural, singular, shortNames, scope) - implemented by macro */
   def crMetadata: (String, String, String, String, String, List[String], String)

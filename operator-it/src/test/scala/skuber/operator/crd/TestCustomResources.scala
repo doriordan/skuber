@@ -23,7 +23,7 @@ object Autoscaler extends CustomResourceDef[Autoscaler.Spec, Autoscaler.Status]:
   case class Spec(desiredReplicas: Int, image: String)
   case class Status(availableReplicas: Int, ready: Boolean)
 
-type Autoscaler = Autoscaler.Resource
+type Autoscaler = Autoscaler.Resource // this alias can be used with the API (e.g. k8s.get[Autoscaler](..)) in line with builtin types
 
 // spec only custom resource type (no status field)
 @experimental

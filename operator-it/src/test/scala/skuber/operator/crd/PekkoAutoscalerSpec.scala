@@ -32,28 +32,32 @@ class PekkoAutoscalerSpec extends AutoscalerSpec with PekkoK8SFixture {
 
       def watchAndTrackEvents(sinceVersion: String) = {
         k8s
-          .getWatcher[Autoscaler.Resource]
+          .getWatcher[Autoscaler]
           .watchStartingFromVersion(sinceVersion)
           .viaMat(KillSwitches.single)(Keep.right)
           .toMat(trackEvents)(Keep.both).run()
       }
 
+      val newStatus = Autoscaler.Status(availableReplicas = 1, ready = true)
+
       val killSwitchFut: Future[UniqueKillSwitch] = for {
         currentResourceVersion <- getCurrentResourceVersion
         (kill, _) = watchAndTrackEvents(currentResourceVersion)
-        _ <- k8s.create(testResource)
-        _ = Thread.sleep(10)
-        _ <- k8s.delete[Autoscaler.Resource](watchTestResourceName)
+        created <- k8s.create(testResource)
+        _ <- k8s.updateStatus(created.copy(status = Some(newStatus)))
+        _ <- k8s.delete[Autoscaler](watchTestResourceName)
       } yield kill
 
       Await.ready(killSwitchFut, 60.seconds)
 
       eventually(timeout(30.seconds), interval(1.second)) {
-        trackedEvents.size shouldBe 2
+        trackedEvents.size shouldBe 3
         trackedEvents.head._type shouldBe EventType.ADDED
         trackedEvents.head._object.name shouldBe watchTestResourceName
         trackedEvents.head._object.spec.desiredReplicas shouldBe 1
-        trackedEvents(1)._type shouldBe EventType.DELETED
+        trackedEvents(1)._type shouldBe EventType.MODIFIED
+        trackedEvents(1)._object.status.get.availableReplicas shouldBe 1
+        trackedEvents(2)._type shouldBe EventType.DELETED
       }
 
       // cleanup
