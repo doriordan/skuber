@@ -1,0 +1,95 @@
+package skuber.operator.crd
+
+import play.api.libs.json.{Format, OFormat, Reads, Writes, JsNull, JsValue, JsResult, JsError}
+import skuber.model.{
+  CustomResource, HasStatusSubresource, ObjectMeta, ObjectResource,
+  ResourceDefinition, ResourceSpecification, NonCoreResourceSpecification
+}
+
+/** Format for Nothing - used by spec-only resources where status is None */
+private[crd] given nothingFormat: Format[Nothing] = new Format[Nothing]:
+  def reads(json: JsValue): JsResult[Nothing] = JsError("Nothing cannot be read")
+  def writes(o: Nothing): JsValue = JsNull
+
+/**
+ * Base trait for custom resources with only a Spec (no Status).
+ * Provides type alias, factory method, and ResourceDefinition.
+ */
+trait CustomResourceSpecDef[S]:
+  /** The concrete CustomResource type for this definition */
+  final type Resource = CustomResource[S, Nothing]
+
+  /** JSON format for the Spec type - implemented by @customResource macro */
+  given specFormat: OFormat[S]
+
+  /** Metadata tuple: (kind, group, version, plural, singular, shortNames, scope) - implemented by macro */
+  def crMetadata: (String, String, String, String, String, List[String], String)
+
+  /** Create a new custom resource instance with the given name and spec */
+  def apply(name: String, spec: S): Resource =
+    val (kind, group, version, _, _, _, _) = crMetadata
+    CustomResource[S, Nothing](kind, s"$group/$version", ObjectMeta(name = name), spec, None)
+
+  /** ResourceDefinition for API calls */
+  given resourceDefinition: ResourceDefinition[Resource] =
+    val (kind, group, version, plural, singular, shortNames, scopeStr) = crMetadata
+    val scope = if scopeStr == "Cluster" then ResourceSpecification.Scope.Cluster
+                else ResourceSpecification.Scope.Namespaced
+    ResourceDefinition[Resource](
+      kind = kind,
+      group = group,
+      version = version,
+      singular = Some(singular),
+      plural = Some(plural),
+      scope = scope,
+      shortNames = shortNames
+    )
+
+  /** JSON format for the CustomResource type */
+  given resourceFormat(using Format[S]): Format[Resource] =
+    CustomResource.crFormat[S, Nothing]
+
+/**
+ * Trait for custom resources with both Spec and Status.
+ * This is a separate trait (not extending CustomResourceSpecDef) to avoid type conflicts.
+ */
+trait CustomResourceDef[S, St]:
+  /** The concrete CustomResource type for this definition */
+  final type Resource = CustomResource[S, St]
+
+  /** JSON format for the Spec type - implemented by @customResource macro */
+  given specFormat: OFormat[S]
+
+  /** JSON format for the Status type - implemented by @customResource macro */
+  given statusFormat: OFormat[St]
+
+  /** Metadata tuple: (kind, group, version, plural, singular, shortNames, scope) - implemented by macro */
+  def crMetadata: (String, String, String, String, String, List[String], String)
+
+  /** Create a new custom resource instance with the given name and spec */
+  def apply(name: String, spec: S): Resource =
+    val (kind, group, version, _, _, _, _) = crMetadata
+    CustomResource[S, St](kind, s"$group/$version", ObjectMeta(name = name), spec, None)
+
+  /** ResourceDefinition for API calls */
+  given resourceDefinition: ResourceDefinition[Resource] =
+    val (kind, group, version, plural, singular, shortNames, scopeStr) = crMetadata
+    val scope = if scopeStr == "Cluster" then ResourceSpecification.Scope.Cluster
+                else ResourceSpecification.Scope.Namespaced
+    ResourceDefinition[Resource](
+      kind = kind,
+      group = group,
+      version = version,
+      singular = Some(singular),
+      plural = Some(plural),
+      scope = scope,
+      shortNames = shortNames
+    )
+
+  /** JSON format for the CustomResource type */
+  given resourceFormat(using Format[S], Format[St]): Format[Resource] =
+    CustomResource.crFormat[S, St]
+
+  /** Enables getStatus/updateStatus API methods */
+  given statusSubresource: HasStatusSubresource[Resource] =
+    new HasStatusSubresource[Resource] {}

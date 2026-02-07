@@ -1,0 +1,202 @@
+package skuber.operator.crd
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import play.api.libs.json.*
+import skuber.model.{CustomResource, ResourceSpecification}
+
+/**
+ * Tests for the @customResource macro annotation.
+ *
+ * Members (specFormat, statusFormat, crMetadata) are visible through
+ * the CustomResourceDef / CustomResourceSpecDef base traits,
+ * so no reflection is needed.
+ */
+class CustomResourceMacroSpec extends AnyFlatSpec with Matchers:
+
+  "customResource macro" should "generate Format[Spec] for WebApp" in {
+    import WebAppResource.given
+    val spec = WebAppResource.Spec(3, "nginx", 80)
+    val json = Json.toJson(spec)
+    json.shouldBe(Json.obj(
+      "replicas" -> 3,
+      "image" -> "nginx",
+      "port" -> 80
+    ))
+    json.as[WebAppResource.Spec].shouldBe(spec)
+  }
+
+  it should "generate Format[Status] for WebApp" in {
+    import WebAppResource.given
+    val status = WebAppResource.Status(2, true)
+    val json = Json.toJson(status)
+    json.shouldBe(Json.obj(
+      "availableReplicas" -> 2,
+      "ready" -> true
+    ))
+    json.as[WebAppResource.Status].shouldBe(status)
+  }
+
+  it should "generate metadata tuple for WebApp" in {
+    val (kind, group, version, plural, singular, shortNames, scope) = WebAppResource.crMetadata
+    kind.shouldBe("WebApp")
+    group.shouldBe("test.example.com")
+    version.shouldBe("v1")
+    plural.shouldBe("webapps")
+    singular.shouldBe("webapp")
+    shortNames.shouldBe(Nil)
+    scope.shouldBe("Namespaced")
+  }
+
+  "customResource macro without Status" should "generate metadata for ConfigMap2" in {
+    val (kind, group, version, plural, singular, _, _) = ConfigMap2Resource.crMetadata
+    kind.shouldBe("ConfigMap2")
+    group.shouldBe("test.example.com")
+    version.shouldBe("v1alpha1")
+    plural.shouldBe("configmap2s")
+    singular.shouldBe("configmap2")
+  }
+
+  it should "generate Format[Spec] for ConfigMap2" in {
+    import ConfigMap2Resource.given
+    val spec = ConfigMap2Resource.Spec(Map("key" -> "value"))
+    val json = Json.toJson(spec)
+    json.shouldBe(Json.obj("data" -> Json.obj("key" -> "value")))
+    json.as[ConfigMap2Resource.Spec].shouldBe(spec)
+  }
+
+  "customResource macro" should "generate metadata for Database" in {
+    val (kind, group, version, _, _, _, _) = DatabaseResource.crMetadata
+    kind.shouldBe("Database")
+    group.shouldBe("test.example.com")
+    version.shouldBe("v1beta1")
+  }
+
+  it should "generate Format[Spec] for Database" in {
+    import DatabaseResource.given
+    val spec = DatabaseResource.Spec("postgres", 100)
+    val json = Json.toJson(spec)
+    json.shouldBe(Json.obj("engine" -> "postgres", "size" -> 100))
+    json.as[DatabaseResource.Spec].shouldBe(spec)
+  }
+
+  it should "generate Format[Status] for Database" in {
+    import DatabaseResource.given
+    val status = DatabaseResource.Status("running")
+    val json = Json.toJson(status)
+    json.shouldBe(Json.obj("state" -> "running"))
+    json.as[DatabaseResource.Status].shouldBe(status)
+  }
+
+  "customResource macro with explicit configuration" should "use provided values for Queue" in {
+    val (kind, group, version, plural, singular, shortNames, scope) = QueueResource.crMetadata
+    kind.shouldBe("Queue")
+    group.shouldBe("custom.io")
+    version.shouldBe("v2")
+    plural.shouldBe("queues")
+    singular.shouldBe("queue")
+    shortNames.shouldBe(List("q", "qu"))
+    scope.shouldBe("Cluster")
+  }
+
+  it should "generate Format[Spec] for Queue" in {
+    import QueueResource.given
+    val spec = QueueResource.Spec(1000, true)
+    val json = Json.toJson(spec)
+    json.shouldBe(Json.obj("capacity" -> 1000, "persistent" -> true))
+    json.as[QueueResource.Spec].shouldBe(spec)
+  }
+
+  // ============ New tests for factory method and ResourceDefinition ============
+
+  "CustomResourceDef apply method" should "create a CustomResource with correct metadata" in {
+    import WebAppResource.given
+    val cr = WebAppResource("my-webapp", WebAppResource.Spec(3, "nginx", 80))
+
+    cr.kind.shouldBe("WebApp")
+    cr.apiVersion.shouldBe("test.example.com/v1")
+    cr.metadata.name.shouldBe("my-webapp")
+    cr.spec.shouldBe(WebAppResource.Spec(3, "nginx", 80))
+    cr.status.shouldBe(None)
+  }
+
+  it should "create resources that serialize to valid JSON" in {
+    import WebAppResource.given
+    val cr = WebAppResource("my-webapp", WebAppResource.Spec(3, "nginx", 80))
+    val json = Json.toJson(cr)
+
+    (json \ "kind").as[String].shouldBe("WebApp")
+    (json \ "apiVersion").as[String].shouldBe("test.example.com/v1")
+    (json \ "metadata" \ "name").as[String].shouldBe("my-webapp")
+    (json \ "spec" \ "replicas").as[Int].shouldBe(3)
+    (json \ "spec" \ "image").as[String].shouldBe("nginx")
+    (json \ "spec" \ "port").as[Int].shouldBe(80)
+  }
+
+  it should "create resources that can be deserialized from JSON" in {
+    import WebAppResource.given
+    val json = Json.obj(
+      "kind" -> "WebApp",
+      "apiVersion" -> "test.example.com/v1",
+      "metadata" -> Json.obj("name" -> "from-json"),
+      "spec" -> Json.obj("replicas" -> 5, "image" -> "redis", "port" -> 6379)
+    )
+    val cr = json.as[WebAppResource.Resource]
+
+    cr.kind.shouldBe("WebApp")
+    cr.metadata.name.shouldBe("from-json")
+    cr.spec.replicas.shouldBe(5)
+    cr.spec.image.shouldBe("redis")
+  }
+
+  "CustomResourceDef resourceDefinition" should "provide correct API metadata" in {
+    import WebAppResource.given
+    val rd = WebAppResource.resourceDefinition
+
+    rd.spec.names.kind.shouldBe("WebApp")
+    rd.spec.group.shouldBe(Some("test.example.com"))
+    rd.spec.defaultVersion.shouldBe("v1")
+    rd.spec.names.plural.shouldBe("webapps")
+    rd.spec.names.singular.shouldBe("webapp")
+    rd.spec.scope.shouldBe(ResourceSpecification.Scope.Namespaced)
+  }
+
+  it should "use Cluster scope when configured" in {
+    import QueueResource.given
+    val rd = QueueResource.resourceDefinition
+
+    rd.spec.scope.shouldBe(ResourceSpecification.Scope.Cluster)
+    rd.spec.names.shortNames.shouldBe(List("q", "qu"))
+  }
+
+  "CustomResourceSpecDef (no status)" should "create resources via apply" in {
+    import ConfigMap2Resource.given
+    val cr = ConfigMap2Resource("my-config", ConfigMap2Resource.Spec(Map("key" -> "value")))
+
+    cr.kind.shouldBe("ConfigMap2")
+    cr.apiVersion.shouldBe("test.example.com/v1alpha1")
+    cr.metadata.name.shouldBe("my-config")
+    cr.spec.data.shouldBe(Map("key" -> "value"))
+    cr.status.shouldBe(None)
+  }
+
+  it should "serialize spec-only resources to JSON" in {
+    import ConfigMap2Resource.given
+    val cr = ConfigMap2Resource("my-config", ConfigMap2Resource.Spec(Map("a" -> "b")))
+    val json = Json.toJson(cr)
+
+    (json \ "kind").as[String].shouldBe("ConfigMap2")
+    (json \ "spec" \ "data" \ "a").as[String].shouldBe("b")
+  }
+
+  "CustomResource fluent API" should "work with macro-generated resources" in {
+    import WebAppResource.given
+    val cr = WebAppResource("my-webapp", WebAppResource.Spec(1, "nginx", 80))
+      .withNamespace("production")
+      .withLabels("app" -> "web", "env" -> "prod")
+      .withStatus(WebAppResource.Status(1, true))
+
+    cr.metadata.namespace.shouldBe("production")
+    cr.metadata.labels.shouldBe(Map("app" -> "web", "env" -> "prod"))
+    cr.status.shouldBe(Some(WebAppResource.Status(1, true)))
+  }
