@@ -2,6 +2,8 @@ package skuber.operator.crd
 
 import scala.annotation.experimental
 import scala.quoted.*
+import play.api.libs.json.{Format, OFormat}
+import scala.deriving.Mirror
 
 @experimental
 object CustomResourceMacro:
@@ -19,7 +21,7 @@ object CustomResourceMacro:
     scaleSubresource: Boolean
   ): List[quotes.reflect.Definition] =
     import quotes.reflect.*
-    
+
     definition match
       case obj @ ClassDef(objName, constr, parents, self, body) if obj.symbol.flags.is(Flags.Module) =>
         val specClassOpt = body.collectFirst {
@@ -59,7 +61,7 @@ object CustomResourceMacro:
 
         val objSym = obj.symbol
 
-        // Check which formatters the user has already overridden in the object body so we don't generate them
+        // Check which formatters the user has already overridden in the object body
         val hasUserSpecFormat = body.exists {
           case vd: ValDef => vd.name == "specFormat"
           case _ => false
@@ -69,10 +71,16 @@ object CustomResourceMacro:
           case _ => false
         }
 
+        // Find ALL case classes in the body (for nested type support)
+        val allCaseClasses = body.collect {
+          case cd @ ClassDef(name, _, _, _, _) if cd.symbol.flags.is(Flags.Case) => cd
+        }
+
         val newMembers = generateMembers(
           objSym, kind, group, version, pluralName, singularName, shortNames, scopeValue,
           hasStatusClass, statusSubresource, scaleSubresource,
-          hasUserSpecFormat, hasUserStatusFormat
+          hasUserSpecFormat, hasUserStatusFormat,
+          allCaseClasses
         )
 
         val newBody = body ++ newMembers
@@ -94,26 +102,205 @@ object CustomResourceMacro:
     enableStatusSubresource: Boolean,
     enableScaleSubresource: Boolean,
     hasUserSpecFormat: Boolean,
-    hasUserStatusFormat: Boolean
+    hasUserStatusFormat: Boolean,
+    allCaseClasses: List[quotes.reflect.ClassDef]
   ): List[quotes.reflect.Statement] =
     import quotes.reflect.*
 
     val members = List.newBuilder[Statement]
+    val caseClassSymbols = allCaseClasses.map(_.symbol).toSet
 
-    val specTypeSym = objSym.typeMember("Spec")
-    val specTypeRef = specTypeSym.typeRef
+    // ================================================================
+    // STEP 1: Topologically sort case classes by dependencies
+    // ================================================================
 
-    // 1. Generate protected val specFormat unless user provided their own
-    if !hasUserSpecFormat then
-      members += generateFormatVal(objSym, "specFormat", specTypeSym, specTypeRef)
+    def extractCaseClassDeps(tpe: TypeRepr): Set[Symbol] =
+      val directSym = tpe.typeSymbol
+      val fromDirect = if caseClassSymbols.contains(directSym) then Set(directSym) else Set.empty[Symbol]
+      val fromArgs = tpe match
+        case AppliedType(_, args) => args.flatMap(extractCaseClassDeps).toSet
+        case _ => Set.empty[Symbol]
+      fromDirect ++ fromArgs
 
-    // 2. Generate protected val statusFormat if has status class and user didn't provide their own
-    if hasStatusClass && !hasUserStatusFormat then
-      val statusTypeSym = objSym.typeMember("Status")
-      val statusTypeRef = statusTypeSym.typeRef
-      members += generateFormatVal(objSym, "statusFormat", statusTypeSym, statusTypeRef)
+    def getDependencies(cc: ClassDef): Set[Symbol] =
+      cc.symbol.caseFields.flatMap(field => extractCaseClassDeps(field.info)).toSet
 
-    // 3. Generate metadata tuple
+    def topoSort(remaining: List[ClassDef], sorted: List[ClassDef]): List[ClassDef] =
+      if remaining.isEmpty then sorted.reverse
+      else
+        val alreadySorted = sorted.map(_.symbol).toSet
+        val (ready, notReady) = remaining.partition(cc => getDependencies(cc).forall(alreadySorted.contains))
+        if ready.isEmpty && notReady.nonEmpty then
+          report.errorAndAbort(s"Circular dependency detected among: ${notReady.map(_.name).mkString(", ")}")
+        topoSort(notReady, ready.reverse ++ sorted)
+
+    val sortedCaseClasses = topoSort(allCaseClasses, Nil)
+
+    // ================================================================
+    // STEP 2: Generate formats for all case classes in order
+    // ================================================================
+
+    var generatedFormatSymbols: Map[Symbol, Symbol] = Map.empty
+
+    // Check if a type contains any nested case class (for container detection)
+    def containsNestedCaseClass(tpe: TypeRepr): Boolean =
+      if caseClassSymbols.contains(tpe.typeSymbol) then true
+      else tpe match
+        case AppliedType(_, args) => args.exists(containsNestedCaseClass)
+        case _ => false
+
+    // Build format expression for a field type using quotes for type safety
+    def buildFormatExpr(fieldType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val fieldTypeSym = fieldType.typeSymbol
+
+      // Direct nested case class
+      if caseClassSymbols.contains(fieldTypeSym) then
+        generatedFormatSymbols.get(fieldTypeSym) match
+          case Some(nestedFormatSym) =>
+            fieldType.asType match
+              case '[t] => Ref(nestedFormatSym).asExprOf[Format[t]]
+          case None =>
+            report.errorAndAbort(s"Format for ${fieldTypeSym.name} not yet generated - dependency order error")
+
+      // Container types - handle ALL of them, not just those with nested case classes
+      // This is because Play JSON doesn't have simple Format[Option[T]] etc instances
+      else
+        fieldType match
+          case AppliedType(tycon, List(innerType)) =>
+            tycon.typeSymbol.fullName match
+              case "scala.collection.immutable.List" =>
+                buildListFormat(innerType, fieldName, ccName)
+              case "scala.Option" =>
+                buildOptionFormat(innerType, fieldName, ccName)
+              case "scala.collection.immutable.Set" =>
+                buildSetFormat(innerType, fieldName, ccName)
+              case "scala.collection.immutable.Seq" | "scala.collection.Seq" =>
+                buildSeqFormat(innerType, fieldName, ccName)
+              case "scala.collection.immutable.Vector" =>
+                buildVectorFormat(innerType, fieldName, ccName)
+              case _ =>
+                searchImplicitFormat(fieldType, fieldName, ccName)
+
+          case AppliedType(tycon, List(keyType, valueType)) =>
+            tycon.typeSymbol.fullName match
+              case "scala.collection.immutable.Map" | "scala.collection.Map" | "scala.Predef.Map" =>
+                buildMapFormat(valueType, fieldName, ccName)
+              case _ =>
+                searchImplicitFormat(fieldType, fieldName, ccName)
+
+          case _ =>
+            // Primitive/external types - use implicit search
+            searchImplicitFormat(fieldType, fieldName, ccName)
+
+    // Container format builders using quotes for type safety
+    def buildListFormat(innerType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val innerFormat = buildFormatExpr(innerType, fieldName, ccName)
+      innerType.asType match
+        case '[t] =>
+          val inner = innerFormat.asExprOf[Format[t]]
+          '{ ContainerFormats.listFormat[t]($inner) }
+
+    def buildOptionFormat(innerType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val innerFormat = buildFormatExpr(innerType, fieldName, ccName)
+      innerType.asType match
+        case '[t] =>
+          val inner = innerFormat.asExprOf[Format[t]]
+          '{ ContainerFormats.optionFormat[t]($inner) }
+
+    def buildSetFormat(innerType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val innerFormat = buildFormatExpr(innerType, fieldName, ccName)
+      innerType.asType match
+        case '[t] =>
+          val inner = innerFormat.asExprOf[Format[t]]
+          '{ ContainerFormats.setFormat[t]($inner) }
+
+    def buildSeqFormat(innerType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val innerFormat = buildFormatExpr(innerType, fieldName, ccName)
+      innerType.asType match
+        case '[t] =>
+          val inner = innerFormat.asExprOf[Format[t]]
+          '{ ContainerFormats.seqFormat[t]($inner) }
+
+    def buildVectorFormat(innerType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val innerFormat = buildFormatExpr(innerType, fieldName, ccName)
+      innerType.asType match
+        case '[t] =>
+          val inner = innerFormat.asExprOf[Format[t]]
+          '{ ContainerFormats.vectorFormat[t]($inner) }
+
+    def buildMapFormat(valueType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      val valueFormat = buildFormatExpr(valueType, fieldName, ccName)
+      valueType.asType match
+        case '[v] =>
+          val inner = valueFormat.asExprOf[Format[v]]
+          '{ ContainerFormats.mapFormat[v]($inner) }
+
+    def searchImplicitFormat(fieldType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
+      // Use Implicits.search for better compatibility with Play JSON's implicit resolution
+      val formatSearchType = TypeRepr.of[Format].appliedTo(List(fieldType))
+      Implicits.search(formatSearchType) match
+        case success: ImplicitSearchSuccess =>
+          fieldType.asType match
+            case '[t] => success.tree.asExprOf[Format[t]]
+        case failure: ImplicitSearchFailure =>
+          report.errorAndAbort(s"No Format found for ${fieldType.show} in field $ccName.$fieldName: ${failure.explanation}")
+
+    // Generate format val for a case class
+    def generateCaseClassFormat(cc: ClassDef): Statement =
+      val ccSym = cc.symbol
+      val ccTypeRef = ccSym.typeRef
+      val ccName = cc.name
+      val formatType = TypeRepr.of[OFormat].appliedTo(List(ccTypeRef))
+
+      // Use internal name for non-Spec/Status classes
+      val formatName = ccName match
+        case "Spec" => "specFormat"
+        case "Status" => "statusFormat"
+        case other => s"format_$other"
+
+      val flags = ccName match
+        case "Spec" | "Status" => Flags.Override | Flags.Protected
+        case _ => Flags.Given | Flags.Implicit
+
+      val formatSym = Symbol.newVal(objSym, formatName, formatType, flags, Symbol.noSymbol)
+      generatedFormatSymbols = generatedFormatSymbols + (ccSym -> formatSym)
+
+      val fields = ccSym.caseFields
+      val fieldNames = fields.map(_.name)
+      val fieldNamesExpr: Expr[List[String]] = Expr(fieldNames)
+
+      val fieldFormatExprs: List[Expr[Format[?]]] = fields.map { field =>
+        buildFormatExpr(field.info, field.name, ccName)
+      }
+      val formatListExpr: Expr[List[Format[?]]] = Expr.ofList(fieldFormatExprs)
+
+      // Build the format using quotes
+      ccTypeRef.asType match
+        case '[t] =>
+          Expr.summon[Mirror.ProductOf[t]] match
+            case Some(mirror) =>
+              val formatExpr: Expr[OFormat[t]] = '{
+                CrdFormatHelper.createFormat[t]($fieldNamesExpr, $formatListExpr, $mirror)
+              }
+              ValDef(formatSym, Some(formatExpr.asTerm.changeOwner(formatSym)))
+
+            case None =>
+              report.errorAndAbort(s"Cannot find Mirror.ProductOf for ${ccTypeRef.show}")
+
+    // Generate formats for case classes, respecting user overrides
+    for cc <- sortedCaseClasses do
+      val shouldGenerate = cc.name match
+        case "Spec" => !hasUserSpecFormat
+        case "Status" => !hasUserStatusFormat && hasStatusClass
+        case _ => true  // Always generate for nested types
+
+      if shouldGenerate then
+        members += generateCaseClassFormat(cc)
+
+    // ================================================================
+    // STEP 3: Generate metadata tuple
+    // ================================================================
+
     val kindExpr = Expr(kind)
     val groupExpr = Expr(group)
     val versionExpr = Expr(version)
@@ -134,63 +321,3 @@ object CustomResourceMacro:
     members += ValDef(metadataSym, Some(metadataExpr.asTerm.changeOwner(metadataSym)))
 
     members.result()
-
-  /**
-   * Generate: protected val <memberName>: OFormat[T] = FormatHelper.deriveFormat[T](fieldNames)(using mirror)
-   *
-   * Uses FormatHelper.deriveFormat which leverages Mirror.ProductOf for
-   * type-safe construction, avoiding lambda generation in the macro output.
-   *
-   * The generated val is protected and overrides the abstract val in the trait.
-   * The trait's concrete given delegates to this val, making the format available
-   * through TASTy for other compilation units.
-   */
-  private def generateFormatVal(using Quotes)(
-    objSym: quotes.reflect.Symbol,
-    memberName: String,
-    typeSym: quotes.reflect.Symbol,
-    typeRef: quotes.reflect.TypeRepr
-  ): quotes.reflect.Statement =
-    import quotes.reflect.*
-
-    val oformatType = TypeRepr.of[play.api.libs.json.OFormat].appliedTo(List(typeRef))
-    val sym = Symbol.newVal(
-      objSym,
-      memberName,
-      oformatType,
-      Flags.Override | Flags.Protected,
-      Symbol.noSymbol
-    )
-
-    val fields = typeSym.caseFields
-    val fieldNames = fields.map(_.name)
-    val fieldNamesExpr = Expr(fieldNames)
-
-    // Search for Mirror.ProductOf[T] to pass explicitly
-    val mirrorType = TypeRepr.of[scala.deriving.Mirror.ProductOf].appliedTo(List(typeRef))
-    val mirrorSearch = Implicits.search(mirrorType)
-
-    val mirrorTree = mirrorSearch match
-      case result: ImplicitSearchSuccess => result.tree
-      case failure: ImplicitSearchFailure =>
-        report.errorAndAbort(
-          s"Cannot find Mirror.ProductOf for ${typeRef.show}. " +
-          s"Ensure ${typeSym.name} is a case class. Details: ${failure.explanation}"
-        )
-
-    // Build: FormatHelper.deriveFormat[T](fieldNames)(using mirror)
-    val formatHelperSym = Symbol.requiredModule("skuber.operator.crd.FormatHelper")
-    val deriveFormatMethod = formatHelperSym.methodMember("deriveFormat").head
-
-    val call = Apply(
-      Apply(
-        TypeApply(
-          Select(Ref(formatHelperSym), deriveFormatMethod),
-          List(Inferred(typeRef))
-        ),
-        List(fieldNamesExpr.asTerm)
-      ),
-      List(mirrorTree)
-    )
-
-    ValDef(sym, Some(call.changeOwner(sym)))

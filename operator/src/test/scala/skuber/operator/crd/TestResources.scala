@@ -75,3 +75,40 @@ object CustomFormatResource extends CustomResourceDef[CustomFormatResource.Spec,
   )
 
   // Status uses default derivation (macro will generate statusFormat)
+
+/**
+ * Test resource with nested case classes.
+ * The macro should generate formats for Address and ContactInfo before Spec.
+ */
+@experimental
+@customResource(
+  group = "test.example.com",
+  version = "v1",
+  kind = "Employee"
+)
+object EmployeeResource extends CustomResourceDef[EmployeeResource.Spec, EmployeeResource.Status]:
+  case class Address(street: String, city: String, zipCode: String)
+  case class ContactInfo(email: String, phone: Option[String], addresses: List[Address])
+  case class Spec(name: String, department: String, contact: ContactInfo, tags: Set[String])
+  case class Status(active: Boolean, lastUpdated: String)
+
+/**
+ * Test resource with deeply nested containers.
+ * Tests List[Option[T]], Option[List[T]], Map[String, List[T]]
+ */
+@experimental
+@customResource(
+  group = "test.example.com",
+  version = "v1",
+  kind = "Project"
+)
+object ProjectResource extends CustomResourceDef[ProjectResource.Spec, ProjectResource.Status]:
+  case class Milestone(name: String, completed: Boolean)
+  case class Task(id: Int, description: String, milestone: Option[Milestone])
+  case class Spec(
+    name: String,
+    tasks: List[Task],
+    optionalTasks: List[Option[Task]],
+    tasksByCategory: Map[String, List[Task]]
+  )
+  case class Status(completedTasks: Int, totalTasks: Int)

@@ -227,3 +227,130 @@ class CustomResourceMacroSpec extends AnyFlatSpec with Matchers:
     (json \ "spec" \ "name").as[String].shouldBe("hello")
     (json \ "spec" \ "value").as[Int].shouldBe(123)
   }
+
+  // ================================================================
+  // Tests for nested case classes and container types
+  // ================================================================
+
+  "customResource with nested case classes" should "generate formats for nested types" in {
+    import EmployeeResource.given
+
+    val addr = EmployeeResource.Address("123 Main St", "Boston", "02101")
+    val contact = EmployeeResource.ContactInfo("alice@example.com", Some("555-1234"), List(addr))
+    val spec = EmployeeResource.Spec("Alice", "Engineering", contact, Set("senior", "lead"))
+
+    val json = Json.toJson(spec)
+
+    (json \ "name").as[String].shouldBe("Alice")
+    (json \ "contact" \ "email").as[String].shouldBe("alice@example.com")
+    (json \ "contact" \ "phone").as[String].shouldBe("555-1234")
+    (json \ "contact" \ "addresses")(0).as[JsObject].shouldBe(Json.obj(
+      "street" -> "123 Main St",
+      "city" -> "Boston",
+      "zipCode" -> "02101"
+    ))
+    (json \ "tags").as[Set[String]].shouldBe(Set("senior", "lead"))
+
+    // Round-trip
+    json.as[EmployeeResource.Spec].shouldBe(spec)
+  }
+
+  it should "handle Option[String] in nested types" in {
+    import EmployeeResource.given
+
+    val addr = EmployeeResource.Address("456 Oak Ave", "Seattle", "98101")
+    val contactWithoutPhone = EmployeeResource.ContactInfo("bob@example.com", None, List(addr))
+    val spec = EmployeeResource.Spec("Bob", "Sales", contactWithoutPhone, Set.empty)
+
+    val json = Json.toJson(spec)
+
+    (json \ "contact" \ "phone").asOpt[String].shouldBe(None)
+
+    // Round-trip
+    json.as[EmployeeResource.Spec].shouldBe(spec)
+  }
+
+  it should "create full resource with nested types" in {
+    import EmployeeResource.given
+
+    val addr = EmployeeResource.Address("789 Pine Rd", "Denver", "80202")
+    val contact = EmployeeResource.ContactInfo("carol@example.com", Some("555-9999"), List(addr))
+    val cr = EmployeeResource(
+      "carol",
+      EmployeeResource.Spec("Carol", "Marketing", contact, Set("manager"))
+    ).withStatus(EmployeeResource.Status(true, "2024-01-15"))
+
+    val json = Json.toJson(cr)
+
+    (json \ "kind").as[String].shouldBe("Employee")
+    ((json \ "spec" \ "contact" \ "addresses")(0) \ "city").as[String].shouldBe("Denver")
+    (json \ "status" \ "active").as[Boolean].shouldBe(true)
+  }
+
+  "customResource with deeply nested containers" should "handle List[Option[T]]" in {
+    import ProjectResource.given
+
+    val milestone = ProjectResource.Milestone("M1", completed = false)
+    val task1 = ProjectResource.Task(1, "Task 1", Some(milestone))
+    val task2 = ProjectResource.Task(2, "Task 2", None)
+
+    val spec = ProjectResource.Spec(
+      name = "Project X",
+      tasks = List(task1, task2),
+      optionalTasks = List(Some(task1), None, Some(task2)),
+      tasksByCategory = Map.empty
+    )
+
+    val json = Json.toJson(spec)
+
+    (json \ "tasks").as[List[JsValue]].size.shouldBe(2)
+    (json \ "optionalTasks").as[List[JsValue]].size.shouldBe(3)
+    ((json \ "optionalTasks")(0) \ "id").as[Int].shouldBe(1)
+    (json \ "optionalTasks")(1).shouldBe(JsNull)
+
+    // Round-trip
+    json.as[ProjectResource.Spec].shouldBe(spec)
+  }
+
+  it should "handle Map[String, List[T]]" in {
+    import ProjectResource.given
+
+    val task1 = ProjectResource.Task(1, "Design", None)
+    val task2 = ProjectResource.Task(2, "Implement", None)
+    val task3 = ProjectResource.Task(3, "Test", None)
+
+    val spec = ProjectResource.Spec(
+      name = "Project Y",
+      tasks = Nil,
+      optionalTasks = Nil,
+      tasksByCategory = Map(
+        "frontend" -> List(task1, task2),
+        "backend" -> List(task3)
+      )
+    )
+
+    val json = Json.toJson(spec)
+
+    (json \ "tasksByCategory" \ "frontend").as[List[JsValue]].size.shouldBe(2)
+    (json \ "tasksByCategory" \ "backend").as[List[JsValue]].size.shouldBe(1)
+    ((json \ "tasksByCategory" \ "frontend")(0) \ "description").as[String].shouldBe("Design")
+
+    // Round-trip
+    json.as[ProjectResource.Spec].shouldBe(spec)
+  }
+
+  it should "handle nested case class with Option field" in {
+    import ProjectResource.given
+
+    val milestone = ProjectResource.Milestone("Release 1.0", completed = true)
+    val task = ProjectResource.Task(1, "Ship it", Some(milestone))
+
+    val spec = ProjectResource.Spec("Release Project", List(task), Nil, Map.empty)
+    val json = Json.toJson(spec)
+
+    ((json \ "tasks")(0) \ "milestone" \ "name").as[String].shouldBe("Release 1.0")
+    ((json \ "tasks")(0) \ "milestone" \ "completed").as[Boolean].shouldBe(true)
+
+    // Round-trip
+    json.as[ProjectResource.Spec].shouldBe(spec)
+  }
