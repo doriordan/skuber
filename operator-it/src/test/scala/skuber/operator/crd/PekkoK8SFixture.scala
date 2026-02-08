@@ -22,7 +22,7 @@ trait PekkoK8SFixture extends K8SFixture with BeforeAndAfterAll {
 
   def withPekkoK8sClient(test: PekkoKubernetesClient => Future[Assertion], timeout: Duration = 30.seconds): Future[Assertion] = {
     val actorSystem = system
-    val k8s = k8sInit(config)(actorSystem)
+    val k8s = k8sInit(config)(using actorSystem)
     try {
       val result = Await.result(test(k8s), timeout)
       Future { result }

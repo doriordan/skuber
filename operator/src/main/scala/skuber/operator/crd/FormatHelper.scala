@@ -5,7 +5,7 @@ import scala.deriving.Mirror
 import scala.compiletime.*
 
 /**
- * Runtime helper for constructing OFormat instances for case classes.
+ * Runtime helper for constructing Play Json OFormat instances for case classes.
  * Used by the @customResource macro to avoid calling Json.format[T] which
  * has ScopeException issues when invoked from within macro annotations.
  *

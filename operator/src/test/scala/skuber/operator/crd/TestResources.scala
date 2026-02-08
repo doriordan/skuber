@@ -1,8 +1,7 @@
 package skuber.operator.crd
 
 import scala.annotation.experimental
-import play.api.libs.json.{Format, Json}
-import skuber.model.*
+import play.api.libs.json.{JsValue, OFormat, Json}
 
 /**
  * Test resources using the @customResource macro annotation.
@@ -23,7 +22,7 @@ object WebAppResource extends CustomResourceDef[WebAppResource.Spec, WebAppResou
   group = "test.example.com",
   version = "v1alpha1",
   kind = "ConfigMap2",
-  statusSubresource = "false"
+  statusSubresource = false
 )
 object ConfigMap2Resource extends CustomResourceSpecDef[ConfigMap2Resource.Spec]:
   case class Spec(data: Map[String, String])
@@ -51,3 +50,28 @@ object DatabaseResource extends CustomResourceDef[DatabaseResource.Spec, Databas
 object QueueResource extends CustomResourceDef[QueueResource.Spec, QueueResource.Status]:
   case class Spec(capacity: Int, persistent: Boolean)
   case class Status(depth: Int)
+
+/**
+ * Test resource with custom formatters - user provides their own Play JSON format implementation.
+ * The macro will skip generating specFormat since we define it here.
+ */
+@experimental
+@customResource(
+  group = "test.example.com",
+  version = "v1",
+  kind = "CustomFormat"
+)
+object CustomFormatResource extends CustomResourceDef[CustomFormatResource.Spec, CustomFormatResource.Status]:
+  case class Spec(name: String, value: Int)
+  case class Status(processed: Boolean)
+
+  // User-provided custom formatter for Spec - macro will skip generating the override
+  override protected val specFormat: OFormat[Spec] = OFormat(
+    (json: JsValue) => for {
+      name <- (json \ "name").validate[String]
+      value <- (json \ "value").validate[Int]
+    } yield Spec(name, value),
+    (spec: Spec) => Json.obj("name" -> spec.name, "value" -> spec.value)
+  )
+
+  // Status uses default derivation (macro will generate statusFormat)

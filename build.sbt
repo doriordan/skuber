@@ -184,7 +184,7 @@ lazy val `operator-it` = (project in file("operator-it"))
     scalaVersion := "3.8.1",
     crossScalaVersions := Seq("3.8.1"),
     // Enable experimental for MacroAnnotation
-    scalacOptions ++= Seq("-Xcheck-macros", "-experimental"),
+    scalacOptions ++= Seq("-experimental"),
     libraryDependencies ++= Seq(
       scalaTest % Test,
       scalaTestMockito % Test,

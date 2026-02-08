@@ -1,7 +1,6 @@
 package skuber.operator.crd
 
 import scala.annotation.experimental
-import play.api.libs.json.OFormat
 
 /**
  * Custom resource definitions for integration testing.
@@ -17,13 +16,17 @@ import play.api.libs.json.OFormat
   group = "test.skuber.io",
   version = "v1",
   kind = "Autoscaler",
-  scope = Scope.Namespaced
+  scope = Scope.Namespaced,
+  statusSubresource = true
 )
 object Autoscaler extends CustomResourceDef[Autoscaler.Spec, Autoscaler.Status]:
   case class Spec(desiredReplicas: Int, image: String)
   case class Status(availableReplicas: Int, ready: Boolean)
 
-type Autoscaler = Autoscaler.Resource // this alias can be used with the API (e.g. k8s.get[Autoscaler](..)) in line with builtin types
+// Optional alias to slightly simplify Skuber API calls (e.g. k8s.get[Autoscaler](..) instead of k8s.get[Autoscaler.Resource](..)) 
+// which achieves desirable uniformity with how builtin resource kinds are used with the API e.g. k8s.get[Pod](..)
+// Due to restrictions in Scala 3 macros around generating new visible types, this new type alias can't be automatically generated
+type Autoscaler = Autoscaler.Resource 
 
 // spec only custom resource type (no status field)
 @experimental

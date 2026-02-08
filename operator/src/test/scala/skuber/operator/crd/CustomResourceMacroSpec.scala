@@ -200,3 +200,30 @@ class CustomResourceMacroSpec extends AnyFlatSpec with Matchers:
     cr.metadata.labels.shouldBe(Map("app" -> "web", "env" -> "prod"))
     cr.status.shouldBe(Some(WebAppResource.Status(1, true)))
   }
+
+  "customResource with user-provided format" should "use custom Spec format" in {
+    import CustomFormatResource.given
+    val spec = CustomFormatResource.Spec("test", 42)
+    val json = Json.toJson(spec)
+    // Should work with user-provided format
+    json.shouldBe(Json.obj("name" -> "test", "value" -> 42))
+    json.as[CustomFormatResource.Spec].shouldBe(spec)
+  }
+
+  it should "still generate Status format via macro" in {
+    import CustomFormatResource.given
+    val status = CustomFormatResource.Status(true)
+    val json = Json.toJson(status)
+    json.shouldBe(Json.obj("processed" -> true))
+    json.as[CustomFormatResource.Status].shouldBe(status)
+  }
+
+  it should "work end-to-end with mixed formats" in {
+    import CustomFormatResource.given
+    val cr = CustomFormatResource("test-resource", CustomFormatResource.Spec("hello", 123))
+    val json = Json.toJson(cr)
+
+    (json \ "kind").as[String].shouldBe("CustomFormat")
+    (json \ "spec" \ "name").as[String].shouldBe("hello")
+    (json \ "spec" \ "value").as[Int].shouldBe(123)
+  }

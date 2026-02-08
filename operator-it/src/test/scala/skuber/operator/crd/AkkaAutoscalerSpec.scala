@@ -2,7 +2,6 @@ package skuber.operator.crd
 
 import akka.stream.*
 import akka.stream.scaladsl.*
-import play.api.libs.json.Json
 import skuber.api.client.{EventType, LoggingContext, WatchEvent}
 import skuber.model.ListResource
 
@@ -23,7 +22,6 @@ class AkkaAutoscalerSpec extends AutoscalerSpec with AkkaK8SFixture {
 
     val trackedEvents = ListBuffer.empty[WatchEvent[Autoscaler.Resource]]
     val trackEvents: Sink[WatchEvent[Autoscaler.Resource], ?] = Sink.foreach { event =>
-      System.out.println(s"Got event: ${event}")
       trackedEvents += event
     }
 

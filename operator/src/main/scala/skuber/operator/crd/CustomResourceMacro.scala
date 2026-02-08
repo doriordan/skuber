@@ -15,13 +15,11 @@ object CustomResourceMacro:
     singular: String,
     shortNames: List[String],
     scope: Scope,
-    statusSubresource: Option[Boolean],
-    scaleSubresource: Option[Boolean]
+    statusSubresource: Boolean,
+    scaleSubresource: Boolean
   ): List[quotes.reflect.Definition] =
     import quotes.reflect.*
-
-    report.warning(s"[CRD Macro] transform called for kind=$kind, group=$group")
-
+    
     definition match
       case obj @ ClassDef(objName, constr, parents, self, body) if obj.symbol.flags.is(Flags.Module) =>
         val specClassOpt = body.collectFirst {
@@ -52,18 +50,6 @@ object CustomResourceMacro:
               s"Object $objName must extend CustomResourceSpecDef[${objName}.Spec]"
             )
 
-        val hasReplicasField = specClass.symbol.caseFields.exists { field =>
-          field.name == "replicas" && {
-            val fieldType = field.tree match
-              case vd: ValDef => vd.tpt.tpe
-              case _ => TypeRepr.of[Nothing]
-            fieldType =:= TypeRepr.of[Int]
-          }
-        }
-
-        val enableStatusSubresource = statusSubresource.getOrElse(hasStatusClass)
-        val enableScaleSubresource = scaleSubresource.getOrElse(hasReplicasField)
-
         val kindLower = kind.toLowerCase
         val singularName = if (singular.nonEmpty) singular else kindLower
         val pluralName = if (plural.nonEmpty) plural else s"${singularName}s"
@@ -73,9 +59,20 @@ object CustomResourceMacro:
 
         val objSym = obj.symbol
 
+        // Check which formatters the user has already overridden in the object body so we don't generate them
+        val hasUserSpecFormat = body.exists {
+          case vd: ValDef => vd.name == "specFormat"
+          case _ => false
+        }
+        val hasUserStatusFormat = body.exists {
+          case vd: ValDef => vd.name == "statusFormat"
+          case _ => false
+        }
+
         val newMembers = generateMembers(
           objSym, kind, group, version, pluralName, singularName, shortNames, scopeValue,
-          hasStatusClass, enableStatusSubresource, enableScaleSubresource
+          hasStatusClass, statusSubresource, scaleSubresource,
+          hasUserSpecFormat, hasUserStatusFormat
         )
 
         val newBody = body ++ newMembers
@@ -95,7 +92,9 @@ object CustomResourceMacro:
     scope: String,
     hasStatusClass: Boolean,
     enableStatusSubresource: Boolean,
-    enableScaleSubresource: Boolean
+    enableScaleSubresource: Boolean,
+    hasUserSpecFormat: Boolean,
+    hasUserStatusFormat: Boolean
   ): List[quotes.reflect.Statement] =
     import quotes.reflect.*
 
@@ -104,14 +103,15 @@ object CustomResourceMacro:
     val specTypeSym = objSym.typeMember("Spec")
     val specTypeRef = specTypeSym.typeRef
 
-    // 1. Generate protected val deriveSpecFormat: OFormat[Spec] = FormatHelper.deriveFormat[Spec](fieldNames)
-    members += generateFormatVal(objSym, "deriveSpecFormat", specTypeSym, specTypeRef)
+    // 1. Generate protected val specFormat unless user provided their own
+    if !hasUserSpecFormat then
+      members += generateFormatVal(objSym, "specFormat", specTypeSym, specTypeRef)
 
-    // 2. Generate protected val deriveStatusFormat: OFormat[Status] if has status class
-    if hasStatusClass then
+    // 2. Generate protected val statusFormat if has status class and user didn't provide their own
+    if hasStatusClass && !hasUserStatusFormat then
       val statusTypeSym = objSym.typeMember("Status")
       val statusTypeRef = statusTypeSym.typeRef
-      members += generateFormatVal(objSym, "deriveStatusFormat", statusTypeSym, statusTypeRef)
+      members += generateFormatVal(objSym, "statusFormat", statusTypeSym, statusTypeRef)
 
     // 3. Generate metadata tuple
     val kindExpr = Expr(kind)

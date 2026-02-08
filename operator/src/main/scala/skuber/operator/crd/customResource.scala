@@ -49,26 +49,16 @@ class customResource(
   singular: String = "",
   shortNames: String = "",
   scope: Scope = Scope.Namespaced,
-  statusSubresource: String = "auto",
-  scaleSubresource: String = "auto"
+  statusSubresource: Boolean = false,
+  scaleSubresource: Boolean= false
 ) extends MacroAnnotation:
   def transform(using Quotes)(
     tree: quotes.reflect.Definition,
     companion: Option[quotes.reflect.Definition]
   ): List[quotes.reflect.Definition] =
     val shortNamesList = if shortNames.isEmpty then Nil else shortNames.split(",").map(_.trim).toList
-    val statusOpt = statusSubresource match
-      case "auto" => None
-      case "true" => Some(true)
-      case "false" => Some(false)
-      case other => throw new IllegalArgumentException(s"statusSubresource must be 'auto', 'true', or 'false', got: '$other'")
-    val scaleOpt = scaleSubresource match
-      case "auto" => None
-      case "true" => Some(true)
-      case "false" => Some(false)
-      case other => throw new IllegalArgumentException(s"scaleSubresource must be 'auto', 'true', or 'false', got: '$other'")
     CustomResourceMacro.transform(
       tree, group, version, kind,
       plural, singular, shortNamesList, scope,
-      statusOpt, scaleOpt
+      statusSubresource, scaleSubresource
     )
