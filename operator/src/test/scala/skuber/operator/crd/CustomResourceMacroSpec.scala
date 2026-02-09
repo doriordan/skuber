@@ -218,6 +218,47 @@ class CustomResourceMacroSpec extends AnyFlatSpec with Matchers:
     json.as[CustomFormatResource.Status].shouldBe(status)
   }
 
+  "customResource macro with enums" should "serialize and deserialize enum fields" in {
+    import ReleaseResource.given
+    val spec = ReleaseResource.Spec(
+      name = "v1",
+      phase = ReleaseResource.Phase.Active,
+      risks = List(ReleaseResource.Risk.Low, ReleaseResource.Risk.High)
+    )
+    val json = Json.toJson(spec)
+    json.shouldBe(Json.obj(
+      "name" -> "v1",
+      "phase" -> "Active",
+      "risks" -> Json.arr("Low", "High")
+    ))
+    json.as[ReleaseResource.Spec].shouldBe(spec)
+  }
+
+  it should "round-trip enums in status" in {
+    import ReleaseResource.given
+    val status = ReleaseResource.Status(
+      phase = ReleaseResource.Phase.Done,
+      lastRisk = Some(ReleaseResource.Risk.Medium)
+    )
+    val json = Json.toJson(status)
+    json.shouldBe(Json.obj(
+      "phase" -> "Done",
+      "lastRisk" -> "Medium"
+    ))
+    json.as[ReleaseResource.Status].shouldBe(status)
+  }
+
+  it should "reject unknown enum values" in {
+    import ReleaseResource.given
+    val json = Json.obj(
+      "name" -> "v2",
+      "phase" -> "InvalidPhase",
+      "risks" -> Json.arr("Low")
+    )
+    val result = json.validate[ReleaseResource.Spec]
+    result.isError shouldBe true
+  }
+
   it should "work end-to-end with mixed formats" in {
     import CustomFormatResource.given
     val cr = CustomFormatResource("test-resource", CustomFormatResource.Spec("hello", 123))

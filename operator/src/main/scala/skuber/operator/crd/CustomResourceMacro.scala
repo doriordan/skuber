@@ -153,8 +153,12 @@ object CustomResourceMacro:
     def buildFormatExpr(fieldType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
       val fieldTypeSym = fieldType.typeSymbol
 
+      // Scala 3 enum
+      if fieldTypeSym.flags.is(Flags.Enum) then
+        buildEnumFormat(fieldType)
+
       // Direct nested case class
-      if caseClassSymbols.contains(fieldTypeSym) then
+      else if caseClassSymbols.contains(fieldTypeSym) then
         generatedFormatSymbols.get(fieldTypeSym) match
           case Some(nestedFormatSym) =>
             fieldType.asType match
@@ -191,6 +195,19 @@ object CustomResourceMacro:
           case _ =>
             // Primitive/external types - use implicit search
             searchImplicitFormat(fieldType, fieldName, ccName)
+
+    def buildEnumFormat(enumType: TypeRepr): Expr[Format[?]] =
+      val enumSym = enumType.typeSymbol
+      val companion = enumSym.companionModule
+      if companion == Symbol.noSymbol then
+        report.errorAndAbort(s"No companion object found for enum ${enumSym.fullName}")
+
+      val valuesTerm = Select.unique(Ref(companion), "values")
+
+      enumType.asType match
+        case '[t] =>
+          val valuesExpr = valuesTerm.asExprOf[Array[t]]
+          '{ EnumFormats.enumFormat[t]($valuesExpr) }
 
     // Container format builders using quotes for type safety
     def buildListFormat(innerType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =

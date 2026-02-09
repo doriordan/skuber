@@ -112,3 +112,22 @@ object ProjectResource extends CustomResourceDef[ProjectResource.Spec, ProjectRe
     tasksByCategory: Map[String, List[Task]]
   )
   case class Status(completedTasks: Int, totalTasks: Int)
+
+/**
+ * Test resource with Scala 3 enums.
+ */
+@experimental
+@customResource(
+  group = "test.example.com",
+  version = "v1",
+  kind = "Release"
+)
+object ReleaseResource extends CustomResourceDef[ReleaseResource.Spec, ReleaseResource.Status]:
+  enum Phase:
+    case Planning, Active, Done
+
+  enum Risk:
+    case Low, Medium, High
+
+  case class Spec(name: String, phase: Phase, risks: List[Risk])
+  case class Status(phase: Phase, lastRisk: Option[Risk])

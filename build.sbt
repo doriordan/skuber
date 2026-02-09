@@ -150,19 +150,23 @@ lazy val examples = (project in file("examples"))
   .dependsOn(core)
   .dependsOn(pekko)
 
-// Experiement support for operators including custom resources targetted specifically at Scala 3
+// Operator support for building Kubernetes operators with custom resources - Scala 3 only
 lazy val operator = (project in file("operator"))
   .settings(
     name := "skuber-operator",
     organization := "io.skuber",
-    // Scala 3 only - not cross-compiled
+    // Scala 3.8+ required for macro annotations
     scalaVersion := "3.8.1",
     crossScalaVersions := Seq("3.8.1"),
     // Enable experimental for MacroAnnotation
     scalacOptions ++= Seq("-Xcheck-macros", "-experimental"),
     libraryDependencies ++= Seq(
       playJson,
-      scalaTest % Test
+      pekkoActors,
+      pekkoStream,
+      pekkoSlf4j,
+      scalaTest % Test,
+      pekkoStreamTestkit % Test
     ),
     // Publishing settings
     publishTo := {
@@ -174,13 +178,14 @@ lazy val operator = (project in file("operator"))
     Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
   )
   .dependsOn(core)
+  .dependsOn(pekko)
 
 // Operator integration tests - tests the operator module functionality against a real Kubernetes cluster
 lazy val `operator-it` = (project in file("operator-it"))
   .settings(
     name := "skuber-operator-it",
     publish / skip := true,
-    // Scala 3 only to match operator module
+    // Scala 3.8+ to match operator module
     scalaVersion := "3.8.1",
     crossScalaVersions := Seq("3.8.1"),
     // Enable experimental for MacroAnnotation

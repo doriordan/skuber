@@ -52,6 +52,24 @@ object ContainerFormats:
     )
 
 /**
+ * Helper for creating Format instances for Scala 3 enums using their declared values.
+ * Works for common singleton cases (simple values) where the desired JSON mapping is to/from the string value
+ * of each case
+ * e.g.' enum Color: case Red, Blue, Green' will get its values mapped to JSON string values "Red", "Blue", "Green"
+ */
+object EnumFormats:
+
+  def enumFormat[E](values: Array[E]): Format[E] =
+    Format(
+      Reads.StringReads.flatMap { name =>
+        values.find(_.toString == name) match
+          case Some(value) => Reads.pure(value)
+          case None => Reads(_ => JsError(s"Invalid enum value: $name"))
+      },
+      Writes.StringWrites.contramap(_.toString)
+    )
+
+/**
  * Helper for creating OFormat instances for case classes with explicit field formats.
  * Used by @customResource macro to support nested case classes and container types.
  */
