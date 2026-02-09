@@ -73,7 +73,10 @@ object CrdFormatHelper:
     Reads[T] { json =>
       try
         val values = fieldNames.zip(fieldFormats).map { (name, format) =>
-          (json \ name).as(using format.asInstanceOf[Reads[Any]])
+          val value = (json \ name) match
+            case JsDefined(v) => v
+            case _: JsUndefined => JsNull
+          value.as(using format.asInstanceOf[Reads[Any]])
         }
         val product = mirror.fromProduct(Tuple.fromArray(values.toArray))
         JsSuccess(product)
