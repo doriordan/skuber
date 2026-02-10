@@ -2,6 +2,8 @@ package skuber.operator.crd
 
 import play.api.libs.json.*
 import scala.deriving.Mirror
+import java.time.{Instant, ZonedDateTime, ZoneOffset}
+import java.time.format.DateTimeFormatter
 
 /**
  * Helper for creating Format instances for container types (List, Option, etc.)
@@ -70,31 +72,90 @@ object EnumFormats:
     )
 
 /**
+ * Formats for common Kubernetes-compatible types.
+ * These are automatically used by the @customResource macro when generating formats.
+ */
+object CommonFormats:
+
+  /**
+   * Format for ZonedDateTime using ISO 8601 format (Kubernetes-compatible).
+   * Serializes to UTC with 'Z' suffix, e.g., "2026-02-10T15:30:00Z"
+   */
+  given zonedDateTimeFormat: Format[ZonedDateTime] = Format(
+    Reads { json =>
+      json.validate[String].flatMap { str =>
+        try
+          // Parse ISO 8601 format, handling both 'Z' suffix and offset formats
+          val parsed = if str.endsWith("Z") then
+            ZonedDateTime.parse(str, DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC))
+          else
+            ZonedDateTime.parse(str, DateTimeFormatter.ISO_DATE_TIME)
+          JsSuccess(parsed)
+        catch
+          case e: Exception => JsError(s"Invalid date-time format: ${e.getMessage}")
+      }
+    },
+    Writes { dt =>
+      // Convert to UTC and format as ISO 8601 (Kubernetes expects this format)
+      JsString(dt.toInstant.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
+    }
+  )
+
+  /**
+   * Format for Instant using ISO 8601 format (Kubernetes-compatible).
+   * Serializes with 'Z' suffix, e.g., "2026-02-10T15:30:00Z"
+   */
+  given instantFormat: Format[Instant] = Format(
+    Reads { json =>
+      json.validate[String].flatMap { str =>
+        try
+          JsSuccess(Instant.parse(str))
+        catch
+          case e: Exception => JsError(s"Invalid instant format: ${e.getMessage}")
+      }
+    },
+    Writes { instant =>
+      JsString(instant.toString)
+    }
+  )
+
+/**
  * Helper for creating OFormat instances for case classes with explicit field formats.
  * Used by @customResource macro to support nested case classes and container types.
  */
 object CrdFormatHelper:
 
   /**
-   * Create an OFormat for a case class, passing field formats explicitly.
+   * Create an OFormat for a case class, passing field formats and default values explicitly.
    * This avoids compile-time implicit lookup which fails for macro-generated formats.
+   *
+   * When a field is missing from JSON:
+   * - If the field has a default value, use it
+   * - Otherwise, try to parse JsNull (works for Option types, fails for others)
    *
    * @param fieldNames Names of the case class fields
    * @param fieldFormats Format instances for each field, in field order
+   * @param defaults Optional default values for each field (None if no default)
    * @param mirror Mirror for the case class type
    */
   def createFormat[T](
     fieldNames: List[String],
     fieldFormats: List[Format[?]],
+    defaults: List[Option[Any]],
     mirror: Mirror.ProductOf[T]
   ): OFormat[T] = OFormat(
     Reads[T] { json =>
       try
-        val values = fieldNames.zip(fieldFormats).map { (name, format) =>
-          val value = (json \ name) match
-            case JsDefined(v) => v
-            case _: JsUndefined => JsNull
-          value.as(using format.asInstanceOf[Reads[Any]])
+        val values = fieldNames.zip(fieldFormats).zip(defaults).map { case ((name, format), default) =>
+          (json \ name) match
+            case JsDefined(v) =>
+              // Field present - parse it
+              v.as(using format.asInstanceOf[Reads[Any]])
+            case _: JsUndefined =>
+              // Field missing - use default if available, otherwise try JsNull
+              default match
+                case Some(defaultVal) => defaultVal
+                case None => JsNull.as(using format.asInstanceOf[Reads[Any]])
         }
         val product = mirror.fromProduct(Tuple.fromArray(values.toArray))
         JsSuccess(product)
@@ -110,3 +171,13 @@ object CrdFormatHelper:
       JsObject(pairs)
     }
   )
+
+  /**
+   * Backwards-compatible version without defaults (all fields required in JSON).
+   */
+  def createFormat[T](
+    fieldNames: List[String],
+    fieldFormats: List[Format[?]],
+    mirror: Mirror.ProductOf[T]
+  ): OFormat[T] =
+    createFormat(fieldNames, fieldFormats, fieldNames.map(_ => None: Option[Any]), mirror)

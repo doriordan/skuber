@@ -193,8 +193,10 @@ object CustomResourceMacro:
                 searchImplicitFormat(fieldType, fieldName, ccName)
 
           case _ =>
-            // Primitive/external types - use implicit search
-            searchImplicitFormat(fieldType, fieldName, ccName)
+            // Check for common Kubernetes types first, then fall back to implicit search
+            buildCommonTypeFormat(fieldType).getOrElse(
+              searchImplicitFormat(fieldType, fieldName, ccName)
+            )
 
     def buildEnumFormat(enumType: TypeRepr): Expr[Format[?]] =
       val enumSym = enumType.typeSymbol
@@ -252,6 +254,16 @@ object CustomResourceMacro:
           val inner = valueFormat.asExprOf[Format[v]]
           '{ ContainerFormats.mapFormat[v]($inner) }
 
+    // Check for common Kubernetes types and return built-in format if available
+    def buildCommonTypeFormat(fieldType: TypeRepr): Option[Expr[Format[?]]] =
+      fieldType.typeSymbol.fullName match
+        case "java.time.ZonedDateTime" =>
+          Some('{ CommonFormats.zonedDateTimeFormat })
+        case "java.time.Instant" =>
+          Some('{ CommonFormats.instantFormat })
+        case _ =>
+          None
+
     def searchImplicitFormat(fieldType: TypeRepr, fieldName: String, ccName: String): Expr[Format[?]] =
       // Use Implicits.search for better compatibility with Play JSON's implicit resolution
       val formatSearchType = TypeRepr.of[Format].appliedTo(List(fieldType))
@@ -291,13 +303,43 @@ object CustomResourceMacro:
       }
       val formatListExpr: Expr[List[Format[?]]] = Expr.ofList(fieldFormatExprs)
 
+      // Extract default values for fields
+      // In Scala 3, default values are methods on the companion: $lessinit$greater$default$N
+      val companion = ccSym.companionModule
+
+      // Build expressions for default values directly (no thunks)
+      // Values are evaluated when the format is created, which happens once per format instance
+      val defaultExprs: List[Expr[Option[Any]]] = fields.zipWithIndex.map { (field, idx) =>
+        val paramIdx = idx + 1
+        val defaultMethodName = s"$$lessinit$$greater$$default$$$paramIdx"
+
+        if companion != Symbol.noSymbol then
+          companion.methodMember(defaultMethodName).headOption match
+            case Some(defaultMethod) =>
+              // Get the default value by referencing the companion method
+              // The method signature is like: def $lessinit$greater$default$N: T
+              val companionTerm = Ref(companion)
+              val methodSelect = companionTerm.select(defaultMethod)
+              // Pass the value directly - no lambda wrapping
+              field.info.widen.asType match
+                case '[t] =>
+                  val defaultValExpr = methodSelect.asExprOf[t]
+                  '{ Some($defaultValExpr: Any) }
+            case None =>
+              '{ None }
+        else
+          '{ None }
+      }
+
+      val defaultsExpr: Expr[List[Option[Any]]] = Expr.ofList(defaultExprs)
+
       // Build the format using quotes
       ccTypeRef.asType match
         case '[t] =>
           Expr.summon[Mirror.ProductOf[t]] match
             case Some(mirror) =>
               val formatExpr: Expr[OFormat[t]] = '{
-                CrdFormatHelper.createFormat[t]($fieldNamesExpr, $formatListExpr, $mirror)
+                CrdFormatHelper.createFormat[t]($fieldNamesExpr, $formatListExpr, $defaultsExpr, $mirror)
               }
               ValDef(formatSym, Some(formatExpr.asTerm.changeOwner(formatSym)))
 

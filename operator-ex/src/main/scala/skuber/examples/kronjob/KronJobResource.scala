@@ -7,11 +7,13 @@ import skuber.json.format.objRefFormat
 import java.time.ZonedDateTime
 
 /**
- * Custom CronJob resource definition following the kubebuilder tutorial pattern.
  *
  * This demonstrates creating a custom resource that manages Kubernetes Jobs
  * based on a cron schedule.
  *
+ * Inspired by the kubebuilder tutorial, but here named "KronJob" to avoid confusion with
+ * the analagous built-in CronJob Kubernetes type.
+  *
  * @see https://book.kubebuilder.io/cronjob-tutorial/cronjob-tutorial
  */
 @experimental

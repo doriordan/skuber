@@ -274,8 +274,16 @@ class KronJobReconciler(using system: ActorSystem) extends Reconciler[KronJob]:
 
     val job = buildJob(cronJob, jobName, scheduledTime)
 
+    // Create job, handling AlreadyExists gracefully (job may have been created in a previous reconcile)
+    val createFuture = ctx.client.usingNamespace(cronJob.metadata.namespace).create(job).map { _ =>
+      log.info(s"Created job $jobName")
+    }.recover {
+      case e if e.getMessage.contains("AlreadyExists") || e.getMessage.contains("409") =>
+        log.debug(s"Job $jobName already exists, continuing")
+    }
+
     for
-      _ <- ctx.client.usingNamespace(cronJob.metadata.namespace).create(job)
+      _ <- createFuture
 
       // Update last schedule time
       currentStatus = cronJob.status.getOrElse(KronJobResource.Status())
@@ -287,7 +295,7 @@ class KronJobReconciler(using system: ActorSystem) extends Reconciler[KronJob]:
       nextRun = schedule.nextAfter(now)
       delay = java.time.Duration.between(now, nextRun).toMillis.millis
     yield
-      log.info(s"Created job $jobName, next run at $nextRun")
+      log.info(s"Job $jobName scheduled, next run at $nextRun")
       ReconcileResult.RequeueAfter(delay, s"Next run at $nextRun")
 
   /**

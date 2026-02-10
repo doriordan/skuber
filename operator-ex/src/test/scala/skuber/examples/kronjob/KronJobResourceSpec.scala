@@ -84,6 +84,37 @@ class KronJobResourceSpec extends AnyFlatSpec with Matchers:
     spec.failedJobsHistoryLimit shouldBe 1
   }
 
+  it should "parse spec with missing optional fields using defaults" in {
+    // Only required fields: schedule and jobTemplate (with just image)
+    val minimalSpecJson =
+      """{
+        |  "schedule": "*/5 * * * *",
+        |  "jobTemplate": {
+        |    "image": "busybox"
+        |  }
+        |}""".stripMargin
+
+    val json = Json.parse(minimalSpecJson)
+    val result = json.validate[KronJobResource.Spec]
+
+    result shouldBe a[JsSuccess[?]]
+    val spec = result.get
+
+    // Explicitly provided
+    spec.schedule shouldBe "*/5 * * * *"
+    spec.jobTemplate.image shouldBe "busybox"
+
+    // Should use default values
+    spec.jobTemplate.command shouldBe Nil
+    spec.jobTemplate.args shouldBe Nil
+    spec.jobTemplate.restartPolicy shouldBe "OnFailure"
+    spec.startingDeadlineSeconds shouldBe None
+    spec.concurrencyPolicy shouldBe KronJobResource.ConcurrencyPolicy.Allow
+    spec.suspend shouldBe false
+    spec.successfulJobsHistoryLimit shouldBe 3
+    spec.failedJobsHistoryLimit shouldBe 1
+  }
+
   it should "parse all concurrency policies" in {
     def parseWithPolicy(policy: String): KronJobResource.Spec =
       val specJson =
@@ -128,6 +159,25 @@ class KronJobResourceSpec extends AnyFlatSpec with Matchers:
     val reparsed = json.as[KronJobResource.Status]
 
     reparsed shouldBe original
+  }
+
+  it should "serialize ZonedDateTime in ISO 8601 format for Kubernetes" in {
+    import java.time.{ZoneId, ZonedDateTime}
+
+    val dt = ZonedDateTime.of(2026, 2, 10, 15, 30, 0, 0, ZoneId.of("Europe/London"))
+    val status = KronJobResource.Status(
+      active = Nil,
+      lastScheduleTime = Some(dt),
+      lastSuccessfulTime = None
+    )
+
+    val json = Json.toJson(status)
+    val lastScheduleTimeStr = (json \ "lastScheduleTime").as[String]
+
+    // Should be ISO 8601 format without zone name, in UTC
+    lastScheduleTimeStr shouldBe "2026-02-10T15:30:00Z"
+    // Should NOT contain the zone ID in brackets
+    lastScheduleTimeStr should not include "[Europe/London]"
   }
 
   "KronJob factory method" should "create resource with correct metadata" in {
