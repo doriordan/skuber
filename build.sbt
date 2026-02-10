@@ -204,12 +204,37 @@ lazy val `operator-it` = (project in file("operator-it"))
   .dependsOn(pekko % Test)
   .dependsOn(akka % Test)
 
+// Operator examples - demonstrates building Kubernetes operators with Skuber
+lazy val `operator-ex` = (project in file("operator-ex"))
+  .settings(
+    name := "skuber-operator-examples",
+    publish / skip := true,
+    // Scala 3.8+ to match operator module
+    scalaVersion := "3.8.1",
+    crossScalaVersions := Seq("3.8.1"),
+    // Enable experimental for MacroAnnotation
+    scalacOptions ++= Seq("-experimental"),
+    libraryDependencies ++= Seq(
+      pekkoActors,
+      pekkoStream,
+      pekkoSlf4j,
+      logback,
+      typesafeConfig,
+      scalaTest % Test
+    ),
+    // Allow running the main class
+    Compile / run / fork := true
+  )
+  .dependsOn(core)
+  .dependsOn(operator)
+  .dependsOn(pekko)
+
 lazy val root = (project in file("."))
     .settings(
       publish / skip := true,
       commonSettings
     )
-    .aggregate(core, akka, pekko, operator, `operator-it`, integration, examples)
+    .aggregate(core, akka, pekko, operator, `operator-it`, `operator-ex`, integration, examples)
 
 root / publishArtifact := false
 
