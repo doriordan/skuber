@@ -10,14 +10,18 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.*
 import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.locks.ReentrantLock
 
 /**
  * Work queue that deduplicates items and handles rate limiting.
  *
  * Features:
  * - Deduplication: multiple events for same key become one work item
+ * - FIFO ordering: items are processed in the order they were added
  * - Rate limiting: controls how fast items can be processed
  * - Delayed requeue: supports RequeueAfter with specific delays
+ *
+ * Implementation uses both a Set (for O(1) deduplication) and a Queue (for FIFO ordering).
  */
 class WorkQueue(
   config: WorkQueueConfig = WorkQueueConfig.default
@@ -26,13 +30,21 @@ class WorkQueue(
   given ExecutionContext = system.dispatcher
   given Materializer = Materializer(system)
 
-  // Items currently being processed (for deduplication)
+  // Lock for coordinating access to pending set and queue
+  private val pendingLock = new ReentrantLock()
+
+  // Items currently being processed
   private val processing = TrieMap[NamespacedName, Unit]()
 
-  // Items waiting to be processed
-  private val pending = TrieMap[NamespacedName, Instant]()
+  // Items that are "dirty" - need processing. This is the authoritative set of items
+  // that need work. Items are added here first, then moved to the queue.
+  private val dirty = TrieMap[NamespacedName, Unit]()
 
-  // Delayed items (requeue after)
+  // Items waiting to be processed - Queue for FIFO ordering
+  // Items in this queue are always also in the dirty set
+  private val pendingQueue = new ConcurrentLinkedQueue[NamespacedName]()
+
+  // Delayed items (requeue after) - Map from key to scheduled process time
   private val delayed = TrieMap[NamespacedName, Instant]()
 
   // Rate limiting state per key
@@ -40,14 +52,34 @@ class WorkQueue(
 
   /**
    * Add an item to the queue.
-   * If already pending or processing, this is a no-op (deduplication).
+   *
+   * If already marked dirty, this is a no-op (deduplication).
+   * If currently processing, marks as dirty so it will be re-queued when done.
+   * Items are processed in FIFO order.
    */
   def add(key: NamespacedName): Unit =
-    if !processing.contains(key) && !pending.contains(key) then
-      pending.put(key, Instant.now())
+    pendingLock.lock()
+    try
+      // If already dirty, nothing to do (deduplication)
+      if dirty.contains(key) then
+        return
+
+      // Mark as dirty - this item needs processing
+      dirty.put(key, ())
+
+      // If currently processing, don't add to queue yet.
+      // It will be re-queued when done() is called.
+      if processing.contains(key) then
+        return
+
+      // Add to queue for processing
+      pendingQueue.offer(key)
+    finally
+      pendingLock.unlock()
 
   /**
    * Add an item to be processed after a delay.
+   * If already delayed with an earlier time, keeps the earlier time.
    */
   def addAfter(key: NamespacedName, delay: FiniteDuration): Unit =
     val processAt = Instant.now().plusMillis(delay.toMillis)
@@ -67,19 +99,42 @@ class WorkQueue(
   /**
    * Mark an item as done processing.
    * Call this after reconciliation completes.
+   *
+   * If the item was marked dirty while processing (new events arrived),
+   * it will be automatically re-queued for another reconciliation.
    */
   def done(key: NamespacedName): Unit =
-    processing.remove(key)
+    pendingLock.lock()
+    try
+      processing.remove(key)
+
+      // If item was marked dirty while we were processing, re-queue it
+      if dirty.contains(key) then
+        pendingQueue.offer(key)
+    finally
+      pendingLock.unlock()
 
   /**
    * Mark an item as successfully processed (resets rate limiter).
+   * Unlike done(), this also clears the dirty flag, preventing re-queue
+   * even if new events arrived during processing.
+   *
+   * Use this when reconciliation succeeded and you've observed the latest state.
+   * Use done() when reconciliation failed and you want events that arrived
+   * during processing to trigger a re-reconciliation.
    */
   def forget(key: NamespacedName): Unit =
-    rateLimiter.forget(key)
-    done(key)
+    pendingLock.lock()
+    try
+      rateLimiter.forget(key)
+      dirty.remove(key)
+      processing.remove(key)
+    finally
+      pendingLock.unlock()
 
   /**
    * Get the next item to process, if any.
+   * Returns items in FIFO order.
    */
   def get(): Option[NamespacedName] =
     // First, move any ready delayed items to pending
@@ -87,15 +142,32 @@ class WorkQueue(
     delayed.foreach { case (key, processAt) =>
       if !processAt.isAfter(now) then
         delayed.remove(key)
-        pending.put(key, now)
+        add(key)  // Use add() to maintain deduplication
     }
 
-    // Get next pending item
-    pending.keys.headOption.flatMap { key =>
-      pending.remove(key)
-      processing.put(key, ())
-      Some(key)
-    }
+    // Get next pending item in FIFO order
+    pendingLock.lock()
+    try
+      var result: Option[NamespacedName] = None
+      var found = false
+
+      while !found && !pendingQueue.isEmpty do
+        val key = pendingQueue.poll()
+        if key != null then
+          // Check if still dirty (might have been removed by forget())
+          if dirty.contains(key) then
+            // Check not already processing (could happen with delayed items)
+            if !processing.contains(key) then
+              // Remove from dirty - we're about to process it
+              dirty.remove(key)
+              processing.put(key, ())
+              result = Some(key)
+              found = true
+            // else: already processing, the dirty flag will cause re-queue in done()
+
+      result
+    finally
+      pendingLock.unlock()
 
   /**
    * Create a stream of work items from this queue.
@@ -105,9 +177,26 @@ class WorkQueue(
       .mapConcat(_ => get().toList)
 
   /**
-   * Length of the pending queue.
+   * Number of items marked dirty (needing processing).
    */
-  def len: Int = pending.size
+  def len: Int = dirty.size
+
+  /**
+   * Number of items currently being processed.
+   */
+  def processingCount: Int = processing.size
+
+  /**
+   * Number of delayed items waiting.
+   */
+  def delayedCount: Int = delayed.size
+
+  /**
+   * Number of items in the pending queue.
+   * Note: This may differ from len() as the queue may contain
+   * stale entries for items no longer dirty.
+   */
+  def queueLen: Int = pendingQueue.size
 
   /**
    * Check if queue is shutting down.
