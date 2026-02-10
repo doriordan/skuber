@@ -34,11 +34,30 @@ case class ReflectorConfig(
   maxRestartsWithin: FiniteDuration = 5.minutes,
 
   /** Buffer size for watch events */
-  watchBufferSize: Int = 1024
+  watchBufferSize: Int = 1024,
+
+  /**
+   * Use sendInitialEvents (streaming list) instead of List+Watch.
+   *
+   * When true, uses a single watch request with sendInitialEvents=true which:
+   * - Streams all existing resources as ADDED events
+   * - Sends a BOOKMARK event when initial sync is complete
+   * - Continues with live events
+   *
+   * This eliminates the gap between List and Watch where events could be missed.
+   * Requires Kubernetes 1.27+ (beta) or 1.28+ (GA).
+   *
+   * When false (default), uses traditional List+Watch pattern for compatibility
+   * with older Kubernetes versions.
+   */
+  useStreamingList: Boolean = false
 )
 
 object ReflectorConfig:
   val default: ReflectorConfig = ReflectorConfig()
+
+  /** Config optimized for Kubernetes 1.28+ with streaming list support */
+  val streamingList: ReflectorConfig = ReflectorConfig(useStreamingList = true)
 
 /**
  * Reflector watches a resource type and keeps the cache updated.
@@ -92,6 +111,17 @@ class Reflector[R <: ObjectResource](
   def hasSynced: Boolean = cache.hasSynced
 
   private def runListAndWatch(): Unit =
+    if config.useStreamingList then
+      runStreamingList()
+    else
+      runTraditionalListAndWatch()
+
+  /**
+   * Traditional List+Watch pattern:
+   * 1. List all resources
+   * 2. Watch from the list's resourceVersion
+   */
+  private def runTraditionalListAndWatch(): Unit =
     val restartSettings = RestartSettings(
       minBackoff = config.minBackoff,
       maxBackoff = config.maxBackoff,
@@ -145,6 +175,57 @@ class Reflector[R <: ObjectResource](
         log.error(s"Watch stream failed for ${rd.spec.names.kind}", e)
     }
 
+  /**
+   * Streaming list pattern (sendInitialEvents):
+   * Single watch request that streams initial state as ADDED events,
+   * then sends BOOKMARK when initial sync is complete, then continues
+   * with live events.
+   *
+   * Requires Kubernetes 1.27+ (beta) or 1.28+ (GA).
+   */
+  private def runStreamingList(): Unit =
+    val restartSettings = RestartSettings(
+      minBackoff = config.minBackoff,
+      maxBackoff = config.maxBackoff,
+      randomFactor = config.randomFactor
+    ).withMaxRestarts(config.maxRestarts, config.maxRestartsWithin)
+
+    val watchSource = RestartSource.withBackoff(restartSettings) { () =>
+      log.info(s"Starting streaming list for ${rd.spec.names.kind}")
+
+      // Clear cache on restart - we'll rebuild from streamed events
+      cache.replace(Nil)
+
+      // Use watchWithInitialEvents for streaming list
+      val eventSource = namespace match
+        case Some(ns) =>
+          // For namespaced watch, get watcher from namespace-scoped client
+          // The implementation returns PekkoKubernetesClient, so this cast is safe
+          val nsClient = client.usingNamespace(ns).asInstanceOf[PekkoKubernetesClient]
+          nsClient.getWatcher[R].watchWithInitialEvents()
+        case None =>
+          client.getWatcher[R].watchClusterWithInitialEvents()
+
+      eventSource
+    }
+
+    val (ks, done) = watchSource
+      .viaMat(KillSwitches.single)(Keep.right)
+      .toMat(Sink.foreach(processEvent))(Keep.both)
+      .run()
+
+    killSwitch = Some(ks)
+
+    done.onComplete {
+      case Success(_) =>
+        log.info(s"Streaming list completed for ${rd.spec.names.kind}")
+      case Failure(e) =>
+        log.error(s"Streaming list failed for ${rd.spec.names.kind}", e)
+    }
+
+  /** Annotation key indicating initial events have ended */
+  private val InitialEventsEndAnnotation = "k8s.io/initial-events-end"
+
   private def processEvent(event: WatchEvent[R]): Unit =
     // Update resource version tracking
     val rv = event._object.metadata.resourceVersion
@@ -163,6 +244,20 @@ class Reflector[R <: ObjectResource](
       case EventType.DELETED =>
         log.debug(s"DELETED ${event._object.metadata.name}")
         cache.delete(event._object)
+
+      case EventType.BOOKMARK =>
+        // Check if this is the initial-events-end bookmark
+        val isInitialEventsEnd = event._object.metadata.annotations
+          .get(InitialEventsEndAnnotation)
+          .contains("true")
+
+        if isInitialEventsEnd then
+          log.info(s"Initial events complete for ${rd.spec.names.kind}")
+          if !cache.hasSynced then
+            cache.markSynced()
+            startedPromise.trySuccess(())
+        else
+          log.debug(s"BOOKMARK for ${rd.spec.names.kind} at rv=$rv")
 
       case EventType.ERROR =>
         log.warn(s"ERROR event for ${event._object.metadata.name}")

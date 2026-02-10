@@ -23,7 +23,7 @@ package object client {
 
   object WatchedEventType extends Enumeration {
     type WatchedEventType = Value
-    val ADDED, MODIFIED, DELETED, ERROR = Value
+    val ADDED, MODIFIED, DELETED, ERROR, BOOKMARK = Value
   }
 
   val defaultBufSize: Int = 100000
@@ -40,7 +40,11 @@ package object client {
     // the timeout of the request sent to the API server to perform the watch
     // after each watch request times out, skuber transparently resends the request and in this way continues watching for an unlimited period
     // for this work it is important that the request timeout is less than the connection idle timeout (which has a default of 1 minute)
-    timeoutSeconds: Option[Long] = Some(defaultWatchRequestTimeoutSeconds)
+    timeoutSeconds: Option[Long] = Some(defaultWatchRequestTimeoutSeconds),
+    // Bookmark support - see https://kubernetes.io/docs/reference/using-api/api-concepts/
+    allowWatchBookmarks: Boolean = false, // Enable BOOKMARK events in watch stream
+    sendInitialEvents: Boolean = false, // Stream initial state as ADDED events, followed by BOOKMARK with initial-events-end annotation
+    resourceVersionMatch: Option[String] = None // "NotOlderThan" or "Exact" - semantics for resourceVersion matching
   )
 
   // Delete options are (optionally) passed with a Delete request
@@ -67,7 +71,11 @@ package object client {
     timeoutSeconds: Option[Long] = None,
     limit: Option[Long] = None,
     continue: Option[String] = None,
-    watch: Option[Boolean] = None // NOTE: not for application use - it will be overridden by watch requests
+    watch: Option[Boolean] = None, // NOTE: not for application use - it will be overridden by watch requests
+    // Bookmark support - see https://kubernetes.io/docs/reference/using-api/api-concepts/
+    allowWatchBookmarks: Option[Boolean] = None, // Enable BOOKMARK events in watch stream
+    sendInitialEvents: Option[Boolean] = None, // Stream initial state as ADDED events, followed by BOOKMARK with initial-events-end annotation
+    resourceVersionMatch: Option[String] = None // "NotOlderThan" or "Exact" - semantics for resourceVersion matching
   ) {
     lazy val asOptionalsMap: Map[String, Option[String]] = Map(
       "labelSelector" -> labelSelector.map(_.toString),
@@ -77,7 +85,10 @@ package object client {
       "timeoutSeconds" -> timeoutSeconds.map(_.toString),
       "limit" -> limit.map(_.toString),
       "continue" -> continue,
-      "watch" -> watch.map(_.toString))
+      "watch" -> watch.map(_.toString),
+      "allowWatchBookmarks" -> allowWatchBookmarks.map(_.toString),
+      "sendInitialEvents" -> sendInitialEvents.map(_.toString),
+      "resourceVersionMatch" -> resourceVersionMatch)
 
     lazy val asMap: Map[String, String] = asOptionalsMap.collect {
       case (key, Some(value)) => key -> value
@@ -257,7 +268,7 @@ package object client {
 
   object EventType extends Enumeration {
     type EventType = Value
-    val ADDED, MODIFIED, DELETED, ERROR = Value
+    val ADDED, MODIFIED, DELETED, ERROR, BOOKMARK = Value
   }
 
   object WatchStream {

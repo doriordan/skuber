@@ -43,7 +43,10 @@ trait Watcher[O <: ObjectResource] {
       resourceVersion = parameters.resourceVersion,
       labelSelector = parameters.labelSelector,
       timeoutSeconds = parameters.timeoutSeconds,
-      fieldSelector = parameters.fieldSelector
+      fieldSelector = parameters.fieldSelector,
+      allowWatchBookmarks = if (parameters.allowWatchBookmarks) Some(true) else None,
+      sendInitialEvents = if (parameters.sendInitialEvents) Some(true) else None,
+      resourceVersionMatch = parameters.resourceVersionMatch
     )
     _watch(options, parameters.clusterScope, parameters.bufSize, parameters.errorHandler)
   }
@@ -151,6 +154,55 @@ trait Watcher[O <: ObjectResource] {
     */
   def watchObjectStartingFromVersion(name: String, resourceVersion: String)(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
     val watchParameters = WatchParameters(resourceVersion = Some(resourceVersion), fieldSelector = Some(s"metadata.name=$name"))
+    watchWithParameters(watchParameters)
+  }
+
+  /**
+    * Watch with sendInitialEvents=true (streaming list).
+    *
+    * This is an optimized alternative to List+Watch that:
+    * 1. Streams all existing resources as ADDED events
+    * 2. Sends a BOOKMARK event with annotation "k8s.io/initial-events-end" when initial sync is complete
+    * 3. Continues streaming subsequent changes
+    *
+    * This eliminates the gap between List and Watch where events could be missed.
+    * Requires Kubernetes 1.27+ (beta) or 1.28+ (GA).
+    *
+    * @param fmt
+    * @param rd
+    * @param lc
+    * @tparam O the kind of object resource to watch
+    * @return a source of events including initial state
+    */
+  def watchWithInitialEvents()(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
+    val watchParameters = WatchParameters(
+      resourceVersion = Some(""),  // Required: empty string means "consistent read"
+      sendInitialEvents = true,
+      allowWatchBookmarks = true,
+      resourceVersionMatch = Some("NotOlderThan")
+    )
+    watchWithParameters(watchParameters)
+  }
+
+  /**
+    * Watch with sendInitialEvents=true across the whole cluster (streaming list).
+    *
+    * Same as watchWithInitialEvents but for cluster-scoped watches.
+    *
+    * @param fmt
+    * @param rd
+    * @param lc
+    * @tparam O the kind of object resource to watch
+    * @return a source of events including initial state
+    */
+  def watchClusterWithInitialEvents()(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): EventSource = {
+    val watchParameters = WatchParameters(
+      clusterScope = true,
+      resourceVersion = Some(""),  // Required: empty string means "consistent read"
+      sendInitialEvents = true,
+      allowWatchBookmarks = true,
+      resourceVersionMatch = Some("NotOlderThan")
+    )
     watchWithParameters(watchParameters)
   }
 }
