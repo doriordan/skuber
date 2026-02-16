@@ -1,0 +1,73 @@
+package skuber.catseffect.internal.http4s
+
+import cats.effect.Async
+import cats.syntax.all.*
+import fs2.Stream
+import org.http4s.*
+import org.http4s.client.Client
+import org.http4s.client.websocket.{WSClient, WSFrame, WSRequest}
+import org.http4s.headers.`Content-Type`
+import org.typelevel.ci.CIString
+import skuber.catseffect.internal.*
+
+private[catseffect] class Http4sBackend[F[_]: Async](
+  client: Client[F],
+  wsClient: WSClient[F]
+) extends HttpBackend[F]:
+
+  override def request(req: K8sRequest): F[K8sResponse] =
+    val http4sReq = toHttp4sRequest(req)
+    client.run(http4sReq).use { response =>
+      response.body.compile.to(Array).map { bodyBytes =>
+        K8sResponse(
+          statusCode = response.status.code,
+          body = bodyBytes,
+          headers = response.headers.headers.map(h => h.name.toString -> h.value).toMap
+        )
+      }
+    }
+
+  override def streamRequest(req: K8sRequest): Stream[F, Byte] =
+    val http4sReq = toHttp4sRequest(req)
+    Stream.resource(client.run(http4sReq)).flatMap(_.body)
+
+  override def websocket(req: K8sRequest, stdin: Option[Stream[F, Array[Byte]]]): Stream[F, WebSocketMessage] =
+    val wsUri = Uri.unsafeFromString(req.url.replaceFirst("^http", "ws"))
+    val headers = Headers(req.headers.map { case (k, v) => Header.Raw(CIString(k), v) }.toList)
+    Stream.resource(wsClient.connectHighLevel(WSRequest(wsUri, headers, Method.GET))).flatMap { (conn: org.http4s.client.websocket.WSConnectionHighLevel[F]) =>
+      val receive: Stream[F, WebSocketMessage] = conn.receiveStream.collect {
+        case WSFrame.Binary(data, _) => WebSocketMessage.Binary(data.toArray)
+      }
+
+      stdin match
+        case Some(input) =>
+          val send = input
+            .map(data => WSFrame.Binary(scodec.bits.ByteVector(data)))
+            .through(conn.sendPipe)
+          receive.concurrently(send)
+        case None =>
+          receive
+    }
+
+  private def toHttp4sRequest(req: K8sRequest): Request[F] =
+    val method = req.method match
+      case HttpMethod.Get => Method.GET
+      case HttpMethod.Post => Method.POST
+      case HttpMethod.Put => Method.PUT
+      case HttpMethod.Delete => Method.DELETE
+      case HttpMethod.Patch => Method.PATCH
+
+    val baseUri = Uri.unsafeFromString(req.url)
+    val uri = if req.queryParams.nonEmpty then
+      baseUri.withQueryParams(req.queryParams)
+    else baseUri
+
+    val headers = Headers(req.headers.map { case (k, v) =>
+      Header.Raw(CIString(k), v)
+    }.toList)
+
+    val base = Request[F](method = method, uri = uri, headers = headers)
+    req.body match
+      case Some(bytes) =>
+        base.withEntity(bytes).putHeaders(`Content-Type`(MediaType.application.json))
+      case None => base

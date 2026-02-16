@@ -174,12 +174,72 @@ lazy val repl = (project in file("repl"))
   )
   .dependsOn(pekko)
 
+// Skuber Cats Effect client - concrete Kubernetes Scala client implementation based on Cats Effect, fs2 and http4s
+// Scala 3 only
+
+val catsEffectVersion = "3.5.7"
+val fs2Version = "3.11.0"
+val http4sVersion = "0.23.30"
+
+val catsEffect = "org.typelevel" %% "cats-effect" % catsEffectVersion
+val fs2Core = "co.fs2" %% "fs2-core" % fs2Version
+val fs2IO = "co.fs2" %% "fs2-io" % fs2Version
+val http4sClient = "org.http4s" %% "http4s-client" % http4sVersion
+val http4sDsl = "org.http4s" %% "http4s-dsl" % http4sVersion
+val http4sEmberClient = "org.http4s" %% "http4s-ember-client" % http4sVersion
+val http4sJdkHttpClient = "org.http4s" %% "http4s-jdk-http-client" % "0.9.1"
+
+val munitCatsEffect = "org.typelevel" %% "munit-cats-effect" % "2.0.0"
+
+lazy val catsClientDependencies = Seq(
+  catsEffect, fs2Core, fs2IO,
+  http4sClient, http4sDsl, http4sEmberClient, http4sJdkHttpClient,
+  scalaTest % Test,
+  munitCatsEffect % Test
+)
+
+lazy val cats = (project in file("cats"))
+  .settings(
+    name := "skuber-cats",
+    organization := "io.skuber",
+    scalaVersion := "3.3.7",
+    crossScalaVersions := Seq("3.3.7"),
+    publishTo := {
+      val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+      if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+      else localStaging.value
+    },
+    pomIncludeRepository := { _ => false },
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+    testFrameworks += new TestFramework("munit.Framework"),
+    libraryDependencies ++= catsClientDependencies
+  )
+  .dependsOn(core)
+
+// Integration tests for the Cats Effect client (Scala 3 only, separate subproject per SBT 1.9+ guidance)
+lazy val `cats-it` = (project in file("cats-it"))
+  .settings(
+    name := "skuber-cats-it",
+    publish / skip := true,
+    scalaVersion := "3.3.7",
+    crossScalaVersions := Seq("3.3.7"),
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+    testFrameworks += new TestFramework("munit.Framework"),
+    Test / parallelExecution := false,
+    Test / fork := false,
+    libraryDependencies ++= Seq(
+      munitCatsEffect % Test,
+      "ch.qos.logback" % "logback-classic" % "1.5.29" % Test
+    )
+  )
+  .dependsOn(cats)
+
 lazy val root = (project in file("."))
     .settings(
       publish / skip := true,
       commonSettings
     )
-    .aggregate(core, akka, pekko, integration, examples, repl)
+    .aggregate(core, akka, pekko, cats, `cats-it`, integration, examples, repl)
 
 root / publishArtifact := false
 
