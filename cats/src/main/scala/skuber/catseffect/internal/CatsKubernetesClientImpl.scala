@@ -132,6 +132,14 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
     given Format[Scale] = Scale.scaleFormat
     executeRequest(req).map(parseResponse[Scale])
 
+  override def updateScale[O <: ObjectResource](name: String, scale: Scale)(using ResourceDefinition[O], Scale.SubresourceSpec[O], LoggingContext): F[Either[Status, Scale]] =
+    val rd = summon[ResourceDefinition[O]]
+    val url = UrlBuilder.scaleUrl(clusterServer, namespace, rd, name)
+    given Format[Scale] = Scale.scaleFormat
+    val body = PlayJsonBridge.encode(scale)
+    val req = K8sRequest(method = HttpMethod.Put, url = url, body = Some(body), headers = Map("Content-Type" -> "application/json"))
+    executeRequest(req).map(parseResponse[Scale])
+
   override def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)(using Writes[P], Format[O], ResourceDefinition[O], LoggingContext): F[Either[Status, O]] =
     val rd = summon[ResourceDefinition[O]]
     val ns = namespace.getOrElse(this.namespace)

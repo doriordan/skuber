@@ -38,7 +38,6 @@ class CatsKubernetesClientSpec extends CatsEffectSuite:
 
   // Construct Pod JSON manually to avoid triggering eager initialization of the entire format package
   private val testPodJson = """{"kind":"Pod","apiVersion":"v1","metadata":{"name":"test-pod","namespace":"default"}}"""
-
   private val notFoundStatusJson = """{"apiVersion":"v1","kind":"Status","metadata":{},"status":"Failure","message":"not found","reason":"NotFound","code":404}"""
   private val forbiddenStatusJson = """{"apiVersion":"v1","kind":"Status","metadata":{},"status":"Failure","message":"forbidden","reason":"Forbidden","code":403}"""
   private val conflictStatusJson = """{"apiVersion":"v1","kind":"Status","metadata":{},"status":"Failure","message":"already exists","reason":"AlreadyExists","code":409}"""

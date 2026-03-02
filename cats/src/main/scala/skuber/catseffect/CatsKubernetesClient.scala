@@ -29,6 +29,7 @@ trait CatsKubernetesClient[F[_]]:
   def listWithOptions[L <: KList[?]](options: ListOptions)(using Format[L], ResourceDefinition[L], LoggingContext): F[Either[Status, L]]
   def updateStatus[O <: ObjectResource](obj: O)(using Format[O], ResourceDefinition[O], HasStatusSubresource[O], LoggingContext): F[Either[Status, O]]
   def getScale[O <: ObjectResource](name: String)(using ResourceDefinition[O], Scale.SubresourceSpec[O], LoggingContext): F[Either[Status, Scale]]
+  def updateScale[O <: ObjectResource](name: String, scale: Scale)(using ResourceDefinition[O], Scale.SubresourceSpec[O], LoggingContext): F[Either[Status, Scale]]
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)(using Writes[P], Format[O], ResourceDefinition[O], LoggingContext): F[Either[Status, O]]
   def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O], LoggingContext): Stream[F, Either[Status, WatchEvent[O]]]
   def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None)(using LoggingContext): Stream[F, Byte]

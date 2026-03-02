@@ -20,5 +20,5 @@ private[catseffect] object AuthInterceptor:
         Async[F].fromFuture(Async[F].delay(asyncAuth.accessToken())).map { token =>
           req.copy(headers = req.headers + ("Authorization" -> s"Bearer $token"))
         }
-      case _ =>
+      case null =>
         Async[F].pure(req)
