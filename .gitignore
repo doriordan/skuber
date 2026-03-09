@@ -12,6 +12,7 @@ target/
 .bsp/
 .vscode/
 *.sc
+!repl/predef.sc
 *.launch
 *.s??
 *~

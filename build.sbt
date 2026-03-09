@@ -150,12 +150,36 @@ lazy val examples = (project in file("examples"))
   .dependsOn(core)
   .dependsOn(pekko)
 
+// Ammonite REPL with skuber Pekko client pre-initialized
+// Usage: ./repl/amm        (first run builds classpath via sbt automatically)
+//        ./repl/amm --refresh  (force classpath rebuild after code changes)
+// Ammonite version must match the project's Scala version (3.3.7).
+// Check https://github.com/com-lihaoyi/Ammonite/releases for compatible versions.
+val ammVersion = "3.0.8"
+val exportReplClasspath = taskKey[File]("Export repl classpath to repl/.classpath for use by the amm shell script")
+
+lazy val repl = (project in file("repl"))
+  .settings(
+    name := "skuber-repl",
+    publish / skip := true,
+    scalaVersion := "3.3.7",
+    libraryDependencies += "com.lihaoyi" % "ammonite" % ammVersion cross CrossVersion.full,
+    exportReplClasspath := {
+      val cp = (Compile / fullClasspath).value.files.mkString(java.io.File.pathSeparator)
+      val cpFile = baseDirectory.value / ".classpath"
+      IO.write(cpFile, cp)
+      streams.value.log.info(s"Classpath written to ${cpFile.getAbsolutePath}")
+      cpFile
+    }
+  )
+  .dependsOn(pekko)
+
 lazy val root = (project in file("."))
     .settings(
       publish / skip := true,
       commonSettings
     )
-    .aggregate(core, akka, pekko, integration, examples)
+    .aggregate(core, akka, pekko, integration, examples, repl)
 
 root / publishArtifact := false
 

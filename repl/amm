@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Launch Ammonite REPL with skuber Pekko client pre-initialized.
+# SBT exits completely before Ammonite starts, so there's no terminal conflict.
+#
+# Usage:
+#   ./repl/amm             - start REPL (builds classpath on first run)
+#   ./repl/amm --refresh   - force classpath rebuild (run after code changes)
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PREDEF="$SCRIPT_DIR/predef.sc"
+CLASSPATH_FILE="$SCRIPT_DIR/.classpath"
+
+if [[ "${1:-}" == "--refresh" ]]; then
+  shift
+  rm -f "$CLASSPATH_FILE"
+fi
+
+if [[ ! -f "$CLASSPATH_FILE" ]]; then
+  echo "Building classpath (run with --refresh to rebuild after code changes)..." >&2
+  cd "$PROJECT_DIR"
+  sbt --no-colors repl/exportReplClasspath >&2
+fi
+
+CP="$(cat "$CLASSPATH_FILE")"
+exec java -cp "$CP" ammonite.Main --predef "$PREDEF" "$@"

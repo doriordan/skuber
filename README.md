@@ -35,16 +35,68 @@ A Kubernetes cluster is needed at runtime. For local development purposes, `kind
 
 ### Running a Skuber application
 
-The best first step to get started with Skuber is to run one or more of the integration tests against a cluster. There are equivalent integration tests for both the Pekko and Akka clients. To run some integration test locally:
-
-- Ensure you have `sbt` installed
+The best first step to get started with Skuber is to try it out - by running the included ammonite REPL and/or one or more of the integration tests against a cluster. There are equivalent integration tests for both the Pekko and Akka clients. First carry out basic setup tasks:
 
 - Clone this repository.
 
 - Configure KUBECONFIG environment variable to point at your cluster configuration file per normal Kubernetes requirements - for example this could be a `kind` cluster running on your laptop.
 
-- Run one or more of the tests, for example:
-  ```bash
+#### Ammonite
+
+You can run Ammonite via the included script, which predefines a Skuber Pekko client:
+
+```bash
+✗ ./repl/amm
+Loading...
+...
+============================================
+ Skuber REPL - Pekko Client Initialized
+============================================
+ Available:
+   k8s    - PekkoKubernetesClient (default namespace)
+   system - ActorSystem
+   ec     - ExecutionContext
+
+ Quick examples:
+   Await.result(k8s.list[PodList](), 30.seconds)
+   Await.result(k8s.get[Deployment]("name"), 30.seconds)
+   k8s.usingNamespace("kube-system")
+
+ Cleanup when done:
+   k8s.close()
+   system.terminate()
+============================================
+
+Welcome to the Ammonite Repl 3.0.8 (Scala 3.3.7 Java 17.0.8.1)
+```
+Now try out a simple Skuber request:
+```bash
+@ Await.result(k8s.list[PodList](), 30.seconds)
+```
+You should see results that look like:
+```bash
+[INFO] [03/09/2026 08:06:30.270] [skuber-repl-pekko.actor.default-dispatcher-6] [skuber.api] [ { reqId=84075e15-56c8-453d-8e9a-c18ac8bc148a} } - about to send HTTP request: GET https://127.0.0.1:56166/api/v1/namespaces/default/pods]
+[INFO] [03/09/2026 08:06:30.435] [skuber-repl-pekko.actor.default-dispatcher-12] [skuber.api] [ { reqId=84075e15-56c8-453d-8e9a-c18ac8bc148a} } - received response with HTTP status 200]
+res0: ListResource[Pod] = ListResource(
+  apiVersion = "v1",
+  kind = "PodList",
+  metadata = Some(
+    value = ListMeta(
+      selfLink = "",
+      resourceVersion = "4274434",
+      continue = None
+    )
+  ),
+  items = List()
+)
+```
+#### Running Integration Test(s)
+
+First ensure you have `sbt` installed and run it in this repository. You can then run any or all integration tests in the standard way:
+
+```bash
+ ✗ sbt
+  ...
   sbt:root> integration / testOnly *PekkoDeploymentSpec*
   ```
 In this case the code is simply manipulating deployments, but there are a variety of [other tests](integration/src/test/scala/skuber) that demonstrate more of the Skuber API for both the Pekko and Akka based Skuber clients.
