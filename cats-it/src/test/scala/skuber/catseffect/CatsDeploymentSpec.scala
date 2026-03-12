@@ -11,7 +11,7 @@ import scala.concurrent.duration.*
 
 class CatsDeploymentSpec extends CatsEffectSuite:
   given LoggingContext = RequestLoggingContext()
-  override def munitTimeout: Duration = 10.minutes
+  override def munitIOTimeout: Duration = 10.minutes
 
   val client = ResourceFunFixture(CatsKubernetesClient.resource[IO])
 
@@ -24,8 +24,12 @@ class CatsDeploymentSpec extends CatsEffectSuite:
       got <- k8s.get[Deployment](name)
         .map(_.getOrElse(fail("Get failed")))
       _ = assertEquals(got.name, name)
-      updated <- k8s.update(got.updateContainer(getNginxContainer("1.9.1")))
-        .map(_.getOrElse(fail("Update failed")))
+      updated <- retryConflict(
+        k8s.get[Deployment](name).flatMap {
+          case Right(d) => k8s.update(d.updateContainer(getNginxContainer("1.9.1")))
+          case Left(s)  => IO.pure(Left(s))
+        }
+      ).map(_.getOrElse(fail("Update failed")))
       _ <- retryUntil(
         k8s.get[Deployment](name).map(_.exists(_.status.exists(_.updatedReplicas == 1))),
         retries = 40, delay = 5.seconds, label = "updatedReplicas == 1"

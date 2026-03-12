@@ -2,7 +2,7 @@ package skuber.catseffect
 
 import cats.effect.IO
 import munit.CatsEffectSuite
-import skuber.api.client.{EventType, LoggingContext, RequestLoggingContext, WatchParameters}
+import skuber.api.client.{EventType, LoggingContext, RequestLoggingContext}
 import skuber.json.format.*
 import skuber.model.LabelSelector.dsl.*
 import skuber.model.apps.v1.{Deployment, DeploymentList}
@@ -14,7 +14,7 @@ import scala.reflect.Selectable.reflectiveSelectable
 
 class CatsWatchSpec extends CatsEffectSuite:
   given LoggingContext = RequestLoggingContext()
-  override def munitTimeout: Duration = 15.minutes
+  override def munitIOTimeout: Duration = 15.minutes
 
   val client = ResourceFunFixture(CatsKubernetesClient.resource[IO])
 
@@ -32,8 +32,7 @@ class CatsWatchSpec extends CatsEffectSuite:
       listResult <- k8s.list[DeploymentList]()
       currentRV = listResult.getOrElse(fail("List failed")).resourceVersion
 
-      // Collect watch events in background
-      fiber <- k8s.watch[Deployment](WatchParameters(resourceVersion = Some(currentRV)))
+      fiber <- k8s.getWatcher[Deployment].watchStartingFromVersion(currentRV)
         .collect { case Right(event) => event }
         .filter(e => e._object.name == d1Name || e._object.name == d2Name)
         .filter(e => e._type == EventType.ADDED || e._type == EventType.DELETED)
@@ -41,7 +40,6 @@ class CatsWatchSpec extends CatsEffectSuite:
         .compile.toList
         .start
 
-      // Create and delete first deployment
       _ <- k8s.create(makeWatchDeployment(d1Name)).map(_.getOrElse(fail("Create d1 failed")))
       _ <- retryUntil(
         k8s.get[Deployment](d1Name).map(_.exists(_.status.exists(_.availableReplicas == 1))),
@@ -49,17 +47,16 @@ class CatsWatchSpec extends CatsEffectSuite:
       )
       _ <- k8s.delete[Deployment](d1Name)
 
-      // Pause to trigger multiple watch HTTP requests (reconnect behavior test)
+      // Pause to trigger multiple watch HTTP requests (reconnect behaviour test)
       _ <- IO.sleep(62.seconds)
 
-      // Create and delete second deployment
       _ <- k8s.create(makeWatchDeployment(d2Name)).map(_.getOrElse(fail("Create d2 failed")))
       _ <- retryUntil(
         k8s.get[Deployment](d2Name).map(_.exists(_.status.exists(_.availableReplicas == 1))),
         retries = 40, delay = 5.seconds, label = "d2 available"
       )
       _ <- k8s.delete[Deployment](d2Name)
-      _ <- IO.sleep(10.seconds) // allow events to propagate
+      _ <- IO.sleep(10.seconds)
 
       events <- fiber.joinWithNever
     yield
@@ -70,14 +67,14 @@ class CatsWatchSpec extends CatsEffectSuite:
       ))
   }
 
-  client.test("watch deployment events at cluster scope") { k8s =>
+  client.test("watch deployment events at cluster scope from a resource version") { k8s =>
     val d1Name = java.util.UUID.randomUUID().toString
     val d2Name = java.util.UUID.randomUUID().toString
     for
       listResult <- k8s.list[DeploymentList]()
       currentRV = listResult.getOrElse(fail("List failed")).resourceVersion
 
-      fiber <- k8s.watch[Deployment](WatchParameters(resourceVersion = Some(currentRV), clusterScope = true))
+      fiber <- k8s.getWatcher[Deployment].watchClusterStartingFromVersion(currentRV)
         .collect { case Right(event) => event }
         .filter(e => e._object.name == d1Name || e._object.name == d2Name)
         .filter(e => e._type == EventType.ADDED || e._type == EventType.DELETED)
@@ -109,7 +106,7 @@ class CatsWatchSpec extends CatsEffectSuite:
       ))
   }
 
-  client.test("watch a specific deployment from creation") { k8s =>
+  client.test("watch a specific named deployment") { k8s =>
     val dName = java.util.UUID.randomUUID().toString
     for
       _ <- k8s.create(makeWatchDeployment(dName)).map(_.getOrElse(fail("Create failed")))
@@ -118,9 +115,8 @@ class CatsWatchSpec extends CatsEffectSuite:
         retries = 40, delay = 5.seconds, label = "deployment available"
       )
 
-      fiber <- k8s.watch[Deployment](WatchParameters())
+      fiber <- k8s.getWatcher[Deployment].watchObject(dName)
         .collect { case Right(event) => event }
-        .filter(e => e._object.name == dName)
         .filter(e => e._type == EventType.ADDED || e._type == EventType.DELETED)
         .take(2)
         .compile.toList
@@ -138,7 +134,7 @@ class CatsWatchSpec extends CatsEffectSuite:
       ))
   }
 
-  client.test("watch a deployment from a specific resource version sees only delete") { k8s =>
+  client.test("watch a named deployment from a specific resource version sees only delete") { k8s =>
     val dName = java.util.UUID.randomUUID().toString
     for
       _ <- k8s.create(makeWatchDeployment(dName)).map(_.getOrElse(fail("Create failed")))
@@ -149,9 +145,8 @@ class CatsWatchSpec extends CatsEffectSuite:
 
       d <- k8s.get[Deployment](dName).map(_.getOrElse(fail("Get failed")))
 
-      fiber <- k8s.watch[Deployment](WatchParameters(resourceVersion = Some(d.resourceVersion)))
+      fiber <- k8s.getWatcher[Deployment].watchObjectStartingFromVersion(dName, d.resourceVersion)
         .collect { case Right(event) => event }
-        .filter(e => e._object.name == dName)
         .filter(e => e._type == EventType.DELETED)
         .take(1)
         .compile.toList

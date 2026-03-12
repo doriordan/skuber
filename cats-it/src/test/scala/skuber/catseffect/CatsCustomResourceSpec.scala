@@ -14,7 +14,7 @@ import scala.concurrent.duration.*
 
 class CatsCustomResourceSpec extends CatsEffectSuite:
   given LoggingContext = RequestLoggingContext()
-  override def munitTimeout: Duration = 10.minutes
+  override def munitIOTimeout: Duration = 10.minutes
 
   val client = ResourceFunFixture(CatsKubernetesClient.resource[IO])
 

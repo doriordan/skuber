@@ -8,12 +8,9 @@ import play.api.libs.json.Format
 import skuber.api.client.{Status, WatchEvent, WatchParameters}
 import skuber.model.{ObjectResource, ResourceDefinition}
 
-import scala.concurrent.duration.*
-
 private[catseffect] object WatchStream:
 
   private val log = LoggerFactory.getLogger("skuber.api")
-  private val reconnectDelay: FiniteDuration = 1.second
 
   def watch[F[_]: Async, O <: ObjectResource](
     backend: HttpBackend[F],
@@ -67,7 +64,7 @@ private[catseffect] object WatchStream:
             case _ => Async[F].unit
           ++ Stream.eval(rvRef.get).flatMap: lastRv =>
             if log.isDebugEnabled then
-              log.debug(s"Watch session ended for ${rd.spec.names.kind}, reconnecting after ${reconnectDelay} (resourceVersion=${lastRv.getOrElse("none")})")
-            Stream.sleep[F](reconnectDelay).drain ++ go(lastRv)
+              log.debug(s"Watch session ended for ${rd.spec.names.kind}, reconnecting (resourceVersion=${lastRv.getOrElse("none")})")
+            go(lastRv)
 
     go(params.resourceVersion)

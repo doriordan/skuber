@@ -11,7 +11,7 @@ import scala.concurrent.duration.*
 
 class CatsNamespaceSpec extends CatsEffectSuite:
   given LoggingContext = RequestLoggingContext()
-  override def munitTimeout: Duration = 40.minutes // namespace deletion is slow
+  override def munitIOTimeout: Duration = 40.minutes // namespace deletion is slow
 
   val client = ResourceFunFixture(CatsKubernetesClient.resource[IO])
 

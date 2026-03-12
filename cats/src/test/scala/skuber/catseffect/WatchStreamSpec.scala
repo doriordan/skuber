@@ -159,6 +159,62 @@ class WatchStreamSpec extends CatsEffectSuite:
       assertEquals(req.queryParams.get("tailLines"), Some("100"))
       assertEquals(req.queryParams.get("follow"), Some("true"))
 
+  test("getWatcher.watchObject passes fieldSelector for named object"):
+    val captured = new java.util.concurrent.atomic.AtomicReference[K8sRequest]()
+    val backend = new HttpBackend[IO]:
+      override def request(req: K8sRequest): IO[K8sResponse] =
+        IO.pure(K8sResponse(200, Array.emptyByteArray))
+      override def streamRequest(req: K8sRequest): Stream[IO, Byte] =
+        captured.set(req)
+        Stream.emits(s"$watchEventJson1\n".getBytes("UTF-8"))
+      override def websocket(req: K8sRequest, stdin: Option[Stream[IO, Array[Byte]]]): Stream[IO, WebSocketMessage] =
+        Stream.empty
+
+    val client = makeClient(backend)
+    val watcher = client.getWatcher[Pod]
+    given skuber.api.client.LoggingContext = skuber.api.client.RequestLoggingContext()
+    watcher.watchObject("my-pod").take(1).compile.toList.map: _ =>
+      val req = captured.get()
+      assertEquals(req.queryParams.get("watch"), Some("true"))
+      assertEquals(req.queryParams.get("fieldSelector"), Some("metadata.name=my-pod"))
+
+  test("getWatcher.watchStartingFromVersion passes resourceVersion"):
+    val captured = new java.util.concurrent.atomic.AtomicReference[K8sRequest]()
+    val backend = new HttpBackend[IO]:
+      override def request(req: K8sRequest): IO[K8sResponse] =
+        IO.pure(K8sResponse(200, Array.emptyByteArray))
+      override def streamRequest(req: K8sRequest): Stream[IO, Byte] =
+        captured.set(req)
+        Stream.emits(s"$watchEventJson1\n".getBytes("UTF-8"))
+      override def websocket(req: K8sRequest, stdin: Option[Stream[IO, Array[Byte]]]): Stream[IO, WebSocketMessage] =
+        Stream.empty
+
+    val client = makeClient(backend)
+    val watcher = client.getWatcher[Pod]
+    given skuber.api.client.LoggingContext = skuber.api.client.RequestLoggingContext()
+    watcher.watchStartingFromVersion("99").take(1).compile.toList.map: _ =>
+      val req = captured.get()
+      assertEquals(req.queryParams.get("resourceVersion"), Some("99"))
+
+  test("getWatcher.watchCluster passes cluster-scope URL"):
+    val captured = new java.util.concurrent.atomic.AtomicReference[K8sRequest]()
+    val backend = new HttpBackend[IO]:
+      override def request(req: K8sRequest): IO[K8sResponse] =
+        IO.pure(K8sResponse(200, Array.emptyByteArray))
+      override def streamRequest(req: K8sRequest): Stream[IO, Byte] =
+        captured.set(req)
+        Stream.emits(s"$watchEventJson1\n".getBytes("UTF-8"))
+      override def websocket(req: K8sRequest, stdin: Option[Stream[IO, Array[Byte]]]): Stream[IO, WebSocketMessage] =
+        Stream.empty
+
+    val client = makeClient(backend)
+    val watcher = client.getWatcher[Pod]
+    given skuber.api.client.LoggingContext = skuber.api.client.RequestLoggingContext()
+    watcher.watchCluster().take(1).compile.toList.map: _ =>
+      val req = captured.get()
+      // cluster-scope URL omits namespace segment
+      assert(!req.url.contains("/namespaces/"), s"Expected cluster-scope URL but got: ${req.url}")
+
   test("exec produces ExecOutput from websocket binary messages"):
     val stdoutMsg = Array[Byte](1) ++ "hello stdout".getBytes("UTF-8")
     val stderrMsg = Array[Byte](2) ++ "hello stderr".getBytes("UTF-8")

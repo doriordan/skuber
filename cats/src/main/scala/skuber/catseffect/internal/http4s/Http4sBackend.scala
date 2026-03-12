@@ -33,7 +33,10 @@ private[catseffect] class Http4sBackend[F[_]: Async](
 
   override def websocket(req: K8sRequest, stdin: Option[Stream[F, Array[Byte]]]): Stream[F, WebSocketMessage] =
     val wsUri = Uri.unsafeFromString(req.url.replaceFirst("^http", "ws"))
-    val headers = Headers(req.headers.map { case (k, v) => Header.Raw(CIString(k), v) }.toList)
+    val headers = Headers(
+      req.headers.map { case (k, v) => Header.Raw(CIString(k), v) }.toList
+        :+ Header.Raw(CIString("Sec-WebSocket-Protocol"), "channel.k8s.io")
+    )
     Stream.resource(wsClient.connectHighLevel(WSRequest(wsUri, headers, Method.GET))).flatMap { (conn: org.http4s.client.websocket.WSConnectionHighLevel[F]) =>
       val receive: Stream[F, WebSocketMessage] = conn.receiveStream.collect {
         case WSFrame.Binary(data, _) => WebSocketMessage.Binary(data.toArray)
@@ -69,5 +72,9 @@ private[catseffect] class Http4sBackend[F[_]: Async](
     val base = Request[F](method = method, uri = uri, headers = headers)
     req.body match
       case Some(bytes) =>
-        base.withEntity(bytes).putHeaders(`Content-Type`(MediaType.application.json))
+        val contentType = req.headers.get("Content-Type")
+          .flatMap(ct => MediaType.parse(ct).toOption)
+          .map(mt => `Content-Type`(mt))
+          .getOrElse(`Content-Type`(MediaType.application.json))
+        base.withEntity(bytes).putHeaders(contentType)
       case None => base

@@ -11,7 +11,7 @@ import scala.util.Random
 
 class CatsServiceSpec extends CatsEffectSuite:
   given LoggingContext = RequestLoggingContext()
-  override def munitTimeout: Duration = 3.minutes
+  override def munitIOTimeout: Duration = 3.minutes
 
   val client = ResourceFunFixture(CatsKubernetesClient.resource[IO])
 

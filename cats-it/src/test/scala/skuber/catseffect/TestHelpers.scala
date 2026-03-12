@@ -50,6 +50,18 @@ object TestHelpers:
       else IO.sleep(delay) >> retryUntil(io, retries - 1, delay, label)
     }
 
+  /** Retries `thunk` on 409 Conflict by re-executing the entire thunk (re-fetch + re-apply). */
+  def retryConflict[T](
+    thunk: => IO[Either[skuber.api.client.Status, T]],
+    retries: Int = 5,
+    delay: FiniteDuration = 500.milliseconds
+  ): IO[Either[skuber.api.client.Status, T]] =
+    thunk.flatMap {
+      case left @ Left(status) if status.code.contains(409) && retries > 0 =>
+        IO.sleep(delay) >> retryConflict(thunk, retries - 1, delay)
+      case other => IO.pure(other)
+    }
+
   /** Retries `io` until it returns `Left` with a 404, confirming resource deletion. */
   def retryUntilGone[T](
     io: IO[Either[skuber.api.client.Status, T]],

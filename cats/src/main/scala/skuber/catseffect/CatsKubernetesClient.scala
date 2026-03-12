@@ -32,6 +32,7 @@ trait CatsKubernetesClient[F[_]]:
   def updateScale[O <: ObjectResource](name: String, scale: Scale)(using ResourceDefinition[O], Scale.SubresourceSpec[O], LoggingContext): F[Either[Status, Scale]]
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)(using Writes[P], Format[O], ResourceDefinition[O], LoggingContext): F[Either[Status, O]]
   def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O], LoggingContext): Stream[F, Either[Status, WatchEvent[O]]]
+  def getWatcher[O <: ObjectResource]: CatsWatcher[F, O]
   def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None)(using LoggingContext): Stream[F, Byte]
   def exec(podName: String, command: Seq[String], containerName: Option[String] = None, stdin: Option[Stream[F, String]] = None, tty: Boolean = false)(using LoggingContext): Stream[F, ExecOutput]
   def usingNamespace(namespace: String): CatsKubernetesClient[F]

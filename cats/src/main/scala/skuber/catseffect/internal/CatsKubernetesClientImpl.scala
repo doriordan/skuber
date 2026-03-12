@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 import play.api.libs.json.{Format, Json, Writes}
 import skuber.api.client.*
 import skuber.api.patch.{Patch, StrategicMergePatchStrategy, JsonMergePatchStrategy, JsonPatchStrategy}
-import skuber.catseffect.{CatsKubernetesClient, ExecOutput}
+import skuber.catseffect.{CatsKubernetesClient, CatsWatcher, ExecOutput}
 import skuber.json.format.deleteOptionsFmt
 import skuber.json.format.apiobj.statusReads
 import skuber.model.*
@@ -70,7 +70,8 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
 
   override def create[O <: ObjectResource](obj: O)(using Format[O], ResourceDefinition[O], LoggingContext): F[Either[Status, O]] =
     val rd = summon[ResourceDefinition[O]]
-    val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd)
+    val ns = if obj.metadata.namespace.nonEmpty then obj.metadata.namespace else namespace
+    val url = UrlBuilder.resourceUrl(clusterServer, ns, rd)
     val body = PlayJsonBridge.encode(obj)
     val req = K8sRequest(method = HttpMethod.Post, url = url, body = Some(body), headers = Map("Content-Type" -> "application/json"))
     executeRequest(req).map(parseResponse[O])
@@ -78,7 +79,8 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
   override def update[O <: ObjectResource](obj: O)(using Format[O], ResourceDefinition[O], LoggingContext): F[Either[Status, O]] =
     val rd = summon[ResourceDefinition[O]]
     val name = obj.name
-    val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd, Some(name))
+    val ns = if obj.metadata.namespace.nonEmpty then obj.metadata.namespace else namespace
+    val url = UrlBuilder.resourceUrl(clusterServer, ns, rd, Some(name))
     val body = PlayJsonBridge.encode(obj)
     val req = K8sRequest(method = HttpMethod.Put, url = url, body = Some(body), headers = Map("Content-Type" -> "application/json"))
     executeRequest(req).map(parseResponse[O])
@@ -154,6 +156,9 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
 
   override def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O], LoggingContext): Stream[F, Either[Status, WatchEvent[O]]] =
     skuber.catseffect.internal.WatchStream.watch[F, O](backend, clusterServer, namespace, auth, params)
+
+  override def getWatcher[O <: ObjectResource]: CatsWatcher[F, O] =
+    new CatsWatcherImpl[F, O](backend, clusterServer, namespace, auth)
 
   override def getPodLogStream(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String])(using lc: LoggingContext): Stream[F, Byte] =
     val ns = namespace.getOrElse(this.namespace)
