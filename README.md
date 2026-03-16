@@ -16,7 +16,7 @@ Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It prov
 - Optional fluent API for building common Kubernetes resource types
 - Reuse existing `kubeconfig` files (via KUBECONFIG environment variable) for the client configuration without modification
 - No need for explicit configuration when run inside a pod - the client detects its environment and connects automatically to the cluster API server, periodically refreshing the access token used
-- Choice of two client implementations - the most commonly used one uses Pekko under the hood, but there is a swappable alternative that uses Akka instead
+- Choice of client implementations - the most commonly used one uses Pekko under the hood, but there is a swappable alternative that uses Akka instead, and a beta cats-effect/fs2 client for the Typelevel stack
 - Supports Scala 3 and Scala 2
 - (Experimental) Forms a foundation for building Kubernetes operators using [skuber-operator](https://github.com/doriordan/skuber-operator) 
 
@@ -137,6 +137,8 @@ This example lists pods in `kube-system` namespace.
     case Success(pods) => pods.items.foreach { p => println(p.name) }
     case Failure(e) => throw(e)
   }
+  k8s.close()
+  system.terminate()
   ```
 
 The `k8sInit` call returns a concrete Skuber client which is then used to make the requests to the Kubernetes cluster API.
@@ -163,6 +165,29 @@ libraryDependencies += "io.skuber" %% "skuber-akka-bsl" % "3.1.0"
 
   // the rest of the code should look just the same as the Pekko example
   ```
+
+#### Using the Cats Effect client
+
+The `cats-effect` client is new and has no release yet, this page will be updated with dependency details once a release has been published.
+
+```scala
+import cats.effect.{IO, IOApp}
+import skuber.catseffect.CatsKubernetesClient
+import skuber.api.client.LoggingContext
+
+object MyApp extends IOApp.Simple:
+  given LoggingContext = LoggingContext.lc
+
+  def run: IO[Unit] =
+    CatsKubernetesClient.resource[IO].use { k8s =>
+      k8s.list[PodList]().flatMap {
+        case Right(pods) => IO.println(pods.items.map(_.name).mkString(", "))
+        case Left(err)   => IO.println(s"Error: ${err.message}")
+      }
+    }
+```
+
+The cats client uses a `Resource`-based lifecycle (underlying resources will be closed down automatically when done), returns `F[Either[Status, O]]` instead of throwing exceptions, and uses `fs2.Stream` for streaming operations. See the [cats client programming guide](docs/GUIDE_CATS.md) for full details.
 
 ## Building
 

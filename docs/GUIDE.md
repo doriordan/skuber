@@ -95,7 +95,7 @@ Equally it is straightforward to do the reverse and generate a Play Json value f
 
 In order to actually use Skuber to interact with Kubernetes, a Kubernetes client will first need to be created.
 
-Skuber actually supports two concrete implementations of the same Kubernetes client Scala API - one that utilises Pekko under the hood and another that uses Akka under the hood. 
+Skuber supports three concrete implementations of the Kubernetes client Scala API: one using Pekko, one using Akka, and one using the TypeLevel stack (cats-effects, fs2, http4s). However the cats-effects client is currently in beta, so the guide to that client is for now maintained in the separate [cats client guide](./GUIDE_CATS.md), and this guide focuses on the Pekko and Akka clients.
 
 If in doubt use the Pekko-based client, as is used below. This requires adding the following dependency to the application build:
 ```sbt
