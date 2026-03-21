@@ -66,6 +66,9 @@ jobs:
       - name: Run Akka module unit tests
         run: sbt ++${{ matrix.scala }} akka/test
 
+      - name: Run Cats module unit tests
+        run: sbt ++${{ matrix.scala }} cats/test
+
       - name: Build examples
         run: sbt ++${{ matrix.scala }} examples/compile
         if: matrix.scala == '3.3.7'

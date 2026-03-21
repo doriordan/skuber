@@ -96,6 +96,12 @@ jobs:
           KUBECONFIG: ${{ env.KUBECONFIG }}
         timeout-minutes: 30
 
+      - name: Run cats integration tests
+        run: sbt ++${{ matrix.scala }} cats-it/test
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
+        timeout-minutes: 30
+
       - name: Debug on failure
         if: failure()
         run: |
