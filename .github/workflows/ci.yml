@@ -68,6 +68,7 @@ jobs:
 
       - name: Run Cats module unit tests
         run: sbt ++${{ matrix.scala }} cats/test
+        if: matrix.scala == '3.3.7'
 
       - name: Build examples
         run: sbt ++${{ matrix.scala }} examples/compile

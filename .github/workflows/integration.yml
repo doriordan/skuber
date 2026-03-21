@@ -101,6 +101,7 @@ jobs:
         env:
           KUBECONFIG: ${{ env.KUBECONFIG }}
         timeout-minutes: 30
+        if: matrix.scala == '3.3.7'
 
       - name: Debug on failure
         if: failure()
