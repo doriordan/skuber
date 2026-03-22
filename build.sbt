@@ -191,6 +191,17 @@ val http4sJdkHttpClient = "org.http4s" %% "http4s-jdk-http-client" % "0.9.1"
 
 val munitCatsEffect = "org.typelevel" %% "munit-cats-effect" % "2.0.0"
 
+val zioVersion     = "2.1.24"
+val zioHttpVersion = "3.10.1"
+
+lazy val zioClientDependencies = Seq(
+  "dev.zio" %% "zio"          % zioVersion,
+  "dev.zio" %% "zio-streams"  % zioVersion,
+  "dev.zio" %% "zio-http"     % zioHttpVersion,
+  "dev.zio" %% "zio-test"     % zioVersion % Test,
+  "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+)
+
 lazy val catsClientDependencies = Seq(
   catsEffect, fs2Core, fs2IO,
   http4sClient, http4sDsl, http4sEmberClient, http4sJdkHttpClient,
@@ -234,12 +245,49 @@ lazy val `cats-it` = (project in file("cats-it"))
   )
   .dependsOn(cats)
 
+lazy val zio = (project in file("zio"))
+  .settings(
+    name := "skuber-zio",
+    organization := "io.skuber",
+    scalaVersion := "3.3.7",
+    crossScalaVersions := Seq("3.3.7"),
+    publishTo := {
+      val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+      if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+      else localStaging.value
+    },
+    pomIncludeRepository := { _ => false },
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    libraryDependencies ++= zioClientDependencies
+  )
+  .dependsOn(core)
+
+lazy val `zio-it` = (project in file("zio-it"))
+  .settings(
+    name := "skuber-zio-it",
+    organization := "io.skuber",
+    publish / skip := true,
+    scalaVersion := "3.3.7",
+    crossScalaVersions := Seq("3.3.7"),
+    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
+    Test / parallelExecution := false,
+    Test / fork := false,
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio-test"     % zioVersion % Test,
+      "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+      "ch.qos.logback" % "logback-classic" % "1.5.32" % Test
+    )
+  )
+  .dependsOn(`zio`)
+
 lazy val root = (project in file("."))
     .settings(
       publish / skip := true,
       commonSettings
     )
-    .aggregate(core, akka, pekko, cats, `cats-it`, integration, examples, repl)
+    .aggregate(core, akka, pekko, cats, `cats-it`, zio, `zio-it`, integration, examples, repl)
 
 root / publishArtifact := false
 
