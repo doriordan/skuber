@@ -52,8 +52,11 @@ private[zio] object WatchStream:
           .tap: event =>
             val rv = event._object.metadata.resourceVersion
             rvRef.set(Some(rv)).when(rv.nonEmpty)
-          .catchAll(_ => ZStream.empty)
+          .catchAllCause: _ =>
+            // Reconnect on any error or defect (including network drops converted to defects by orDie)
+            ZStream.fromZIO(rvRef.get).flatMap(go)
           .concat:
+            // Reconnect after clean server-side close
             ZStream.fromZIO(rvRef.get).flatMap(go)
 
     go(params.resourceVersion)
