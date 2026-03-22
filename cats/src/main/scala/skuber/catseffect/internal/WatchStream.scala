@@ -45,7 +45,9 @@ private[catseffect] object WatchStream:
       if log.isDebugEnabled then
         log.debug(s"Watch session starting for ${rd.spec.names.kind} (resourceVersion=${resourceVersion.getOrElse("none")})")
 
-      Stream.eval(Async[F].fromFuture(Async[F].delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))).flatMap: authedReq =>
+      Stream.eval(Async[F].executionContext.flatMap { ec =>
+        Async[F].fromFuture(Async[F].delay(AuthInterceptor.addAuth(req, auth)(using ec)))
+      }).flatMap: authedReq =>
         PlayJsonBridge.parseJsonLines[F, WatchEvent[O]](backend.streamRequest(authedReq)).map:
           case Right(event) => Right(event)
           case Left(err) =>

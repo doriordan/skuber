@@ -63,7 +63,10 @@ private[catseffect] class Http4sBackend[F[_]: Async](
 
     val baseUri = Uri.unsafeFromString(req.url)
     val uri = if req.queryParams.nonEmpty then
-      req.queryParams.foldLeft(baseUri)((u, kv) => u.withQueryParam(kv._1, kv._2))
+      import org.http4s.Query
+      baseUri.copy(query = Query.fromVector(
+        req.queryParams.map { case (k, v) => k -> Some(v) }.toVector
+      ))
     else baseUri
 
     val headers = Headers(req.headers.map { case (k, v) =>

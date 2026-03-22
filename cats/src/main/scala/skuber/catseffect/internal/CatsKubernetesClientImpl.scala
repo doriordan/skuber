@@ -27,8 +27,9 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
   private def executeRequest(req: K8sRequest)(using lc: LoggingContext): F[K8sResponse] =
     if log.isDebugEnabled then
       log.debug(s"[${lc.output}] Request: ${req.method} ${req.url}")
-    F.fromFuture(F.delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))
-      .flatMap(backend.request).flatTap { response =>
+    F.executionContext.flatMap { ec =>
+      F.fromFuture(F.delay(AuthInterceptor.addAuth(req, auth)(using ec)))
+    }.flatMap(backend.request).flatTap { response =>
       F.delay {
         if log.isDebugEnabled then
           log.debug(s"[${lc.output}] Response: ${response.statusCode} ${req.method} ${req.url}")
@@ -168,7 +169,9 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
     val req = K8sRequest(method = HttpMethod.Get, url = url, queryParams = queryParams.asMap.toSeq)
     if log.isDebugEnabled then
       log.debug(s"[${lc.output}] Streaming pod log: GET $url")
-    Stream.eval(F.fromFuture(F.delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))).flatMap(backend.streamRequest)
+    Stream.eval(F.executionContext.flatMap { ec =>
+      F.fromFuture(F.delay(AuthInterceptor.addAuth(req, auth)(using ec)))
+    }).flatMap(backend.streamRequest)
 
   override def exec(podName: String, command: Seq[String], containerName: Option[String], stdin: Option[Stream[F, String]], tty: Boolean)(using lc: LoggingContext): Stream[F, ExecOutput] =
     if log.isDebugEnabled then

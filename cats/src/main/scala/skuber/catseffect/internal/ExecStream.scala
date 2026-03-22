@@ -44,7 +44,9 @@ private[catseffect] object ExecStream:
         System.arraycopy(msgBytes, 0, framed, 1, msgBytes.length)
         framed
 
-    Stream.eval(Async[F].fromFuture(Async[F].delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))).flatMap: authedReq =>
+    Stream.eval(Async[F].executionContext.flatMap { ec =>
+      Async[F].fromFuture(Async[F].delay(AuthInterceptor.addAuth(req, auth)(using ec)))
+    }).flatMap: authedReq =>
       backend.websocket(authedReq, stdinBytes).collect:
         case WebSocketMessage.Binary(data) if data.length > 1 =>
           val channel = data(0)
