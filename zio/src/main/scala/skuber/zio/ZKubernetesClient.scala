@@ -39,4 +39,8 @@ object ZKubernetesClient:
     ZIO.attempt(skuber.api.Configuration.defaultK8sConfig).flatMap(scoped(_))
 
   def scoped(config: skuber.api.Configuration): ZIO[Scope, Throwable, ZKubernetesClient] =
-    skuber.zio.internal.ZKubernetesClientImpl.acquire(config)
+    for
+      client    <- skuber.zio.internal.ZioTlsHelper.buildClient(config)
+      k8sClient <- skuber.zio.internal.ZKubernetesClientImpl.acquire(config)
+                     .provideEnvironment(ZEnvironment(client))
+    yield k8sClient

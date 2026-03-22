@@ -28,8 +28,53 @@ private[zio] class ZioHttpBackend(client: Client) extends HttpBackend:
     )
 
   override def websocket(req: K8sRequest, stdin: Option[ZStream[Any, Nothing, Array[Byte]]]): ZStream[Any, Throwable, WebSocketMessage] =
-    // WebSocket placeholder — implemented in integration test phase
-    ZStream.die(new NotImplementedError("ZioHttpBackend.websocket: implement using zio-http 3.x WebSocket API"))
+    ZStream.unwrapScoped {
+      for
+        queue <- Queue.unbounded[Take[Throwable, WebSocketMessage]]
+
+        baseUrl       = URL.decode(req.url).getOrElse(URL.empty)
+        urlWithParams = if req.queryParams.nonEmpty then
+          baseUrl.copy(queryParams = QueryParams(req.queryParams.map { case (k, v) => k -> Chunk(v) }*))
+        else baseUrl
+        wsHeaders = Headers(
+          req.headers.map { case (k, v) => Header.Custom(k, v) }.toList
+        )
+
+        app = WebSocketApp(Handler.fromFunctionZIO { (channel: WebSocketChannel) =>
+          Promise.make[Nothing, Unit].flatMap { handshakeDone =>
+            val receiveLoop = channel.receiveAll {
+              case ChannelEvent.UserEventTriggered(ChannelEvent.UserEvent.HandshakeComplete) =>
+                handshakeDone.succeed(()).unit
+              case ChannelEvent.Read(WebSocketFrame.Binary(bytes)) =>
+                queue.offer(Take.single(WebSocketMessage.Binary(bytes.toArray))).unit
+              case ChannelEvent.Read(WebSocketFrame.Close(status, reason)) if status != 1000 =>
+                val msg = reason.getOrElse(s"WebSocket closed with status $status")
+                queue.offer(Take.fail(new Exception(msg))).unit
+              case ChannelEvent.ExceptionCaught(cause) =>
+                queue.offer(Take.fail(cause)).unit
+              case ChannelEvent.Unregistered =>
+                queue.offer(Take.end).unit
+              case _ =>
+                ZIO.unit
+            }
+            val sendLoop: ZIO[Any, Throwable, Unit] = stdin.fold(ZIO.unit) { stdinStream =>
+              handshakeDone.await *> stdinStream.foreach { data =>
+                channel.send(ChannelEvent.Read(WebSocketFrame.binary(Chunk.fromArray(data))))
+              }
+            }
+            receiveLoop.zipParLeft(sendLoop)
+          }
+        }).withConfig(WebSocketConfig.default.subProtocol(Some("channel.k8s.io")))
+
+        _ <- client.url(urlWithParams).addHeaders(wsHeaders).socket(app)
+               .filterOrFail(_.status == Status.SwitchingProtocols)(
+                 new Exception(s"WebSocket upgrade failed: expected 101 Switching Protocols")
+               )
+               .tapError(e => queue.offer(Take.fail(e)).ignore)
+               .ensuring(queue.offer(Take.end).ignore)
+               .forkScoped
+      yield ZStream.fromQueue(queue).flattenTake
+    }
 
   private def toZioRequest(req: K8sRequest): Request =
     val method = req.method match

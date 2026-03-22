@@ -33,7 +33,13 @@ private[catseffect] class Http4sBackend[F[_]: Async](
     Stream.resource(client.run(http4sReq)).flatMap(_.body)
 
   override def websocket(req: K8sRequest, stdin: Option[Stream[F, Array[Byte]]]): Stream[F, WebSocketMessage] =
-    val wsUri = Uri.unsafeFromString(req.url.replaceFirst("^http", "ws"))
+    val baseWsUri = Uri.unsafeFromString(req.url.replaceFirst("^http", "ws"))
+    val wsUri = if req.queryParams.nonEmpty then
+      import org.http4s.Query
+      baseWsUri.copy(query = Query.fromVector(
+        req.queryParams.map { case (k, v) => k -> Some(v) }.toVector
+      ))
+    else baseWsUri
     val headers = Headers(
       req.headers.map { case (k, v) => Header.Raw(CIString(k), v) }.toList
         :+ Header.Raw(CIString("Sec-WebSocket-Protocol"), "channel.k8s.io")
