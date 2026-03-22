@@ -19,3 +19,4 @@ target/
 *.log
 *.txt
 bin/
+.worktrees/
