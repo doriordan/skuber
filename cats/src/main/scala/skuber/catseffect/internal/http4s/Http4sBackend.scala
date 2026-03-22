@@ -9,6 +9,7 @@ import org.http4s.client.websocket.{WSClient, WSFrame, WSRequest}
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 import skuber.catseffect.internal.*
+import skuber.internal.{HttpMethod, K8sRequest, K8sResponse, WebSocketMessage}
 
 private[catseffect] class Http4sBackend[F[_]: Async](
   client: Client[F],
@@ -62,7 +63,7 @@ private[catseffect] class Http4sBackend[F[_]: Async](
 
     val baseUri = Uri.unsafeFromString(req.url)
     val uri = if req.queryParams.nonEmpty then
-      baseUri.withQueryParams(req.queryParams)
+      req.queryParams.foldLeft(baseUri)((u, kv) => u.withQueryParam(kv._1, kv._2))
     else baseUri
 
     val headers = Headers(req.headers.map { case (k, v) =>

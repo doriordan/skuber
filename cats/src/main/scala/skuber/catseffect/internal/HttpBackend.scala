@@ -1,6 +1,7 @@
 package skuber.catseffect.internal
 
 import fs2.Stream
+import skuber.internal.{K8sRequest, K8sResponse, WebSocketMessage}
 
 private[catseffect] trait HttpBackend[F[_]]:
   def request(req: K8sRequest): F[K8sResponse]

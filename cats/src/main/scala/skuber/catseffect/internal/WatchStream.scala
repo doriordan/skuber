@@ -6,6 +6,7 @@ import fs2.Stream
 import org.slf4j.LoggerFactory
 import play.api.libs.json.Format
 import skuber.api.client.{Status, WatchEvent, WatchParameters}
+import skuber.internal.{AuthInterceptor, HttpMethod, K8sRequest, UrlBuilder}
 import skuber.model.{ObjectResource, ResourceDefinition}
 
 private[catseffect] object WatchStream:
@@ -22,16 +23,15 @@ private[catseffect] object WatchStream:
 
     given Format[WatchEvent[O]] = skuber.json.format.apiobj.watchEventFormat[O]
 
-    def buildQueryParams(resourceVersion: Option[String]): Map[String, String] =
-      val base = Map("watch" -> "true")
-      val rv = resourceVersion.orElse(params.resourceVersion).map("resourceVersion" -> _)
-      val ls = params.labelSelector.map(s => "labelSelector" -> s.toString)
-      val fs = params.fieldSelector.map(s => "fieldSelector" -> s)
-      val ts = params.timeoutSeconds.map(t => "timeoutSeconds" -> t.toString)
-      val awb = if params.allowWatchBookmarks then Some("allowWatchBookmarks" -> "true") else None
-      val sie = if params.sendInitialEvents then Some("sendInitialEvents" -> "true") else None
-      val rvm = params.resourceVersionMatch.map(m => "resourceVersionMatch" -> m)
-
+    def buildQueryParams(resourceVersion: Option[String]): Seq[(String, String)] =
+      val base = Seq("watch" -> "true")
+      val rv  = resourceVersion.orElse(params.resourceVersion).map("resourceVersion" -> _).toSeq
+      val ls  = params.labelSelector.map(s => "labelSelector" -> s.toString).toSeq
+      val fs  = params.fieldSelector.map(s => "fieldSelector" -> s).toSeq
+      val ts  = params.timeoutSeconds.map(t => "timeoutSeconds" -> t.toString).toSeq
+      val awb = if params.allowWatchBookmarks then Seq("allowWatchBookmarks" -> "true") else Seq.empty
+      val sie = if params.sendInitialEvents then Seq("sendInitialEvents" -> "true") else Seq.empty
+      val rvm = params.resourceVersionMatch.map(m => "resourceVersionMatch" -> m).toSeq
       base ++ rv ++ ls ++ fs ++ ts ++ awb ++ sie ++ rvm
 
     def singleSession(resourceVersion: Option[String]): Stream[F, Either[Status, WatchEvent[O]]] =
@@ -45,7 +45,7 @@ private[catseffect] object WatchStream:
       if log.isDebugEnabled then
         log.debug(s"Watch session starting for ${rd.spec.names.kind} (resourceVersion=${resourceVersion.getOrElse("none")})")
 
-      Stream.eval(AuthInterceptor.addAuth[F](req, auth)).flatMap: authedReq =>
+      Stream.eval(Async[F].fromFuture(Async[F].delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))).flatMap: authedReq =>
         PlayJsonBridge.parseJsonLines[F, WatchEvent[O]](backend.streamRequest(authedReq)).map:
           case Right(event) => Right(event)
           case Left(err) =>

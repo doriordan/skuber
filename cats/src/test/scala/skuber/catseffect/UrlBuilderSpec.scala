@@ -3,7 +3,7 @@ package skuber.catseffect
 import munit.FunSuite
 import skuber.model.*
 import skuber.model.apps.v1.Deployment
-import skuber.catseffect.internal.UrlBuilder
+import skuber.internal.UrlBuilder
 
 class UrlBuilderSpec extends FunSuite:
 

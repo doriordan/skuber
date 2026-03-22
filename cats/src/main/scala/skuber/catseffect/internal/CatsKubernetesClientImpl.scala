@@ -8,6 +8,7 @@ import play.api.libs.json.{Format, Json, Writes}
 import skuber.api.client.*
 import skuber.api.patch.{Patch, StrategicMergePatchStrategy, JsonMergePatchStrategy, JsonPatchStrategy}
 import skuber.catseffect.{CatsKubernetesClient, CatsWatcher, ExecOutput}
+import skuber.internal.{AuthInterceptor, HttpMethod, K8sRequest, K8sResponse, UrlBuilder}
 import skuber.json.format.deleteOptionsFmt
 import skuber.json.format.apiobj.statusReads
 import skuber.model.*
@@ -26,7 +27,8 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
   private def executeRequest(req: K8sRequest)(using lc: LoggingContext): F[K8sResponse] =
     if log.isDebugEnabled then
       log.debug(s"[${lc.output}] Request: ${req.method} ${req.url}")
-    AuthInterceptor.addAuth[F](req, auth).flatMap(backend.request).flatTap { response =>
+    F.fromFuture(F.delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))
+      .flatMap(backend.request).flatTap { response =>
       F.delay {
         if log.isDebugEnabled then
           log.debug(s"[${lc.output}] Response: ${response.statusCode} ${req.method} ${req.url}")
@@ -116,7 +118,7 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
   override def listWithOptions[L <: KList[?]](options: ListOptions)(using Format[L], ResourceDefinition[L], LoggingContext): F[Either[Status, L]] =
     val rd = summon[ResourceDefinition[L]]
     val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd)
-    val req = K8sRequest(method = HttpMethod.Get, url = url, queryParams = options.asMap)
+    val req = K8sRequest(method = HttpMethod.Get, url = url, queryParams = options.asMap.toSeq)
     executeRequest(req).map(parseResponse[L])
 
   override def updateStatus[O <: ObjectResource](obj: O)(using Format[O], ResourceDefinition[O], HasStatusSubresource[O], LoggingContext): F[Either[Status, O]] =
@@ -163,10 +165,10 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
   override def getPodLogStream(name: String, queryParams: Pod.LogQueryParams, namespace: Option[String])(using lc: LoggingContext): Stream[F, Byte] =
     val ns = namespace.getOrElse(this.namespace)
     val url = UrlBuilder.podLogUrl(clusterServer, ns, name)
-    val req = K8sRequest(method = HttpMethod.Get, url = url, queryParams = queryParams.asMap)
+    val req = K8sRequest(method = HttpMethod.Get, url = url, queryParams = queryParams.asMap.toSeq)
     if log.isDebugEnabled then
       log.debug(s"[${lc.output}] Streaming pod log: GET $url")
-    Stream.eval(AuthInterceptor.addAuth[F](req, auth)).flatMap(backend.streamRequest)
+    Stream.eval(F.fromFuture(F.delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))).flatMap(backend.streamRequest)
 
   override def exec(podName: String, command: Seq[String], containerName: Option[String], stdin: Option[Stream[F, String]], tty: Boolean)(using lc: LoggingContext): Stream[F, ExecOutput] =
     if log.isDebugEnabled then

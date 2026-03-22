@@ -5,6 +5,7 @@ import fs2.Stream
 import munit.CatsEffectSuite
 import skuber.api.client.*
 import skuber.catseffect.internal.*
+import skuber.internal.{HttpMethod, K8sRequest, K8sResponse, WebSocketMessage}
 import skuber.model.*
 import skuber.json.format.podFormat
 

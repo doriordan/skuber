@@ -10,7 +10,7 @@ import play.api.libs.json.{Format, Writes}
 import skuber.api.Configuration
 import skuber.api.client.{LoggingConfig, LoggingContext, Status, WatchEvent, WatchParameters, ListOptions, DeleteOptions}
 import skuber.api.patch.Patch
-import skuber.catseffect.internal.TlsHelper
+import skuber.internal.TlsHelper
 import skuber.catseffect.internal.CatsKubernetesClientImpl
 import skuber.catseffect.internal.http4s.Http4sBackend
 import skuber.model.*

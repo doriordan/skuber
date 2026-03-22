@@ -6,7 +6,11 @@ import munit.CatsEffectSuite
 import play.api.libs.json.Json
 import skuber.api.client.*
 import skuber.catseffect.internal.*
+import skuber.internal.{HttpMethod, K8sRequest, K8sResponse, WebSocketMessage}
 import skuber.model.*
+
+extension (qs: Seq[(String, String)])
+  def get(key: String): Option[String] = qs.find(_._1 == key).map(_._2)
 
 class CatsKubernetesClientSpec extends CatsEffectSuite:
 

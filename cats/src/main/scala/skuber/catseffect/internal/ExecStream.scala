@@ -4,8 +4,7 @@ import cats.effect.Async
 import cats.syntax.all.*
 import fs2.Stream
 import skuber.catseffect.ExecOutput
-
-import java.net.URLEncoder
+import skuber.internal.{AuthInterceptor, HttpMethod, K8sRequest, UrlBuilder, WebSocketMessage}
 
 private[catseffect] object ExecStream:
 
@@ -25,20 +24,17 @@ private[catseffect] object ExecStream:
     tty: Boolean
   ): Stream[F, ExecOutput] =
 
-    val baseUrl = UrlBuilder.execUrl(clusterServer, namespace, podName)
+    val url = UrlBuilder.execUrl(clusterServer, namespace, podName)
 
-    // Build query string manually since command can have repeated keys
-    val queryParts = scala.collection.mutable.ArrayBuffer[String]()
-    command.foreach(cmd => queryParts += s"command=${URLEncoder.encode(cmd, "UTF-8")}")
-    queryParts += "stdout=true"
-    queryParts += "stderr=true"
-    queryParts += s"tty=$tty"
-    containerName.foreach(c => queryParts += s"container=${URLEncoder.encode(c, "UTF-8")}")
-    if stdin.isDefined then queryParts += "stdin=true"
+    val stdinFlag = if stdin.isDefined then Seq("stdin" -> "true") else Seq.empty
+    val containerParam = containerName.map("container" -> _).toSeq
+    val queryParams: Seq[(String, String)] =
+      command.map("command" -> _) ++
+      Seq("stdout" -> "true", "stderr" -> "true", s"tty" -> tty.toString) ++
+      containerParam ++
+      stdinFlag
 
-    val fullUrl = s"$baseUrl?${queryParts.mkString("&")}"
-
-    val req = K8sRequest(method = HttpMethod.Get, url = fullUrl)
+    val req = K8sRequest(method = HttpMethod.Get, url = url, queryParams = queryParams)
 
     val stdinBytes: Option[Stream[F, Array[Byte]]] = stdin.map: s =>
       s.map: msg =>
@@ -48,7 +44,7 @@ private[catseffect] object ExecStream:
         System.arraycopy(msgBytes, 0, framed, 1, msgBytes.length)
         framed
 
-    Stream.eval(AuthInterceptor.addAuth[F](req, auth)).flatMap: authedReq =>
+    Stream.eval(Async[F].fromFuture(Async[F].delay(AuthInterceptor.addAuth(req, auth)(using scala.concurrent.ExecutionContext.global)))).flatMap: authedReq =>
       backend.websocket(authedReq, stdinBytes).collect:
         case WebSocketMessage.Binary(data) if data.length > 1 =>
           val channel = data(0)
