@@ -23,8 +23,9 @@ private[zio] class ZioHttpBackend(client: Client) extends HttpBackend:
         )
 
   override def streamRequest(req: K8sRequest): ZStream[Any, Throwable, Byte] =
-    val zioReq = toZioRequest(req)
-    ZStream.fromZIO(batchedClient.request(zioReq)).flatMap(_.body.asStream)
+    ZStream.unwrapScoped(
+      client.request(toZioRequest(req)).map(_.body.asStream)
+    )
 
   override def websocket(req: K8sRequest, stdin: Option[ZStream[Any, Nothing, Array[Byte]]]): ZStream[Any, Throwable, WebSocketMessage] =
     // WebSocket placeholder — implemented in integration test phase
