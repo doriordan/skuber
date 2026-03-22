@@ -135,10 +135,19 @@ private[zio] class ZKubernetesClientImpl(
   override def getServerAPIVersions: IO[K8sException, List[String]] =
     val req = K8sRequest(HttpMethod.Get, s"$clusterServer/api")
     executeRequest(req).flatMap: response =>
-      ZIO.attempt {
-        val json = Json.parse(response.body)
-        (json \ "versions").as[List[String]]
-      }.mapError(e => K8sException(Status(message = Some(s"Failed to parse API versions: ${e.getMessage}"), code = Some(response.statusCode))))
+      if response.statusCode >= 200 && response.statusCode < 300 then
+        ZIO.attempt {
+          val json = Json.parse(response.body)
+          (json \ "versions").as[List[String]]
+        }.mapError(e => K8sException(Status(
+          message = Some(s"Failed to parse API versions: ${e.getMessage}"),
+          code = Some(response.statusCode))))
+      else
+        val status = PlayJsonBridge.decode[Status](response.body) match
+          case Right(s) => s
+          case Left(_)  => Status(message = Some(new String(response.body, "UTF-8")),
+                                  code = Some(response.statusCode))
+        ZIO.fail(K8sException(status))
 
   override def usingNamespace(newNamespace: String): ZKubernetesClient =
     new ZKubernetesClientImpl(backend, clusterServer, auth, newNamespace)
@@ -148,7 +157,7 @@ private[zio] class ZKubernetesClientImpl(
     ZStream.fail(K8sException(Status(message = Some("not implemented yet"))))
 
   override def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None): ZStream[Any, Throwable, Byte] =
-    ZStream.empty
+    ZStream.fail(new RuntimeException("getPodLogStream: not implemented yet"))
 
   override def exec(podName: String, command: Seq[String], containerName: Option[String] = None, stdin: Option[ZStream[Any, Nothing, String]] = None, tty: Boolean = false): ZStream[Any, Throwable, ExecOutput] =
-    ZStream.empty
+    ZStream.fail(new RuntimeException("exec: not implemented yet"))
