@@ -152,9 +152,8 @@ private[zio] class ZKubernetesClientImpl(
   override def usingNamespace(newNamespace: String): ZKubernetesClient =
     new ZKubernetesClientImpl(backend, clusterServer, auth, newNamespace)
 
-  // streaming stubs — implemented in later tasks
   override def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O]): ZStream[Any, K8sException, WatchEvent[O]] =
-    ZStream.fail(K8sException(Status(message = Some("not implemented yet"))))
+    skuber.zio.internal.WatchStream.watch[O](backend, clusterServer, namespace, auth, params)
 
   override def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None): ZStream[Any, Throwable, Byte] =
     ZStream.fail(new RuntimeException("getPodLogStream: not implemented yet"))
