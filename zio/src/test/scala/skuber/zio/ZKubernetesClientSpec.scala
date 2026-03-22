@@ -108,5 +108,51 @@ object ZKubernetesClientSpec extends ZIOSpecDefault:
       val client = makeClient(mockBackend(200, responseJson))
       client.getServerAPIVersions.map: versions =>
         assertTrue(versions == List("v1"))
+    },
+    test("exec produces ExecOutput from websocket binary messages") {
+      val stdoutMsg = Array[Byte](1) ++ "hello stdout".getBytes("UTF-8")
+      val stderrMsg = Array[Byte](2) ++ "hello stderr".getBytes("UTF-8")
+      val backend = new HttpBackend:
+        override def request(req: K8sRequest): IO[Throwable, K8sResponse] =
+          ZIO.succeed(K8sResponse(200, Array.emptyByteArray))
+        override def streamRequest(req: K8sRequest): ZStream[Any, Throwable, Byte] =
+          ZStream.empty
+        override def websocket(req: K8sRequest, stdin: Option[ZStream[Any, Nothing, Array[Byte]]]): ZStream[Any, Throwable, WebSocketMessage] =
+          ZStream(WebSocketMessage.Binary(stdoutMsg), WebSocketMessage.Binary(stderrMsg))
+      val client = makeClient(backend)
+      client.exec("my-pod", Seq("sh", "-c", "echo hello")).runCollect.map: outputs =>
+        assertTrue(outputs.size == 2)
+        assertTrue(outputs(0) == ExecOutput.Stdout("hello stdout"))
+        assertTrue(outputs(1) == ExecOutput.Stderr("hello stderr"))
+    },
+    test("getPodLogStream streams bytes") {
+      val logData = "line1\nline2"
+      val backend = new HttpBackend:
+        override def request(req: K8sRequest): IO[Throwable, K8sResponse] =
+          ZIO.succeed(K8sResponse(200, Array.emptyByteArray))
+        override def streamRequest(req: K8sRequest): ZStream[Any, Throwable, Byte] =
+          ZStream.fromIterable(logData.getBytes("UTF-8"))
+        override def websocket(req: K8sRequest, stdin: Option[ZStream[Any, Nothing, Array[Byte]]]): ZStream[Any, Throwable, WebSocketMessage] =
+          ZStream.empty
+      val client = makeClient(backend)
+      client.getPodLogStream("my-pod").runCollect.map: bytes =>
+        assertTrue(new String(bytes.toArray, "UTF-8") == logData)
+    },
+    test("exec encodes command as repeated queryParams") {
+      for
+        capturedRef <- Ref.make(Option.empty[K8sRequest])
+        backend = new HttpBackend:
+          override def request(req: K8sRequest): IO[Throwable, K8sResponse] =
+            ZIO.succeed(K8sResponse(200, Array.emptyByteArray))
+          override def streamRequest(req: K8sRequest): ZStream[Any, Throwable, Byte] = ZStream.empty
+          override def websocket(req: K8sRequest, stdin: Option[ZStream[Any, Nothing, Array[Byte]]]): ZStream[Any, Throwable, WebSocketMessage] =
+            ZStream.fromZIO(capturedRef.set(Some(req))) *> ZStream.empty
+        client = makeClient(backend)
+        _       <- client.exec("my-pod", Seq("ls", "-la")).runDrain
+        captured <- capturedRef.get
+      yield
+        val qs = captured.get.queryParams
+        val commands = qs.collect { case ("command", v) => v }
+        assertTrue(commands == Seq("ls", "-la"))
     }
   )

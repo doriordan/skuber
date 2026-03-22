@@ -156,7 +156,10 @@ private[zio] class ZKubernetesClientImpl(
     skuber.zio.internal.WatchStream.watch[O](backend, clusterServer, namespace, auth, params)
 
   override def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None): ZStream[Any, Throwable, Byte] =
-    ZStream.fail(new RuntimeException("getPodLogStream: not implemented yet"))
+    val ns  = namespace.getOrElse(this.namespace)
+    val url = UrlBuilder.podLogUrl(clusterServer, ns, name)
+    val req = K8sRequest(HttpMethod.Get, url, queryParams = queryParams.asMap.toSeq)
+    ZStream.fromZIO(AuthInterceptor.addAuth(req, auth)).flatMap(backend.streamRequest)
 
   override def exec(podName: String, command: Seq[String], containerName: Option[String] = None, stdin: Option[ZStream[Any, Nothing, String]] = None, tty: Boolean = false): ZStream[Any, Throwable, ExecOutput] =
-    ZStream.fail(new RuntimeException("exec: not implemented yet"))
+    ExecStream.exec(backend, clusterServer, namespace, auth, podName, command, containerName, stdin, tty)
