@@ -1,14 +1,13 @@
-// core/src/main/scala/skuber/internal/AuthInterceptor.scala
 package skuber.internal
 
-import skuber.api.client.*
+import skuber.api.client._
 import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
 
-object AuthInterceptor:
+object AuthInterceptor {
 
   def addAuth(req: K8sRequest, auth: AuthInfo)(implicit ec: ExecutionContext): Future[K8sRequest] =
-    auth match
+    auth match {
       case NoAuth | _: CertAuth =>
         Future.successful(req)
       case BasicAuth(user, pwd) =>
@@ -22,3 +21,5 @@ object AuthInterceptor:
         )
       case null =>
         Future.successful(req)
+    }
+}

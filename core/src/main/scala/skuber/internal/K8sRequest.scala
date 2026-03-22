@@ -1,10 +1,15 @@
-// core/src/main/scala/skuber/internal/K8sRequest.scala
 package skuber.internal
 
 import scala.concurrent.duration.FiniteDuration
 
-enum HttpMethod:
-  case Get, Post, Put, Delete, Patch
+sealed trait HttpMethod
+object HttpMethod {
+  case object Get    extends HttpMethod
+  case object Post   extends HttpMethod
+  case object Put    extends HttpMethod
+  case object Delete extends HttpMethod
+  case object Patch  extends HttpMethod
+}
 
 case class K8sRequest(
   method: HttpMethod,
@@ -21,6 +26,8 @@ case class K8sResponse(
   headers: Map[String, String] = Map.empty
 )
 
-enum WebSocketMessage:
-  case Binary(data: Array[Byte])
-  case Close
+sealed trait WebSocketMessage
+object WebSocketMessage {
+  case class Binary(data: Array[Byte]) extends WebSocketMessage
+  case object Close extends WebSocketMessage
+}

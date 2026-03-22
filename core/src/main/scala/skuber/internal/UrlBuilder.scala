@@ -2,7 +2,7 @@ package skuber.internal
 
 import skuber.model.{ResourceDefinition, ResourceSpecification, TypeMeta}
 
-object UrlBuilder:
+object UrlBuilder {
 
   def resourceUrl(
     clusterServer: String,
@@ -11,13 +11,14 @@ object UrlBuilder:
     nameComponent: Option[String] = None,
     namespaceOverride: Option[String] = None,
     clusterScopeOverride: Option[Boolean] = None
-  ): String =
-    val nsPathComponent = clusterScopeOverride match
+  ): String = {
+    val nsPathComponent = clusterScopeOverride match {
       case None if rd.spec.scope == ResourceSpecification.Scope.Cluster => None
       case Some(true) => None
       case _ =>
         val ns = namespaceOverride.getOrElse(namespace)
         Some(s"namespaces/$ns")
+    }
 
     val parts: List[Any] = List(
       clusterServer,
@@ -29,11 +30,13 @@ object UrlBuilder:
       nameComponent
     )
 
-    val urlParts = parts.collect:
-      case p: String if p.nonEmpty => p
-      case Some(p: String) if p.nonEmpty => p
+    val urlParts = parts.collect {
+      case p: String if p.nonEmpty        => p
+      case Some(p: String) if p.nonEmpty  => p
+    }
 
     urlParts.mkString("/")
+  }
 
   def statusUrl(
     clusterServer: String,
@@ -64,3 +67,4 @@ object UrlBuilder:
     podName: String
   ): String =
     s"$clusterServer/api/v1/namespaces/$namespace/pods/$podName/exec"
+}
