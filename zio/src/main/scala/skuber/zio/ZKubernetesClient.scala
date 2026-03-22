@@ -26,3 +26,17 @@ trait ZKubernetesClient:
   def exec(podName: String, command: Seq[String], containerName: Option[String] = None, stdin: Option[ZStream[Any, Nothing, String]] = None, tty: Boolean = false): ZStream[Any, Throwable, ExecOutput]
   def getServerAPIVersions: IO[K8sException, List[String]]
   def usingNamespace(namespace: String): ZKubernetesClient
+
+object ZKubernetesClient:
+
+  val layer: ZLayer[Any, Throwable, ZKubernetesClient] =
+    ZLayer.scoped(scoped)
+
+  def layer(config: skuber.api.Configuration): ZLayer[Any, Throwable, ZKubernetesClient] =
+    ZLayer.scoped(scoped(config))
+
+  val scoped: ZIO[Scope, Throwable, ZKubernetesClient] =
+    ZIO.attempt(skuber.api.Configuration.defaultK8sConfig).flatMap(scoped(_))
+
+  def scoped(config: skuber.api.Configuration): ZIO[Scope, Throwable, ZKubernetesClient] =
+    skuber.zio.internal.ZKubernetesClientImpl.acquire(config)

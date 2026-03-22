@@ -163,3 +163,15 @@ private[zio] class ZKubernetesClientImpl(
 
   override def exec(podName: String, command: Seq[String], containerName: Option[String] = None, stdin: Option[ZStream[Any, Nothing, String]] = None, tty: Boolean = false): ZStream[Any, Throwable, ExecOutput] =
     ExecStream.exec(backend, clusterServer, namespace, auth, podName, command, containerName, stdin, tty)
+
+private[zio] object ZKubernetesClientImpl:
+  def acquire(config: skuber.api.Configuration): ZIO[Scope, Throwable, ZKubernetesClient] =
+    val context       = config.currentContext
+    val clusterServer = context.cluster.server
+    val auth          = context.authInfo
+    val namespace     = context.namespace.name
+
+    ZIO.serviceWithZIO[zio.http.Client]: client =>
+      val backend = ziohttp.ZioHttpBackend(client)
+      ZIO.succeed(new ZKubernetesClientImpl(backend, clusterServer, auth, namespace))
+    .provideSome[Scope](zio.http.ZClient.default)
