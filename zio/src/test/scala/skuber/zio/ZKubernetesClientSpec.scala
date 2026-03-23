@@ -39,7 +39,7 @@ object ZKubernetesClientSpec extends ZIOSpecDefault:
       client.get[Pod]("test-pod").map: pod =>
         assertTrue(pod.name == "test-pod")
     },
-    test("get fails with K8sException on 404") {
+    test("get fails with K8SException on 404") {
       import skuber.json.format.podFormat
       val client = makeClient(mockBackend(404, notFoundStatusJson))
       client.get[Pod]("test-pod").exit.map: result =>
@@ -59,7 +59,7 @@ object ZKubernetesClientSpec extends ZIOSpecDefault:
         assertTrue(opt.isDefined)
         assertTrue(opt.get.name == "test-pod")
     },
-    test("getOption fails with K8sException on non-404 error") {
+    test("getOption fails with K8SException on non-404 error") {
       import skuber.json.format.podFormat
       val client = makeClient(mockBackend(403, forbiddenStatusJson))
       client.getOption[Pod]("test-pod").exit.map: result =>
@@ -72,7 +72,7 @@ object ZKubernetesClientSpec extends ZIOSpecDefault:
       client.create[Pod](pod).map: created =>
         assertTrue(created.name == "test-pod")
     },
-    test("create fails with K8sException on 409") {
+    test("create fails with K8SException on 409") {
       import skuber.json.format.podFormat
       val client = makeClient(mockBackend(409, conflictStatusJson))
       val pod = Pod(metadata = ObjectMeta(name = "test-pod", namespace = "default"))
@@ -85,7 +85,7 @@ object ZKubernetesClientSpec extends ZIOSpecDefault:
       client.delete[Pod]("test-pod").map: _ =>
         assertTrue(true)
     },
-    test("delete fails with K8sException on 404") {
+    test("delete fails with K8SException on 404") {
       val client = makeClient(mockBackend(404, notFoundStatusJson))
       client.delete[Pod]("test-pod").exit.map: result =>
         assertTrue(result.isFailure)

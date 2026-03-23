@@ -96,7 +96,7 @@ private[zio] object ZioTlsHelper:
         file.getAbsolutePath
       }.mapError { e =>
         new java.io.IOException(
-          s"skuber: failed to write TLS $prefix temp file to ${System.getProperty("java.io.tmpdir")}. " +
+          s"skuber: failed to write TLS $prefix temp file to ${java.lang.System.getProperty("java.io.tmpdir")}. " +
           "If running in a container with readOnlyRootFilesystem, mount an emptyDir volume at /tmp. " +
           s"Alternatively, use file paths in kubeconfig rather than inline certificate data. Cause: ${e.getMessage}",
           e)

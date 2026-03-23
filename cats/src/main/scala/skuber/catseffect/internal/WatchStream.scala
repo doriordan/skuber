@@ -5,7 +5,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import org.slf4j.LoggerFactory
 import play.api.libs.json.Format
-import skuber.api.client.{Status, WatchEvent, WatchParameters}
+import skuber.api.client.{K8SException, Status, WatchEvent, WatchParameters}
 import skuber.internal.{AuthInterceptor, HttpMethod, K8sRequest, UrlBuilder}
 import skuber.model.{ObjectResource, ResourceDefinition}
 
@@ -19,7 +19,7 @@ private[catseffect] object WatchStream:
     namespace: String,
     auth: skuber.api.client.AuthInfo,
     params: WatchParameters
-  )(using fmt: Format[O], rd: ResourceDefinition[O]): Stream[F, Either[Status, WatchEvent[O]]] =
+  )(using fmt: Format[O], rd: ResourceDefinition[O]): Stream[F, Either[K8SException, WatchEvent[O]]] =
 
     given Format[WatchEvent[O]] = skuber.json.format.apiobj.watchEventFormat[O]
 
@@ -34,7 +34,7 @@ private[catseffect] object WatchStream:
       val rvm = params.resourceVersionMatch.map(m => "resourceVersionMatch" -> m).toSeq
       base ++ rv ++ ls ++ fs ++ ts ++ awb ++ sie ++ rvm
 
-    def singleSession(resourceVersion: Option[String]): Stream[F, Either[Status, WatchEvent[O]]] =
+    def singleSession(resourceVersion: Option[String]): Stream[F, Either[K8SException, WatchEvent[O]]] =
       val url = UrlBuilder.resourceUrl(
         clusterServer, namespace, rd,
         clusterScopeOverride = if params.clusterScope then Some(true) else None
@@ -53,9 +53,9 @@ private[catseffect] object WatchStream:
           case Left(err) =>
             if log.isWarnEnabled then
               log.warn(s"Watch event parse error for ${rd.spec.names.kind}: $err")
-            Left(Status(message = Some(s"Watch event parse error: $err")))
+            Left(new K8SException(Status(message = Some(s"Watch event parse error: $err"))))
 
-    def go(resourceVersion: Option[String]): Stream[F, Either[Status, WatchEvent[O]]] =
+    def go(resourceVersion: Option[String]): Stream[F, Either[K8SException, WatchEvent[O]]] =
       Stream.eval(Ref.of[F, Option[String]](resourceVersion)).flatMap: rvRef =>
         singleSession(resourceVersion)
           .evalTap:

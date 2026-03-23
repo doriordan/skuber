@@ -41,7 +41,7 @@ class CatsNamespaceSpec extends CatsEffectSuite:
       // pod1 not found in default namespace
       notFound <- k8s.get[Pod](pod1Name)
       _ = assert(notFound.isLeft, s"Expected pod1 not in default ns, got: $notFound")
-      _ = assert(notFound.left.toOption.get.code.contains(404))
+      _ = assert(notFound.left.toOption.get.isNotFound)
       // Find pod1 in ns1
       found1 <- k8s.usingNamespace(ns1).get[Pod](pod1Name)
         .map(_.getOrElse(fail("Get pod1 from ns1 failed")))

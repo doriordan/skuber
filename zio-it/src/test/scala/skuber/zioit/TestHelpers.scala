@@ -6,7 +6,7 @@ import scala.reflect.Selectable.reflectiveSelectable
 import skuber.model.LabelSelector.dsl.*
 import skuber.model.apps.v1.Deployment
 import skuber.model.{Container, ObjectMeta, Pod}
-import skuber.zio.K8sException
+import skuber.api.client.K8SException
 
 object TestHelpers:
   val defaultNginxVersion = "1.29.2"
@@ -52,10 +52,10 @@ object TestHelpers:
 
   /** Retries `thunk` on 409 Conflict by re-executing the entire thunk. */
   def retryConflict[T](
-    thunk: => IO[K8sException, T],
+    thunk: => IO[K8SException, T],
     retries: Int = 5,
     delay: Duration = 500.milliseconds
-  ): IO[K8sException, T] =
+  ): IO[K8SException, T] =
     thunk.catchSome {
       case e if e.isConflict && retries > 0 =>
         ZIO.sleep(delay) *> retryConflict(thunk, retries - 1, delay)
@@ -63,7 +63,7 @@ object TestHelpers:
 
   /** Retries `io` until it fails with 404, confirming resource deletion. */
   def retryUntilGone[T](
-    io: IO[K8sException, T],
+    io: IO[K8SException, T],
     retries: Int = 40,
     delay: Duration = 3.seconds
   ): Task[Unit] =

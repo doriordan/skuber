@@ -3,7 +3,7 @@ package skuber.catseffect.internal
 import cats.effect.Async
 import fs2.Stream
 import play.api.libs.json.Format
-import skuber.api.client.{AuthInfo, ListOptions, LoggingContext, Status, WatchEvent, WatchParameters}
+import skuber.api.client.{AuthInfo, K8SException, ListOptions, LoggingContext, WatchEvent, WatchParameters}
 import skuber.catseffect.CatsWatcher
 import skuber.model.{ObjectResource, ResourceDefinition}
 
@@ -19,7 +19,7 @@ private[catseffect] class CatsWatcherImpl[F[_]: Async, O <: ObjectResource](
     clusterScope: Boolean,
     bufSize: Int,
     errorHandler: Option[String => ?]
-  )(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Stream[F, Either[Status, WatchEvent[O]]] =
+  )(implicit fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Stream[F, Either[K8SException, WatchEvent[O]]] =
     val params = WatchParameters(
       clusterScope = clusterScope,
       resourceVersion = watchRequestOptions.resourceVersion,

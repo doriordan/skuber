@@ -54,7 +54,7 @@ class CatsKubernetesClientSpec extends CatsEffectSuite:
       assert(result.isRight)
       assertEquals(result.toOption.get.name, "test-pod")
 
-  test("get returns Left(Status) on 404"):
+  test("get returns Left(K8SException) on 404"):
     val client = makeClient(mockBackend(404, notFoundStatusJson))
     import skuber.json.format.podFormat
     client.get[Pod]("test-pod").map: result =>

@@ -302,7 +302,12 @@ package object client {
     def apply(): RequestLoggingContext = new RequestLoggingContext(UUID.randomUUID.toString)
   }
 
-  class K8SException(val status: Status) extends RuntimeException(status.toString) // we throw this when we receive a non-OK response
+  class K8SException(val status: Status) extends RuntimeException(status.toString) { // we throw this when we receive a non-OK response
+    def code: Option[Int]       = status.code
+    def isNotFound: Boolean     = code.contains(404)
+    def isConflict: Boolean     = code.contains(409)
+    def isUnauthorized: Boolean = code.contains(401)
+  }
 
   def defaultK8sConfig: Configuration = Configuration.defaultK8sConfig
 

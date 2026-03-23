@@ -52,24 +52,24 @@ object TestHelpers:
 
   /** Retries `thunk` on 409 Conflict by re-executing the entire thunk (re-fetch + re-apply). */
   def retryConflict[T](
-    thunk: => IO[Either[skuber.api.client.Status, T]],
+    thunk: => IO[Either[skuber.api.client.K8SException, T]],
     retries: Int = 5,
     delay: FiniteDuration = 500.milliseconds
-  ): IO[Either[skuber.api.client.Status, T]] =
+  ): IO[Either[skuber.api.client.K8SException, T]] =
     thunk.flatMap {
-      case left @ Left(status) if status.code.contains(409) && retries > 0 =>
+      case left @ Left(ex) if ex.isConflict && retries > 0 =>
         IO.sleep(delay) >> retryConflict(thunk, retries - 1, delay)
       case other => IO.pure(other)
     }
 
   /** Retries `io` until it returns `Left` with a 404, confirming resource deletion. */
   def retryUntilGone[T](
-    io: IO[Either[skuber.api.client.Status, T]],
+    io: IO[Either[skuber.api.client.K8SException, T]],
     retries: Int = 40,
     delay: FiniteDuration = 3.seconds
   ): IO[Unit] =
     io.flatMap {
-      case Left(status) if status.code.contains(404) => IO.unit
+      case Left(ex) if ex.isNotFound => IO.unit
       case Left(other) => IO.raiseError(new AssertionError(s"Unexpected error waiting for deletion: $other"))
       case Right(_) =>
         if retries <= 0 then IO.raiseError(new AssertionError("Timed out waiting for resource to be deleted"))
