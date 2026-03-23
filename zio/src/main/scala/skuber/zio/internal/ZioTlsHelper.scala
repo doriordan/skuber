@@ -76,7 +76,16 @@ private[zio] object ZioTlsHelper:
       case Left(path)  => ZIO.succeed(path)
       case Right(data) => writeTempFile(data, prefix, suffix)
 
-  /** Write PEM bytes to a temp file, deleting it when the scope closes. */
+  /** Write PEM bytes to a temp file, deleting it when the scope closes.
+   *
+   *  Temp files are required because zio-http's TLS API only accepts file paths, not raw bytes.
+   *  This is only needed when kubeconfig embeds cert/key data inline (base64 PEM); kubeconfigs
+   *  that reference file paths bypass this entirely.
+   *
+   *  If this fails with a permission error, ensure the JVM temp directory (java.io.tmpdir,
+   *  typically /tmp) is writable. In Kubernetes pods with readOnlyRootFilesystem: true, mount
+   *  an emptyDir volume at /tmp.
+   */
   private def writeTempFile(data: Array[Byte], prefix: String, suffix: String): ZIO[Scope, Throwable, String] =
     ZIO.acquireRelease(
       ZIO.attempt {
@@ -85,5 +94,11 @@ private[zio] object ZioTlsHelper:
         try fos.write(data)
         finally fos.close()
         file.getAbsolutePath
+      }.mapError { e =>
+        new java.io.IOException(
+          s"skuber: failed to write TLS $prefix temp file to ${System.getProperty("java.io.tmpdir")}. " +
+          "If running in a container with readOnlyRootFilesystem, mount an emptyDir volume at /tmp. " +
+          s"Alternatively, use file paths in kubeconfig rather than inline certificate data. Cause: ${e.getMessage}",
+          e)
       }
     )(path => ZIO.attempt(new File(path).delete()).ignoreLogged)
