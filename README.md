@@ -5,18 +5,27 @@
 
 # Skuber
  
-Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides a fully featured, high-level and strongly typed Scala API for managing Kubernetes cluster resources (such as Pods, Services, Deployments, StatefulSets, Ingresses, Roles etc.) via the Kubernetes REST API server. 
+Skuber is a Scala client library for [Kubernetes](http://kubernetes.io). It provides fully featured, high-level and strongly typed Scala APIs for managing Kubernetes cluster resources (such as Pods, Services, Deployments, StatefulSets, Ingresses, Roles etc.) via the Kubernetes REST API server. 
 
-The client library offers asynchronous and streaming operations with applications able to choose clients offering different API approaches
-- `Future` based: two mature client choices based on Pekko or Akka under the hood respectively
-- `Effect System` based: : two pre-release client choices based on `ZIO` or `cats-effect` stacks respectively.
+The client library offers a choice from four concrete clients, each sharing the same data model but using different asynchronous runtimes that support the underlying HTTP and streaming requirements:
+
+ - An [Apache Pekko](https://pekko.apache.org/) based client.
+ - An equivalent [Akka](https://akka.io/) based client, specifically targeted at Akka licensees.
+ - A pre-release [ZIO](https://zio.dev/) bsed client.
+ - A pre-release [Cats effects](https://typelevel.org/cats-effect/) based client.
+
+These are probably the most popular asynchronous runtimes in the Scala ecosystem, so make it possible for applications to select a client that uses a runtime they have already standardized on in their services.
+
+The APIs supported by the Pekko and Akka clients mainly return `Future` results, while the `ZIO` and `cats` client APIs return - as you would expect - effect types (e.g. `IO`).
+
+If in doubt the Pekko client is recommended as a mature and fully open choice that is a good fit for most applications.
 
 ## Features
 
 - Comprehensive support for Kubernetes API model represented as Scala case classes
 - Full support mapping between the model and the required Kubernetes JSON representations for the API
 - Choice of client APIs for creating, reading, updating, removing, listing and watching resources on a Kubernetes cluster
-- The API is asynchronous and strongly typed e.g. `k8s.get[Deployment]("nginx")` returns a value of type `Future[Deployment]` (Pekko client) or `IO[K8sException, Deployment]` (ZIO client)
+- The API is asynchronous and strongly typed e.g. `k8s.get[Deployment]("nginx")` returns a value of type `Future[Deployment]` (Pekko client) or `IO[K8SException, Deployment]` (ZIO client)
 - Optional fluent API for building common Kubernetes resource types
 - Reuse existing `kubeconfig` files (via KUBECONFIG environment variable) for the client configuration without modification
 - No need for explicit configuration when run inside a pod - the client detects its environment and connects automatically to the cluster API server, periodically refreshing the access token used
@@ -116,7 +125,7 @@ libraryDependencies += "io.skuber" %% "skuber-pekko" % "3.1.0"
 
 The above dependencies enable your application to use the Pekko-based Skuber client that is implemented using Pekko, this is the default recommended configuration at the moment.
 
-#### Implementing An Example
+#### Using the Pekko client
 
 This example lists pods in `kube-system` namespace.
 
@@ -194,7 +203,7 @@ object MyApp extends ZIOAppDefault:
     }.provide(ZKubernetesClient.live)
 ```
 
-The ZIO client manages its lifecycle via `ZLayer`, returns `IO[K8sException, O]` with errors in ZIO's typed error channel rather than thrown exceptions, and uses `ZStream` for streaming operations such as watches, pod logs, and exec commands. See the [ZIO client programming guide](docs/GUIDE_ZIO.md) for full details.
+The ZIO client manages its lifecycle via `ZLayer`, returns `IO[K8SException, O]` with errors in ZIO's typed error channel rather than thrown exceptions, and uses `ZStream` for streaming operations such as watches, pod logs, and exec commands. See the [ZIO client programming guide](docs/GUIDE_ZIO.md) for full details.
 
 #### Using the Cats Effect client
 
@@ -223,7 +232,7 @@ object MyApp extends IOApp.Simple:
     }
 ```
 
-The cats client uses a `Resource`-based lifecycle (underlying resources will be closed down automatically when done), returns `F[Either[Status, O]]` instead of throwing exceptions, and uses `fs2.Stream` for streaming operations. See the [cats client programming guide](docs/GUIDE_CATS.md) for full details.
+The cats client uses a `Resource`-based lifecycle (underlying resources will be closed down automatically when done), returns `F[Either[K8SException, O]]` instead of throwing exceptions, and uses `fs2.Stream` for streaming operations. See the [cats client programming guide](docs/GUIDE_CATS.md) for full details.
 
 ## Building
 
