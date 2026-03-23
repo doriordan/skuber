@@ -6,21 +6,21 @@ This guide assumes a working knowledge of Kubernetes concepts and ZIO.
 
 ## Overview
 
-The ZIO client is a fully featured alternative to the Pekko, Akka, and cats-effect backends, with effectively a one-to-one mapping of supported operations. It is built on [ZIO](https://zio.dev/) and [zio-http](https://zio.dev/zio-http/), and exposes a purely functional API using ZIO's typed error channel.
+The ZIO client is a fully featured alternative to the other (Pekko/Akka/cats) backends, with effectively a one-to-one mapping of supported operations. It is built on [ZIO](https://zio.dev/) and [zio-http](https://zio.dev/zio-http/), and exposes a purely functional API using ZIO's typed error channel.
 
 Key differences from the Pekko/Akka clients:
 
 - Most operations return `IO[K8sException, O]` rather than `Future[O]`
 - Errors are represented in ZIO's typed error channel as `K8sException` rather than failed `Future`s
 - Streaming operations (watches, exec commands, pod logs) return `ZStream[Any, K8sException, WatchEvent[O]]` or `ZStream[Any, Throwable, Byte]`
-- The client lifecycle is managed via ZIO's `ZLayer`, which handles resource acquisition and release automatically
+- The client lifecycle is managed via ZIO's `ZLayer`, which handles resource acquisition and release automatically including connection management.
 
 Key differences from the cats-effect client:
 
 - Operations return `IO[K8sException, O]` rather than `F[Either[Status, O]]` — errors are in the typed channel, not `Either`
 - Watch streams yield `WatchEvent[O]` directly rather than `Either[Status, WatchEvent[O]]`
-- The watch API uses a single `watch[O](params: WatchParameters)` method instead of separate `getWatcher` + watch variant methods
-- The client is provided as a `ZLayer` and accessed via `ZIO.serviceWithZIO[ZKubernetesClient]`
+- The watch API uses a single `watch[O](params: WatchParameters)` method instead of separate `getWatcher` + watch variant methods (`getWatcher` may be added in future)
+- The service pattern is used - the client is provided as a `ZLayer` and accessed via `ZIO.serviceWithZIO[ZKubernetesClient]`
 
 ## Data Model and JSON
 
