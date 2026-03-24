@@ -10,9 +10,9 @@ The cats-effect client is a fully featured alternative to the Pekko and Akka bac
 
 Key differences from the Pekko/Akka clients:
 
-- Most operations return `F[Either[Status, O]]` (tagless final style) rather than `Future[O]`
-- Errors are represented explicitly via `Either[Status, O]` rather than failed `Future`s
-- Streaming operations (watches, exec commands, pod logs) return `Stream[F, Either[Status, WatchEvent[O]]]` (fs2 streams)
+- Most operations return `F[Either[K8SException, O]]` (tagless final style) rather than `Future[O]`
+- Errors are represented explicitly via `Either[K8SException, O]` rather than failed `Future`s
+- Streaming operations (watches, exec commands, pod logs) return `Stream[F, Either[K8SException, WatchEvent[O]]]` (fs2 streams)
 - The client lifecycle is managed via cats-effect `Resource`, which under the covers manages http4s and fs2 resources.
 
 ## Data Model and JSON
@@ -69,7 +69,7 @@ The `Resource` handles client shutdown automatically when the `use` block comple
 
 All API methods require implicit instances of `Format[O]`, `ResourceDefinition[O]`, and `LoggingContext` to be in scope, just as in the main guide.
 
-Operations return `F[Either[Status, O]]`. A `Left(status)` value indicates a non-OK response from Kubernetes; a `Right(o)` value contains the result.
+Operations return `F[Either[K8SException, O]]`. A `Left(K8SException)` value indicates a non-OK response from Kubernetes; a `Right(o)` value contains the result.
 
 ```scala
 import skuber.model.apps.v1.Deployment
@@ -92,7 +92,7 @@ All methods are defined on `CatsKubernetesClient[F[_]]`.
 
 Get a resource by name:
 ```scala
-val result: IO[Either[Status, Deployment]] = k8s.get[Deployment]("guestbook")
+val result: IO[Either[K8SException, Deployment]] = k8s.get[Deployment]("guestbook")
 ```
 
 Get a resource as an `Option` (returns `None` for 404):
@@ -102,24 +102,24 @@ val result: IO[Option[Deployment]] = k8s.getOption[Deployment]("guestbook")
 
 Create a resource:
 ```scala
-val result: IO[Either[Status, Deployment]] = k8s.create(deployment)
+val result: IO[Either[K8SException, Deployment]] = k8s.create(deployment)
 ```
 
 Update a resource:
 ```scala
-val result: IO[Either[Status, Deployment]] = k8s.update(updatedDeployment)
+val result: IO[Either[K8SException, Deployment]] = k8s.update(updatedDeployment)
 ```
 
 Delete a resource:
 ```scala
-val result: IO[Either[Status, Unit]] = k8s.delete[Deployment]("guestbook")
+val result: IO[Either[K8SException, Unit]] = k8s.delete[Deployment]("guestbook")
 ```
 
 Delete with options (e.g. propagation policy):
 ```scala
 import skuber.api.client.{DeleteOptions, DeletePropagation}
 
-val result: IO[Either[Status, Unit]] =
+val result: IO[Either[K8SException, Unit]] =
   k8s.deleteWithOptions[Deployment]("guestbook", DeleteOptions(propagationPolicy = Some(DeletePropagation.Foreground)))
 ```
 
@@ -127,19 +127,19 @@ List all resources of a kind in the current namespace:
 ```scala
 import skuber.model.apps.v1.DeploymentList
 
-val result: IO[Either[Status, DeploymentList]] = k8s.list[DeploymentList]()
+val result: IO[Either[K8SException, DeploymentList]] = k8s.list[DeploymentList]()
 ```
 
 List with a label selector:
 ```scala
-val result: IO[Either[Status, DeploymentList]] = k8s.listSelected[DeploymentList](labelSelector)
+val result: IO[Either[K8SException, DeploymentList]] = k8s.listSelected[DeploymentList](labelSelector)
 ```
 
 List with full options:
 ```scala
 import skuber.api.client.ListOptions
 
-val result: IO[Either[Status, DeploymentList]] = k8s.listWithOptions[DeploymentList](ListOptions(...))
+val result: IO[Either[K8SException, DeploymentList]] = k8s.listWithOptions[DeploymentList](ListOptions(...))
 ```
 
 Get and update scale subresource:
@@ -156,37 +156,36 @@ Patch a resource (JSON Patch, JSON Merge Patch, or Strategic Merge Patch):
 import skuber.api.patch.{MetadataPatch, JsonMergePatchStrategy}
 
 val patch = MetadataPatch(labels = Some(Map("env" -> "prod")), annotations = None, strategy = JsonMergePatchStrategy)
-val result: IO[Either[Status, Pod]] = k8s.patch[MetadataPatch, Pod]("my-pod", patch)
+val result: IO[Either[K8SException, Pod]] = k8s.patch[MetadataPatch, Pod]("my-pod", patch)
 ```
 
 Get server API versions:
 ```scala
-val result: IO[Either[Status, List[String]]] = k8s.getServerAPIVersions
+val result: IO[Either[K8SException, List[String]]] = k8s.getServerAPIVersions
 ```
 
 ### Error Handling
 
-Unlike the Pekko/Akka clients, the cats client does not throw `K8SException` for non-OK responses. Instead, errors are returned as `Left(status: Status)`. The `Status` type contains the HTTP status code and an error message from Kubernetes.
+Unlike the Pekko/Akka clients, the cats client does not throw `K8SException` for non-OK responses. Instead, errors are returned as `Left(K8SException)`. The `K8SException` type contains a `status` field with the HTTP status code and an error message from Kubernetes.
 
 ```scala
 k8s.delete[Deployment]("guestbook").flatMap {
   case Right(_)                                 => IO.println("Deleted")
-  case Left(status) if status.code.contains(404) => IO.unit // already gone, ignore
-  case Left(status)                             =>
-    IO.raiseError(new RuntimeException(s"Delete failed: ${status.message.getOrElse("unknown")}"))
+  case Left(ex) if ex.status.code.contains(404) => IO.unit // already gone, ignore
+  case Left(ex)                             =>
+    IO.raiseError(new RuntimeException(s"Delete failed: ${ex.status.message.getOrElse("unknown")}"))
 }
 ```
 
-To convert an `Either` result to an `IO` that raises on error:
+To convert an `Either` result to an `IO` raising the exception if it is set:
 
 ```scala
-k8s.get[Deployment]("nginx")
-  .flatMap(IO.fromEither(_.left.map(s => new RuntimeException(s.toString))))
+k8s.get[Deployment]("nginx").flatMap(IO.fromEither(_))
 ```
 
 ### Reactive Watch API
 
-Watch operations return fs2 `Stream[F, Either[Status, WatchEvent[O]]]`. Each element is either a watch event or a `Status` error from the server.
+Watch operations return fs2 `Stream[F, Either[K8SException, WatchEvent[O]]]`. Each element is either a watch event or a `K8SException` error from the server.
 
 A `Watcher` is obtained via `k8s.getWatcher[O]` and provides the same watch methods as the main guide's `Watcher` trait.
 
@@ -333,7 +332,7 @@ The same API groups (`batch`, `rbac`, `apiextensions.v1`, `networking`, etc.) ar
 
 ## Custom Resources
 
-Custom resources are defined and used exactly as described in the [main guide](GUIDE.md#custom-resources). The same `CustomResource`, `ResourceDefinition`, and JSON format definitions apply. The only difference is that the client methods return `F[Either[Status, O]]` instead of `Future[O]`.
+Custom resources are defined and used exactly as described in the [main guide](GUIDE.md#custom-resources). The same `CustomResource`, `ResourceDefinition`, and JSON format definitions apply. The only difference is that the client methods return `F[Either[K8SException, O]]` instead of `Future[O]`.
 
 ## Label Selectors
 
@@ -349,7 +348,7 @@ val sel = LabelSelector(
   "env" isNotIn List("production", "staging")
 )
 
-val result: IO[Either[Status, PodList]] = k8s.listSelected[PodList](sel)
+val result: IO[Either[K8SException, PodList]] = k8s.listSelected[PodList](sel)
 ```
 
 For watch with a label selector, pass it via `WatchParameters`:

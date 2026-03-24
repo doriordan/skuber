@@ -11,14 +11,14 @@ The ZIO client is a fully featured alternative to the other (Pekko/Akka/cats) ba
 Key differences from the Pekko/Akka clients:
 
 - Most operations return `IO[K8sException, O]` rather than `Future[O]`
-- Errors are represented in ZIO's typed error channel as `K8sException` rather than failed `Future`s
+- Errors are represented in ZIO's typed error channel as `K8SException` rather than failed `Future`s
 - Streaming operations (watches, exec commands, pod logs) return `ZStream[Any, K8sException, WatchEvent[O]]` or `ZStream[Any, Throwable, Byte]`
 - The client lifecycle is managed via ZIO's `ZLayer`, which handles resource acquisition and release automatically including connection management.
 
 Key differences from the cats-effect client:
 
-- Operations return `IO[K8sException, O]` rather than `F[Either[Status, O]]` — errors are in the typed channel, not `Either`
-- Watch streams yield `WatchEvent[O]` directly rather than `Either[Status, WatchEvent[O]]`
+- Operations return `IO[K8SException, O]` rather than `F[Either[K8SException, O]]` — errors are in the typed channel, not `Either`
+- Watch streams yield `WatchEvent[O]` directly rather than `Either[K8SException, WatchEvent[O]]`
 - The watch API uses a single `watch[O](params: WatchParameters)` method instead of separate `getWatcher` + watch variant methods (`getWatcher` may be added in future)
 - The service pattern is used - the client is provided as a `ZLayer` and accessed via `ZIO.serviceWithZIO[ZKubernetesClient]`
 
