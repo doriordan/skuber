@@ -36,7 +36,7 @@ object PersistentVolume {
 
   object AccessMode extends Enumeration {
     type AccessMode = Value
-    val ReadWriteOnce,ReadOnlyMany,ReadWriteMany = Value
+    val ReadWriteOnce,ReadWriteOncePod,ReadOnlyMany,ReadWriteMany = Value
   }
   
   object Phase extends Enumeration {

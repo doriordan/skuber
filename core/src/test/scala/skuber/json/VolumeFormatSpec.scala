@@ -25,7 +25,7 @@ class VolumeReadWriteSpec extends Specification {
           name = "mypvc"
         ),
         spec = Some(PersistentVolumeClaim.Spec(
-          accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce),
+          accessModes = List(PersistentVolume.AccessMode.ReadWriteOnce, PersistentVolume.AccessMode.ReadWriteOncePod),
           resources = Some(Resource.Requirements(limits=Map("storage" -> "30Gi"))),
           volumeName = Some("volume-name"),
           storageClassName = Some("a-storage-class-name"),
