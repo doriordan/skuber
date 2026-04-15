@@ -4,13 +4,13 @@ val akkaVersion = "2.6.19"
 
 val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.19.0"
 val specs2 = "org.specs2" %% "specs2-core" % "4.23.0"
-val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
-val mockito = "org.mockito" % "mockito-core" % "4.11.0"
-val scalaTestMockito = "org.scalatestplus" %% "mockito-4-11" % "3.2.18.0"
+val scalaTest = "org.scalatest" %% "scalatest" % "3.2.20"
+val mockito = "org.mockito" % "mockito-core" % "5.23.0"
+val scalaTestMockito = "org.scalatestplus" %% "mockito-5-18" % "3.2.19.0"
 val akkaStreamTestKit = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion
 
-val snakeYaml =  "org.yaml" % "snakeyaml" % "2.5"
-val commonsCodec = "commons-codec" % "commons-codec" % "1.20.0"
+val snakeYaml =  "org.yaml" % "snakeyaml" % "2.6"
+val commonsCodec = "commons-codec" % "commons-codec" % "1.21.0"
 val commonsIO = "commons-io" % "commons-io" % "2.21.0"
 
 // the client API request/response handing uses Akka Http
@@ -30,7 +30,7 @@ scalacOptions += "-target:jvm-1.8"
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-ThisBuild / version := "2.6.8"
+ThisBuild / version := "2.6.9"
 
 sonatypeProfileName := "io.skuber"
 
@@ -51,7 +51,7 @@ ThisBuild / developers := List(Developer(id="doriordan", name="David ORiordan", 
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.12.20", "2.13.17"),
+  crossScalaVersions := Seq("2.12.20", "2.13.18"),
   scalaVersion := "2.13.17",
   publishTo :=  {
     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
