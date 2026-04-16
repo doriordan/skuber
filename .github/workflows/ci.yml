@@ -3,13 +3,13 @@ name: CI
 on:
   push:
     branches:
-      - '3.1.x'
+      - '3.2.x'
       - '2.6.x'
       - 'master'
       - 'githubactions'
   pull_request:
     branches:
-      - '3.1.x'
+      - '3.2.x'
       - '2.6.x'
       - 'master'
 jobs:

@@ -3,11 +3,11 @@ name: Integration Tests
 on:
   push:
     branches:
-      - '3.1.x'
+      - '3.2.x'
       - 'master'
   pull_request:
     branches:
-      - '3.1.x'
+      - '3.2.x'
       - 'master'
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:  # Manual trigger
