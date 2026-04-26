@@ -95,6 +95,11 @@ package object client {
     }
   }
 
+  case class ApplyOptions(
+    fieldManager: String,
+    force: Boolean = false
+  )
+
   final val sysProps = new SystemProperties
 
   // Certificates and keys can be specified in configuration either as paths to files or embedded PEM data
@@ -302,7 +307,7 @@ package object client {
     def apply(): RequestLoggingContext = new RequestLoggingContext(UUID.randomUUID.toString)
   }
 
-  class K8SException(val status: Status) extends RuntimeException(status.toString) { // we throw this when we receive a non-OK response
+  class K8SException(val status: Status) extends RuntimeException(status.message.getOrElse(status.code.map(_.toString).getOrElse(status.toString))) {
     def code: Option[Int]       = status.code
     def isNotFound: Boolean     = code.contains(404)
     def isConflict: Boolean     = code.contains(409)

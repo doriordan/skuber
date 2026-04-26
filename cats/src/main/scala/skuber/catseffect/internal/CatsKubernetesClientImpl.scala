@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import play.api.libs.json.{Format, Json, Writes}
 import skuber.api.client.*
 import skuber.api.patch.{Patch, StrategicMergePatchStrategy, JsonMergePatchStrategy, JsonPatchStrategy}
+import skuber.model.ac.ApplyConfiguration
 import skuber.catseffect.{CatsKubernetesClient, CatsWatcher, ExecOutput}
 import skuber.internal.{AuthInterceptor, HttpMethod, K8sRequest, K8sResponse, UrlBuilder}
 import skuber.json.format.deleteOptionsFmt
@@ -155,6 +156,14 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
       case JsonPatchStrategy => "application/json-patch+json"
     val body = PlayJsonBridge.encode(patchData)
     val req = K8sRequest(method = HttpMethod.Patch, url = url, body = Some(body), headers = Map("Content-Type" -> contentType))
+    executeRequest(req).map(parseResponse[O])
+
+  override def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(using Writes[AC], Format[O], ResourceDefinition[O], LoggingContext): F[Either[K8SException,O]] =
+    val rd = summon[ResourceDefinition[O]]
+    val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd, Some(applyConfig.name))
+    val body = PlayJsonBridge.encode(applyConfig)
+    val queryParams = Seq("fieldManager" -> options.fieldManager) ++ (if options.force then Seq("force" -> "true") else Seq.empty)
+    val req = K8sRequest(method = HttpMethod.Patch, url = url, body = Some(body), headers = Map("Content-Type" -> "application/apply-patch+json"), queryParams = queryParams)
     executeRequest(req).map(parseResponse[O])
 
   override def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O], LoggingContext): Stream[F, Either[K8SException, WatchEvent[O]]] =

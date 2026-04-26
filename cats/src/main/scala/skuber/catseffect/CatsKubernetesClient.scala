@@ -8,8 +8,9 @@ import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.jdkhttpclient.JdkWSClient
 import play.api.libs.json.{Format, Writes}
 import skuber.api.Configuration
-import skuber.api.client.{K8SException, LoggingConfig, LoggingContext, WatchEvent, WatchParameters, ListOptions, DeleteOptions}
+import skuber.api.client.{K8SException, LoggingConfig, LoggingContext, WatchEvent, WatchParameters, ListOptions, DeleteOptions, ApplyOptions}
 import skuber.api.patch.Patch
+import skuber.model.ac.ApplyConfiguration
 import skuber.internal.TlsHelper
 import skuber.catseffect.internal.CatsKubernetesClientImpl
 import skuber.catseffect.internal.http4s.Http4sBackend
@@ -31,6 +32,7 @@ trait CatsKubernetesClient[F[_]]:
   def getScale[O <: ObjectResource](name: String)(using ResourceDefinition[O], Scale.SubresourceSpec[O], LoggingContext): F[Either[K8SException, Scale]]
   def updateScale[O <: ObjectResource](name: String, scale: Scale)(using ResourceDefinition[O], Scale.SubresourceSpec[O], LoggingContext): F[Either[K8SException, Scale]]
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)(using Writes[P], Format[O], ResourceDefinition[O], LoggingContext): F[Either[K8SException, O]]
+  def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(using Writes[AC], Format[O], ResourceDefinition[O], LoggingContext): F[Either[K8SException, O]]
   def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O], LoggingContext): Stream[F, Either[K8SException, WatchEvent[O]]]
   def getWatcher[O <: ObjectResource]: CatsWatcher[F, O]
   def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None)(using LoggingContext): Stream[F, Byte]

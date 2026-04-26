@@ -3,8 +3,9 @@ package skuber.zio
 import zio.*
 import zio.stream.*
 import play.api.libs.json.{Format, Writes}
-import skuber.api.client.{K8SException, WatchEvent, WatchParameters, ListOptions, DeleteOptions}
+import skuber.api.client.{K8SException, WatchEvent, WatchParameters, ListOptions, DeleteOptions, ApplyOptions}
 import skuber.api.patch.Patch
+import skuber.model.ac.ApplyConfiguration
 import skuber.model.*
 
 trait ZKubernetesClient:
@@ -21,6 +22,7 @@ trait ZKubernetesClient:
   def getScale[O <: ObjectResource](name: String)(using ResourceDefinition[O], Scale.SubresourceSpec[O]): IO[K8SException, Scale]
   def updateScale[O <: ObjectResource](name: String, scale: Scale)(using ResourceDefinition[O], Scale.SubresourceSpec[O]): IO[K8SException, Scale]
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)(using Writes[P], Format[O], ResourceDefinition[O]): IO[K8SException, O]
+  def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(using Writes[AC], Format[O], ResourceDefinition[O]): IO[K8SException, O]
   def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O]): ZStream[Any, K8SException, WatchEvent[O]]
   def getPodLogStream(name: String, queryParams: Pod.LogQueryParams = Pod.LogQueryParams(), namespace: Option[String] = None): ZStream[Any, Throwable, Byte]
   def exec(podName: String, command: Seq[String], containerName: Option[String] = None, stdin: Option[ZStream[Any, Nothing, String]] = None, tty: Boolean = false): ZStream[Any, Throwable, ExecOutput]

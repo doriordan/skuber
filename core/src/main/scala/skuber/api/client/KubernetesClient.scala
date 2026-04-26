@@ -2,6 +2,7 @@ package skuber.api.client
 
 import play.api.libs.json.{Format, Writes}
 import skuber.model.{HasStatusSubresource, LabelSelector, ListResource, ObjectResource, Pod, ResourceDefinition, Scale}
+import skuber.model.ac.ApplyConfiguration
 import skuber.api.patch.Patch
 
 import scala.concurrent.{Future, Promise}
@@ -235,6 +236,9 @@ trait BaseKubernetesClient {
     */
   def patch[P <: Patch, O <: ObjectResource](name: String, patchData: P, namespace: Option[String] = None)
       (implicit patchfmt: Writes[P], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext = RequestLoggingContext()): Future[O]
+
+  def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(
+    implicit writes: Writes[AC], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O]
 
   /**
     * Return list of API versions supported by the server

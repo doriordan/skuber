@@ -17,6 +17,7 @@ import skuber.pekkoclient.watch.{LongPollingPool, PekkoWatcherImpl, Watch, Watch
 import skuber.pekkoclient.exec.PodExecImpl
 import skuber.api.client._
 import skuber.api.patch._
+import skuber.model.ac.ApplyConfiguration
 import skuber.api.security.TLS
 import PlayJsonSupportForPekkoHttp._
 import skuber.api.client
@@ -521,6 +522,23 @@ class PekkoKubernetesClientImpl private[pekkoclient] (
     for {
       requestEntity <- marshal.to[RequestEntity]
       httpRequest <- buildRequest(HttpMethods.PATCH, rd, Some(name), namespaceOverride = Some(targetNamespace))
+      requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(contentType))
+      newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
+    } yield newOrUpdatedResource
+  }
+
+  override def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(
+    implicit writes: Writes[AC], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
+    val contentType = CustomMediaTypes.`application/apply-patch+json`
+    val queryMap = scala.collection.mutable.Map("fieldManager" -> options.fieldManager)
+    if (options.force) queryMap += ("force" -> "true")
+    val query = Some(Uri.Query(queryMap.toMap))
+    logInfo(logConfig.logRequestBasicMetadata, s"Requesting apply of resource: { name:${applyConfig.name}, fieldManager:${options.fieldManager} ... }")
+    logInfo(logConfig.logRequestFullObjectResource, s" Marshal and send: ${applyConfig.toString}")
+    val marshal = Marshal(applyConfig)
+    for {
+      requestEntity <- marshal.to[RequestEntity]
+      httpRequest <- buildRequest(HttpMethods.PATCH, rd, Some(applyConfig.name), query = query)
       requestWithEntity = httpRequest.withEntity(requestEntity.withContentType(contentType))
       newOrUpdatedResource <- makeRequestReturningObjectResource[O](requestWithEntity)
     } yield newOrUpdatedResource

@@ -5,6 +5,7 @@ import zio.stream.*
 import play.api.libs.json.{Format, Json, Writes}
 import skuber.api.client.*
 import skuber.api.patch.{JsonMergePatchStrategy, JsonPatchStrategy, Patch, StrategicMergePatchStrategy}
+import skuber.model.ac.ApplyConfiguration
 import skuber.internal.{HttpMethod, K8sRequest, K8sResponse, UrlBuilder}
 import skuber.json.format.deleteOptionsFmt
 import skuber.json.format.apiobj.statusReads
@@ -132,6 +133,13 @@ private[zio] class ZKubernetesClientImpl(
       case JsonPatchStrategy           => "application/json-patch+json"
     val body = PlayJsonBridge.encode(patchData)
     executeRequest(K8sRequest(HttpMethod.Patch, url, body = Some(body), headers = Map("Content-Type" -> contentType))).flatMap(parseResponse[O])
+
+  override def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(using Writes[AC], Format[O], ResourceDefinition[O]): IO[K8SException, O] =
+    val rd  = summon[ResourceDefinition[O]]
+    val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd, Some(applyConfig.name))
+    val body = PlayJsonBridge.encode(applyConfig)
+    val queryParams = Seq("fieldManager" -> options.fieldManager) ++ (if options.force then Seq("force" -> "true") else Seq.empty)
+    executeRequest(K8sRequest(HttpMethod.Patch, url, body = Some(body), headers = Map("Content-Type" -> "application/apply-patch+json"), queryParams = queryParams)).flatMap(parseResponse[O])
 
   override def getServerAPIVersions: IO[K8SException, List[String]] =
     val req = K8sRequest(HttpMethod.Get, s"$clusterServer/api")
