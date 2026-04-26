@@ -57,6 +57,11 @@ private[catseffect] class Http4sBackend[F[_]: Async](
           receive.concurrently(send)
         case None =>
           receive
+    }.handleErrorWith {
+      // JDK websocket can throw IOException when sending close frame on an already-closed connection.
+      // In this specific case we should not surface the exception to the application
+      case e: java.io.IOException if e.getMessage == "closed output" => Stream.empty
+      case e => Stream.raiseError(e)
     }
 
   private def toHttp4sRequest(req: K8sRequest): Request[F] =

@@ -29,7 +29,7 @@ class CatsExecSpec extends CatsEffectSuite:
         .compile.string
       _ = assertEquals(output.trim, "root")
       _ <- k8s.delete[Pod](name)
-      _ <- retryUntilGone(k8s.get[Pod](name), retries = 40, delay = 3.seconds)
+      _ <- retryUntilGone(k8s.get[Pod](name), delay = 3.seconds)
     yield ()
   }
 
@@ -47,7 +47,7 @@ class CatsExecSpec extends CatsEffectSuite:
         .compile.string
       _ = assertEquals(output.trim, "root")
       _ <- k8s.delete[Pod](name)
-      _ <- retryUntilGone(k8s.get[Pod](name), retries = 40, delay = 3.seconds)
+      _ <- retryUntilGone(k8s.get[Pod](name), delay = 3.seconds)
     yield ()
   }
 
@@ -65,7 +65,7 @@ class CatsExecSpec extends CatsEffectSuite:
       _ = assertEquals(outputs.collect { case ExecOutput.Stdout(d) => d }.mkString, "")
       _ = assertEquals(outputs.collect { case ExecOutput.Stderr(d) => d }.mkString.trim, "root")
       _ <- k8s.delete[Pod](name)
-      _ <- retryUntilGone(k8s.get[Pod](name), retries = 40, delay = 3.seconds)
+      _ <- retryUntilGone(k8s.get[Pod](name), delay = 3.seconds)
     yield ()
   }
 
@@ -84,7 +84,7 @@ class CatsExecSpec extends CatsEffectSuite:
         .compile.string
       _ = assert(output.contains("root"), s"Expected 'root' in output but got: $output")
       _ <- k8s.delete[Pod](name)
-      _ <- retryUntilGone(k8s.get[Pod](name), retries = 40, delay = 3.seconds)
+      _ <- retryUntilGone(k8s.get[Pod](name), delay = 3.seconds)
     yield ()
   }
 
