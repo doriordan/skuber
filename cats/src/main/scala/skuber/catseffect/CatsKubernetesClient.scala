@@ -70,17 +70,16 @@ object CatsKubernetesClient:
           case None => builder.build
       }
 
-      wsClient <- Resource.eval(maybeSslContext match
+      wsClient <- maybeSslContext match
         case Some(sslCtx) =>
-          Async[F].delay {
+          Resource.eval(Async[F].delay {
             val jdkClient = java.net.http.HttpClient.newBuilder()
               .sslContext(sslCtx)
               .build()
             JdkWSClient[F](jdkClient)
-          }
+          })
         case None =>
           JdkWSClient.simple[F]
-      )
 
       backend = Http4sBackend[F](httpClient, wsClient)
     yield CatsKubernetesClientImpl[F](backend, clusterServer, auth, namespace, logConfig)
