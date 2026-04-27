@@ -139,7 +139,7 @@ private[zio] class ZKubernetesClientImpl(
     val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd, Some(applyConfig.name))
     val body = PlayJsonBridge.encode(applyConfig)
     val queryParams = Seq("fieldManager" -> options.fieldManager) ++ (if options.force then Seq("force" -> "true") else Seq.empty)
-    executeRequest(K8sRequest(HttpMethod.Patch, url, body = Some(body), headers = Map("Content-Type" -> "application/apply-patch+json"), queryParams = queryParams)).flatMap(parseResponse[O])
+    executeRequest(K8sRequest(HttpMethod.Patch, url, body = Some(body), headers = Map("Content-Type" -> "application/apply-patch+yaml"), queryParams = queryParams)).flatMap(parseResponse[O])
 
   override def getServerAPIVersions: IO[K8SException, List[String]] =
     val req = K8sRequest(HttpMethod.Get, s"$clusterServer/api")

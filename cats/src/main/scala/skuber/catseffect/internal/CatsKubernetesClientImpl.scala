@@ -163,7 +163,7 @@ private[catseffect] class CatsKubernetesClientImpl[F[_]: Async](
     val url = UrlBuilder.resourceUrl(clusterServer, namespace, rd, Some(applyConfig.name))
     val body = PlayJsonBridge.encode(applyConfig)
     val queryParams = Seq("fieldManager" -> options.fieldManager) ++ (if options.force then Seq("force" -> "true") else Seq.empty)
-    val req = K8sRequest(method = HttpMethod.Patch, url = url, body = Some(body), headers = Map("Content-Type" -> "application/apply-patch+json"), queryParams = queryParams)
+    val req = K8sRequest(method = HttpMethod.Patch, url = url, body = Some(body), headers = Map("Content-Type" -> "application/apply-patch+yaml"), queryParams = queryParams)
     executeRequest(req).map(parseResponse[O])
 
   override def watch[O <: ObjectResource](params: WatchParameters = WatchParameters())(using Format[O], ResourceDefinition[O], LoggingContext): Stream[F, Either[K8SException, WatchEvent[O]]] =

@@ -486,7 +486,7 @@ class AkkaKubernetesClientImpl private[akkaclient] (
 
   override def apply[O <: ObjectResource, AC <: ApplyConfiguration[O]](applyConfig: AC, options: ApplyOptions)(
     implicit writes: Writes[AC], fmt: Format[O], rd: ResourceDefinition[O], lc: LoggingContext): Future[O] = {
-    val contentType = CustomMediaTypes.`application/apply-patch+json`
+    val contentType = CustomMediaTypes.`application/apply-patch+yaml`
     val queryMap = scala.collection.mutable.Map("fieldManager" -> options.fieldManager)
     if (options.force) queryMap += ("force" -> "true")
     val query = Some(Uri.Query(queryMap.toMap))

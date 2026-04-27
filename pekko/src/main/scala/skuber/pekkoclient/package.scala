@@ -20,7 +20,7 @@ package object pekkoclient {
   object CustomMediaTypes {
     val `application/merge-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("merge-patch+json", HttpCharsets.`UTF-8`)
     val `application/strategic-merge-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("strategic-merge-patch+json", HttpCharsets.`UTF-8`)
-    val `application/apply-patch+json`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("apply-patch+json", HttpCharsets.`UTF-8`)
+    val `application/apply-patch+yaml`: MediaType.WithFixedCharset = MediaType.applicationWithFixedCharset("apply-patch+yaml", HttpCharsets.`UTF-8`)
   }
 
   type Pool[T] = Flow[(HttpRequest, T), (Try[HttpResponse], T), NotUsed]
