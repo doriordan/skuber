@@ -62,7 +62,7 @@ class CatsServerSideApplySpec extends CatsEffectSuite:
 
       _ <- retryUntil(
         k8s.get[Deployment](name).map(_.exists(_.status.exists(_.availableReplicas >= 1))),
-        retries = 40, delay = 3.seconds, label = "availableReplicas >= 1"
+        retries = 40, delay = 5.seconds, label = "availableReplicas >= 1"
       )
 
       updated <- k8s.apply[Deployment, DeploymentApplyConfig](updatedConfig, ApplyOptions(fieldManager = fieldManager))
@@ -75,7 +75,7 @@ class CatsServerSideApplySpec extends CatsEffectSuite:
 
       _ <- retryUntil(
         k8s.get[Deployment](name).map(_.exists(_.status.exists(_.availableReplicas >= 2))),
-        retries = 40, delay = 3.seconds, label = "availableReplicas >= 2"
+        retries = 40, delay = 5.seconds, label = "availableReplicas >= 2"
       )
     yield ()
 

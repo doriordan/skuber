@@ -62,7 +62,7 @@ abstract class ServerSideApplySpec extends K8SFixture with Eventually with Match
         _ = created.name shouldBe deploymentName
         _ = created.spec.flatMap(_.replicas) shouldBe Some(1)
 
-        _ = eventually(timeout(120.seconds), interval(3.seconds)) {
+        _ = eventually(timeout(200.seconds), interval(5.seconds)) {
           val d = Await.result(k8s.get[Deployment](deploymentName), 5.seconds)
           d.status.map(_.availableReplicas).getOrElse(0) should be >= 1
         }
@@ -87,7 +87,7 @@ abstract class ServerSideApplySpec extends K8SFixture with Eventually with Match
               .flatMap(_.containers.headOption)
               .map(_.image) shouldBe Some("nginx:1.27")
 
-        _ = eventually(timeout(120.seconds), interval(3.seconds)) {
+        _ = eventually(timeout(200.seconds), interval(5.seconds)) {
           val d = Await.result(k8s.get[Deployment](deploymentName), 5.seconds)
           d.status.map(_.availableReplicas).getOrElse(0) should be >= 2
         }

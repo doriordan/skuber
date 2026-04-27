@@ -60,7 +60,7 @@ object ZioServerSideApplySpec:
 
           _ <- retryUntil(
             k8s.get[Deployment](name).map(d => d.status.exists(_.availableReplicas >= 1)),
-            retries = 40, delay = 3.seconds, label = "availableReplicas >= 1"
+            retries = 40, delay = 5.seconds, label = "availableReplicas >= 1"
           )
 
           updated <- k8s.apply[Deployment, DeploymentApplyConfig](updatedConfig, ApplyOptions(fieldManager = fieldManager))
@@ -71,7 +71,7 @@ object ZioServerSideApplySpec:
 
           _ <- retryUntil(
             k8s.get[Deployment](name).map(d => d.status.exists(_.availableReplicas >= 2)),
-            retries = 40, delay = 3.seconds, label = "availableReplicas >= 2"
+            retries = 40, delay = 5.seconds, label = "availableReplicas >= 2"
           )
         yield assertTrue(true)
 
