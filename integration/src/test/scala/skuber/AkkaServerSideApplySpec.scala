@@ -1,0 +1,3 @@
+package skuber
+
+class AkkaServerSideApplySpec extends ServerSideApplySpec with AkkaK8SFixture
