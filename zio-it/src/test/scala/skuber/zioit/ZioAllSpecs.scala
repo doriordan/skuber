@@ -24,5 +24,6 @@ object ZioAllSpecs extends ZIOSpecDefault:
     ZioPodLogSpec.spec,
     ZioExecSpec.spec,
     ZioCustomResourceSpec.spec,
-    ZioWatchSpec.spec
+    ZioWatchSpec.spec,
+    ZioServerSideApplySpec.spec
   ).provideLayerShared(ZKubernetesClient.layer) @@ TestAspect.sequential @@ TestAspect.withLiveClock
