@@ -10,7 +10,7 @@ on:
       - '3.2.x'
       - 'master'
     types: [opened, synchronize, reopened, labeled]
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
     inputs:
       scala-version:
         description: 'Scala version to test'
@@ -22,23 +22,109 @@ on:
           - '3.3.7'
 
 jobs:
+  detect-changes:
+    name: Detect Changed Sub-projects
+    runs-on: ubuntu-latest
+    outputs:
+      run-integration: ${{ steps.changes.outputs.run-integration }}
+      run-cats-it: ${{ steps.changes.outputs.run-cats-it }}
+      run-zio-it: ${{ steps.changes.outputs.run-zio-it }}
+      any-integration: ${{ steps.changes.outputs.any-integration }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        run: |
+          # For pushes to main branches, workflow_dispatch, or force-label: run all
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "run-integration=true" >> $GITHUB_OUTPUT
+            echo "run-cats-it=true" >> $GITHUB_OUTPUT
+            echo "run-zio-it=true" >> $GITHUB_OUTPUT
+            echo "any-integration=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # If PR has 'run-integration-tests' label, run all
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'run-integration-tests') }}" == "true" ]]; then
+            echo "run-integration=true" >> $GITHUB_OUTPUT
+            echo "run-cats-it=true" >> $GITHUB_OUTPUT
+            echo "run-zio-it=true" >> $GITHUB_OUTPUT
+            echo "any-integration=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          RUN_INTEGRATION=false
+          RUN_CATS_IT=false
+          RUN_ZIO_IT=false
+
+          # core changes trigger all integration tests
+          if echo "$CHANGED" | grep -qE '^core/'; then
+            RUN_INTEGRATION=true
+            RUN_CATS_IT=true
+            RUN_ZIO_IT=true
+          fi
+
+          # akka or pekko changes trigger Akka/Pekko integration tests
+          if echo "$CHANGED" | grep -qE '^(akka|pekko)/'; then
+            RUN_INTEGRATION=true
+          fi
+
+          # cats changes trigger cats-it tests
+          if echo "$CHANGED" | grep -qE '^cats/'; then
+            RUN_CATS_IT=true
+          fi
+
+          # zio changes trigger zio-it tests
+          if echo "$CHANGED" | grep -qE '^zio/'; then
+            RUN_ZIO_IT=true
+          fi
+
+          # integration test source changes trigger their own tests
+          if echo "$CHANGED" | grep -qE '^integration/'; then
+            RUN_INTEGRATION=true
+          fi
+          if echo "$CHANGED" | grep -qE '^cats-it/'; then
+            RUN_CATS_IT=true
+          fi
+          if echo "$CHANGED" | grep -qE '^zio-it/'; then
+            RUN_ZIO_IT=true
+          fi
+
+          # Shared build config changes trigger all tests
+          if echo "$CHANGED" | grep -qE '^(build\.sbt|project/)'; then
+            RUN_INTEGRATION=true
+            RUN_CATS_IT=true
+            RUN_ZIO_IT=true
+          fi
+
+          echo "run-integration=$RUN_INTEGRATION" >> $GITHUB_OUTPUT
+          echo "run-cats-it=$RUN_CATS_IT" >> $GITHUB_OUTPUT
+          echo "run-zio-it=$RUN_ZIO_IT" >> $GITHUB_OUTPUT
+
+          if [[ "$RUN_INTEGRATION" == "true" || "$RUN_CATS_IT" == "true" || "$RUN_ZIO_IT" == "true" ]]; then
+            echo "any-integration=true" >> $GITHUB_OUTPUT
+          else
+            echo "any-integration=false" >> $GITHUB_OUTPUT
+          fi
+
   integration-tests:
     name: Integration Tests (Scala ${{ matrix.scala }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any-integration == 'true'
     runs-on: ubuntu-latest
-
-    # Only run integration tests on:
-    # 1. Pushes to main branches
-    # 2. PRs labeled with 'run-integration-tests'
-    # 3. Manual workflow dispatch
-    if: |
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-integration-tests'))
 
     strategy:
       fail-fast: false
       matrix:
-        scala: ['3.3.7']  # Run only default Scala version for integration tests
+        scala: ['3.3.7']
 
     steps:
       - name: Checkout code
@@ -75,7 +161,7 @@ jobs:
         with:
           cluster_name: skuber-test
           wait: 120s
-          
+
       - name: Verify cluster
         run: |
           kubectl cluster-info
@@ -90,18 +176,26 @@ jobs:
       - name: Compile modules
         run: sbt ++${{ matrix.scala }} compile
 
-      - name: Run integration tests
+      - name: Run integration tests (Akka/Pekko)
+        if: needs.detect-changes.outputs.run-integration == 'true'
         run: sbt ++${{ matrix.scala }} integration/test
         env:
           KUBECONFIG: ${{ env.KUBECONFIG }}
         timeout-minutes: 30
 
       - name: Run cats integration tests
+        if: needs.detect-changes.outputs.run-cats-it == 'true'
         run: sbt ++${{ matrix.scala }} cats-it/test
         env:
           KUBECONFIG: ${{ env.KUBECONFIG }}
         timeout-minutes: 30
-        if: matrix.scala == '3.3.7'
+
+      - name: Run zio integration tests
+        if: needs.detect-changes.outputs.run-zio-it == 'true'
+        run: sbt ++${{ matrix.scala }} zio-it/test
+        env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
+        timeout-minutes: 30
 
       - name: Debug on failure
         if: failure()
