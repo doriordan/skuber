@@ -7,11 +7,15 @@ on:
       - '2.6.x'
       - 'master'
       - 'githubactions'
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
       - '3.2.x'
       - '2.6.x'
       - 'master'
+    paths-ignore:
+      - 'docs/**'
 jobs:
   build-and-test:
     name: Build and Test (Scala ${{ matrix.scala }}, JDK ${{ matrix.java }})

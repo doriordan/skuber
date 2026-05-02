@@ -5,11 +5,15 @@ on:
     branches:
       - '3.2.x'
       - 'master'
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
       - '3.2.x'
       - 'master'
     types: [opened, synchronize, reopened, labeled]
+    paths-ignore:
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       scala-version:
