@@ -36,7 +36,7 @@ abstract class ServerSideApplySpec extends K8SFixture with Eventually with Match
           .withTemplate(PodTemplateSpecApplyConfig()
             .addLabel("app" -> deploymentName)
             .withPodSpec(PodSpecApplyConfig()
-              .addContainer(ContainerApplyConfig("nginx", "nginx:1.25").exposePort(80))
+              .addContainer(ContainerApplyConfig("nginx", "nginx:1.27").exposePort(80))
             )
           )
         )
@@ -67,18 +67,8 @@ abstract class ServerSideApplySpec extends K8SFixture with Eventually with Match
           d.status.map(_.availableReplicas).getOrElse(0) should be >= 1
         }
 
-        updatedConfig = DeploymentApplyConfig(deploymentName)
-          .addLabel("app" -> deploymentName)
-          .withSpec(DeploymentSpecApplyConfig()
-            .withReplicas(2)
-            .withSelector(LabelSelector(LabelSelector.IsEqualRequirement("app", deploymentName)))
-            .withTemplate(PodTemplateSpecApplyConfig()
-              .addLabel("app" -> deploymentName)
-              .withPodSpec(PodSpecApplyConfig()
-                .addContainer(ContainerApplyConfig("nginx", "nginx:1.27").exposePort(80))
-              )
-            )
-          )
+        newSpec = initialConfig.spec.map(s => s.copy(replicas = Some(2)))
+        updatedConfig = initialConfig.copy(spec = newSpec)
 
         updated <- k8s.apply[Deployment, DeploymentApplyConfig](updatedConfig, ApplyOptions(fieldManager = fieldManager))
         _ = updated.spec.flatMap(_.replicas) shouldBe Some(2)

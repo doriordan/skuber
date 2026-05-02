@@ -276,6 +276,60 @@ val scaledDeploymentFut = for {
 } yield scaledUp
 ```
 
+### Server-Side Apply
+
+Since v3.2.1 Skuber supports [Kubernetes Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/), also known simply as SSA. 
+The main value of SSA is it enables different applications (field managers) to manage different fields in the same resources without conflicting with each other.
+
+In Skuber SSA is supported via an `apply` method on the client API which takes `apply configuration` objects and writes them to the API server. 
+Similar to the main model there are distinct apply configuration case classes for each resource kind, however unlike the main model the fields in apply configurations are all of `Option` type defaulting to `None`- this is what enables the application to explicitly specify the fields to write while ensuring no other field gets overwritten.
+
+Skuber's main model classes (e.g. `Pod`, `Deployment`) are not suitable for apply configurations because they have mandatory fields with default values, which would overwrite existing values when serialised.
+
+SSA is commonly used by controllers and operators, becuase it makes it easy for them to ensure that when they change their own managed fields on resources they will not accidentally overwrite fields managed by other applications.
+
+The apply configuration model for built-in types is in the `skuber.model.ac` package, with a sub-package structure mirroring that of the main model. 
+
+The following example shows how to use `apply` with suitable apply configurations to create a deployment and then modify its replica count.
+
+```scala
+import skuber.model.LabelSelector
+import skuber.model.apps.v1.Deployment
+import skuber.model.ac.apps.v1.{DeploymentApplyConfig, DeploymentSpecApplyConfig}
+import skuber.model.ac.{ContainerApplyConfig, PodTemplateSpecApplyConfig, PodSpecApplyConfig}
+import skuber.api.client.ApplyOptions
+import skuber.json.format._
+
+// Create a deployment via server-side apply - this config only sets the fields that this
+// application owns
+val config = DeploymentApplyConfig("nginx")
+  .addLabel("app" -> "nginx")
+  .withSpec(DeploymentSpecApplyConfig()
+    .withReplicas(2)
+    .withSelector(LabelSelector(LabelSelector.IsEqualRequirement("app", "nginx")))
+    .withTemplate(PodTemplateSpecApplyConfig()
+      .addLabel("app" -> "nginx")
+      .withPodSpec(PodSpecApplyConfig()
+        .addContainer(ContainerApplyConfig("nginx", "nginx:1.27").exposePort(80))
+      )
+    )
+  )
+
+val result: Future[Deployment] = k8s.apply(config, ApplyOptions(fieldManager = "my-controller"))
+
+// Later, update the same deployment, modifying the replica count only - best practice is to send same set of owned 
+// fields as with initial, but with selected value(s) updated as applicable.
+val updatedSpec = initialConfig.spec.map(s => s.copy(replicas = Some(2)))
+val updated = initialConfig.copy(spec = updatedSpec)
+
+// now apply the update - setting 'force=true' is typical practice by controllers to ensure
+// they enforce ownership of fields they know they should own and so have set in the apply config
+val updatedResult: Future[Deployment] = k8s.apply(updated, ApplyOptions(fieldManager = "my-controller",  force = true))
+
+```
+
+The `apply` method is available on all client backends (Pekko, Akka, Cats-Effect, ZIO).
+
 ### Error Handling
 
 Any call to the Skuber API methods that results in a non-OK status response from Kubernetes will cause the result of the Future returned by the method to be set to a `Failure` with an exception of class `K8SException`. This exception has a `status` field of type `Status` that encapsulates details of the error if these details are returned by Kubernetes, which is usually the case for a non-OK status code.
