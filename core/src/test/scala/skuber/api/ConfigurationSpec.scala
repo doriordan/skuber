@@ -237,6 +237,105 @@ users:
     clientCertificate must beLeft("/top/level/path/path/to/my/client/cert")
   }
 
+  "parse exec-based auth (AWS EKS/GKE/Teleport shapes) and tokenFile auth, without executing anything" >> {
+    val execConfigStr = """
+apiVersion: v1
+kind: Config
+current-context: aws-context
+clusters:
+- cluster:
+    server: https://eks.example.com
+    certificate-authority-data: bXktY2VydA==
+  name: aws-cluster
+- cluster:
+    server: https://34.1.2.3
+  name: gke-cluster
+- cluster:
+    server: https://teleport.example.com:3026
+    extensions:
+    - extension: teleport.example.com
+      name: kubeconfig.teleport.dev/teleport-cluster-name
+  name: teleport-cluster
+contexts:
+- context:
+    cluster: aws-cluster
+    user: aws-user
+  name: aws-context
+- context:
+    cluster: gke-cluster
+    user: gke-user
+  name: gke-context
+- context:
+    cluster: teleport-cluster
+    user: teleport-user
+    extensions:
+    - extension: teleport.example.com
+      name: teleport.kube.name
+  name: teleport-context
+- context:
+    cluster: aws-cluster
+    user: tokenfile-user
+  name: tokenfile-context
+users:
+- name: aws-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: aws
+      args:
+      - eks
+      - get-token
+      - --cluster-name
+      - my-cluster
+      env:
+      - name: AWS_PROFILE
+        value: my-profile
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: gke-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: gke-gcloud-auth-plugin
+      args: null
+      env: null
+      installHint: install gke-gcloud-auth-plugin
+      interactiveMode: IfAvailable
+      provideClusterInfo: true
+- name: teleport-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: /usr/local/bin/tsh
+      args:
+      - kube
+      - credentials
+      - --kube-cluster=my-cluster
+      - --teleport-cluster=teleport.example.com
+      - --proxy=teleport.example.com:443
+      env: null
+      provideClusterInfo: false
+    extensions:
+    - extension: teleport.example.com
+      name: kubeconfig.teleport.dev/profile-name
+- name: tokenfile-user
+  user:
+    tokenFile: /path/to/token/file
+"""
+    val is = new ByteArrayInputStream(execConfigStr.getBytes(java.nio.charset.Charset.forName("UTF-8")))
+    val parsed = K8SConfiguration.parseKubeconfigStream(is).get
+
+    parsed.contexts("aws-context").authInfo must beAnInstanceOf[AsyncAccessTokenAuth]
+    parsed.contexts("gke-context").authInfo must beAnInstanceOf[AsyncAccessTokenAuth]
+    parsed.contexts("teleport-context").authInfo must beAnInstanceOf[AsyncAccessTokenAuth]
+    parsed.contexts("tokenfile-context").authInfo must beAnInstanceOf[AsyncAccessTokenAuth]
+
+    parsed.users("aws-user") must beAnInstanceOf[AsyncAccessTokenAuth]
+    parsed.users("gke-user") must beAnInstanceOf[AsyncAccessTokenAuth]
+    parsed.users("teleport-user") must beAnInstanceOf[AsyncAccessTokenAuth]
+    parsed.users("tokenfile-user") must beAnInstanceOf[AsyncAccessTokenAuth]
+  }
+
   "ignore missing cluster and user references" >> {
     val config = """
 apiVersion: v1

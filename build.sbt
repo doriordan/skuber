@@ -13,6 +13,9 @@ val commonsIO = "commons-io" % "commons-io" % "2.22.0"
 val typesafeConfig = "com.typesafe" % "config" % "1.4.9"
 val logback = "ch.qos.logback" % "logback-classic" % "1.5.34" % Runtime
 val playJson = "org.playframework" %% "play-json" % "3.0.6"
+// Already present transitively via play-json, but declared explicitly since core's kubeconfig
+// parser (skuber.api.kubeconfig) uses the Jackson ObjectMapper API directly at compile time.
+val jacksonDatabind = "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.3"
 
 scalacOptions += "-target:jvm-1.8"
 
@@ -57,7 +60,7 @@ lazy val commonSettings = Seq(
 // skuber core - contains the skuber model and core API - has no dependencies on Akka/Pekko
 lazy val skuberSettings = Seq(
   libraryDependencies ++= Seq(
-    playJson, snakeYaml, commonsIO, commonsCodec,
+    playJson, snakeYaml, commonsIO, commonsCodec, jacksonDatabind,
     scalaCheck % Test, specs2 % Test, mockito % Test, scalaTestMockito % Test,
     scalaTest % Test
   ).map(_.exclude("commons-logging", "commons-logging"))
