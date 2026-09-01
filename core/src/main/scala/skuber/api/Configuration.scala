@@ -1,13 +1,8 @@
 package skuber.api
 
 import java.net.URI
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import scala.collection.JavaConverters._
 import scala.util.Try
 import scala.util.Failure
-import java.util.{ Base64, Date }
-import org.yaml.snakeyaml.Yaml
 
 import skuber.api.client._
 import skuber.model.Namespace
@@ -47,13 +42,6 @@ object Configuration {
       clusters = Map("default" -> defaultCluster),
       contexts= Map("default" -> defaultContext),
       currentContext = defaultContext)
-  }
-
-  // This covers most of RFC3339
-  private val DateFormatters = List(DateTimeFormatter.ISO_INSTANT, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-  private def parseInstant(s: String): Instant = {
-    DateFormatters.collectFirst(Function.unlift(format => Try(Instant.from(format.parse(s))).toOption))
-      .getOrElse(sys.error(s"'$s' could not be parsed as a date time string"))
   }
 
   // config to use a local proxy running on a specified port
@@ -98,137 +86,8 @@ object Configuration {
       }
     }
 
-    def parseKubeconfigStream(is: java.io.InputStream, kubeconfigDir: Option[Path] = None) : Try[Configuration]= {
-
-      type YamlMap = java.util.Map[String, Object]
-      type TopLevelYamlList = java.util.List[YamlMap]
-
-      Try {
-        val yaml = new Yaml()
-        val mainConfig = yaml.load(is).asInstanceOf[YamlMap]
-
-        def name(parent: YamlMap) =
-          parent.get("name").asInstanceOf[String]
-
-        def child(parent: YamlMap, key: String) =
-          parent.get(key).asInstanceOf[YamlMap]
-
-        def topLevelList(key: String) =
-          mainConfig.get(key).asInstanceOf[TopLevelYamlList]
-
-        def valueAt[T](parent: YamlMap, key: String, fallback: Option[T] = None) : T =
-          parent.asScala.get(key).orElse(fallback).get.asInstanceOf[T]
-
-        def optionalInstantValueAt[T](parent: YamlMap, key: String) : Option[Instant] =
-          parent.asScala.get(key).flatMap {
-            case d: Date => Some(d.toInstant)
-            case s: String => Try(parseInstant(s)).toOption
-            case _ => None
-          }
-
-        def optionalValueAt[T](parent: YamlMap, key: String) : Option[T] =
-          parent.asScala.get(key).map(_.asInstanceOf[T])
-
-        def pathOrDataValueAt[T](parent: YamlMap, pathKey: String, dataKey: String) : Option[PathOrData] = {
-          val path = optionalValueAt[String](parent, pathKey)
-          val data = optionalValueAt[String](parent, dataKey)
-
-          // Return some Right if data value is set, otherwise some Left if path value is set
-          // if neither is set return None
-          // Note - implication is that a data setting overrides a path setting
-          (path, data) match {
-            case (_, Some(b64EncodedData)) => Some(Right(Base64.getDecoder.decode(b64EncodedData)))
-            case (Some(p), _) =>
-              // path specified
-              // if it is a relative path and a directory was specified then construct full path from those components,
-              // otherwise just return path as given
-              val expandedPath = (Paths.get(p), kubeconfigDir) match {
-                case (basePath, Some(dir)) if !basePath.isAbsolute =>
-                  Paths.get(dir.normalize.toString, basePath.normalize.toString).normalize.toString
-                case _  => p
-              }
-              Some(Left(expandedPath))
-            case (None, None) => None
-          }
-        }
-
-        def topLevelYamlToK8SConfigMap[K8SConfigKind](kind: String, toK8SConfig: YamlMap=> K8SConfigKind) =
-          topLevelList(kind + "s").asScala.map(item => name(item) -> toK8SConfig(child(item, kind))).toMap
-
-
-        def toK8SCluster(clusterConfig: YamlMap) =
-          Cluster(
-            apiVersion=valueAt(clusterConfig, "api-version", Some("v1")),
-            server=valueAt(clusterConfig,"server",Some("http://localhost:8001")),
-            insecureSkipTLSVerify=valueAt(clusterConfig,"insecure-skip-tls-verify",Some(false)),
-            certificateAuthority=pathOrDataValueAt(clusterConfig, "certificate-authority","certificate-authority-data")
-          )
-
-
-        val k8sClusterMap = topLevelYamlToK8SConfigMap("cluster", toK8SCluster)
-
-        def toK8SAuthInfo(userConfig:YamlMap): AuthInfo = {
-
-          def authProviderRead(authProvider: YamlMap): Option[AuthProviderAuth] = {
-            val config = child(authProvider, "config")
-            name(authProvider).toLowerCase match {
-              case "oidc" =>
-                Some(OidcAuth(idToken = valueAt(config, "id-token")))
-              case "gcp" =>
-                Some(
-                  GcpAuth(
-                    accessToken = optionalValueAt(config, "access-token"),
-                    expiry = optionalInstantValueAt(config, "expiry"),
-                    cmdPath = valueAt(config, "cmd-path"),
-                    cmdArgs = valueAt(config, "cmd-args")
-                  )
-                )
-              case _ => None
-            }
-          }
-
-          val maybeAuth = optionalValueAt[YamlMap](userConfig, "auth-provider") match {
-            case Some(authProvider) => authProviderRead(authProvider)
-            case None =>
-              val clientCertificate = pathOrDataValueAt(userConfig, "client-certificate", "client-certificate-data")
-              val clientKey = pathOrDataValueAt(userConfig, "client-key", "client-key-data")
-
-              val token = optionalValueAt[String](userConfig, "token")
-
-              val userName = optionalValueAt[String](userConfig, "username")
-              val password = optionalValueAt[String](userConfig, "password")
-
-              (userName, password, token, clientCertificate, clientKey) match {
-                case (Some(u), Some(p), _, _, _) => Some(BasicAuth(u, p))
-                case (_, _, Some(t), _, _) => Some(TokenAuth(t))
-                case (u, _, _, Some(cert), Some(key)) => Some(CertAuth(cert, key, u))
-                case _ => None
-              }
-          }
-
-          maybeAuth.getOrElse(NoAuth)
-        }
-        val k8sAuthInfoMap = topLevelYamlToK8SConfigMap("user", toK8SAuthInfo)
-
-        def toK8SContext(contextConfig: YamlMap) = {
-          val cluster=contextConfig.asScala.get("cluster").filterNot(_.asInstanceOf[String] == "").flatMap { clusterName =>
-            k8sClusterMap.get(clusterName.asInstanceOf[String])
-          }.getOrElse(Cluster())
-          val authInfo =contextConfig.asScala.get("user").filterNot(_.asInstanceOf[String] == "").flatMap { userKey =>
-            k8sAuthInfoMap.get(userKey.asInstanceOf[String])
-          }.getOrElse(NoAuth)
-          val namespace=contextConfig.asScala.get("namespace").fold(Namespace.default) { name=>Namespace.forName(name.asInstanceOf[String]) }
-          Context(cluster,authInfo,namespace)
-        }
-
-        val k8sContextMap = topLevelYamlToK8SConfigMap("context", toK8SContext)
-
-        val currentContextStr: Option[String] = optionalValueAt(mainConfig, "current-context")
-        val currentContext = currentContextStr.flatMap(k8sContextMap.get).getOrElse(Context())
-
-        Configuration(k8sClusterMap, k8sContextMap, currentContext, k8sAuthInfoMap)
-      }
-    }
+    def parseKubeconfigStream(is: java.io.InputStream, kubeconfigDir: Option[Path] = None) : Try[Configuration] =
+      skuber.api.kubeconfig.KubeconfigConverter.parse(is, kubeconfigDir)
 
   private lazy val inClusterConfigReloadInterval: Option[FiniteDuration] = {
     import scala.concurrent.duration._
