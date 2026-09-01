@@ -11,7 +11,7 @@ val snakeYaml =  "org.yaml" % "snakeyaml" % "2.6"
 val commonsCodec = "commons-codec" % "commons-codec" % "1.22.0"
 val commonsIO = "commons-io" % "commons-io" % "2.22.0"
 val typesafeConfig = "com.typesafe" % "config" % "1.4.9"
-val logback = "ch.qos.logback" % "logback-classic" % "1.5.34" % Runtime
+val logback = "ch.qos.logback" % "logback-classic" % "1.5.38" % Runtime
 val playJson = "org.playframework" %% "play-json" % "3.0.6"
 
 scalacOptions += "-target:jvm-1.8"
@@ -277,7 +277,7 @@ lazy val `zio-it` = (project in file("zio-it"))
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-test"     % zioVersion % Test,
       "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
-      "ch.qos.logback" % "logback-classic" % "1.5.34" % Test
+      "ch.qos.logback" % "logback-classic" % "1.5.38" % Test
     )
   )
   .dependsOn(`zio`)
