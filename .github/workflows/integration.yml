@@ -128,7 +128,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: ['3.3.7']
+        scala: ['3.3.8']
 
     steps:
       - name: Checkout code

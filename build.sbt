@@ -43,8 +43,8 @@ Global / concurrentRestrictions := Seq(
 
 lazy val commonSettings = Seq(
   organization := "io.skuber",
-  crossScalaVersions := Seq("2.13.18", "3.3.7"),
-  scalaVersion := "3.3.7",
+  crossScalaVersions := Seq("2.13.18", "3.3.8"),
+  scalaVersion := "3.3.8",
   publishTo :=  {
     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
@@ -153,7 +153,7 @@ lazy val examples = (project in file("examples"))
 // Ammonite REPL with skuber Pekko client pre-initialized
 // Usage: ./repl/amm        (first run builds classpath via sbt automatically)
 //        ./repl/amm --refresh  (force classpath rebuild after code changes)
-// Ammonite version must match the project's Scala version (3.3.7).
+// Ammonite version must match the project's Scala version (3.3.8).
 // Check https://github.com/com-lihaoyi/Ammonite/releases for compatible versions.
 val ammVersion = "3.0.9"
 val exportReplClasspath = taskKey[File]("Export repl classpath to repl/.classpath for use by the amm shell script")
@@ -162,7 +162,7 @@ lazy val repl = (project in file("repl"))
   .settings(
     name := "skuber-repl",
     publish / skip := true,
-    scalaVersion := "3.3.7",
+    scalaVersion := "3.3.8",
     libraryDependencies += "com.lihaoyi" % "ammonite" % ammVersion cross CrossVersion.full,
     exportReplClasspath := {
       val cp = (Compile / fullClasspath).value.files.mkString(java.io.File.pathSeparator)
@@ -213,8 +213,8 @@ lazy val cats = (project in file("cats"))
   .settings(
     name := "skuber-cats",
     organization := "io.skuber",
-    scalaVersion := "3.3.7",
-    crossScalaVersions := Seq("3.3.7"),
+    scalaVersion := "3.3.8",
+    crossScalaVersions := Seq("3.3.8"),
     publishTo := {
       val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
       if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
@@ -232,8 +232,8 @@ lazy val `cats-it` = (project in file("cats-it"))
   .settings(
     name := "skuber-cats-it",
     publish / skip := true,
-    scalaVersion := "3.3.7",
-    crossScalaVersions := Seq("3.3.7"),
+    scalaVersion := "3.3.8",
+    crossScalaVersions := Seq("3.3.8"),
     Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
     testFrameworks += new TestFramework("munit.Framework"),
     Test / parallelExecution := false,
@@ -249,8 +249,8 @@ lazy val zio = (project in file("zio"))
   .settings(
     name := "skuber-zio",
     organization := "io.skuber",
-    scalaVersion := "3.3.7",
-    crossScalaVersions := Seq("3.3.7"),
+    scalaVersion := "3.3.8",
+    crossScalaVersions := Seq("3.3.8"),
     publishTo := {
       val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
       if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
@@ -268,8 +268,8 @@ lazy val `zio-it` = (project in file("zio-it"))
     name := "skuber-zio-it",
     organization := "io.skuber",
     publish / skip := true,
-    scalaVersion := "3.3.7",
-    crossScalaVersions := Seq("3.3.7"),
+    scalaVersion := "3.3.8",
+    crossScalaVersions := Seq("3.3.8"),
     Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
     Test / parallelExecution := false,
