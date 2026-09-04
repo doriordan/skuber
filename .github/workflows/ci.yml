@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala: ['2.13.18', '3.3.7']
+        scala: ['3.9.0', '3.3.7']
         java: ['17']
 
     steps:
