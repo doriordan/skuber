@@ -178,7 +178,7 @@ lazy val repl = (project in file("repl"))
 // Scala 3 only
 
 val catsEffectVersion = "3.7.1"
-val fs2Version = "3.13.0"
+val fs2Version = "3.14.0"
 val http4sVersion = "0.23.34"
 
 val catsEffect = "org.typelevel" %% "cats-effect" % catsEffectVersion
